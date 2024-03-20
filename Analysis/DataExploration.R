@@ -36,5 +36,32 @@ ggplot() +
 
 
 # Get AIM Data using trex R package ---------------------------------------
-trex::fetch_ldc()
+# get "indicators" data, for all plots!  (keys argument)
+# indicatorDat <- trex::fetch_ldc(#keys = "17073113365985482017-09-01", key_type = "PrimaryKey",
+#                 data_type = "indicators") %>% 
+  # mutate(DateVisited = lubridate::as_date(indicatorDat$DateVisited))
+  # 
 
+# trim out Alaska
+# indicatorDat <- indicatorDat %>% 
+#   filter(Latitude_NAD83 < 55)
+# # save as a .rds object for later
+# saveRDS(indicatorDat, file = "./data/LandscapeDataCommonsDat/IndicatorDat.rds")
+indicatorDat <- readRDS(file = "./data/LandscapeDataCommonsDat/IndicatorDat.rds")
+
+# # get species tables 
+# speciesDat <- trex::fetch_ldc(#keys = "17073113365985482017-09-01", key_type = "PrimaryKey", 
+#   data_type = "species")
+# # remove data for plots in Alaska
+# speciesDat <- speciesDat %>% 
+#   filter(PrimaryKey %in% unique(indicatorDat$PrimaryKey))
+# 
+# # save as a .rds object for later
+# saveRDS(speciesDat, file = "./data/LandscapeDataCommonsDat/SpeciesDat.rds")
+speciesDat <- readRDS(file = "./data/LandscapeDataCommonsDat/SpeciesDat.rds")
+
+## what are the years when the sites were visited? 
+unique(lubridate::year(indicatorDat$DateVisited))
+# visualize the location of plots
+ggplot(indicatorDat[1:20000,]) + 
+  geom_point(aes(x = Longitude_NAD83, y = Latitude_NAD83, color = TotalFoliarCover))
