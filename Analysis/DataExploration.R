@@ -149,6 +149,7 @@ grassDat <- grassDat %>%
 ## now get the unique names in the dataset
 grassNames <- unique(grassDat$Species) %>% 
   data.frame() 
+
 names(grassNames) <- "Species"
 # get the species names lookup table from BLM 
 taxCodes <- read.csv("./data/USDA_plants_SppNameTable.csv")
@@ -166,13 +167,25 @@ for (i in 1:length(uniqueSymbols)) {
   }
 }
 
+
 # save the synonyms data
 #write.csv(taxCodes_new, "./data/USDA_plants_SppNameTable_synonymNames.csv", row.names = TRUE)
 
-# write.csv(taxCodes, file = "./data/USDA_plants_SppNameTable_New.csv", row.names = FALSE)
-# use to get species latin names 
-grassDat <- left_join(grassDat, taxCodes_new[taxCodes_new$Status == "Accepted",], 
-                      by = c("Species"= "AcceptedSymbol")) %>% 
+# now, get photosynthetic pathway data
+# trim to just grasses in the names dataset
+# get just names in the dataset w/out synonyms
+grassNames_data <- left_join(grassNames, taxCodes_new[taxCodes_new$Status == "Accepted",], by = c("Species"= "AcceptedSymbol"))
+# get just names in the dataset with synonyms
+grassNames_all <- left_join(grassNames, taxCodes_new,  by = c("Species"= "AcceptedSymbol"))
+
+#write.csv(grassNames_all, "./data/USDA_plants_SppNameTable_allGrassInDataset.csv", row.names = FALSE)
+
+# read in dataset w/ photosynthetic pathway information
+grassNames_photo <- read.csv("./data/USDA_plants_SppNameTable_allGrassInDataset.csv")
+
+# use to get species latin names and photosynthetic pathways
+grassDat2 <- left_join(grassDat, grassNames_photo[grassNames_photo$Status == "Accepted",], 
+                      by = c("Species"= "Species")) %>% 
   select(-SynonymSymbol)
 
 
