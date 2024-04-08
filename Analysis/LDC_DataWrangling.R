@@ -11,30 +11,6 @@ library(trex)
 library(tidyverse)
 library(geojsonsf)
 
-
-# AIM data exploration ----------------------------------------------------
-### this is raw AIM data, I think? not actually quite sure... will move to 
-# getting data form the Landscape Data Commons, per Gregor's advice
-### read in LMF data 
-AIM_LMF <- geojson_sf("./data/AIM_BLM_Natl_AIM_LMF_Hub/BLM_Natl_AIM_LMF_Hub_-6152108000941427991.geojson") %>% 
-  mutate(Date_visited_new = str_sub(DateVisited,  start = 6, end = 16))
-# convert site visit date to POSIXct
-AIM_LMF$Date_visited_new <- as.POSIXct(AIM_LMF$Date_visited_new, tz = "GMT", format = "%d %b %Y")
-
-### read in TerrADat data 
-AIM_TDat<- geojson_sf("./data/AIM_BLM_Natl_AIM_TerrADat_Hub/BLM_Natl_AIM_TerrADat_Hub_-8322335809691410121.geojson") %>% 
-  mutate(Date_visited_new = str_sub(DateVisited,  start = 6, end = 16)) %>% 
-  filter(SpeciesState != "AK")
-  # get rid of Alaska
-# convert site visit date to POSIXct
-AIM_TDat$Date_visited_new <- as.POSIXct(AIM_TDat$Date_visited_new, tz = "GMT", format = "%d %b %Y")
-
-ggplot() + 
-  geom_sf(data = AIM_LMF, aes(color = as.factor(lubridate::year(Date_visited_new))), pch = 18, alpha = .5) + 
-  geom_sf(data = AIM_TDat, aes(color = as.factor(lubridate::year(Date_visited_new))), pch = 1, alpha = .5) +
-  guides(fill = guide_none())
-
-
 # Get AIM Data using trex R package ---------------------------------------
 # acronyms in LDC data: "FH" = "%First Hit" (the percentage of the first hit that had that species??)
 # "HGT" = height 
@@ -43,8 +19,8 @@ ggplot() +
 # get "indicators" data, for all plots!  (keys argument)
 # indicatorDat <- trex::fetch_ldc(#keys = "17073113365985482017-09-01", key_type = "PrimaryKey",
 #                 data_type = "indicators") %>% 
-  # mutate(DateVisited = lubridate::as_date(indicatorDat$DateVisited))
-  # 
+# mutate(DateVisited = lubridate::as_date(indicatorDat$DateVisited))
+# 
 
 # trim out Alaska
 # indicatorDat <- indicatorDat %>% 
@@ -85,7 +61,7 @@ summedCover <- indicatorDat %>%
   rowSums()
 hist(summedCover)
 
-  
+
 
 # Calculate % Cover by c3 vs c4 grass -------------------------------------
 # can just aggregate from Species-level data (double check that this is accurate, with shrubs, for example!)
@@ -122,7 +98,7 @@ badQuads <- unique(PG_data$PrimaryKey)
 grassDat <- speciesDat %>% 
   filter(GrowthHabitSub == "Graminoid" &         
            !is.na(AH_SpeciesCover) &
-    !(PrimaryKey %in% badQuads))
+           !(PrimaryKey %in% badQuads))
 
 # remove observations for weird species names w/ % cover less than 2%
 grassDat <- grassDat %>% 
@@ -185,7 +161,7 @@ grassNames_photo <- read.csv("./data/USDA_plants_SppNameTable_allGrassInDataset.
 
 # use to get species latin names and photosynthetic pathways
 grassDat2 <- left_join(grassDat, grassNames_photo[grassNames_photo$Status == "Accepted",], 
-                      by = c("Species"= "Species")) %>% 
+                       by = c("Species"= "Species")) %>% 
   select(-SynonymSymbol)
 
 
