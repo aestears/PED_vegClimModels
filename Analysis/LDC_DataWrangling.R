@@ -28,6 +28,7 @@ library(geojsonsf)
 # # save as a .rds object for later
 # saveRDS(indicatorDat, file = "./data/LandscapeDataCommonsDat/IndicatorDat.rds")
 indicatorDat <- readRDS(file = "./data/LandscapeDataCommonsDat/IndicatorDat.rds")
+#"AH" means % cover for all hits of the transect; "FH" means % cover for the first hit of the transect
 
 # # get species tables 
 # speciesDat <- trex::fetch_ldc(#keys = "17073113365985482017-09-01", key_type = "PrimaryKey", 
