@@ -28,8 +28,8 @@ library(geojsonsf)
 # # save as a .rds object for later
 # saveRDS(indicatorDat, file = "./data/LandscapeDataCommonsDat/IndicatorDat.rds")
 indicatorDat <- readRDS(file = "./data/LandscapeDataCommonsDat/IndicatorDat.rds")
-#"AH" means % cover for all hits of the transect; "FH" means % cover for the first hit of the transect
-
+#"AH" means % cover for any hits on the transect; "FH" means % cover for the first hit of the transect
+# To get "total foliar cover", we want the first hit % cover... to get "species cover," we'd want to use "any hit" cover data? 
 # # get species tables 
 # speciesDat <- trex::fetch_ldc(#keys = "17073113365985482017-09-01", key_type = "PrimaryKey", 
 #   data_type = "species")

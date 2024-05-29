@@ -441,4 +441,3 @@ usa2 <- sf::st_transform(
 ggplot(test) + 
   geom_sf(data = usa2, aes()) +
   geom_sf(aes(alpha= C4_LFAbsCov)) 
-  
