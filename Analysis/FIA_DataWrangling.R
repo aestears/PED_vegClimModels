@@ -65,10 +65,10 @@ VEG_temp <- read.csv(paste0(file, "ENTIRE_P2VEG_SUBPLOT_SPP.csv"))
 VEG <- VEG_temp %>% 
   left_join(COND, by = c("INVYR", "STATECD", "UNITCD", "COUNTYCD", "PLOT", "CONDID")) %>% 
   filter(!is.na(STATENAME))
-## there are only species-level data for 11 states that we're interested in... 
+## there are only species-level data for 11 states ... 
 # why? (CA, CO, AZ, ID, NM, MT, NV, OR, UT, WA and WY)
 
-## Vegetation structure in each subplot (the same as above, but with cover by functional group)
+## Vegetation structure in each subplot (the same as above, but with cover by functional group/layer)
 # this dataset has many more states (nearly all?)--will likely have to use this 
 # then, which should be fine, although we'll have to break out tree types using the TREE table I guess...
 VEG_fgroup <- read.csv(paste0(file, "ENTIRE_P2VEG_SUBP_STRUCTURE.csv"))
