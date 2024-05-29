@@ -9,6 +9,8 @@
 library(tidyverse)
 library(mdbr)
 library(mapview)
+#devtools::install_github("wcornwell/taxonlookup")
+library(taxonlookup)
 
 #Read in Data ------------------------------------------------------------
 # there is an Microsoft access database for each of six regions of the US try
@@ -146,4 +148,225 @@ dat <- read.csv("./data/LANDFIRE_LFRDB/coverDat_all.csv")
 # what are the data sources? 
 table(dat$Protocol)
 
-mapview(dat, xcol = "Long", ycol = "Lat", crs = "EPSG:4326", map.types = "OpenStreetMap")
+mapview(unique(dat[,c("Long","Lat")]), xcol = "Long", ycol = "Lat", crs = "EPSG:4326", map.types = "OpenStreetMap")
+
+
+#Get Species-level cover data (For tree type and c3/c4 grams) ------------
+#loading the dtSpecies table: "This table lists and characterizes the plant
+#species reported on the sampled unit."
+nc_spp <- mdbr::read_mdb("./data/LANDFIRE_LFRDB/NC_Public_LFRDB_LF2.0.0/NC_Public_LFRDB_LF2.0.0.accdb",
+                         table = "dtSpecies")
+# add plot data to the data
+nc_spp <- nc_spp %>%
+  left_join(nc_plots) %>%
+  left_join(nc_source)
+
+#loading the dtSpecies table: "This table lists and characterizes the plant
+#species reported on the sampled unit."
+ne_spp <- mdbr::read_mdb("./data/LANDFIRE_LFRDB/NE_Public_LFRDB_LF2.0.0/NE_Public_LFRDB_LF2.0.0.accdb",
+                         table = "dtSpecies")
+# add plot data to the data
+ne_spp <- ne_spp %>%
+  left_join(ne_plots) %>%
+  left_join(ne_source)
+
+#loading the dtSpecies table: "This table lists and characterizes the plant
+#species reported on the sampled unit."
+nw_spp <- mdbr::read_mdb("./data/LANDFIRE_LFRDB/NW_Public_LFRDB_LF2.0.0/NW_Public_LFRDB_LF2.0.0.accdb",
+                         table = "dtSpecies")
+# add plot data to the data
+nw_spp <- nw_spp %>%
+  left_join(nw_plots) %>%
+  left_join(nw_source)
+
+#loading the dtSpecies table: "This table lists and characterizes the plant
+#species reported on the sampled unit."
+sc_spp <- mdbr::read_mdb("./data/LANDFIRE_LFRDB/SC_Public_LFRDB_LF2.0.0/SC_Public_LFRDB_LF2.0.0.accdb",
+                         table = "dtSpecies")
+# add plot data to the data
+sc_spp <- sc_spp %>%
+  left_join(sc_plots) %>%
+  left_join(sc_source)
+
+#loading the dtSpecies table: "This table lists and characterizes the plant
+#species reported on the sampled unit."
+se_spp <- mdbr::read_mdb("./data/LANDFIRE_LFRDB/SE_Public_LFRDB_LF2.0.0/SE_Public_LFRDB_LF2.0.0.accdb",
+                         table = "dtSpecies")
+# add plot data to the data
+se_spp <- se_spp %>%
+  left_join(se_plots) %>%
+  left_join(se_source)
+
+#loading the dtSpecies table: "This table lists and characterizes the plant
+#species reported on the sampled unit."
+sw_spp <- mdbr::read_mdb("./data/LANDFIRE_LFRDB/SW_Public_LFRDB_LF2.0.0/SW_Public_LFRDB_LF2.0.0.accdb",
+                         table = "dtSpecies")
+# add plot data to the data
+sw_spp <- sw_spp %>%
+  left_join(sw_plots) %>%
+  left_join(sw_source)
+
+sppDat <- rbind(nc_spp, ne_spp, nw_spp, sc_spp, se_spp, sw_spp)
+
+# add source information to the d.f
+sppDat <- sppDat %>%
+  left_join(LUsource, by = "SourceID")
+
+## save data for later
+write.csv(sppDat, file = "./data/LANDFIRE_LFRDB/speciesCoverDat_all.csv", row.names = FALSE)
+## use "sppDat$LFAbsCov", the absolute cover derived by LANDFIRE from the source dataset
+
+#### get data for c3 vs c4 grasses ####
+# load graminoid species names
+gramSpp <- unique(sppDat[sppDat$Lifeform == "G",c("Item", "SciName")])
+names(gramSpp) <- c("sppCode_dataset", "SciName_dataset")
+# load table of USDA PLANTS names
+gramPhotoDat <- read.csv("./data/USDA_plants_SppNameTable_synonymNames.csv")
+# add species names to dataset (from USDA PLANTS)
+gramDat <- left_join(gramSpp, gramPhotoDat, by = c("sppCode_dataset" = "AcceptedSymbol"))
+# get data about photosynthetic pathway that we already have
+pathwaysDat <- read.csv("./data/USDA_plants_SppNameTable_allGrassInDataset.csv")
+test <- left_join(gramDat, pathwaysDat, by = c("sppCode_dataset" = "Species", "ScientificName", "Status", "SynonymSymbol", "CommonName"))
+# write so that I can update photosynthetic pathway info
+write.csv(test, "./data/LANDFIRE_c3c4Names_temp.csv", row.names = FALSE)
+# read back in the updated data
+pathway <- read.csv("./data/LANDFIRE_c3c4Names.csv") %>% 
+    select(sppCode_dataset, SciName_dataset, PhotosyntheticPathway) %>% 
+  unique()
+
+## add the updated photosynthetic pathway information onto the graminoid data
+# get graminoid data
+graminoidData <- sppDat[sppDat$Lifeform == "G",]
+# add photosynthesis data
+graminoidData <- left_join(graminoidData, pathway, by = c("Item" = "sppCode_dataset", 
+                                                          "SciName" = "SciName_dataset"))
+# break into C3 vs C4 (data by species observation, not summed by plot yet)
+C3Dat_spp <- graminoidData[graminoidData$PhotosyntheticPathway=="C3" & !is.na(graminoidData$PhotosyntheticPathway),]
+C4Dat_spp <- graminoidData[graminoidData$PhotosyntheticPathway=="C4" & !is.na(graminoidData$PhotosyntheticPathway),]
+
+## now, sum % cover by plot 
+C3Dat <- C3Dat_spp %>% 
+  group_by(EventID) %>% 
+  summarize(LFAbsCov = sum(LFAbsCov),
+            LFRelCov = sum(LFRelCov), 
+            LFHgt = mean(LFHgt),
+            Lat = mean(Lat), 
+            Long = mean(Long),
+            LFX = mean(LFX), 
+            LFY = mean(LFY), 
+            LFZone = unique(LFZone),
+            AKRID = unique(AKRID),
+            VPU = unique(VPU),
+            GeoArea = unique(GeoArea),
+            LocMeth = unique(LocMeth),
+            YYYY = mean(YYYY), 
+            MM = unique(MM),
+            DD = unique(DD),
+            DDD = unique(DDD),
+            Type = unique(Type), 
+            SourceID = unique(SourceID))
+
+C4Dat <- C4Dat_spp %>% 
+  group_by(EventID) %>% 
+  summarize(LFAbsCov = sum(LFAbsCov),
+            LFRelCov = sum(LFRelCov), 
+            LFHgt = mean(LFHgt),
+            Lat = mean(Lat), 
+            Long = mean(Long),
+            LFX = mean(LFX), 
+            LFY = mean(LFY), 
+            LFZone = unique(LFZone),
+            AKRID = unique(AKRID),
+            VPU = unique(VPU),
+            GeoArea = unique(GeoArea),
+            LocMeth = unique(LocMeth),
+            YYYY = mean(YYYY), 
+            MM = unique(MM),
+            DD = unique(DD),
+            DDD = unique(DDD),
+            Type = unique(Type), 
+            SourceID = unique(SourceID))
+
+#### get data for deciduous vs coniferous trees ####
+## decided to do this taxonomically (i.e. gymnosperms vs angiosperms)
+#can  get taxonomic data using the "taxonlookup" R package\
+
+# get unique tree species names
+treeNames <- unique(sppDat[sppDat$Lifeform == "T",c("Item", "SciName")])
+names(treeNames) <- c("sppCode_dataset", "SciName_dataset")
+# lookup species names 
+treeGroups <- taxonlookup::lookup_table(species_list = treeNames$SciName_dataset, by_species = TRUE)
+treeGroups$Species <- row.names(treeGroups)
+
+# get the data for all trees, and add the "group" data
+treeDat <- sppDat[sppDat$Lifeform == "T" & !is.na(sppDat$Lifeform), ] %>% 
+  left_join(treeGroups, by = c("SciName" = "Species"))
+# "pinyon pine", "Hesperocyparis arizonica", "Unknown conifer", "Unknown conifer
+# tree", "Unknown conifer tree 1", "Hesperocyparis forbesii", "Hesperocyparis
+# macnabiana", "Pinaceae", "Hesperocyparis sargentii", "Hesperocyparis
+# macrocarpa", "Hesperocyparis pigmaea"-- need a "gymnosperm" label
+treeDat[treeDat$SciName %in% c("pinyon pine", "Pinyon pine", "Hesperocyparis arizonica", 
+                               "Unknown conifer", "Unknown conifer tree", "Unknown conifer tree 1", 
+                               "Hesperocyparis forbesii", "Hesperocyparis macnabiana", 	
+                               "Hesperocyparis macnabiana", "Pinaceae", "Hesperocyparis sargentii", 
+                               "Hesperocyparis macrocarpa", "Hesperocyparis pigmaea"), "group"] <- "Gymnosperms"
+
+# "Unknown deciduous tree", "Juglandaceae" -- needs an "angiosperm" label
+treeDat[treeDat$SciName %in% c("Unknown deciduous tree", "Juglandaceae"), "group"] <- "Angiosperms"
+
+# break into C3 vs C4 (data by species observation, not summed by plot yet)
+AngioTreeDat_spp <- treeDat[treeDat$group=="Angiosperms" & !is.na(treeDat$group),]
+ConifTreeDat_spp <- treeDat[treeDat$group=="Gymnosperms" & !is.na(treeDat$group),]
+
+## now, sum % cover by plot 
+AngioTreeDat <- AngioTreeDat_spp %>% 
+  group_by(EventID) %>% 
+  summarize(LFAbsCov = sum(LFAbsCov),
+            LFRelCov = sum(LFRelCov), 
+            LFHgt = mean(LFHgt),
+            Lat = mean(Lat), 
+            Long = mean(Long),
+            LFX = mean(LFX), 
+            LFY = mean(LFY), 
+            LFZone = unique(LFZone),
+            AKRID = unique(AKRID),
+            VPU = unique(VPU),
+            GeoArea = unique(GeoArea),
+            LocMeth = unique(LocMeth),
+            YYYY = mean(YYYY), 
+            MM = unique(MM),
+            DD = unique(DD),
+            DDD = unique(DDD),
+            Type = unique(Type), 
+            SourceID = unique(SourceID))
+
+ConifTreeDat <- ConifTreeDat_spp %>% 
+  group_by(EventID) %>% 
+  summarize(LFAbsCov = sum(LFAbsCov),
+            LFRelCov = sum(LFRelCov), 
+            LFHgt = mean(LFHgt),
+            Lat = mean(Lat), 
+            Long = mean(Long),
+            LFX = mean(LFX), 
+            LFY = mean(LFY), 
+            LFZone = unique(LFZone),
+            AKRID = unique(AKRID),
+            VPU = unique(VPU),
+            GeoArea = unique(GeoArea),
+            LocMeth = unique(LocMeth),
+            YYYY = mean(YYYY), 
+            MM = unique(MM),
+            DD = unique(DD),
+            DDD = unique(DDD),
+            Type = unique(Type), 
+            SourceID = unique(SourceID))
+
+
+# Estimate % cover of deciduous trees (LFTreeCov = LFConiferTreeCov)
+dat$DecidTreeCov_est <- dat$SourceTreeCov - dat$LFConiferTreeCov
+
+# remove observations from plots where some functional groups weren't observed
+dat[!is.na(dat$DecidTreeCov_est) & 
+      !is.na(dat$LFConiferTreeCov) & 
+      !is.na(dat$LFShrubCov) & 
+      !is.na(dat$LF),]
