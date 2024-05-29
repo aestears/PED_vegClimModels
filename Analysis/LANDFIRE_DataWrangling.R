@@ -247,9 +247,9 @@ C4Dat_spp <- graminoidData[graminoidData$PhotosyntheticPathway=="C4" & !is.na(gr
 ## now, sum % cover by plot 
 C3Dat <- C3Dat_spp %>% 
   group_by(EventID) %>% 
-  summarize(LFAbsCov = sum(LFAbsCov),
-            LFRelCov = sum(LFRelCov), 
-            LFHgt = mean(LFHgt),
+  summarize(C3_LFAbsCov = sum(LFAbsCov),
+            C3_LFRelCov = sum(LFRelCov), 
+            C3_LFHgt = mean(LFHgt),
             Lat = mean(Lat), 
             Long = mean(Long),
             LFX = mean(LFX), 
@@ -268,9 +268,9 @@ C3Dat <- C3Dat_spp %>%
 
 C4Dat <- C4Dat_spp %>% 
   group_by(EventID) %>% 
-  summarize(LFAbsCov = sum(LFAbsCov),
-            LFRelCov = sum(LFRelCov), 
-            LFHgt = mean(LFHgt),
+  summarize(C4_LFAbsCov = sum(LFAbsCov),
+            C4_LFRelCov = sum(LFRelCov), 
+            C4_LFHgt = mean(LFHgt),
             Lat = mean(Lat), 
             Long = mean(Long),
             LFX = mean(LFX), 
@@ -321,9 +321,9 @@ ConifTreeDat_spp <- treeDat[treeDat$group=="Gymnosperms" & !is.na(treeDat$group)
 ## now, sum % cover by plot 
 AngioTreeDat <- AngioTreeDat_spp %>% 
   group_by(EventID) %>% 
-  summarize(LFAbsCov = sum(LFAbsCov),
-            LFRelCov = sum(LFRelCov), 
-            LFHgt = mean(LFHgt),
+  summarize(AngioTree_LFAbsCov = sum(LFAbsCov),
+            AngioTree_LFRelCov = sum(LFRelCov), 
+            AngioTree_LFHgt = mean(LFHgt),
             Lat = mean(Lat), 
             Long = mean(Long),
             LFX = mean(LFX), 
@@ -342,9 +342,9 @@ AngioTreeDat <- AngioTreeDat_spp %>%
 
 ConifTreeDat <- ConifTreeDat_spp %>% 
   group_by(EventID) %>% 
-  summarize(LFAbsCov = sum(LFAbsCov),
-            LFRelCov = sum(LFRelCov), 
-            LFHgt = mean(LFHgt),
+  summarize(ConifTree_LFAbsCov = sum(LFAbsCov),
+            ConifTree_LFRelCov = sum(LFRelCov), 
+            ConifTree_LFHgt = mean(LFHgt),
             Lat = mean(Lat), 
             Long = mean(Long),
             LFX = mean(LFX), 
@@ -361,12 +361,84 @@ ConifTreeDat <- ConifTreeDat_spp %>%
             Type = unique(Type), 
             SourceID = unique(SourceID))
 
+#### put species-level calculations together with other functional group data ####
+temp <- full_join(C3Dat, C4Dat) %>% 
+  full_join(AngioTreeDat) %>% 
+  full_join(ConifTreeDat) %>% 
+  mutate(MM = as.integer(MM), 
+         DD = as.integer(DD),
+         DDD = as.integer(DDD))
 
-# Estimate % cover of deciduous trees (LFTreeCov = LFConiferTreeCov)
-dat$DecidTreeCov_est <- dat$SourceTreeCov - dat$LFConiferTreeCov
+datAll <- dat %>% 
+  select(-VPU, -GeoArea, -LocMeth, -Photo1, -Photo2, -Photo3, -Photo4, 
+         -PublicAccess, -AgencyCd, -Locality, -SourceCitation, -Website) %>% 
+  left_join(temp)
 
-# remove observations from plots where some functional groups weren't observed
-dat[!is.na(dat$DecidTreeCov_est) & 
-      !is.na(dat$LFConiferTreeCov) & 
-      !is.na(dat$LFShrubCov) & 
-      !is.na(dat$LF),]
+## hand calculated tree absolute cover data seems to track quite well with the functional-group data, with a few exceptions
+
+# visualize differences in % cover data between groups
+ggplot(datAll) +
+  geom_density(aes(LFConiferTreeCov), col = "red") +
+  geom_density(aes(ConifTree_LFAbsCov), col = "darkgreen")
+
+
+ggplot(datAll) +
+  geom_density(aes(ConifTree_LFAbsCov), col = "darkgreen") +
+  geom_density(aes(AngioTree_LFAbsCov), col = "green") + 
+  geom_density(aes(C3_LFAbsCov), col = "orange") + 
+  geom_density(aes(C4_LFAbsCov), col = "red") +
+  geom_density(aes(LFShrubCov), col = "blue") +
+  geom_density(aes(LFHerbCov), col = "purple") +
+  theme_dark() +
+  xlim(0,200)
+
+## trim down the dataset just to the variables we really want for analysis
+datLF_use <- datAll  %>% 
+  select(EventID, Lat, Long, LFX, LFY, LFCoordSys, LFZone, YYYY, MM, DD, DDD,
+         LFShrubCov, LFHerbCov, C3_LFAbsCov, C4_LFAbsCov, AngioTree_LFAbsCov, ConifTree_LFAbsCov)
+
+# remove rows for plots that don't have all functional groups measured (can figure out by finding which have NAs in the 'dat' data frame)
+goodPlots <- datAll %>% 
+ filter(!is.na(LFTreeCov) & 
+           !is.na(LFShrubCov) & 
+           !is.na(LFHerbCov)) %>% 
+  select(EventID)
+
+
+## subset the datLF_use dataframe to have only plots where all functional groups were measured (have accurate zeros)
+datLF_use  <- datLF_use %>% 
+  filter(EventID %in% goodPlots$EventID)
+# replace NAs w/ zeros 
+datLF_use[is.na(datLF_use$C3_LFAbsCov) , "C3_LFAbsCov"] <- 0
+datLF_use[is.na(datLF_use$C4_LFAbsCov) , "C4_LFAbsCov"] <- 0
+datLF_use[is.na(datLF_use$ConifTree_LFAbsCov) , "ConifTree_LFAbsCov"] <- 0
+datLF_use[is.na(datLF_use$AngioTree_LFAbsCov) , "AngioTree_LFAbsCov"] <- 0
+
+#save data to file 
+write.csv(datLF_use,"./data/LANDFIRE_LFRDB/coverDat_USE.csv", row.names = FALSE)
+
+ggplot(datLF_use) +
+  geom_density(aes(ConifTree_LFAbsCov), col = "darkgreen") +
+  geom_density(aes(AngioTree_LFAbsCov), col = "green") + 
+  geom_density(aes(C3_LFAbsCov), col = "orange") + 
+  geom_density(aes(C4_LFAbsCov), col = "red") +
+  geom_density(aes(LFShrubCov), col = "blue") +
+  geom_density(aes(LFHerbCov), col = "purple") +
+  theme_dark() +
+  xlim(0,200)
+
+test <- sf::st_as_sf(datLF_use, coords = c("Long", "Lat"), crs = "EPSG:4326")
+# get basemap
+library(maps)
+usa1 <- sf::st_as_sf(map('usa', plot = FALSE, fill = TRUE))
+
+usa2 <- sf::st_transform(
+  usa1,
+  dst = st_crs(test)
+)
+
+# visualize the data spatially to ensure it makes sense
+ggplot(test) + 
+  geom_sf(data = usa2, aes()) +
+  geom_sf(aes(alpha= C4_LFAbsCov)) 
+  
