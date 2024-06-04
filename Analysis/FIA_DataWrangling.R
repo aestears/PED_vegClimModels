@@ -72,3 +72,39 @@ VEG <- VEG_temp %>%
 # this dataset has many more states (nearly all?)--will likely have to use this 
 # then, which should be fine, although we'll have to break out tree types using the TREE table I guess...
 VEG_fgroup <- read.csv(paste0(file, "ENTIRE_P2VEG_SUBP_STRUCTURE.csv"))
+# make into a wide format (with a column for each functional group), aggregate
+# by subplot, then average across subplots in a plot
+VEG_fgroup_PlotAvgs <- VEG_fgroup %>% 
+  # subset only to layer "5" (the "aerial cover" across all layers)
+  filter(LAYER==5) %>% 
+  select(-LAYER) %>% 
+  pivot_wider(names_from = GROWTH_HABIT_CD, 
+              values_from = COVER_PCT#,
+              # names_glue = ("_AerialCover")
+              ) %>% 
+  group_by( PLT_CN, STATECD, UNITCD, COUNTYCD, PLOT, INVYR, SUBP, CONDID, 
+            # don't want to use CN, since that is a unique # for each row in the 
+            # veg structure species-level dataset
+           MODIFIED_BY, MODIFIED_DATE, MODIFIED_IN_INSTANCE, CYCLE, SUBCYCLE) %>% 
+  summarize(Forbs_AerialCover = sum(FB, na.rm = TRUE), 
+            Graminoid_AerialCover = sum(GR, na.rm = TRUE),
+            NonTallyTree_AerialCover = sum(NT, na.rm = TRUE), 
+            Shrub_AerialCover = sum(SH, na.rm = TRUE),
+            TallyTree_AerialCover = sum(TT, na.rm = TRUE)) %>% 
+  group_by(PLT_CN, STATECD, UNITCD, COUNTYCD, PLOT, INVYR, CONDID, MODIFIED_BY, # group by plot (exclude the SUBP (subplot) column)
+           MODIFIED_DATE, MODIFIED_IN_INSTANCE, CYCLE, SUBCYCLE) %>% 
+  summarize(Forbs_AerialCover = mean(Forbs_AerialCover),  # average across subplots
+            Graminoid_AerialCover = mean(Graminoid_AerialCover),
+            NonTallyTree_AerialCover = mean(NonTallyTree_AerialCover), 
+            Shrub_AerialCover = mean(Shrub_AerialCover),
+            TallyTree_AerialCover = mean(TallyTree_AerialCover)) %>% 
+  # add in the LatLong info from the COND dataset, and filter for the plots we want
+ left_join(COND[,c("PLT_CN", "INVYR", "STATECD", "UNITCD", "COUNTYCD", "PLOT", 
+                   "CONDID", "SLOPE", "ASPECT", "STATENAME", "LAT", "LON")]) %>% 
+  filter(!is.na(LAT))
+
+
+# get litter data and add to plot-level veg. composition data -------------
+
+
+  
