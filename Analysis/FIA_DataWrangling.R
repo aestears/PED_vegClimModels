@@ -100,11 +100,51 @@ VEG_fgroup_PlotAvgs <- VEG_fgroup %>%
             TallyTree_AerialCover = mean(TallyTree_AerialCover)) %>% 
   # add in the LatLong info from the COND dataset, and filter for the plots we want
  left_join(COND[,c("PLT_CN", "INVYR", "STATECD", "UNITCD", "COUNTYCD", "PLOT", 
-                   "CONDID", "SLOPE", "ASPECT", "STATENAME", "LAT", "LON")]) %>% 
+                   "CONDID", "PCTBARE_RMRS", "SLOPE", "ASPECT", "STATENAME", "LAT", "LON")]) %>% 
   filter(!is.na(LAT))
 
-
 # get litter data and add to plot-level veg. composition data -------------
-
-
+# got some bare ground % cover information from COND$PCTBARE_RMRS (only for sites in the RMRS)
+# get additional ground cover data from the "GRND_CVR" table (only from Oregon, California, and Washington)
+GRND_CVR <- read.csv(paste0(file, "ENTIRE_GRND_CVR.csv"))
+# turn into a wide dataset
+GRND_CVR_PlotAvgs <- GRND_CVR %>% 
+  pivot_wider(names_from = GRND_CVR_TYP,
+              values_from = CVR_PCT)  %>% 
+  group_by( PLT_CN, STATECD, UNITCD, COUNTYCD, PLOT, INVYR,
+            # don't want to use CN, since that is a unique # for each row in the 
+            # veg structure species-level dataset
+            # also don't include subplot or transect, because we want to average values for the entire plot 
+            MODIFIED_BY,  MODIFIED_IN_INSTANCE, CYCLE, SUBCYCLE) %>% 
+  summarize(Litter_PctCover = mean(LITT, na.rm = TRUE), 
+            Rock_PctCover = mean(ROCK, na.rm = TRUE),
+            Wood_PctCover = mean(WOOD, na.rm = TRUE),
+            BareGround_PctCover = mean(BARE, na.rm = TRUE),
+            VegBasalArea_PctCover = mean(BAVE, na.rm = TRUE),
+            Moss_PctCover = mean(MOSS, na.rm = TRUE),
+            NonInventoriedConditionClassLand_PctCover = mean(NOIN, na.rm = TRUE),
+            Lichen_PctCover = mean(LICH, na.rm = TRUE),
+            Nonsampled_PctCover = mean(NONS, na.rm = TRUE),
+            Crypto_PctCover = mean(CRYP, na.rm = TRUE),
+            VolcanicMaterial_PctCover = mean(TEPH, na.rm = TRUE),
+            Road_PctCover = mean(ROAD, na.rm = TRUE),
+            Water_PctCover = mean(WATE, na.rm = TRUE),
+            Developed_PctCover = mean(DEVP, na.rm = TRUE),
+            Ash_PctCover = mean(ASH, na.rm = TRUE),
+            TempIceSnow_PctCover = mean(TRIS, na.rm = TRUE)+ mean(TEIS, na.rm = TRUE),
+            PermIceSnow_PctCover = mean(PEIS, na.rm = TRUE) ) %>% 
+  ungroup() %>% 
+  # get rid of NaN values from calculating the mean of only NAs (plots that have no values for a given cover class)
+  mutate(Litter_PctCover = replace(Litter_PctCover, is.nan(Litter_PctCover),0),
+         Rock_PctCover = replace(Rock_PctCover, is.nan(Rock_PctCover),0),
+         Wood_PctCover = replace(Wood_PctCover, is.nan(Wood_PctCover),0),
+         BareGround_PctCover = replace(BareGround_PctCover, is.nan(BareGround_PctCover),0),
+         VegBasalArea_PctCover = replace(VegBasalArea_PctCover, is.nan(VegBasalArea_PctCover),0),
+         Moss_PctCover = replace(Moss_PctCover, is.nan(Moss_PctCover),0),
+         Lichen_PctCover = replace(Lichen_PctCover, is.nan(Lichen_PctCover),0)) %>% 
+# add plot-level information from the COND table
+  # add in the LatLong info from the COND dataset, and filter for the plots we want
+  left_join(COND[,c("PLT_CN", "INVYR", "STATECD", "UNITCD", "COUNTYCD", "PLOT", 
+                    "CONDID", "PCTBARE_RMRS", "SLOPE", "ASPECT", "STATENAME", "LAT", "LON")]) %>% 
+  filter(!is.na(LAT))
   
