@@ -111,7 +111,7 @@ GRND_CVR <- read.csv(paste0(file, "ENTIRE_GRND_CVR.csv"))
 GRND_CVR_PlotAvgs <- GRND_CVR %>% 
   pivot_wider(names_from = GRND_CVR_TYP,
               values_from = CVR_PCT)  %>% 
-  group_by( PLT_CN, STATECD, UNITCD, COUNTYCD, PLOT, INVYR,
+  group_by( PLT_CN, STATECD, UNITCD, COUNTYCD, PLOT, INVYR
             # don't want to use CN, since that is a unique # for each row in the 
             # veg structure species-level dataset
             # also don't include subplot or transect, because we want to average values for the entire plot 
@@ -147,4 +147,20 @@ GRND_CVR_PlotAvgs <- GRND_CVR %>%
   left_join(COND[,c("PLT_CN", "INVYR", "STATECD", "UNITCD", "COUNTYCD", "PLOT", 
                     "CONDID", "PCTBARE_RMRS", "SLOPE", "ASPECT", "STATENAME", "LAT", "LON")]) %>% 
   filter(!is.na(LAT))
+
+ ## get litter depth information
+DWM_DUFF_LITTER_FUEL <- read.csv(paste0(file,"ENTIRE_DWM_DUFF_LITTER_FUEL.csv"))
+ 
+DWM_DUFF_LITTER_FUEL_PlotAvgs <- DWM_DUFF_LITTER_FUEL %>% 
+  ## calculate average depths for each plot
+  group_by(PLT_CN, INVYR, STATECD, COUNTYCD, PLOT, MEASYEAR, CONDID) %>% 
+  summarize(DuffDepth = mean(DUFFDEP, na.rm = TRUE),
+            LitterDepth = mean(LITTDEP, na.rm = TRUE),
+            FuelDepth = mean(FUELDEP, na.rm = TRUE)) %>% 
+  # filter down to the plots we want
+  left_join(COND[,c("PLT_CN", "INVYR", "STATECD", "UNITCD", "COUNTYCD", "PLOT", 
+                    "CONDID", "PCTBARE_RMRS", "SLOPE", "ASPECT", "STATENAME", "LAT", "LON")]) %>% 
+  filter(!is.na(LAT))
+
+
   
