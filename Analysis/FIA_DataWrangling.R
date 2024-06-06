@@ -58,6 +58,10 @@ COND <- COND_temp2 %>%
   left_join(stateCodes) %>% # add state names
   filter(!(STATEABB %in% c("VI", "PR", "PW", "MP", "MH", "GU", "FM", "AS", "HI", "AK"))) # remove data for Alaska and islands
 
+
+# get vegetation data -----------------------------------------------------
+
+
 ## I think we get the actual cover data by species from the 
 # "Phase 2 Vegetation Subplot Species Table" (P2VEG_SUBPLOT_SPP)
 VEG_temp <- read.csv(paste0(file, "ENTIRE_P2VEG_SUBPLOT_SPP.csv"))
@@ -111,7 +115,7 @@ GRND_CVR <- read.csv(paste0(file, "ENTIRE_GRND_CVR.csv"))
 GRND_CVR_PlotAvgs <- GRND_CVR %>% 
   pivot_wider(names_from = GRND_CVR_TYP,
               values_from = CVR_PCT)  %>% 
-  group_by( PLT_CN, STATECD, UNITCD, COUNTYCD, PLOT, INVYR
+  group_by( PLT_CN, STATECD, UNITCD, COUNTYCD, PLOT, INVYR,
             # don't want to use CN, since that is a unique # for each row in the 
             # veg structure species-level dataset
             # also don't include subplot or transect, because we want to average values for the entire plot 
@@ -163,4 +167,64 @@ DWM_DUFF_LITTER_FUEL_PlotAvgs <- DWM_DUFF_LITTER_FUEL %>%
   filter(!is.na(LAT))
 
 
-  
+
+# Get TREE data -----------------------------------------------------------
+# too big to do in one chunk, need to do it by region
+TREE_1 <- FIESTA::DBgetCSV("TREE", states = unique(COND$STATECD)[1:5])
+TREE_2 <- FIESTA::DBgetCSV("TREE", states = unique(COND$STATECD)[6:10])
+TREE_3 <- FIESTA::DBgetCSV("TREE", states = unique(COND$STATECD)[11:15])
+TREE_4 <- FIESTA::DBgetCSV("TREE", states = unique(COND$STATECD)[16:20])
+TREE_5 <- FIESTA::DBgetCSV("TREE", states = unique(COND$STATECD)[21:25])
+TREE_6 <- FIESTA::DBgetCSV("TREE", states = unique(COND$STATECD)[26:30])
+TREE_7 <- FIESTA::DBgetCSV("TREE", states = unique(COND$STATECD)[30:35])
+TREE_8 <- FIESTA::DBgetCSV("TREE", states = unique(COND$STATECD)[36:40])
+TREE_9 <- FIESTA::DBgetCSV("TREE", states = unique(COND$STATECD)[40:45])
+TREE_10 <- FIESTA::DBgetCSV("TREE", states = unique(COND$STATECD)[46:48])
+
+# get list of tree species codes
+sppCodes <- FIESTA::ref_species
+sppCodes$E_SPGRPCD - sppCodes$W_SPGRPCD
+# use the "taxonlookup" R package to get the families for each tree species
+sppCodes_temp <- taxonlookup::lookup_table(
+  species_list = unique(sppCodes$SCIENTIFIC_NAME)
+                          , by_species = TRUE) 
+sppCodes_temp$ScientificName <- row.names(sppCodes_temp)
+
+sppCodes <- sppCodes %>% 
+  left_join(sppCodes_temp, by = c("SCIENTIFIC_NAME" = "ScientificName"))
+# add 'group' information for those that don't have it
+sppCodes[sppCodes$GENUS %in% c("Reynoldsia", "Feijoa", "Exorrhiza", "Gulubia", 
+                               "Trukia", "Neolaugeria", "Nesoluma", "Hyeronima",
+                               "Guamia", "Carmona", "Munroidendron"), "group"] <- "Angiosperms"
+
+#Pteridophytes
+#Genus = 
+sppCodes[sppCodes$GENUS %in% c("Acoelorraphe", "Family Arecaceae", "Howeia"), 
+         "group"] <- "Pteridophytes"
+
+#Gymnosperms
+sppCodes[sppCodes$GENUS %in% c("Cupressocyparis"), 
+         "group"] <- "Gymnosperms"
+
+## add species data to the tree tables
+TREE_1 <- TREE_1 %>% 
+  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+TREE_2 <- TREE_2 %>% 
+  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+TREE_3 <- TREE_3 %>% 
+  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+TREE_4 <- TREE_4 %>% 
+  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+TREE_5 <- TREE_5 %>% 
+  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+TREE_6 <- TREE_6 %>% 
+  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+TREE_7 <- TREE_7 %>% 
+  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+TREE_8 <- TREE_8 %>% 
+  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+TREE_9 <- TREE_9 %>% 
+  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+TREE_10 <- TREE_10 %>% 
+  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+
