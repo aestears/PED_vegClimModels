@@ -208,23 +208,55 @@ sppCodes[sppCodes$GENUS %in% c("Cupressocyparis"),
 
 ## add species data to the tree tables
 TREE_1 <- TREE_1 %>% 
-  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+  #left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")]) %>% 
+  select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
+         STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
+         TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH)
 TREE_2 <- TREE_2 %>% 
-  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+  #left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])%>% 
+  select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
+         STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
+         TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH)
 TREE_3 <- TREE_3 %>% 
-  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+  #left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])%>% 
+  select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
+         STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
+         TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH)
 TREE_4 <- TREE_4 %>% 
-  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+  #left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])%>% 
+  select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
+         STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
+         TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH)
 TREE_5 <- TREE_5 %>% 
-  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+  #left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])%>% 
+  select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
+         STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
+         TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH)
 TREE_6 <- TREE_6 %>% 
-  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+  #left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])%>% 
+  select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
+         STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
+         TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH)
 TREE_7 <- TREE_7 %>% 
-  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+  #left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])%>% 
+  select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
+         STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
+         TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH)
 TREE_8 <- TREE_8 %>% 
-  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+  #left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])%>% 
+  select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
+         STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
+         TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH)
 TREE_9 <- TREE_9 %>% 
-  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+  #left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])%>% 
+  select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
+         STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
+         TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH)
 TREE_10 <- TREE_10 %>% 
-  left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])
+  #left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])%>% 
+  select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
+         STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
+         TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH)
 
+TREE <- rbind(TREE_1, TREE_2, TREE_3, TREE_4, TREE_5, TREE_6, TREE_7, TREE_8, TREE_9, TREE_10)
+saveRDS(TREE, file = "./data/FIA/TREEtable.RDS")
