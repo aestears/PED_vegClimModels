@@ -106,6 +106,8 @@ VEG_fgroup_PlotAvgs <- VEG_fgroup %>%
  left_join(COND[,c("PLT_CN", "INVYR", "STATECD", "UNITCD", "COUNTYCD", "PLOT", 
                    "CONDID", "PCTBARE_RMRS", "SLOPE", "ASPECT", "STATENAME", "LAT", "LON")]) %>% 
   filter(!is.na(LAT))
+## save plot-level veg data
+write.csv(VEG_fgroup_PlotAvgs, file = "./data/FIA/vegetationComposition_use.csv", row.names = FALSE)
 
 # get litter data and add to plot-level veg. composition data -------------
 # got some bare ground % cover information from COND$PCTBARE_RMRS (only for sites in the RMRS)
@@ -152,6 +154,9 @@ GRND_CVR_PlotAvgs <- GRND_CVR %>%
                     "CONDID", "PCTBARE_RMRS", "SLOPE", "ASPECT", "STATENAME", "LAT", "LON")]) %>% 
   filter(!is.na(LAT))
 
+## save plot-level ground cover data
+write.csv(GRND_CVR_PlotAvgs, file = "./data/FIA/groundCover_use.csv", row.names = FALSE)
+
  ## get litter depth information
 DWM_DUFF_LITTER_FUEL <- read.csv(paste0(file,"ENTIRE_DWM_DUFF_LITTER_FUEL.csv"))
  
@@ -165,6 +170,8 @@ DWM_DUFF_LITTER_FUEL_PlotAvgs <- DWM_DUFF_LITTER_FUEL %>%
   left_join(COND[,c("PLT_CN", "INVYR", "STATECD", "UNITCD", "COUNTYCD", "PLOT", 
                     "CONDID", "PCTBARE_RMRS", "SLOPE", "ASPECT", "STATENAME", "LAT", "LON")]) %>% 
   filter(!is.na(LAT))
+## save plot-level litter data
+write.csv(DWM_DUFF_LITTER_FUEL_PlotAvgs, file = "./data/FIA/LitterDuffFuel_use.csv", row.names = FALSE)
 
 
 
@@ -326,3 +333,6 @@ TREE_use$basalArea_Pteridophytes_perc = TREE_use$basalArea_Pteridophytes_in2/TRE
 plot(TREE_use$LON, TREE_use$LAT, col = as.factor(TREE_use$basalArea_UnknownGroup_perc))
 ggplot(TREE_use) +
   geom_point(aes(LON, LAT, col = basalArea_allGroups_in2))
+
+## save data
+saveRDS(TREE_use, "./data/FIA/TREEtable_use.rds")
