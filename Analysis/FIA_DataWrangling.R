@@ -322,3 +322,7 @@ TREE_use$basalArea_Angiosperms_perc = TREE_use$basalArea_Angiosperms_in2/TREE_us
 TREE_use$basalArea_Gymnosperms_perc = TREE_use$basalArea_Gymnosperms_in2/TREE_use$basalArea_allGroups_in2*100
 TREE_use$basalArea_UnknownGroup_perc = TREE_use$basalArea_UnknownGroup_in2/TREE_use$basalArea_allGroups_in2*100
 TREE_use$basalArea_Pteridophytes_perc = TREE_use$basalArea_Pteridophytes_in2/TREE_use$basalArea_allGroups_in2*100
+
+plot(TREE_use$LON, TREE_use$LAT, col = as.factor(TREE_use$basalArea_UnknownGroup_perc))
+ggplot(TREE_use) +
+  geom_point(aes(LON, LAT, col = basalArea_allGroups_in2))
