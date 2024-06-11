@@ -61,20 +61,139 @@ COND <- COND_temp2 %>%
 
 # get vegetation data -----------------------------------------------------
 
+### I don't think we should use the species-level data, since it only is for the
+# 4 most common species of each group?? The numbers also don't match up with the
+# functional-groupd data... so maybe they were calculated differently? 
 
-## I think we get the actual cover data by species from the 
-# "Phase 2 Vegetation Subplot Species Table" (P2VEG_SUBPLOT_SPP)
-VEG_temp <- read.csv(paste0(file, "ENTIRE_P2VEG_SUBPLOT_SPP.csv"))
-# subset this down to the plots/conditions/years we actually want (from the COND table)
-VEG <- VEG_temp %>% 
-  left_join(COND, by = c("INVYR", "STATECD", "UNITCD", "COUNTYCD", "PLOT", "CONDID")) %>% 
-  filter(!is.na(STATENAME))
-## there are only species-level data for 11 states ... 
-# why? (CA, CO, AZ, ID, NM, MT, NV, OR, UT, WA and WY)
-
-## Vegetation structure in each subplot (the same as above, but with cover by functional group/layer)
-# this dataset has many more states (nearly all?)--will likely have to use this 
-# then, which should be fine, although we'll have to break out tree types using the TREE table I guess...
+## I think
+#we get the actual cover data by species from the # "Phase 2 Vegetation Subplot
+#Species Table" (P2VEG_SUBPLOT_SPP) VEG_temp <- read.csv(paste0(file,
+#"ENTIRE_P2VEG_SUBPLOT_SPP.csv")) # subset this down to the
+#plots/conditions/years we actually want (from the COND table) VEG <- VEG_temp
+#%>% left_join(COND[,c("PLT_CN", "INVYR", "STATECD", "UNITCD", "COUNTYCD",
+#"PLOT", "CONDID", "PCTBARE_RMRS", "SLOPE", "ASPECT", "STATENAME", "LAT",
+#"LON")]) %>% filter(!is.na(STATENAME)) ## there are only species-level data for
+#11 states ... # why? (CA, CO, AZ, ID, NM, MT, NV, OR, UT, WA and WY)
+#
+### get data for C3 vs C3 gramDat <- VEG %>% filter(GROWTH_HABIT_CD=="GR") # get
+#unique species names sppNamesLU <- unique(gramDat[,c("VEG_SPCD",
+#"VEG_FLDSPCD")]) names(sppNamesLU) <- c("dfCode", "fieldCode") # get lookup
+#table for NRCS species codes names <- read.csv("./data/LANDFIRE_c3c4Names.csv")
+#%>% select(-SciName_dataset) %>% rename(sppCode = sppCode_dataset) sppNamesLU
+#<- left_join(sppNamesLU, names, by = c("dfCode" = "sppCode")) # add values from
+#full PLANTS database names2 <- read.csv("./data/USDA_plants_SppNameTable.csv")
+#sppNamesLU_temp <- sppNamesLU %>% select(-SynonymSymbol, -ScientificName,
+#-CommonName) %>% filter(is.na(Status)) %>% left_join(names2, by = c("dfCode" =
+#"AcceptedSymbol")) %>% select(names(sppNamesLU))
+#
+#sppNamesLU_temp2 <- sppNamesLU %>% filter(!is.na(Status)) %>%
+#rbind(sppNamesLU_temp)
+#
+#sppNamesLU_temp2[sppNamesLU_temp2$dfCode %in% c("KOSI", "ELDA3", "BRCIR",
+#"FEIDI2", "CASTS8", "CATAB", "AGFR", "POARA2", "HECOI", "BRMU4", "CYAG",
+#"CASCS8", "LESAS2", "CAID", "ELSU", "PSEUD22", "JUTW", "FEAR4", "CAOR6",
+#"CASCS9", "FEAL", "POCUP3", "ACBL", "CAIN7", "HIHI", "ERSC2", "ARELB",
+#"CAST10", "BRPOP2", "JUBI2"), "PhotosyntheticPathway"] <- "C3"
+#
+#sppNamesLU_temp2[sppNamesLU_temp2$dfCode %in% c("TRACH2", "BOARA2", "LEPAB",
+#"SCHED", "BOPA2", "ENCE", "BOEC", "ARSC3", "ARCAG", "MUSI", "MUAR3", "MUEL",
+#"MUVIV", "MUVI4", "DASYO", "MUTE2", "MUSP4", "ELTR2", "BOEL", "LYSE3"),
+#"PhotosyntheticPathway"] <- "C4"
+#
+#sppNamesLU <- sppNamesLU_temp2 %>% select(dfCode, PhotosyntheticPathway) %>%
+#unique() gramDat <- gramDat %>% left_join(sppNamesLU, by = c("VEG_SPCD" =
+#"dfCode"))
+#
+## sum percent cover by C3/C4 for each subplot/condid temp <- gramDat %>%
+#group_by(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, CONDID, CYCLE,
+#SUBCYCLE, PhotosyntheticPathway) %>% summarize(AerialCover = sum(COVER_PCT))
+#%>% # take the sum w/in each subplot group_by(PLT_CN, INVYR, STATECD, UNITCD,
+#COUNTYCD, PLOT, CONDID, CYCLE, SUBCYCLE, PhotosyntheticPathway) %>%
+#summarize(AerialCover = mean(AerialCover)) # take the mean across subplots w/in
+#each plot
+#
+## there are plots where there is a high proportion of cover for species we
+#don't have photosynthetic pathway info for (i.e. unknown grass...) # change
+#these values to "NA" for the entire plot badPlots <- temp %>%
+#filter(is.na(PhotosyntheticPathway) & AerialCover > 10 | PhotosyntheticPathway
+#%in% c("?", "C3/C4") & AerialCover > 10) %>% ungroup() %>% select(PLOT, INVYR)
+#%>% unique()
+#
+#temp$ID <- paste0(temp$PLOT, "_",temp$INVYR) badPlots$ID <-
+#paste0(badPlots$PLOT, "_", badPlots$INVYR) gramDat <- temp %>% filter(!(ID %in%
+#badPlots$ID))
+#
+#gramDat_use <- gramDat %>% pivot_wider(names_from = PhotosyntheticPathway,
+#values_from = AerialCover) %>% select(-ID, -"NA", -"C3/C4", -"?") %>% rename(
+#C3GramCover_bySpp = C3, C4GramCover_bySpp = C4) %>% mutate(C3GramCover_bySpp =
+#sum(c(C3GramCover_bySpp, 0), na.rm = TRUE), C4GramCover_bySpp =
+#sum(c(C4GramCover_bySpp, 0), na.rm = TRUE))
+#
+#
+### get data for angiosperm vs gymnosperm trees treeDat <- VEG %>%
+#filter(GROWTH_HABIT_CD=="LT") # get unique tree species names treeNamesLU <-
+#treeDat %>% select(VEG_SPCD) %>% unique() # get USDA plants lookup table names
+#<- read.csv("./data/USDA_plants_SppNameTable_TREE.csv") names2 <-
+#read.csv("./data/USDA_plants_SppNameTable_SHRUB.csv") names <- rbind(names,
+#names2) %>% unique() treeNamesLU  <- treeNamesLU %>% left_join(names, by =
+#c("VEG_SPCD" = "Accepted.Symbol")) treeNamesLU[treeNamesLU$VEG_SPCD == "SALIX",
+#"Scientific.Name"] <- "Salix" treeNamesLU[treeNamesLU$VEG_SPCD == "JUGLA",
+#"Scientific.Name"] <- "Juglans" treeNamesLU[treeNamesLU$VEG_SPCD == "FRAXI",
+#"Scientific.Name"] <- "Fraxinus" treeNamesLU[treeNamesLU$VEG_SPCD == "PICEA",
+#"Scientific.Name"] <- "Picea" treeNamesLU[treeNamesLU$VEG_SPCD == "ILEX",
+#"Scientific.Name"] <- "Ilex" treeNamesLU[treeNamesLU$VEG_SPCD == "MALUS",
+#"Scientific.Name"] <- "Malus" treeNamesLU[treeNamesLU$VEG_SPCD == "CORNU",
+#"Scientific.Name"] <- "Cornus" treeNamesLU[treeNamesLU$VEG_SPCD == "LIDE3",
+#"Scientific.Name"] <- "Lithocarpus densiflorus"
+#treeNamesLU[treeNamesLU$VEG_SPCD == "ABSH", "Scientific.Name"] <- "Abies x
+#shastensis" treeNamesLU[treeNamesLU$VEG_SPCD == "CUSA3", "Scientific.Name"] <-
+#"Cupressus sargentii" treeNamesLU[treeNamesLU$VEG_SPCD == "CUMA",
+#"Scientific.Name"] <- "Cupressus macnabiana" treeNamesLU[treeNamesLU$VEG_SPCD
+#== "CUNO", "Scientific.Name"] <- "Cupressus nootkatensis"
+#treeNamesLU[treeNamesLU$VEG_SPCD == "CHNO", "Scientific.Name"] <-
+#"Chamaecyparis nootkatensis" treeNamesLU[treeNamesLU$VEG_SPCD == "CRATA",
+#"Scientific.Name"] <- "Crataegus"
+#
+#taxonNames <- taxonlookup::lookup_table( species_list =
+#unique(treeNamesLU$Scientific.Name), by_species = TRUE)
+#taxonNames$ScientificName <- row.names(taxonNames) treeNamesLU <- treeNamesLU
+#%>% left_join(taxonNames, by = c("Scientific.Name" = "ScientificName")) %>%
+#select(-Synonym, -Common.Name, -genus, -family, -order) # add name data back to
+#tree veg data treeDat <- treeDat %>% left_join(treeNamesLU, by = c("VEG_SPCD"))
+#
+## sum percent cover by C3/C4 for each subplot/condid temp <- treeDat %>%
+#group_by(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, CONDID, CYCLE,
+#SUBCYCLE, group) %>% summarize(AerialCover = sum(COVER_PCT)) %>% # take the sum
+#w/in each subplot group_by(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT,
+#CONDID, CYCLE, SUBCYCLE, group) %>% summarize(AerialCover = mean(AerialCover))
+## take the mean across subplots w/in each plot
+#
+## there are plots where there is a high proportion of cover for species we
+#don't have photosynthetic pathway info for (i.e. unknown grass...) # change
+#these values to "NA" for the entire plot badPlots <- temp %>%
+#filter(is.na(group) & AerialCover > 10) %>% ungroup() %>% select(PLOT, INVYR)
+#%>% unique()
+#
+#temp$ID <- paste0(temp$PLOT, "_",temp$INVYR) badPlots$ID <-
+#paste0(badPlots$PLOT, "_", badPlots$INVYR) treeDat <- temp %>% filter(!(ID %in%
+#badPlots$ID))
+#
+#
+#treeDat_use <- treeDat %>% pivot_wider(names_from = group, values_from =
+#AerialCover) %>% select(-ID, ) %>% rename(AngioTreeCover_bySpp = Angiosperms,
+#ConifTreeCover_bySpp = Gymnosperms) %>% mutate(ConifTreeCover_bySpp =
+#sum(c(ConifTreeCover_bySpp, 0), na.rm = TRUE), AngioTreeCover_bySpp =
+#sum(c(AngioTreeCover_bySpp, 0), na.rm = TRUE))
+#
+### put data for trees and grams together bySppCoverData <-
+#full_join(treeDat_use, gramDat_use) %>% # add in the LatLong info from the COND
+#dataset, and filter for the plots we want left_join(COND[,c("PLT_CN", "INVYR",
+#"STATECD", "UNITCD", "COUNTYCD", "PLOT", "CONDID", "PCTBARE_RMRS", "SLOPE",
+#"ASPECT", "STATENAME", "LAT", "LON")]) %>% filter(!is.na(LAT)) # Vegetation
+#structure in each subplot (the same as above, but with cover by functional
+#group/layer) this dataset has many more states (nearly all?)--will likely have
+#to use this then, which should be fine, although we'll have to break out tree
+#types using the TREE table I guess...
 VEG_fgroup <- read.csv(paste0(file, "ENTIRE_P2VEG_SUBP_STRUCTURE.csv"))
 # make into a wide format (with a column for each functional group), aggregate
 # by subplot, then average across subplots in a plot
@@ -95,8 +214,9 @@ VEG_fgroup_PlotAvgs <- VEG_fgroup %>%
             NonTallyTree_AerialCover = sum(NT, na.rm = TRUE), 
             Shrub_AerialCover = sum(SH, na.rm = TRUE),
             TallyTree_AerialCover = sum(TT, na.rm = TRUE)) %>% 
-  group_by(PLT_CN, STATECD, UNITCD, COUNTYCD, PLOT, INVYR, CONDID, MODIFIED_BY, # group by plot (exclude the SUBP (subplot) column)
-           MODIFIED_DATE, MODIFIED_IN_INSTANCE, CYCLE, SUBCYCLE) %>% 
+  ungroup() %>% 
+  group_by(PLT_CN, STATECD, UNITCD, COUNTYCD, PLOT, INVYR, CONDID, # group by plot (exclude the SUBP (subplot) column)
+            CYCLE, SUBCYCLE) %>% 
   summarize(Forbs_AerialCover = mean(Forbs_AerialCover),  # average across subplots
             Graminoid_AerialCover = mean(Graminoid_AerialCover),
             NonTallyTree_AerialCover = mean(NonTallyTree_AerialCover), 
@@ -106,6 +226,10 @@ VEG_fgroup_PlotAvgs <- VEG_fgroup %>%
  left_join(COND[,c("PLT_CN", "INVYR", "STATECD", "UNITCD", "COUNTYCD", "PLOT", 
                    "CONDID", "PCTBARE_RMRS", "SLOPE", "ASPECT", "STATENAME", "LAT", "LON")]) %>% 
   filter(!is.na(LAT))
+
+## add in the c3/c4 and angio/confier data from the species-level plot data (not present for many states, but have some)
+# test <- VEG_fgroup_PlotAvgs %>% 
+#   full_join(bySppCoverData)
 ## save plot-level veg data
 write.csv(VEG_fgroup_PlotAvgs, file = "./data/FIA/vegetationComposition_use.csv", row.names = FALSE)
 
