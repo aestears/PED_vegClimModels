@@ -29,6 +29,7 @@ library(taxonlookup)
 # # save as a .rds object for later
 # saveRDS(indicatorDat, file = "./data/LandscapeDataCommonsDat/IndicatorDat.rds")
 indicatorDat <- readRDS(file = "./data/LandscapeDataCommonsDat/IndicatorDat.rds")
+indicatorDat$Year <- lubridate::year(indicatorDat$DateVisited)
 #"AH" means % cover for any hits on the transect; "FH" means % cover for the first hit of the transect
 # To get "total foliar cover", we want the first hit % cover... to get "species cover," we'd want to use "any hit" cover data? 
 # # get species tables 
@@ -40,7 +41,10 @@ indicatorDat <- readRDS(file = "./data/LandscapeDataCommonsDat/IndicatorDat.rds"
 # 
 # # save as a .rds object for later
 # saveRDS(speciesDat, file = "./data/LandscapeDataCommonsDat/SpeciesDat.rds")
-speciesDat <- readRDS(file = "./data/LandscapeDataCommonsDat/SpeciesDat.rds")
+speciesDat_temp <- readRDS(file = "./data/LandscapeDataCommonsDat/SpeciesDat.rds")
+# aggregate the species data by year that it was sampled (sampled once per year, usually...)
+speciesDat <- speciesDat_temp %>% 
+  mutate(Year = lubridate::year(DateVisited))
 
 ## what are the years when the sites were visited? 
 unique(lubridate::year(indicatorDat$DateVisited))
@@ -148,7 +152,7 @@ for (i in 1:length(uniqueSymbols)) {
 
 # save the synonyms data
 #write.csv(taxCodes_new, "./data/USDA_plants_SppNameTable_synonymNames.csv", row.names = TRUE)
-
+taxCodes_new <- read.csv("./data/USDA_plants_SppNameTable_synonymNames.csv")
 # now, get photosynthetic pathway data
 # trim to just grasses in the names dataset
 # get just names in the dataset w/out synonyms
@@ -159,27 +163,29 @@ grassNames_all <- left_join(grassNames, taxCodes_new,  by = c("Species"= "Accept
 #write.csv(grassNames_all, "./data/USDA_plants_SppNameTable_allGrassInDataset.csv", row.names = FALSE)
 
 # read in dataset w/ photosynthetic pathway information
-grassNames_photo <- read.csv("./data/USDA_plants_SppNameTable_allGrassInDataset.csv")
+grassNames_photo <- read.csv("./data/USDA_plants_SppNameTable_allGrassInDataset.csv") %>% 
+  select(Species, PhotosyntheticPathway) %>% 
+  unique() %>% 
+  filter(PhotosyntheticPathway %in% c("C3", "C4"))
 
 # use to get species latin names and photosynthetic pathways
-grassDat2 <- left_join(grassDat, grassNames_photo[grassNames_photo$Status == "Accepted",], 
-                       by = c("Species"= "Species")) %>% 
-  select(-SynonymSymbol)
+grassDat2 <- left_join(grassDat, grassNames_photo, 
+                       by = c("Species"= "Species")) 
 
-C3_cover <- grassDat2 %>% 
-  filter(PhotosyntheticPathway == "C3") %>% 
-  group_by(PrimaryKey) %>% 
-  summarize(AH_C3TotalCover = sum(AH_SpeciesCover, na.rm = TRUE),
-            Hgt_C3_avg = mean(Hgt_Species_Avg, na.rm = TRUE), 
-            DateVisited = unique(DateVisited))
-  
-C4_cover <- grassDat2 %>% 
-  filter(PhotosyntheticPathway == "C4") %>% 
-  group_by(PrimaryKey) %>% 
-  summarize(AH_C4TotalCover = sum(AH_SpeciesCover, na.rm = TRUE),
-            Hgt_C4_avg = mean(Hgt_Species_Avg, na.rm = TRUE), 
-            DateVisited = unique(DateVisited))
+grassCoverTemp <- grassDat2 %>% 
+  group_by(PrimaryKey, PhotosyntheticPathway, Year) %>% 
+  summarize(Cover = sum(AH_SpeciesCover)) %>% 
+  pivot_wider(names_from =  PhotosyntheticPathway, 
+              values_from = Cover) %>% 
+  mutate(AH_C3TotalCover = sum(c(C3, 0), na.rm = TRUE),
+         AH_C4TotalCover = sum(c(C4, 0), na.rm = TRUE)) %>% 
+  select(-C3, -C4) %>% 
+  rename(NA_area = "NA") 
 
+# remove plots for which >15% of the "graminoids" did not have a photosynthetic pathway 
+grassCover <- grassCoverTemp[grassCoverTemp$NA_area <= 15 | is.na(grassCoverTemp$NA_area), ]
+grassCover <- grassCover %>% 
+  select(-NA_area)
 
 # investigate tree data? ---------------------------------------------------
 #There are actually 27,946 tree observations, so we should calculate decid vs coniferous tree data too
@@ -197,7 +203,7 @@ taxShrub <- read.csv("./data/USDA_plants_SppNameTable_SHRUB.csv")  %>%
          "CommonName" = Common.Name) %>% 
   mutate(Status = "Accepted")
 
-taxCodes_newNew <- rbind(taxCodes_new, taxTrees, taxShrub)
+taxCodes_newNew <- rbind(taxCodes_new[,c("AcceptedSymbol","SynonymSymbol","ScientificName","CommonName","Status"   )], taxTrees, taxShrub)
 #filter to accepted names and remove duplicates
 
 taxCodes_use <- taxCodes_newNew[taxCodes_newNew$Status=="Accepted",] 
@@ -238,6 +244,10 @@ treeDat <- treeDat %>%
 treeDat <- treeDat %>% 
   filter(!is.na(ScientificName))
 
+# remove observations that have no cover assiated with them (not sure why these observations were included? )
+treeDat <- treeDat %>% 
+  filter(!is.na(AH_SpeciesCover))
+
 # get coniferous vs deciduous data 
 treeGroups <- taxonlookup::lookup_table(species_list = unique(treeDat$ScientificName), by_species = TRUE)
 treeGroups$Species <- row.names(treeGroups)
@@ -246,39 +256,29 @@ treeDat <- left_join(treeDat, treeGroups[,c("Species", "group")], by = c("Scient
 #fix missing names
 treeDat[treeDat$ScientificName %in% c("Hesperocyparis sargentii", "Hesperocyparis macnabiana"), "group"] <- "Gymnosperms"
 
-## agregate by angiosperm vs gymnosperm
-conifDat <- treeDat %>% 
-  filter(group == "Gymnosperms") %>% 
-  group_by(PrimaryKey) %>% 
-  summarize(AH_ConifTotalCover = sum(AH_SpeciesCover, na.rm = TRUE),
-            Hgt_Conif_avg = mean(Hgt_Species_Avg, na.rm = TRUE), 
-            DateVisited = unique(DateVisited))
 
-angioDat <- treeDat %>% 
-  filter(group == "Angiosperms") %>% 
-  group_by(PrimaryKey) %>% 
-  summarize(AH_AngioTotalCover = sum(AH_SpeciesCover, na.rm = TRUE),
-            Hgt_Angio_avg = mean(Hgt_Species_Avg, na.rm = TRUE), 
-            DateVisited = unique(DateVisited))
-
-
-
+treeDat<- treeDat %>% 
+  group_by(PrimaryKey, Year, group) %>% 
+  summarize(Cover = sum(AH_SpeciesCover)) %>% 
+  pivot_wider(values_from = Cover, names_from = group) %>% 
+  mutate(AH_ConifTotalCover = sum(c(Gymnosperms, 0), na.rm = TRUE),
+         AH_AngioTotalCover = sum(c(Angiosperms, 0), na.rm = TRUE)) %>% 
+  select(-Angiosperms, -Gymnosperms)
+## assume that if there are no species of a group recorded in a plot, the cover for that group is 0 
 
 # add together 
-test <- full_join(C3_cover, C4_cover, by = c("PrimaryKey", "DateVisited")) %>% 
-  full_join(conifDat, by = c("PrimaryKey", "DateVisited")) %>% 
-  full_join(angioDat, by = c("PrimaryKey", "DateVisited"))
+test <- grassCover %>% 
+  full_join(treeDat, by = c("PrimaryKey", "Year"))
 
 ## add in shrub and forb data from "Indicators" d.f
 datAll <- indicatorDat %>% 
+  mutate(Year = lubridate::year(DateVisited)) %>% 
   select(rid, PrimaryKey, DBKey, ProjectKey, DateVisited, Latitude_NAD83, Longitude_NAD83,
          BareSoilCover, TotalFoliarCover, AH_ForbCover, AH_ShrubCover,
          FH_CyanobacteriaCover, FH_DepSoilCover, FH_DuffCover, FH_EmbLitterCover,
          FH_HerbLitterCover, FH_LichenCover, FH_MossCover, FH_RockCover, FH_TotalLitterCover,
          FH_WoodyLitterCover) %>% 
-  full_join(test, by = "PrimaryKey") %>% 
-  select(-DateVisited.y) %>% 
-  rename("DateVisited" = "DateVisited.x")
+  full_join(test, by = "PrimaryKey") 
 
 
 # save data to file 
