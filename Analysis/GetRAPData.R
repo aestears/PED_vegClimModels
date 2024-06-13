@@ -188,7 +188,45 @@ indices <- c(14, 7, 29)
 randYears <- unique(RAPdat_2$Year)[indices]
 RAPdat_3 <- RAPdat_2[RAPdat_2$Year %in% c(randYears), ]
 plot(RAPdat_3$geometry)
-
+RAPdat_3$LAT <- st_coordinates(RAPdat_3)[,"Y"]
+RAPdat_3$LON <- st_coordinates(RAPdat_3)[,"X"]
 ## looks good! Fewer points in places we filtered out for ag. and developed land uses
 ## change cover value column titles to be meaningful 
+RAPdat_4 <- RAPdat_3 %>% 
+  rename(Lat = LAT, 
+         Lon = LON, 
+         AnnualHerbGramCover = AFG,
+         PerennialHerbGramCover = PFG,
+         BareGroundCover = BGR, 
+         LitterCover = LTR, 
+         ShrubCover = SHR,
+         TotalTreeCover = TRE
+         ) %>% 
+  mutate(
+         UniqueID = system.index, 
+         StateUnitCounty = NA,
+         Plot = NA, 
+         PlotCondition = NA,
+         date = Year, 
+         Lat = Lat, 
+         Lon = Lon,
+         ShrubCover = ShrubCover,
+         HerbCover = NA,
+         AnnualHerbGramCover = AnnualHerbGramCover,
+         PerennialHerbGramCover = PerennialHerbGramCover,
+         TotalGramCover = NA,
+         C3GramCover = NA, 
+         C4GramCover = NA, 
+         AngioTreeCover = NA, 
+         ConifTreeCover = NA,
+         TotalTreeCover = TotalTreeCover,
+         TreeBasalArea_in2 = NA, 
+         BareGroundCover = BareGroundCover, 
+         LitterCover = LitterCover,
+         LitterDepth = NA,
+         Source = "RAP"
+         )
 
+plot(RAPdat_4$Lon, RAPdat_4$Lat)
+## save for further analysis! 
+write.csv(st_drop_geometry(RAPdat_4), "./data/RAP_samplePoints/RAPdata_use.csv", row.names = FALSE)

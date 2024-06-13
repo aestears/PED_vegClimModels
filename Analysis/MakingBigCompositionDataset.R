@@ -42,6 +42,8 @@ FIA_all <- FIA_veg %>%
          Lon = LON,
          ShrubCover = Shrub_AerialCover,
          HerbCover = Forbs_AerialCover,
+         AnnualHerbGramCover = NA,
+         PerennialHerbGramCover = NA,
          TotalGramCover = Graminoid_AerialCover,
          C3GramCover = NA, 
          C4GramCover = NA, 
@@ -63,7 +65,8 @@ FIA_all <- FIA_all %>%
   select(-BareGroundCover_temp, -PCTBARE_RMRS) %>% 
   mutate(BareGroundCover = replace(BareGroundCover, BareGroundCover == 999, NA)) %>% 
   select(UniqueID, StateUnitCounty, Plot,  PlotCondition, date,  Lat,  Lon,
-         ShrubCover, HerbCover,  TotalGramCover, C3GramCover,  C4GramCover, 
+         ShrubCover, HerbCover,  TotalGramCover, AnnualHerbGramCover, PerennialHerbGramCover,
+         C3GramCover,  C4GramCover, 
          AngioTreeCover ,   ConifTreeCover, TotalTreeCover, TreeBasalArea_in2, 
          BareGroundCover,   LitterCover,  LitterDepth, Source)
 # load LANDFIRE data ------------------------------------------------------
@@ -84,6 +87,8 @@ LANDFIRE_all <- LANDFIRE_veg %>%
          Lon = Long,
          ShrubCover = LFShrubCov, 
          HerbCover = LFHerbCov, 
+         AnnualHerbGramCover = NA,
+         PerennialHerbGramCover = NA,
          TotalGramCover = C3_LFAbsCov + C4_LFAbsCov,
          C3GramCover = C3_LFAbsCov, 
          C4GramCover = C4_LFAbsCov, 
@@ -115,6 +120,8 @@ LDC_all <- LDC_veg %>%
             Lon = Longitude_NAD83,
             ShrubCover = AH_ShrubCover, 
             HerbCover = AH_ForbCover, 
+            AnnualHerbGramCover = NA,
+            PerennialHerbGramCover = NA,
             TotalGramCover = AH_C3TotalCover + AH_C4TotalCover,
             C3GramCover = AH_C3TotalCover, 
             C4GramCover = AH_C4TotalCover, 
@@ -128,9 +135,19 @@ LDC_all <- LDC_veg %>%
             Source = "LDC"
               ) 
 
+
+
+# load RAP data -----------------------------------------------------------
+RAP_all <- read.csv("./data/RAP_samplePoints/RAPdata_use.csv") %>% 
+  select(UniqueID, StateUnitCounty, Plot,  PlotCondition, date,  Lat,  Lon,
+         ShrubCover, HerbCover,  TotalGramCover, AnnualHerbGramCover, PerennialHerbGramCover,
+         C3GramCover,  C4GramCover, 
+         AngioTreeCover ,   ConifTreeCover, TotalTreeCover, TreeBasalArea_in2, 
+         BareGroundCover,   LitterCover,  LitterDepth, Source)
+
 # add datasets together ---------------------------------------------------
 dat_all <- FIA_all %>% 
-  rbind(LANDFIRE_all, LDC_all)
+  rbind(LANDFIRE_all, LDC_all, RAP_all)
 
 # plot of all data points
 plot(dat_all$Lon, dat_all$Lat, col = as.factor(dat_all$Source))
@@ -166,4 +183,4 @@ dat_all %>%
   geom_point(aes(Lon, Lat, col = Source), alpha = .5) 
 
 ## save dataset for further analysis
-write.csv(dat_all, file = "./")
+write.csv(dat_all, file = "./data/DataForAnalysis.csv", row.names = FALSE)
