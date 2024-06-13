@@ -164,3 +164,6 @@ dat_all %>%
   filter(!is.na(BareGroundCover)) %>% 
   ggplot() +
   geom_point(aes(Lon, Lat, col = Source), alpha = .5) 
+
+## save dataset for further analysis
+write.csv(dat_all, file = "./")
