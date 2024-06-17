@@ -8,7 +8,7 @@
 # load packages -----------------------------------------------------------
 
 library(tidyverse)
-
+library(sf)
 
 # load FIA data -----------------------------------------------------------
 
@@ -200,3 +200,12 @@ dat_all %>%
 
 ## save dataset for further analysis
 write.csv(dat_all, file = "./data/DataForAnalysis.csv", row.names = FALSE)
+
+## make a shapefile of the sample points also and save
+dat_all_sf <- st_as_sf(dat_all, coords = c("Lon", "Lat")) %>% 
+  select(geometry) %>% 
+  unique() %>% 
+  sf::st_set_crs("EPSG:4326")
+
+st_write(dat_all_sf, dsn = "./data/DataForAnalysisPoints", layer = "vegCompPoints", driver = "ESRI Shapefile")
+                       
