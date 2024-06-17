@@ -37,7 +37,9 @@ FIA_all <- FIA_veg %>%
          StateUnitCounty = paste0(STATECD, "_", UNITCD, "_", COUNTYCD),
          Plot = PLOT, 
          PlotCondition = CONDID,
-         date = INVYR, 
+         Month = NA,
+         Day = NA,
+         Year = INVYR,
          Lat = LAT, 
          Lon = LON,
          ShrubCover = Shrub_AerialCover,
@@ -64,7 +66,7 @@ FIA_all$BareGroundCover  <- apply(FIA_all[,c("BareGroundCover_temp", "PCTBARE_RM
 FIA_all <- FIA_all %>% 
   select(-BareGroundCover_temp, -PCTBARE_RMRS) %>% 
   mutate(BareGroundCover = replace(BareGroundCover, BareGroundCover == 999, NA)) %>% 
-  select(UniqueID, StateUnitCounty, Plot,  PlotCondition, date,  Lat,  Lon,
+  select(UniqueID, StateUnitCounty, Plot,  PlotCondition, Month, Day, Year, Lat,  Lon,
          ShrubCover, HerbCover,  TotalGramCover, AnnualHerbGramCover, PerennialHerbGramCover,
          C3GramCover,  C4GramCover, 
          AngioTreeCover ,   ConifTreeCover, TotalTreeCover, TreeBasalArea_in2, 
@@ -73,16 +75,21 @@ FIA_all <- FIA_all %>%
 
 LANDFIRE_veg <- read.csv("./data/LANDFIRE_LFRDB/coverDat_USE.csv") %>% 
   mutate(Source = "LANDFIRE")
+## remove values that don't have dates
+LANDFIRE_veg <- 
+  LANDFIRE_veg %>% 
+  filter(!is.na(YYYY)) 
 
 # select columns we want
 LANDFIRE_all <- LANDFIRE_veg %>% 
   mutate(date = as.POSIXct(paste0(MM,"-", DD, "-",YYYY), tz = "UTC", format = "%m-%d-%Y")) %>% 
-  select(-LFX, -LFY, -LFCoordSys, -LFZone, -YYYY, -MM, -DD, -DDD) %>% 
   transmute(UniqueID = EventID, 
          StateUnitCounty = NA,
          Plot = NA,
          PlotCondition = NA, 
-         date = date,
+         Month = MM,
+         Day = DD,
+         Year = YYYY,
          Lat = Lat,
          Lon = Long,
          ShrubCover = LFShrubCov, 
@@ -105,7 +112,8 @@ LANDFIRE_all <- LANDFIRE_veg %>%
 # load Landscape Data Commons data ----------------------------------------
 
 LDC_veg <- read.csv("./data/LandscapeDataCommonsDat/coverDat_use.csv") %>% 
-  mutate(Source = "LDC")
+  mutate(Source = "LDC") %>% 
+  filter(!is.na(DateVisited))
 
 # select columns we want
 LDC_all <- LDC_veg %>% 
@@ -115,7 +123,9 @@ LDC_all <- LDC_veg %>%
             StateUnitCounty = NA,
             Plot = NA,
             PlotCondition = NA, 
-            date = date,
+            Month = lubridate::month(date),
+            Day = lubridate::day(date),
+            Year = lubridate::year(DateVisited),
             Lat = Latitude_NAD83,
             Lon = Longitude_NAD83,
             ShrubCover = AH_ShrubCover, 
@@ -139,7 +149,10 @@ LDC_all <- LDC_veg %>%
 
 # load RAP data -----------------------------------------------------------
 RAP_all <- read.csv("./data/RAP_samplePoints/RAPdata_use.csv") %>% 
-  select(UniqueID, StateUnitCounty, Plot,  PlotCondition, date,  Lat,  Lon,
+  mutate(Year = date, 
+         Month = NA, 
+         Day = NA) %>% 
+  select(UniqueID, StateUnitCounty, Plot,  PlotCondition, Month, Day, Year, Lat,  Lon,
          ShrubCover, HerbCover,  TotalGramCover, AnnualHerbGramCover, PerennialHerbGramCover,
          C3GramCover,  C4GramCover, 
          AngioTreeCover ,   ConifTreeCover, TotalTreeCover, TreeBasalArea_in2, 
@@ -149,6 +162,9 @@ RAP_all <- read.csv("./data/RAP_samplePoints/RAPdata_use.csv") %>%
 dat_all <- FIA_all %>% 
   rbind(LANDFIRE_all, LDC_all, RAP_all)
 
+## trim data to only that collected after 1979 
+dat_all <- dat_all %>% 
+  filter(Year > 1978)
 # plot of all data points
 plot(dat_all$Lon, dat_all$Lat, col = as.factor(dat_all$Source))
 ggplot(dat_all) +
