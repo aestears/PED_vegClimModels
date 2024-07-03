@@ -9,6 +9,7 @@
 
 library(tidyverse)
 library(sf)
+library(maps)
 
 # load FIA data -----------------------------------------------------------
 
@@ -161,6 +162,21 @@ RAP_all <- read.csv("./data/RAP_samplePoints/RAPdata_use.csv") %>%
 # add datasets together ---------------------------------------------------
 dat_all <- FIA_all %>% 
   rbind(LANDFIRE_all, LDC_all, RAP_all)
+## save dataset for further analysis
+#write.csv(dat_all, file = "./data/DataForAnalysis.csv", row.names = FALSE)
+dat_all <- read.csv("./data/DataForAnalysis.csv")
+
+## make a shapefile of the sample points also and save
+dat_all_sf_full <- st_as_sf(dat_all, coords = c("Lon", "Lat")) %>% 
+  select(geometry) %>% 
+  #unique() %>% 
+  sf::st_set_crs("EPSG:4326")
+dat_all_sf <- dat_all_sf_full %>% 
+  unique()
+
+#st_write(dat_all_sf, dsn = "./data/DataForAnalysisPoints", layer = "vegCompPoints", driver = "ESRI Shapefile")
+dat_all_new <- cbind(dat_all, dat_all_sf_full) %>% 
+  st_as_s
 
 ## trim data to only that collected after 1979 
 dat_all <- dat_all %>% 
@@ -169,6 +185,58 @@ dat_all <- dat_all %>%
 plot(dat_all$Lon, dat_all$Lat, col = as.factor(dat_all$Source))
 ggplot(dat_all) +
   geom_point(aes(Lon, Lat, col = Source), alpha = .5)
+
+baseMap <- st_as_sf(map("state", plot = FALSE, fill = TRUE), crs = st_crs(dat_all_new)) %>% 
+  rename("geometry" = "geom")
+
+# plot AIM data 
+pdf("./figures/LDC_dataextent.pdf")
+dat_all_new %>% 
+  filter(Source == "LDC") %>% 
+  ggplot() +
+  geom_sf(data = baseMap) + 
+  geom_sf(alpha = .5, col = "cornflowerblue") +
+  ggtitle("Landscape Data Commons (AIM + a bit more)", 
+          subtitle = "Cov vars: angio. trees, gymno. trees, shrubs, herbs, C3 grams, C4 grams, bare ground, litter") + 
+  theme_minimal()
+dev.off()
+
+# plot FIA data 
+pdf("./figures/FIA_dataextent.pdf")
+dat_all_new %>% 
+  filter(Source == "FIA") %>% 
+  ggplot() +
+  geom_sf(data = baseMap) + 
+  geom_sf(alpha = .5, col = "tomato") +
+  ggtitle("Forest Inventory and Analysis plots", 
+          subtitle = "Cover variables: angio. trees, gymno. trees, shrubs, herbs, grams, (litter), (bare ground)") + 
+  theme_minimal()
+dev.off()
+
+# plot LANDFIRE data 
+pdf("./figures/LANDFIRE_dataextent.pdf")
+dat_all_new %>% 
+  filter(Source == "LANDFIRE") %>% 
+  ggplot() +
+  geom_sf(data = baseMap) + 
+  geom_sf(alpha = .5, col = "forestgreen") +
+  ggtitle("LANDFIRE reference database plots", 
+          subtitle = "Cover variables: angio. trees, gymno. trees, shrubs, herbs, C3 grams, C4 grams") + 
+  theme_minimal()
+dev.off()
+
+# plot LANDFIRE data 
+pdf("./figures/RAP_dataextent.pdf")
+dat_all_new %>% 
+  filter(Source == "RAP") %>% 
+  ggplot() +
+  geom_sf(data = baseMap) + 
+  geom_sf(alpha = .3, col = "orchid") +
+  ggtitle("RAP points -- 300,000 point sampled from undeveloped, non-ag. area", 
+          subtitle = "Cover variables: all trees, shrubs, ann. herbaceous, perenn. herbaceous, bare ground, litter") + 
+  theme_minimal()
+dev.off()
+
 
 # plot of data that has c3/c4 and broad leaf vs. conifer
 dat_all %>% 
@@ -198,14 +266,3 @@ dat_all %>%
   ggplot() +
   geom_point(aes(Lon, Lat, col = Source), alpha = .5) 
 
-## save dataset for further analysis
-write.csv(dat_all, file = "./data/DataForAnalysis.csv", row.names = FALSE)
-
-## make a shapefile of the sample points also and save
-dat_all_sf <- st_as_sf(dat_all, coords = c("Lon", "Lat")) %>% 
-  select(geometry) %>% 
-  unique() %>% 
-  sf::st_set_crs("EPSG:4326")
-
-st_write(dat_all_sf, dsn = "./data/DataForAnalysisPoints", layer = "vegCompPoints", driver = "ESRI Shapefile")
-                       
