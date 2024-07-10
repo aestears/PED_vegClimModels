@@ -50,8 +50,8 @@ FIA_all <- FIA_veg %>%
          TotalGramCover = Graminoid_AerialCover,
          C3GramCover = NA, 
          C4GramCover = NA, 
-         AngioTreeCover = TallyTree_AerialCover * basalArea_Angiosperms_perc, 
-         ConifTreeCover = TallyTree_AerialCover * basalArea_Gymnosperms_perc,
+         AngioTreeCover = TallyTree_AerialCover * basalArea_Angiosperms_perc/100, 
+         ConifTreeCover = TallyTree_AerialCover * basalArea_Gymnosperms_perc/100,
          TotalTreeCover = TallyTree_AerialCover + NonTallyTree_AerialCover,
          TreeBasalArea_in2 = basalArea_allGroups_in2, 
          BareGroundCover_temp = BareGround_PctCover, 
@@ -175,8 +175,7 @@ dat_all_sf <- dat_all_sf_full %>%
   unique()
 
 #st_write(dat_all_sf, dsn = "./data/DataForAnalysisPoints", layer = "vegCompPoints", driver = "ESRI Shapefile")
-dat_all_new <- cbind(dat_all, dat_all_sf_full) %>% 
-  st_as_s
+
 
 ## trim data to only that collected after 1979 
 dat_all <- dat_all %>% 
