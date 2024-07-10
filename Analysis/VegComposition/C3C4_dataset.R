@@ -52,4 +52,21 @@ cover_samp <- cover_mask %>%
 plot(cover_samp)
 
 ## save the cover d.f for further analysis
-saveRDS(cover_samp, file = "./data/SYNMAPdata/sampledC3C4points.rds")
+# saveRDS(cover_samp, file = "./data/SYNMAPdata/sampledC3C4points.rds")
+cover_samp <- readRDS("./data/SYNMAPdata/sampledC3C4points.rds")
+
+(C3_plot <- ggplot(cover_samp) +
+  geom_sf(aes(col = C3_cover)) + 
+  theme_minimal() +
+  scale_color_continuous(limits = c(0,100), guide = (guide_colorbar(title = "% Cover"))) + 
+  ggtitle("C3 Grass Cover")
+)
+(C4_plot <- ggplot(cover_samp) +
+  geom_sf(aes(col = C4_cover)) + 
+  theme_minimal() +
+  scale_color_continuous(limits = c(0,100), guide = (guide_colorbar(title = "% Cover")))+ 
+    ggtitle("C4 Grass Cover")
+  )
+
+ggpubr::ggarrange(C3_plot, C4_plot, ncol = 1, common.legend = TRUE, legend = "right")
+
