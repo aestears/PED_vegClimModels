@@ -231,7 +231,8 @@ VEG_fgroup_PlotAvgs <- VEG_fgroup %>%
 # test <- VEG_fgroup_PlotAvgs %>% 
 #   full_join(bySppCoverData)
 ## save plot-level veg data
-write.csv(VEG_fgroup_PlotAvgs, file = "./data/FIA/vegetationComposition_use.csv", row.names = FALSE)
+#write.csv(VEG_fgroup_PlotAvgs, file = "./data/FIA/vegetationComposition_use.csv", row.names = FALSE)
+VEG_fgroup_PlotAvgs <- read.csv("./data/FIA/vegetationComposition_use.csv")
 
 # get litter data and add to plot-level veg. composition data -------------
 # got some bare ground % cover information from COND$PCTBARE_RMRS (only for sites in the RMRS)

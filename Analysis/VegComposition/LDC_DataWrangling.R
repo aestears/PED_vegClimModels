@@ -30,6 +30,13 @@ library(taxonlookup)
 # saveRDS(indicatorDat, file = "./data/LandscapeDataCommonsDat/IndicatorDat.rds")
 indicatorDat <- readRDS(file = "./data/LandscapeDataCommonsDat/IndicatorDat.rds")
 indicatorDat$Year <- lubridate::year(indicatorDat$DateVisited)
+
+## remove indicator Data points from plots that are croplands, cropland/natural vegetation mosiacs, permanent Snow and Ice, Urban and Built-up Lands, and Water Bodies
+indicatorDat <- indicatorDat %>% 
+  filter(!(modis_landcover %in% c("Croplands", "Cropland/Natural Vegetation Mosaics", "Permanent Snow and Ice",
+                                "Urban and Built-up Lands", "Water Bodies")))
+
+
 #"AH" means % cover for any hits on the transect; "FH" means % cover for the first hit of the transect
 # To get "total foliar cover", we want the first hit % cover... to get "species cover," we'd want to use "any hit" cover data? 
 # # get species tables 
@@ -187,7 +194,33 @@ grassCover <- grassCoverTemp[grassCoverTemp$NA_area <= 15 | is.na(grassCoverTemp
 grassCover <- grassCover %>% 
   select(-NA_area)
 
-# investigate tree data? ---------------------------------------------------
+
+# Calculate perennial vs annual cover for forbs and grams -----------------
+## calculate perennial vs annual graminoid % cover
+gramAnnPenCover <- speciesDat %>% 
+  filter(GrowthHabitSub == "Graminoid" | 
+           GrowthHabitSub == "Sedge") %>% 
+  group_by(PrimaryKey, Duration, Year) %>% 
+  summarize(Cover = sum(AH_SpeciesCover, na.rm = TRUE)) %>% 
+  pivot_wider(names_from = Duration, 
+              values_from = Cover) %>% 
+  mutate(AH_GramPerenTotalCover = sum(c(Perennial, 0), na.rm = TRUE), 
+         AH_GramAnnTotalCover = sum(c(Annual, 0), na.rm = TRUE)) %>% 
+  select(-`NA`, -Annual, -Perennial)
+
+## calculate perennial vs annual forb % cover
+forbAnnPenCover <- speciesDat %>% 
+  filter(GrowthHabitSub == "Forb" | 
+           GrowthHabitSub == "Forb/herb") %>% 
+  group_by(PrimaryKey, Duration, Year) %>% 
+  summarize(Cover = sum(AH_SpeciesCover, na.rm = TRUE)) %>% 
+  pivot_wider(names_from = Duration, 
+              values_from = Cover) %>% 
+  mutate(AH_ForbPerenTotalCover = sum(c(Perennial, Biennial, 0), na.rm = TRUE), 
+         AH_ForbAnnTotalCover = sum(c(Annual, 0), na.rm = TRUE)) %>% 
+  select(-`NA`, -Annual, -Perennial, -Biennial, -PerennialÂ)
+
+# investigate tree data ---------------------------------------------------
 #There are actually 27,946 tree observations, so we should calculate decid vs coniferous tree data too
 # add tree and shrub species names
 taxTrees <- read.csv("./data/USDA_plants_SppNameTable_TREE.csv") %>% 
@@ -268,7 +301,9 @@ treeDat<- treeDat %>%
 
 # add together 
 test <- grassCover %>% 
-  full_join(treeDat, by = c("PrimaryKey", "Year"))
+  full_join(treeDat, by = c("PrimaryKey", "Year")) %>% 
+  full_join(forbAnnPenCover, by = c("PrimaryKey", "Year")) %>% 
+  full_join(gramAnnPenCover, by = c("PrimaryKey", "Year"))
 
 ## add in shrub and forb data from "Indicators" d.f
 datAll <- indicatorDat %>% 
@@ -277,8 +312,8 @@ datAll <- indicatorDat %>%
          BareSoilCover, TotalFoliarCover, AH_ForbCover, AH_ShrubCover,
          FH_CyanobacteriaCover, FH_DepSoilCover, FH_DuffCover, FH_EmbLitterCover,
          FH_HerbLitterCover, FH_LichenCover, FH_MossCover, FH_RockCover, FH_TotalLitterCover,
-         FH_WoodyLitterCover) %>% 
-  full_join(test, by = "PrimaryKey") 
+         FH_WoodyLitterCover, Year) %>% 
+  full_join(test, by = c("PrimaryKey","Year") )
 
 
 # save data to file 

@@ -145,75 +145,73 @@ library(taxonlookup)
 
 dat <- read.csv("./data/LANDFIRE_LFRDB/coverDat_all.csv")
 
-# what are the data sources? 
-table(dat$Protocol)
-
 mapview(unique(dat[,c("Long","Lat")]), xcol = "Long", ycol = "Lat", crs = "EPSG:4326", map.types = "OpenStreetMap")
 
 
-#Get Species-level cover data (For tree type and c3/c4 grams) ------------
-#loading the dtSpecies table: "This table lists and characterizes the plant
-#species reported on the sampled unit."
-nc_spp <- mdbr::read_mdb("./data/LANDFIRE_LFRDB/NC_Public_LFRDB_LF2.0.0/NC_Public_LFRDB_LF2.0.0.accdb",
-                         table = "dtSpecies")
-# add plot data to the data
-nc_spp <- nc_spp %>%
-  left_join(nc_plots) %>%
-  left_join(nc_source)
-
-#loading the dtSpecies table: "This table lists and characterizes the plant
-#species reported on the sampled unit."
-ne_spp <- mdbr::read_mdb("./data/LANDFIRE_LFRDB/NE_Public_LFRDB_LF2.0.0/NE_Public_LFRDB_LF2.0.0.accdb",
-                         table = "dtSpecies")
-# add plot data to the data
-ne_spp <- ne_spp %>%
-  left_join(ne_plots) %>%
-  left_join(ne_source)
-
-#loading the dtSpecies table: "This table lists and characterizes the plant
-#species reported on the sampled unit."
-nw_spp <- mdbr::read_mdb("./data/LANDFIRE_LFRDB/NW_Public_LFRDB_LF2.0.0/NW_Public_LFRDB_LF2.0.0.accdb",
-                         table = "dtSpecies")
-# add plot data to the data
-nw_spp <- nw_spp %>%
-  left_join(nw_plots) %>%
-  left_join(nw_source)
-
-#loading the dtSpecies table: "This table lists and characterizes the plant
-#species reported on the sampled unit."
-sc_spp <- mdbr::read_mdb("./data/LANDFIRE_LFRDB/SC_Public_LFRDB_LF2.0.0/SC_Public_LFRDB_LF2.0.0.accdb",
-                         table = "dtSpecies")
-# add plot data to the data
-sc_spp <- sc_spp %>%
-  left_join(sc_plots) %>%
-  left_join(sc_source)
-
-#loading the dtSpecies table: "This table lists and characterizes the plant
-#species reported on the sampled unit."
-se_spp <- mdbr::read_mdb("./data/LANDFIRE_LFRDB/SE_Public_LFRDB_LF2.0.0/SE_Public_LFRDB_LF2.0.0.accdb",
-                         table = "dtSpecies")
-# add plot data to the data
-se_spp <- se_spp %>%
-  left_join(se_plots) %>%
-  left_join(se_source)
-
-#loading the dtSpecies table: "This table lists and characterizes the plant
-#species reported on the sampled unit."
-sw_spp <- mdbr::read_mdb("./data/LANDFIRE_LFRDB/SW_Public_LFRDB_LF2.0.0/SW_Public_LFRDB_LF2.0.0.accdb",
-                         table = "dtSpecies")
-# add plot data to the data
-sw_spp <- sw_spp %>%
-  left_join(sw_plots) %>%
-  left_join(sw_source)
-
-sppDat <- rbind(nc_spp, ne_spp, nw_spp, sc_spp, se_spp, sw_spp)
-
-# add source information to the d.f
-sppDat <- sppDat %>%
-  left_join(LUsource, by = "SourceID")
+# #Get Species-level cover data (For tree type and c3/c4 grams) ------------
+# #loading the dtSpecies table: "This table lists and characterizes the plant
+# #species reported on the sampled unit."
+# nc_spp <- mdbr::read_mdb("./data/LANDFIRE_LFRDB/NC_Public_LFRDB_LF2.0.0/NC_Public_LFRDB_LF2.0.0.accdb",
+#                          table = "dtSpecies")
+# # add plot data to the data
+# nc_spp <- nc_spp %>%
+#   left_join(nc_plots) %>%
+#   left_join(nc_source)
+# 
+# #loading the dtSpecies table: "This table lists and characterizes the plant
+# #species reported on the sampled unit."
+# ne_spp <- mdbr::read_mdb("./data/LANDFIRE_LFRDB/NE_Public_LFRDB_LF2.0.0/NE_Public_LFRDB_LF2.0.0.accdb",
+#                          table = "dtSpecies")
+# # add plot data to the data
+# ne_spp <- ne_spp %>%
+#   left_join(ne_plots) %>%
+#   left_join(ne_source)
+# 
+# #loading the dtSpecies table: "This table lists and characterizes the plant
+# #species reported on the sampled unit."
+# nw_spp <- mdbr::read_mdb("./data/LANDFIRE_LFRDB/NW_Public_LFRDB_LF2.0.0/NW_Public_LFRDB_LF2.0.0.accdb",
+#                          table = "dtSpecies")
+# # add plot data to the data
+# nw_spp <- nw_spp %>%
+#   left_join(nw_plots) %>%
+#   left_join(nw_source)
+# 
+# #loading the dtSpecies table: "This table lists and characterizes the plant
+# #species reported on the sampled unit."
+# sc_spp <- mdbr::read_mdb("./data/LANDFIRE_LFRDB/SC_Public_LFRDB_LF2.0.0/SC_Public_LFRDB_LF2.0.0.accdb",
+#                          table = "dtSpecies")
+# # add plot data to the data
+# sc_spp <- sc_spp %>%
+#   left_join(sc_plots) %>%
+#   left_join(sc_source)
+# 
+# #loading the dtSpecies table: "This table lists and characterizes the plant
+# #species reported on the sampled unit."
+# se_spp <- mdbr::read_mdb("./data/LANDFIRE_LFRDB/SE_Public_LFRDB_LF2.0.0/SE_Public_LFRDB_LF2.0.0.accdb",
+#                          table = "dtSpecies")
+# # add plot data to the data
+# se_spp <- se_spp %>%
+#   left_join(se_plots) %>%
+#   left_join(se_source)
+# 
+# #loading the dtSpecies table: "This table lists and characterizes the plant
+# #species reported on the sampled unit."
+# sw_spp <- mdbr::read_mdb("./data/LANDFIRE_LFRDB/SW_Public_LFRDB_LF2.0.0/SW_Public_LFRDB_LF2.0.0.accdb",
+#                          table = "dtSpecies")
+# # add plot data to the data
+# sw_spp <- sw_spp %>%
+#   left_join(sw_plots) %>%
+#   left_join(sw_source)
+# 
+# sppDat <- rbind(nc_spp, ne_spp, nw_spp, sc_spp, se_spp, sw_spp)
+# 
+# # add source information to the d.f
+# sppDat <- sppDat %>%
+#   left_join(LUsource, by = "SourceID")
 
 ## save data for later
-write.csv(sppDat, file = "./data/LANDFIRE_LFRDB/speciesCoverDat_all.csv", row.names = FALSE)
+#write.csv(sppDat, file = "./data/LANDFIRE_LFRDB/speciesCoverDat_all.csv", row.names = FALSE)
+sppDat <- read.csv(file = "./data/LANDFIRE_LFRDB/speciesCoverDat_all.csv")
 ## use "sppDat$LFAbsCov", the absolute cover derived by LANDFIRE from the source dataset
 
 #### get data for c3 vs c4 grasses ####
@@ -361,10 +359,60 @@ ConifTreeDat <- ConifTreeDat_spp %>%
             Type = unique(Type), 
             SourceID = unique(SourceID))
 
+#### Get annual vs. perennial Herb and Graminoid % cover ####
+## for forbs
+ForbPerenAnnDat <- sppDat %>% 
+  filter(Lifeform == "H" | 
+           Lifeform == "F") %>% # I think we want "H" for "herb" and "F" for "forb"
+  group_by(EventID, Duration, Lat, Long, LFX, LFY, LFZone, YYYY, Type, SourceID) %>% 
+  summarize(Forb_LFAbsCov = sum(LFAbsCov), 
+            Forb_LFRelCov = sum(LFRelCov)) %>% 
+  pivot_wider(names_from = Duration, 
+              values_from = c(Forb_LFAbsCov, Forb_LFRelCov)) %>% 
+  mutate(Forb_Peren_LFAbsCov = sum(c(Forb_LFAbsCov_P, 0), na.rm = TRUE),
+         Forb_Ann_LFAbsCov = sum(c(Forb_LFAbsCov_A, 0), na.rm = TRUE),
+         Forb_NoDuration_LFAbsCov = sum(c(Forb_LFAbsCov_NA, 0), na.rm = TRUE), 
+         Forb_Peren_LFRelCov = sum(c(Forb_LFRelCov_P, 0), na.rm = TRUE),
+         Forb_Ann_LFRelCov = sum(c(Forb_LFRelCov_A, 0), na.rm = TRUE),
+         Forb_NoDuration_LFRelCov = sum(c(Forb_LFRelCov_NA, 0), na.rm = TRUE)) %>% 
+  select(-Forb_LFAbsCov_P, -Forb_LFAbsCov_NA, -Forb_LFAbsCov_A, -Forb_LFRelCov_P, -Forb_LFRelCov_NA, -Forb_LFRelCov_A)
+# assign NAs for the plots that have unknown forb values greater than 5% cover (because we don't know whether they're perennial or annual)
+ForbPerenAnnDat <- ForbPerenAnnDat %>% 
+  mutate(Forb_NoDuration_LFAbsCov = replace(Forb_NoDuration_LFAbsCov, list = Forb_NoDuration_LFAbsCov>5, NA)) 
+ForbPerenAnnDat[is.na(ForbPerenAnnDat$Forb_NoDuration_LFAbsCov),c("Forb_Peren_LFAbsCov", "Forb_Ann_LFAbsCov", 
+                                                                  "Forb_Peren_LFRelCov", "Forb_Ann_LFRelCov", "Forb_NoDuration_LFRelCov")] <- NA  
+ForbPerenAnnDat <- ForbPerenAnnDat %>% 
+  select(-Forb_NoDuration_LFAbsCov, -Forb_NoDuration_LFRelCov)
+
+## for Graminoids
+GramPerenAnnDat <- sppDat %>% 
+  filter(Lifeform == "G" ) %>% # I think we want "H" for "herb" and "F" for "forb"
+  group_by(EventID, Duration, Lat, Long, LFX, LFY, LFZone, YYYY, Type, SourceID) %>% 
+  summarize(Gram_LFAbsCov = sum(LFAbsCov), 
+            Gram_LFRelCov = sum(LFRelCov)) %>% 
+  pivot_wider(names_from = Duration, 
+              values_from = c(Gram_LFAbsCov, Gram_LFRelCov)) %>% 
+  mutate(Gram_Peren_LFAbsCov = sum(c(Gram_LFAbsCov_P, 0), na.rm = TRUE),
+         Gram_Ann_LFAbsCov = sum(c(Gram_LFAbsCov_A, 0), na.rm = TRUE),
+         Gram_NoDuration_LFAbsCov = sum(c(Gram_LFAbsCov_NA, 0), na.rm = TRUE), 
+         Gram_Peren_LFRelCov = sum(c(Gram_LFRelCov_P, 0), na.rm = TRUE),
+         Gram_Ann_LFRelCov = sum(c(Gram_LFRelCov_A, 0), na.rm = TRUE),
+         Gram_NoDuration_LFRelCov = sum(c(Gram_LFRelCov_NA, 0), na.rm = TRUE)) %>% 
+  select(-Gram_LFAbsCov_P, -Gram_LFAbsCov_NA, -Gram_LFAbsCov_A, -Gram_LFRelCov_P, -Gram_LFRelCov_NA, -Gram_LFRelCov_A)
+# assign NAs for the plots that have unknown gram values greater than 5% cover (because we don't know whether they're perennial or annual)
+GramPerenAnnDat <- GramPerenAnnDat %>% 
+  mutate(Gram_NoDuration_LFAbsCov = replace(Gram_NoDuration_LFAbsCov, list = Gram_NoDuration_LFAbsCov>5, NA)) 
+GramPerenAnnDat[is.na(GramPerenAnnDat$Gram_NoDuration_LFAbsCov),c("Gram_Peren_LFAbsCov", "Gram_Ann_LFAbsCov", 
+                                                                  "Gram_Peren_LFRelCov", "Gram_Ann_LFRelCov", "Gram_NoDuration_LFRelCov")] <- NA  
+GramPerenAnnDat <- GramPerenAnnDat %>% 
+  select(-Gram_NoDuration_LFAbsCov, -Gram_NoDuration_LFRelCov)
+
 #### put species-level calculations together with other functional group data ####
 temp <- full_join(C3Dat, C4Dat) %>% 
   full_join(AngioTreeDat) %>% 
   full_join(ConifTreeDat) %>% 
+  full_join(GramPerenAnnDat) %>% 
+  full_join(ForbPerenAnnDat) %>% 
   mutate(MM = as.integer(MM), 
          DD = as.integer(DD),
          DDD = as.integer(DDD))
@@ -395,7 +443,8 @@ ggplot(datAll) +
 ## trim down the dataset just to the variables we really want for analysis
 datLF_use <- datAll  %>% 
   select(EventID, Lat, Long, LFX, LFY, LFCoordSys, LFZone, YYYY, MM, DD, DDD,
-         LFShrubCov, LFHerbCov, C3_LFAbsCov, C4_LFAbsCov, AngioTree_LFAbsCov, ConifTree_LFAbsCov)
+         LFShrubCov, LFHerbCov, C3_LFAbsCov, C4_LFAbsCov, AngioTree_LFAbsCov, ConifTree_LFAbsCov, 
+         Gram_Peren_LFAbsCov, Gram_Ann_LFAbsCov, Forb_Peren_LFAbsCov, Forb_Ann_LFAbsCov)
 
 # remove rows for plots that don't have all functional groups measured (can figure out by finding which have NAs in the 'dat' data frame)
 goodPlots <- datAll %>% 
