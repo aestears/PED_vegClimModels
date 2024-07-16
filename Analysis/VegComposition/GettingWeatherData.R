@@ -193,8 +193,6 @@ allMetDat <- tmaxPoints %>%
 #write.csv(allMetDat, file = "./data/dayMet/sampledDataForAnalysis.csv", row.names = FALSE)
 allMetDat <- read.csv("./data/dayMet/sampledDataForAnalysis.csv")
 
-ggplot(test2) + 
-  geom_sf(aes(col = daymet_v4_prcp_monttl_na_1980_1))
 # ## get weather data from DayMet (using dayMetR package)
 # download_daymet_batch(
 #   file_location = "./data/dayMet/dayMetPoints.csv",
@@ -384,30 +382,50 @@ annMetDat <- prcpPoints_ann %>%
 #write.csv(annMetDat, file = "./data/dayMet/sampledDataForAnalysis_Annual.csv", row.names = FALSE)
 annMetDat <- read.csv("./data/dayMet/sampledDataForAnalysis_Annual.csv")
 
-# calculating climate variables for models -------------------------------
-climVar <- allMetDat %>% 
-  mutate(totalAnnPrecip = rowSums(.[52:63]),
-         totalAnnSwe = rowSums(.[28:39]),
-         meanAnnTmax = rowMeans(.[2:13]),
-         meanAnnTmin = rowMeans(.[16:27]),
-         annMaxTmax = pmap_dbl(.[2:13], max),
-         annMinTmin = pmap_dbl(.[16:27], min),
-         meanAnnVp = rowMeans(.[40:51])) %>% 
-  mutate(tempAmp = annMaxTmax - annMinTmin #the difference between annMaxTmax and annMinTmin
-           ) #%>% 
-  #select(year, Long, Lat, totalAnnPrecip, totalAnnSwe, meanAnnTmax, meanAnnTmin, annMaxTmax, annMinTmin, meanAnnVp) 
+# add annual data to the monthly data (will use later in processing)
+allMetDat2 <- allMetDat %>% 
+  left_join(annMetDat)
 
-# determine the months in which the temperature is highest, and in which precip is highest
-# 
-# 
-# climVar$tMaxMax_Month <- list_c(apply(climVar[1:100000,2:13], MARGIN = 1, FUN = function(x)
-#   as.character(paste(lubridate::month(1:12, label = TRUE)[which(x == max(x))]))
-#   ))
-# 
-# climVar$precipMax_Month <-  apply(climVar[,52:63], MARGIN = 1, FUN = function(x)
-#   as.character(paste(lubridate::month(1:12, label = TRUE)[which(x == max(x))]))
-# )
-# climVar$tMaxMax_Month <- unlist(climVar$tMaxMax_Month)
+# calculating climate variables for models -------------------------------
+climVar <- allMetDat2 %>% 
+  mutate(totalAnnPrecip = rowSums(.[52:63]), # total annual precipitation
+         totalAnnSwe = rowSums(.[28:39]), # total annual swe
+         T_warmestMonth = pmap_dbl(.[2:13], max), # temperature of warmest month
+         T_coldestMonth = pmap_dbl(.[16:27], min), # temperature of coldest month
+         meanAnnVp = rowMeans(.[40:51]), # annual mean vapor pressure
+         precip_wettestMonth = pmap_dbl(.[52:63], max), # precip of wettest month
+         precip_driestMonth = pmap_dbl(.[52:63], min), # precip of driest month
+         precip_Seasonality = pmap_dbl(.[52:63],   # coefficient of variation (sd/mean) of precipitation
+                                       .f = function(prcp_Jan, prcp_Feb, prcp_March, prcp_April, prcp_May, prcp_June, prcp_July, prcp_Aug, prcp_Sept, prcp_Oct ,prcp_Nov, prcp_Dec, ...) 
+                                         {temp <- c(prcp_Jan, prcp_Feb, prcp_March, prcp_April, prcp_May, prcp_June, prcp_July, prcp_Aug, prcp_Sept, prcp_Oct ,prcp_Nov, prcp_Dec)
+                                       sd(temp)/mean(temp)
+                                       }
+                                       ),
+         PrecipTempCorr = pmap_dbl(.[c(2:13,52:63)], #correlation of monthly temp and precip
+                                   .f = function(tmax_Jan, tmax_Feb, tmax_March, tmax_April, tmax_May, tmax_June, tmax_July, tmax_Aug, tmax_Sept, tmax_Oct,  tmax_Nov,  tmax_Dec,
+                                                 prcp_Jan, prcp_Feb, prcp_March, prcp_April, prcp_May, prcp_June, prcp_July, prcp_Aug, prcp_Sept, prcp_Oct ,prcp_Nov, prcp_Dec, ...) {
+                                     cor(y = c(tmax_Jan, tmax_Feb, tmax_March, tmax_April, tmax_May, tmax_June, tmax_July, tmax_Aug, tmax_Sept, tmax_Oct,  tmax_Nov,  tmax_Dec), 
+                                         x = c(prcp_Jan, prcp_Feb, prcp_March, prcp_April, prcp_May, prcp_June, prcp_July, prcp_Aug, prcp_Sept, prcp_Oct ,prcp_Nov, prcp_Dec))
+                                   }),
+         aboveFreezing_month = pmap_dbl(.[16:27], # month when temp gets above freezing (when tmin > 0 degrees C, so no freeze at night )
+                                        .f = function(tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec) {
+                                          temp <- c(tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec)
+                                          which(temp > 0)[1] # in degrees C
+                                          }),
+         
+         isothermality = pmap_dbl(.[c(2:13,16:27)], # isothermality
+                                  .f = function(tmax_Jan, tmax_Feb, tmax_March, tmax_April, tmax_May, tmax_June, tmax_July, tmax_Aug, tmax_Sept, tmax_Oct,  tmax_Nov,  tmax_Dec,
+                                                tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec, ...) {
+                                    tmins <- c(tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec)
+                                    tmaxes <- c(tmax_Jan, tmax_Feb, tmax_March, tmax_April, tmax_May, tmax_June, tmax_July, tmax_Aug, tmax_Sept, tmax_Oct,  tmax_Nov,  tmax_Dec)
+                                    tMaxMax <- max(c(tmax_Jan, tmax_Feb, tmax_March, tmax_April, tmax_May, tmax_June, tmax_July, tmax_Aug, tmax_Sept, tmax_Oct,  tmax_Nov,  tmax_Dec))
+                                    tMinMin <- min(c(tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec))
+                                    mean(tmins-tmaxes)/(tMaxMax-tMinMin) * 100
+                                  })
+         )
+
+# save for subsequent use
+saveRDS(climVar, file = "./data/dayMet/climateValuesForAnalysis_monthly.rds")
 
 ## calculate MAP and MAT over the last 30 years (a sliding window?)
 slidingMetMeans <- function(inDat, start, end) {
@@ -434,13 +452,13 @@ annMeans_2 <- lapply(endDats, function(x) {
   return(temp)
 })
 
-annMeans_3 <- data.table::rbindlist(annMeans_2)
+annMeans_30yr <- data.table::rbindlist(annMeans_2)
 
 ## add lagged data to the main climate value data.frame
 test <- climVar %>% 
   #filter(year == 2020) %>% 
   #slice(1:100) %>% 
-  left_join(annMeans_3, by = c("year" = "End", 
+  left_join(annMeans_30yr, by = c("year" = "End", 
                                "Long" = "Long", 
                                "Lat" = "Lat"))
 
