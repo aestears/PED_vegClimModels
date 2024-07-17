@@ -392,6 +392,8 @@ climVar <- allMetDat2 %>%
          totalAnnSwe = rowSums(.[28:39]), # total annual swe
          T_warmestMonth = pmap_dbl(.[2:13], max), # temperature of warmest month
          T_coldestMonth = pmap_dbl(.[16:27], min), # temperature of coldest month
+         Tmin_annAvgOfMonthly = rowSums(.[16:27])/12,
+         Tmax_annAvgOfMonthly = rowSums(.[2:13])/12,
          meanAnnVp = rowMeans(.[40:51]), # annual mean vapor pressure
          precip_wettestMonth = pmap_dbl(.[52:63], max), # precip of wettest month
          precip_driestMonth = pmap_dbl(.[52:63], min), # precip of driest month
@@ -425,52 +427,106 @@ climVar <- allMetDat2 %>%
          )
 
 # save for subsequent use
-saveRDS(climVar, file = "./data/dayMet/climateValuesForAnalysis_monthly.rds")
+#saveRDS(climVar, file = "./data/dayMet/climateValuesForAnalysis_monthly.rds")
+climVar <- readRDS(file="./data/dayMet/climateValuesForAnalysis_monthly.rds")
 
-## calculate MAP and MAT over the last 30 years (a sliding window?)
+# calculate sliding window inter-annual climate means ----------------------
+
+## calculate MAP and MAT over past years (a sliding window?)
+# function
 slidingMetMeans <- function(inDat, start, end) {
   outDat <- inDat %>% 
     filter(year %in% c(start:end)) %>% 
     group_by(Long, Lat) %>% 
-    summarize(swe_meanAnnualAverage = mean(swe_annAvg),
-              tmin_meanAnnualAverage = mean(tmin_annAvg),
-              tmax_meanAnnualAverage = mean(tmax_annAvg),
-              vp_meanAnnualAverage = mean(vp_annAvg),
-              prcp_meanAnnualTotal = mean(prcp_annTotal))
+    summarize(swe_meanAnnAvg = mean(swe_annAvg),
+              tmin_meanAnnAvg = mean(tmin_annAvg),
+              tmax_meanAnnAvg = mean(tmax_annAvg),
+              vp_meanAnnAvg = mean(vp_annAvg),
+              prcp_meanAnnTotal = mean(prcp_annTotal),
+              T_warmestMonth_meanAnnAvg = mean(T_warmestMonth), # temperature of warmest month
+              T_coldestMonth_meanAnnAvg = mean(T_coldestMonth), # temperature of coldest month
+              precip_wettestMonth_meanAnnAvg = mean(precip_wettestMonth), # precip of wettest month
+              precip_driestMonth_meanAnnAvg = mean(precip_driestMonth), # precip of driest month
+              precip_Seasonality_meanAnnAvg = mean(precip_Seasonality),
+              PrecipTempCorr_meanAnnAvg = mean(PrecipTempCorr),
+              aboveFreezing_month_meanAnnAvg = mean(aboveFreezing_month),
+              isothermality_meanAnnAvg = mean(isothermality)
+              )
   return(outDat)
 }
 
+# for last 30-year window
 endDats <- as.matrix(c(2010:2023))
 annMeans <- apply(endDats, MARGIN = 1, FUN = function(x)
-  slidingMetMeans(inDat = annMetDat, start = as.numeric(x-30), end = as.numeric(x))
+  slidingMetMeans(inDat = climVar, start = as.numeric(x-30), end = as.numeric(x))
   )
 names(annMeans) <- c(2010:2023)
-annMeans_2 <- lapply(endDats, function(x) {
+annMeans_30yr <- lapply(endDats, function(x) {
  temp <- cbind(annMeans[[as.character(x)]], x)
  temp$Start <- x-30
   names(temp) <- c(names(annMeans[[1]]), "End", "Start")
   return(temp)
 })
 
-annMeans_30yr <- data.table::rbindlist(annMeans_2)
+annMeans_30yr <- data.table::rbindlist(annMeans_30yr)
+names(annMeans_30yr)[3:17] <- paste0(names(annMeans_30yr)[3:17], "_30yr")
+
+# for last 10-year window
+endDats <- as.matrix(c(1990:2023))
+annMeans <- apply(endDats, MARGIN = 1, FUN = function(x)
+  slidingMetMeans(inDat = climVar, start = as.numeric(x-10), end = as.numeric(x))
+)
+names(annMeans) <- c(1990:2023)
+annMeans_10yr <- lapply(endDats, function(x) {
+  temp <- cbind(annMeans[[as.character(x)]], x)
+  temp$Start <- x-10
+  names(temp) <- c(names(annMeans[[1]]), "End", "Start")
+  return(temp)
+})
+
+annMeans_10yr <- data.table::rbindlist(annMeans_10yr)
+names(annMeans_10yr)[3:17] <- paste0(names(annMeans_10yr)[3:17], "_10yr")
+
+# for last 5-year window
+endDats <- as.matrix(c(1985:2023))
+annMeans <- apply(endDats, MARGIN = 1, FUN = function(x)
+  slidingMetMeans(inDat = climVar, start = as.numeric(x-5), end = as.numeric(x))
+)
+names(annMeans) <- c(1985:2023)
+annMeans_5yr <- lapply(endDats, function(x) {
+  temp <- cbind(annMeans[[as.character(x)]], x)
+  temp$Start <- x-5
+  names(temp) <- c(names(annMeans[[1]]), "End", "Start")
+  return(temp)
+})
+
+annMeans_5yr <- data.table::rbindlist(annMeans_5yr)
+names(annMeans_5yr)[3:17] <- paste0(names(annMeans_5yr)[3:17], "_5yr")
 
 ## add lagged data to the main climate value data.frame
 test <- climVar %>% 
   #filter(year == 2020) %>% 
   #slice(1:100) %>% 
-  left_join(annMeans_30yr, by = c("year" = "End", 
+  left_join(annMeans_30yr, by = c("year" = "End_30yr", 
                                "Long" = "Long", 
-                               "Lat" = "Lat"))
+                               "Lat" = "Lat")) %>% 
+  left_join(annMeans_10yr, by = c("year" = "End_10yr", 
+                                  "Long" = "Long", 
+                                  "Lat" = "Lat")
+              ) %>% 
+  left_join(annMeans_5yr, by = c("year" = "End_5yr", 
+                                 "Long" = "Long", 
+                                 "Lat" = "Lat"))
 
 # save climate values for analysis 
 write.csv(test, "./data/dayMet/climateValuesForAnalysis_final.csv", row.names = FALSE)
 
 #plot MAP and MAT for sites for most recent 30-year period
-plotDat <- annMeans_3 %>% 
-  filter(End == 2022)
+plotDat <- annMeans_30yr %>% 
+  filter(End_30yr == 2022)
 
 ggplot(plotDat) +
-  geom_point(aes(y = prcp_meanAnnualTotal, x = tmin_meanAnnualAverage))
+  geom_point(aes(y = prcp_meanAnnTotal_30yr, x = tmin_meanAnnAvg_30yr))
 
 ggplot(plotDat) +
-  geom_point(aes(x = Long, y = Lat, col = tmax_meanAnnualAverage))
+  geom_point(aes(x = Long, y = Lat, col = tmax_meanAnnAvg_30yr))
