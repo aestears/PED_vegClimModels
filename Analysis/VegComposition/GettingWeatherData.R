@@ -521,6 +521,8 @@ test <- climVar %>%
 # save climate values for analysis 
 write.csv(test, "./data/dayMet/climateValuesForAnalysis_final.csv", row.names = FALSE)
 
+saveRDS(dayMet, "./data/dayMet/climateValuesForAnalysis_final.rds")
+
 #plot MAP and MAT for sites for most recent 30-year period
 plotDat <- annMeans_30yr %>% 
   filter(End_30yr == 2022)
