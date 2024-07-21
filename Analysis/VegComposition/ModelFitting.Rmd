@@ -1,0 +1,464 @@
+---
+title: "Models of vegetation composition based on climate predictors"
+subtitle: "Based on code from Martin Holdrege's Sagebrush-Fire paper"
+author: "Alice Stears"
+date: "`r lubridate::today()`"
+params: 
+  test_run: TRUE
+  save_figs: FALSE
+  hmod: FALSE
+  #s: "_annf2_A-P"
+  #inter: !r c('afgAGB:MAP' = "afgAGB:MAP")
+  #sample_group: 1
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+---
+The data consists of vegetation % cover by functional group from across CONUS (from AIM, FIA, LANDFIRE, and RAP), 
+as well as climate variables from DayMet, which have been aggregated into mean interannual conditions accross multiple temporal windows. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE,
+                      message = FALSE)
+```
+
+# Dependencies 
+
+User defined parameters
+
+```{r}
+print(params)
+# set to true if want to run for a limited number of rows (i.e. for code testing)
+test_run <- params$test_run
+save_figs <- params$save_figs
+hmod <- params$hmod # whether to include human modification in the model
+# by changing the sample_group the model can be fit to a completely different set of rows
+sample_group <- params$sample_group 
+# _ann defines this model as being built on annual data
+s <- params$s # string to paste to file names e.g., that defines the interactions in the model
+# such as (summer ppt * MAT) and annuals*temperature interactions
+fit_sample <- TRUE # fit model to a sample of the data
+n_train <- 5e6 # sample size of the training data
+n_test <- 1e6 # sample size of the testing data (if this is too big the decile dotplot code throws memory errors)
+
+if(hmod & !stringr::str_detect(s, 'hmod')) {
+  s <- paste0('_hmod', s)
+}
+```
+
+
+```{r warning=FALSE, message=FALSE}
+# set option so resampled dataset created here reproduces earlier runs of this code with dplyr 1.0.10
+source("src/general_functions.R")
+source("src/fig_params.R")
+source("src/modeling_functions.R")
+
+library(tidyverse)
+library(GGally) # for ggpairs()
+library(pdp) # for partial dependence plots
+library(gridExtra)
+library(knitr)
+library(patchwork) # for figure insets etc. 
+theme_set(theme_classic())
+```
+
+# read in data
+
+Data compiled in the `04_create_biom-mask_dataframe_ann.R` script
+
+This version two of the dataframe defines a cell has having burned
+if ~47% of that cell burned (as opposed to just the centroid). This 
+preserves the correct total area burned, and also should reduce noise, by 
+more correctly determin
+
+```{r}
+df_ann1 <- read_csv('data_processed/fire-clim-veg_3yrAvg_v2.csv',
+                    progress = FALSE, show_col_types = FALSE)
+
+if(!hmod) {
+  df_ann1$hmod <- NULL
+} else {
+  # hmod column has a number of NAs
+  df_ann1 <- df_ann1 %>% 
+    tidyr::drop_na()
+}
+```
+
+
+# Prep data
+
+```{r}
+set.seed(1)
+df_biome3 <- df_ann1
+
+# small dataset for if testing the data
+if(test_run) {
+  df_biome3 <- slice_sample(df_biome3, n = 1e5)
+}
+```
+
+
+For now, not doing any resampling
+
+```{r}
+set.seed(1234)
+pred_vars <- c("afgAGB", "pfgAGB", "MAT", "MAP", "prcpPropSum")
+if(hmod) {
+  pred_vars <- c(pred_vars, 'hmod')
+}
+names(pred_vars) <- pred_vars
+# so that herbAGB is in the final dataframes
+pred_vars2 <- pred_vars
+
+# predictor vars are the same in both dfs
+df_pred <- df_biome3[, pred_vars2]
+```
+
+Training data
+
+```{r}
+
+df_sample <- if(fit_sample & !test_run) {
+  reordered <- slice_sample(df_biome3, prop = 1)
+  
+  low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
+  high <- low + n_train - 1 # last row
+  if(high > nrow(df_biome3)) {
+    stop('trying to sample from rows that dont exist')
+  }
+  reordered[low:high, ]
+} else {
+    df_biome3
+}
+
+df_test <- if(fit_sample & !test_run & 
+              # antijoin only works if there are enough rows that meet 
+              # that criterion, i.e. if df_sample contains most of the data i
+              # doesnt' work
+              (nrow(df_biome3) - nrow(df_sample) > n_test)) {
+  df_biome3 %>% 
+    anti_join(df_sample, by = c("cell_num", "year")) %>% 
+    slice_sample(n = n_test)
+} else {
+  df_biome3 %>% 
+    slice_sample(n = n_test)
+}
+
+# small sample for certain plots
+df_small <- slice_sample(df_biome3, n = 1e5)
+```
+
+
+# Exploratory figs & summary values
+
+```{r summary_table}
+create_summary <- function(df) {
+  df %>% 
+    pivot_longer(cols = everything(),
+                 names_to = 'variable') %>% 
+    group_by(variable) %>% 
+    summarise(across(value, .fns = list(mean = mean, min = min, 
+                                        median = median, max = max))) %>% 
+    mutate(across(where(is.numeric), round, 4))
+}
+
+df_biome3[pred_vars2] %>% 
+  create_summary() %>% 
+  knitr::kable(caption = 'summaries of predictor variables')
+
+
+response_summary <- df_biome3 %>% 
+    dplyr::select(where(is.numeric), -all_of(pred_vars2), -matches("^occur_")) %>% 
+    create_summary()
+
+
+kable(response_summary, 
+      caption = 'summaries of response variables, calculated using paint')
+
+```
+
+## Plot predictor vars against each other
+
+here using pred dataframe, because smaller and this code is slow. 
+
+```{r pred_v_pred}
+df_pred %>% 
+  slice_sample(n = 5e4) %>% 
+  select(-matches("_")) %>% 
+ggpairs(lower = list(continuous = GGally::wrap("points", alpha = 0.1,    size=0.2)))
+
+```
+
+## boxplots-- # of fires vs predictor variables
+
+```{r n_fires_boxplots, fig.height=9, fig.width=8}
+
+# vectors of names of response variables
+vars_nfire <- names(df_biome3) %>% 
+  str_subset("^nfire_")
+
+var_prop <- 'cwf_prop'
+
+names(var_prop) <- 'cwf'
+
+# longformat dataframes for making boxplots
+df_biome_long <- 
+  # for some reason select() was giving me problems
+  # adding numYrs here so can take weighted average
+  predvars2long(df_biome3, response_vars = c(vars_nfire, var_prop), 
+                pred_vars = pred_vars) %>% 
+    mutate(across(all_of(vars_nfire), factor))
+
+
+ggplot(df_biome_long, aes_string(x= "nfire_cwf", y = 'value')) +
+  geom_boxplot() +
+  facet_wrap(~name, scales = 'free_y')
+
+```
+
+
+# GLMs 
+
+## fitting models
+
+### fitting various transforms
+
+Creating formulas where each variable on its own is transformed numerous ways
+(including formula to fit spline), all other variables are left alone,
+that repeated for each variable. So have models with 1 variable transformed,
+2 transformed, etc. 
+
+see documentation for glms_iterate_transforms, in the modelling_functions.R
+script
+
+```{r iterate_transform, warning = FALSE}
+set.seed(1234)
+
+# adding an interaction term to help deal with over-predicting fire probability
+# at pixels with high afgAGB and high MAP. parentheses around interaction
+# term are included so that glms_iterate_transforms doesn't transform
+# the interaction term. 
+pred_vars_inter <- c(pred_vars, params$inter)
+
+
+# pred_vars_inter <- pred_vars
+
+mods_glm_cwf1 <- glms_iterate_transforms(
+  preds = pred_vars_inter, 
+  df = df_sample,
+  response_var = "cwf_prop", 
+  delta_aic = 10)
+
+# not including the last element of the list which is final_formula
+mods_glm_cwf2 <- mods_glm_cwf1[-length(mods_glm_cwf1)]
+
+map_dfc(mods_glm_cwf2, ~ names(.$aic[1:5])) %>% 
+  kable(caption = "5 best transformations at each step")
+best_aic_by_step <- map_dbl(mods_glm_cwf2, ~.$aic[1])
+
+best_aic_by_step <- c(step0 = mods_glm_cwf1$step1$aic[['convert_none']], 
+                      best_aic_by_step)
+# AIC improvement by step
+diff(best_aic_by_step)
+plot(y = best_aic_by_step, 
+     x = 1:length(best_aic_by_step) - 1,
+     ylab = "AIC",
+     xlab = "Number of variables transformed")
+
+```
+
+Best transformation each step.
+
+```{r}
+var_transformed <- map(mods_glm_cwf2, function(x) x$var_transformed)
+var_transformed
+```
+
+
+### same model for all response variables
+
+Response variables are the proportion of years in which fires occurred.
+Using best model formula selected in the previous step
+
+```{r fit_glm1}
+
+best_form <- mods_glm_cwf1$final_formula
+print(best_form)
+
+# refitting the glm with the best formula
+mod_glm1 <- glm(as.formula(best_form), data = df_sample, family = 'binomial')
+
+# should be the same AIC (i.e. refitting the same model)
+AIC(mod_glm1)
+
+summary(mod_glm1)
+
+```
+
+## partial dependence & VIP
+
+PDP plot trend made using a small sample of the data
+
+```{r pdp_glm, warning = FALSE, fig.width = 8, fig.height=8}
+# vip::vip(bin_glm1) # variable importance
+vip::vip(mod_glm1, num_features = 15)
+
+pdp_all_vars(mod_glm1, mod_vars = pred_vars, ylab = 'probability',train = df_small)
+
+```
+
+
+## observed vs. predicted
+
+Predicting on the data
+
+```{r}
+
+# create prediction for each each model
+# (i.e. for each fire proporation variable)
+predict_by_response <- function(mod, df) {
+  df_out <- df
+
+  response_name <- paste0(var_prop, "_pred")
+  df_out[[response_name]] <- predict(mod, df, type = 'response')
+  df_out
+}
+
+pred_glm1 <- predict_by_response(mod_glm1, df_test)
+```
+
+
+### Deciles
+
+Binning predictor variables into deciles (actually percentiles) and looking at the mean
+predicted probability for each percentile. The use of the word deciles
+is just a legacy thing (they started out being actual deciles)
+
+Then predicting on an identical dataset but with warming
+
+```{r}
+var_prop_pred <- paste0(var_prop, "_pred")
+response_vars <- c(var_prop, var_prop_pred)
+
+pred_glm1_deciles <- predvars2deciles(pred_glm1,
+                                      response_vars = response_vars,
+                                      pred_vars = pred_vars)
+
+```
+
+
+
+Publication quality quantile plot
+
+```{r}
+
+# publication quality version
+g <- decile_dotplot_pq(pred_glm1_deciles)
+
+if(!hmod) {
+# obs/pred inset
+g2 <- add_dotplot_inset(g, pred_glm1_deciles)
+} else {
+  g2 <- g
+}
+g2
+
+if(save_figs) {
+  png(paste0("figures/quantile_plots/quantile_plot_v5", s,  ".png"), 
+     units = "in", res = 600, width = 5.5, height = 3.5 )
+    print(g2)
+  dev.off()
+}
+
+```
+
+### Deciles Filtered 
+
+20th and 80th percentiles for each climat variable
+
+```{r}
+df <- pred_glm1[, c("MAT", "MAP", "prcpPropSum")] %>% 
+  mutate(MAT = MAT - 273.15) # k to c
+map(df, quantile, probs = c(0.2, 0.8), na.rm = TRUE)
+```
+
+
+Filtered 'Decile' plots of data. These plots show each vegetation variable,
+but only based on data that falls into the upper and lower two deciles of
+each climate variable. 
+
+
+```{r glm_deciles_filtered, fig.height = 10, fig.width = 5, message = FALSE}
+clim_vars <- c("MAT", "MAP", "prcpPropSum")
+pred_glm1_deciles_filt <- predvars2deciles( pred_glm1, 
+                         response_vars = response_vars,
+                         pred_vars = pred_vars,
+                         filter_var = TRUE,
+                         filter_vars = pred_vars) 
+
+decile_dotplot_filtered_pq(pred_glm1_deciles_filt, xvars = clim_vars)
+decile_dotplot_filtered_pq(pred_glm1_deciles_filt)
+
+```
+
+
+
+Filtered quantile figure with middle 2 deciles also shown
+(this is very memory intensive so no running at the moment)
+
+```{r fig.height = 8, fig.width = 5, eval = FALSE}
+pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1, 
+                         response_vars = response_vars,
+                         pred_vars = pred_vars,
+                         filter_var = TRUE,
+                         add_mid = TRUE)
+
+g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt_mid)
+g
+
+if(save_figs) {
+jpeg(paste0("figures/quantile_plots/quantile_plot_filtered_mid_v1", s, ".jpeg"),
+     units = "in", res = 600, width = 5.5, height = 6 )
+  g 
+dev.off()
+}
+```
+
+
+
+# Save output
+
+```{r save_output}
+# glm models
+mods2save <- butcher::butcher(mod_glm1) # removes some model components so the saved object isn't huge
+
+mods2save$formula <- best_form
+mods2save$pred_vars_inter <- pred_vars_inter # so have interactions
+n <- nrow(df_sample)
+mods2save$data_rows <- n
+
+if(!test_run) {
+  saveRDS(mods2save, 
+        paste0("models/glm_binomial_models_v3", s, "_", n, "n_g", 
+        sample_group, ".RDS"))
+}
+
+
+```
+
+# session info
+
+Hash of current commit (i.e. to ID the version of the code used)
+
+```{r}
+system("git rev-parse HEAD", intern=TRUE)
+```
+
+Packages etc.
+
+```{r}
+sessionInfo()
+
+```
