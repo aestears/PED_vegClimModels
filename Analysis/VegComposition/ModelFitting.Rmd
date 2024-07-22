@@ -6,8 +6,9 @@ date: "`r lubridate::today()`"
 params: 
   test_run: TRUE
   save_figs: FALSE
+  response: "AngioTreeCover_dec" 
   hmod: FALSE
-  #s: "_annf2_A-P"
+  s: "AngioTreeCover"
   #inter: !r c('afgAGB:MAP' = "afgAGB:MAP")
   #sample_group: 1
 output:
@@ -36,54 +37,40 @@ save_figs <- params$save_figs
 hmod <- params$hmod # whether to include human modification in the model
 # by changing the sample_group the model can be fit to a completely different set of rows
 sample_group <- params$sample_group 
+response <- params$response
 # _ann defines this model as being built on annual data
 s <- params$s # string to paste to file names e.g., that defines the interactions in the model
 # such as (summer ppt * MAT) and annuals*temperature interactions
 fit_sample <- TRUE # fit model to a sample of the data
 n_train <- 5e6 # sample size of the training data
 n_test <- 1e6 # sample size of the testing data (if this is too big the decile dotplot code throws memory errors)
-
-if(hmod & !stringr::str_detect(s, 'hmod')) {
-  s <- paste0('_hmod', s)
-}
 ```
 
 
 ```{r warning=FALSE, message=FALSE}
 # set option so resampled dataset created here reproduces earlier runs of this code with dplyr 1.0.10
-source("src/general_functions.R")
-source("src/fig_params.R")
-source("src/modeling_functions.R")
+source("../../Functions/glmTransformsIterates.R")
+source("../../Functions/transformPreds.R")
+#source("src/fig_params.R")
+#source("src/modeling_functions.R")
 
+library(betareg)
 library(tidyverse)
 library(GGally) # for ggpairs()
 library(pdp) # for partial dependence plots
 library(gridExtra)
 library(knitr)
 library(patchwork) # for figure insets etc. 
+library(ggtext)
 theme_set(theme_classic())
 ```
 
 # read in data
 
-Data compiled in the `04_create_biom-mask_dataframe_ann.R` script
-
-This version two of the dataframe defines a cell has having burned
-if ~47% of that cell burned (as opposed to just the centroid). This 
-preserves the correct total area burned, and also should reduce noise, by 
-more correctly determin
+Data compiled in the `prepDataForModels.R` script
 
 ```{r}
-df_ann1 <- read_csv('data_processed/fire-clim-veg_3yrAvg_v2.csv',
-                    progress = FALSE, show_col_types = FALSE)
-
-if(!hmod) {
-  df_ann1$hmod <- NULL
-} else {
-  # hmod column has a number of NAs
-  df_ann1 <- df_ann1 %>% 
-    tidyr::drop_na()
-}
+modDat <- readRDS("../../data/DataForModels.rds")
 ```
 
 
@@ -91,11 +78,11 @@ if(!hmod) {
 
 ```{r}
 set.seed(1)
-df_biome3 <- df_ann1
+modDat_1 <- modDat
 
 # small dataset for if testing the data
 if(test_run) {
-  df_biome3 <- slice_sample(df_biome3, n = 1e5)
+  modDat_1 <- slice_sample(modDat_1, n = 1e5)
 }
 ```
 
@@ -104,16 +91,25 @@ For now, not doing any resampling
 
 ```{r}
 set.seed(1234)
-pred_vars <- c("afgAGB", "pfgAGB", "MAT", "MAP", "prcpPropSum")
-if(hmod) {
-  pred_vars <- c(pred_vars, 'hmod')
-}
+
+pred_vars <- c("swe_meanAnnAvg_5yr", "tmin_meanAnnAvg_5yr", "prcp_meanAnnTotal_5yr",    "precip_Seasonality_meanAnnAvg_5yr", "PrecipTempCorr_meanAnnAvg_5yr")
+
 names(pred_vars) <- pred_vars
-# so that herbAGB is in the final dataframes
-pred_vars2 <- pred_vars
 
 # predictor vars are the same in both dfs
-df_pred <- df_biome3[, pred_vars2]
+
+## remove rows for data that have NAs in the predictors (lag starts before range of DayMet data)
+
+modDat_1 <- modDat_1 %>% 
+  filter(!is.na(swe_meanAnnAvg_5yr) & 
+           !is.na(tmin_meanAnnAvg_5yr) & 
+           !is.na(prcp_meanAnnTotal_5yr) &
+           !is.na(precip_Seasonality_meanAnnAvg_5yr) & 
+           !is.na(PrecipTempCorr_meanAnnAvg_5yr) & 
+           !is.na(paste(response)))
+
+df_pred <- modDat_1[, pred_vars]
+
 ```
 
 Training data
@@ -121,33 +117,33 @@ Training data
 ```{r}
 
 df_sample <- if(fit_sample & !test_run) {
-  reordered <- slice_sample(df_biome3, prop = 1)
+  reordered <- slice_sample(modDat_1, prop = 1)
   
   low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
   high <- low + n_train - 1 # last row
-  if(high > nrow(df_biome3)) {
+  if(high > nrow(modDat_1)) {
     stop('trying to sample from rows that dont exist')
   }
   reordered[low:high, ]
 } else {
-    df_biome3
+    modDat_1
 }
 
 df_test <- if(fit_sample & !test_run & 
               # antijoin only works if there are enough rows that meet 
               # that criterion, i.e. if df_sample contains most of the data i
               # doesnt' work
-              (nrow(df_biome3) - nrow(df_sample) > n_test)) {
-  df_biome3 %>% 
+              (nrow(modDat_1) - nrow(df_sample) > n_test)) {
+  modDat_1 %>% 
     anti_join(df_sample, by = c("cell_num", "year")) %>% 
     slice_sample(n = n_test)
 } else {
-  df_biome3 %>% 
+  modDat_1 %>% 
     slice_sample(n = n_test)
 }
 
 # small sample for certain plots
-df_small <- slice_sample(df_biome3, n = 1e5)
+df_small <- slice_sample(modDat_1, n = 1e5)
 ```
 
 
@@ -159,18 +155,19 @@ create_summary <- function(df) {
     pivot_longer(cols = everything(),
                  names_to = 'variable') %>% 
     group_by(variable) %>% 
-    summarise(across(value, .fns = list(mean = mean, min = min, 
-                                        median = median, max = max))) %>% 
+    summarise(across(value, .fns = list(mean = ~mean(.x, na.rm = TRUE), min = ~min(.x, na.rm = TRUE), 
+                                        median = ~median(.x, na.rm = TRUE), max = ~max(.x, na.rm = TRUE)))) %>% 
     mutate(across(where(is.numeric), round, 4))
 }
 
-df_biome3[pred_vars2] %>% 
+modDat_1[pred_vars] %>% 
   create_summary() %>% 
   knitr::kable(caption = 'summaries of predictor variables')
 
 
-response_summary <- df_biome3 %>% 
-    dplyr::select(where(is.numeric), -all_of(pred_vars2), -matches("^occur_")) %>% 
+response_summary <- modDat_1 %>% 
+    dplyr::select(#where(is.numeric), -all_of(pred_vars),
+      matches(response)) %>% 
     create_summary()
 
 
@@ -186,8 +183,8 @@ here using pred dataframe, because smaller and this code is slow.
 ```{r pred_v_pred}
 df_pred %>% 
   slice_sample(n = 5e4) %>% 
-  select(-matches("_")) %>% 
-ggpairs(lower = list(continuous = GGally::wrap("points", alpha = 0.1,    size=0.2)))
+  #select(-matches("_")) %>% 
+ggpairs(lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)))
 
 ```
 
@@ -196,26 +193,33 @@ ggpairs(lower = list(continuous = GGally::wrap("points", alpha = 0.1,    size=0.
 ```{r n_fires_boxplots, fig.height=9, fig.width=8}
 
 # vectors of names of response variables
-vars_nfire <- names(df_biome3) %>% 
-  str_subset("^nfire_")
-
-var_prop <- 'cwf_prop'
-
-names(var_prop) <- 'cwf'
+vars_response <- response
 
 # longformat dataframes for making boxplots
-df_biome_long <- 
-  # for some reason select() was giving me problems
-  # adding numYrs here so can take weighted average
-  predvars2long(df_biome3, response_vars = c(vars_nfire, var_prop), 
-                pred_vars = pred_vars) %>% 
-    mutate(across(all_of(vars_nfire), factor))
+df_sample_plots <-  df_sample %>% 
+  rename(response = all_of(response)) %>% 
+  mutate(response = case_when(
+    response <= .25 ~ ".25", 
+    response > .25 & response <=.5 ~ ".5", 
+    response > 5 & response <=.75 ~ ".75", 
+    response >= .75  ~ "1", 
+  )) %>% 
+  select(c(response, pred_vars)) %>% 
+  pivot_longer(cols = swe_meanAnnAvg_5yr:PrecipTempCorr_meanAnnAvg_5yr, 
+               names_to = "predictor", 
+               values_to = "value")
+# df_biome_long <- 
+#   # for some reason select() was giving me problems
+#   # adding numYrs here so can take weighted average
+#   predvars2long(modDat_1, response_vars = c(vars_response), 
+#                 pred_vars = pred_vars) #%>% 
+#    # mutate(across(all_of(vars_nfire), factor))
 
 
-ggplot(df_biome_long, aes_string(x= "nfire_cwf", y = 'value')) +
+ggplot(df_sample_plots, aes_string(x= "response", y = 'value')) +
   geom_boxplot() +
-  facet_wrap(~name, scales = 'free_y')
-
+  facet_wrap(~predictor, scales = 'free_y') + 
+  ylab("Number of Observations")
 ```
 
 
@@ -245,10 +249,10 @@ pred_vars_inter <- c(pred_vars, params$inter)
 
 # pred_vars_inter <- pred_vars
 
-mods_glm_cwf1 <- glms_iterate_transforms(
+mods_glm_cwf1 <- glmTransformsIterates(
   preds = pred_vars_inter, 
   df = df_sample,
-  response_var = "cwf_prop", 
+  response_var = response, 
   delta_aic = 10)
 
 # not including the last element of the list which is final_formula
@@ -288,12 +292,13 @@ best_form <- mods_glm_cwf1$final_formula
 print(best_form)
 
 # refitting the glm with the best formula
-mod_glm1 <- glm(as.formula(best_form), data = df_sample, family = 'binomial')
+mod_glm1 <- betareg(as.formula(best_form), data = df_sample, link = c("logit"), link.phi = NULL,
+                              type = c("ML"))
 
 # should be the same AIC (i.e. refitting the same model)
 AIC(mod_glm1)
 
-summary(mod_glm1)
+#summary(mod_glm1)
 
 ```
 
@@ -303,9 +308,10 @@ PDP plot trend made using a small sample of the data
 
 ```{r pdp_glm, warning = FALSE, fig.width = 8, fig.height=8}
 # vip::vip(bin_glm1) # variable importance
-vip::vip(mod_glm1, num_features = 15)
+#car::vif(mod_glm1)
+#vip::vip(mod_glm1, num_features = 15)
 
-pdp_all_vars(mod_glm1, mod_vars = pred_vars, ylab = 'probability',train = df_small)
+#pdp_all_vars(mod_glm1, mod_vars = pred_vars, ylab = 'probability',train = df_small)
 
 ```
 
@@ -321,7 +327,7 @@ Predicting on the data
 predict_by_response <- function(mod, df) {
   df_out <- df
 
-  response_name <- paste0(var_prop, "_pred")
+  response_name <- paste0(response, "_pred")
   df_out[[response_name]] <- predict(mod, df, type = 'response')
   df_out
 }
@@ -339,8 +345,8 @@ is just a legacy thing (they started out being actual deciles)
 Then predicting on an identical dataset but with warming
 
 ```{r}
-var_prop_pred <- paste0(var_prop, "_pred")
-response_vars <- c(var_prop, var_prop_pred)
+var_prop_pred <- paste0(response, "_pred")
+response_vars <- c(response, var_prop_pred)
 
 pred_glm1_deciles <- predvars2deciles(pred_glm1,
                                       response_vars = response_vars,
@@ -355,7 +361,7 @@ Publication quality quantile plot
 ```{r}
 
 # publication quality version
-g <- decile_dotplot_pq(pred_glm1_deciles)
+g <- decile_dotplot_pq(pred_glm1_deciles, response = response)
 
 if(!hmod) {
 # obs/pred inset
@@ -376,11 +382,11 @@ if(save_figs) {
 
 ### Deciles Filtered 
 
-20th and 80th percentiles for each climat variable
+20th and 80th percentiles for each climate variable
 
 ```{r}
-df <- pred_glm1[, c("MAT", "MAP", "prcpPropSum")] %>% 
-  mutate(MAT = MAT - 273.15) # k to c
+df <- pred_glm1[, c("swe_meanAnnAvg_5yr", "tmin_meanAnnAvg_5yr", "prcp_meanAnnTotal_5yr", "precip_Seasonality_meanAnnAvg_5yr", "PrecipTempCorr_meanAnnAvg_5yr" )] #%>% 
+  #mutate(MAT = MAT - 273.15) # k to c
 map(df, quantile, probs = c(0.2, 0.8), na.rm = TRUE)
 ```
 
@@ -391,7 +397,7 @@ each climate variable.
 
 
 ```{r glm_deciles_filtered, fig.height = 10, fig.width = 5, message = FALSE}
-clim_vars <- c("MAT", "MAP", "prcpPropSum")
+clim_vars <- c("swe_meanAnnAvg_5yr", "tmin_meanAnnAvg_5yr", "prcp_meanAnnTotal_5yr", "precip_Seasonality_meanAnnAvg_5yr", "PrecipTempCorr_meanAnnAvg_5yr")
 pred_glm1_deciles_filt <- predvars2deciles( pred_glm1, 
                          response_vars = response_vars,
                          pred_vars = pred_vars,
@@ -399,7 +405,7 @@ pred_glm1_deciles_filt <- predvars2deciles( pred_glm1,
                          filter_vars = pred_vars) 
 
 decile_dotplot_filtered_pq(pred_glm1_deciles_filt, xvars = clim_vars)
-decile_dotplot_filtered_pq(pred_glm1_deciles_filt)
+#decile_dotplot_filtered_pq(pred_glm1_deciles_filt)
 
 ```
 
@@ -408,7 +414,7 @@ decile_dotplot_filtered_pq(pred_glm1_deciles_filt)
 Filtered quantile figure with middle 2 deciles also shown
 (this is very memory intensive so no running at the moment)
 
-```{r fig.height = 8, fig.width = 5, eval = FALSE}
+```{r fig.height = 8, fig.width = 5, eval = TRUE}
 pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1, 
                          response_vars = response_vars,
                          pred_vars = pred_vars,

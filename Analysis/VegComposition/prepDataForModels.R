@@ -138,7 +138,7 @@ ggplot(data = modDat) +
   geom_density(aes(AngioTreeCover_dec), col = "grey")
 
 ## save data for further analysis 
-saveRDS(modDat, file = "./data/DataForModels.rds")
+saveRDS(modDat, file = "./data/DataForModels.RDS")
 
 # fit basic models  -------------------------------------------------------
 
