@@ -25,7 +25,7 @@ vegDat <- read.csv("./data/DataForAnalysis.csv")
 dayMet <- read.csv("./data/dayMet/climateValuesForAnalysis_final.csv")
 # remove monthly values 
 dayMet2 <- dayMet %>% 
-  select(-names(dayMet)[c(2:13, 16:63)])
+  select(-names(dayMet)[c(4:24)])
 # make dayMet spatial 
 dayMet3 <- dayMet2 %>% 
   st_as_sf(coords = c("Long", "Lat"))
@@ -168,7 +168,7 @@ treeDat <- allDat[!is.na(allDat$TotalTreeCover) &
   st_drop_geometry()
 treeDat$Year <- as.factor(treeDat$Year)
 ## make correlation matrix of covariates
-corTree <- cor(treeDat[,c("swe_meanAnnAvg_5yr", "tmin_meanAnnAvg_5yr", "tmax_meanAnnAvg_5yr",
+corTree <- cor(modDat[,c("swe_meanAnnAvg_5yr", "tmin_meanAnnAvg_5yr", "tmax_meanAnnAvg_5yr",
                           "vp_meanAnnAvg_5yr", "prcp_meanAnnTotal_5yr", "T_warmestMonth_meanAnnAvg_5yr", "T_coldestMonth_meanAnnAvg_5yr",
                           "precip_wettestMonth_meanAnnAvg_5yr", "precip_driestMonth_meanAnnAvg_5yr", "precip_Seasonality_meanAnnAvg_5yr",
                           "PrecipTempCorr_meanAnnAvg_5yr", "aboveFreezing_month_meanAnnAvg_5yr", "isothermality_meanAnnAvg_5yr")])

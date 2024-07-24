@@ -1,4 +1,4 @@
-## addapted from Martin Holdrege 
+## adapted from Martin Holdrege 
 library(patchwork)
 library(dtplyr)
 
