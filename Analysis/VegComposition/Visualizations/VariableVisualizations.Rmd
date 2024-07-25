@@ -1,0 +1,90 @@
+---
+title: "Visualizations of Model Parameters in Veg.-Climate Relationship Models"
+author: "Alice Stears"
+date: "`r lubridate::today()`"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE,
+                      message = FALSE)
+```
+
+# Dependencies 
+
+```{r warning=FALSE, message=FALSE}
+library(tidyverse)
+library(GGally) # for ggpairs()
+library(pdp) # for partial dependence plots
+library(gridExtra)
+library(knitr)
+library(patchwork) # for figure insets etc. 
+library(ggtext)
+theme_set(theme_classic())
+```
+
+# read in data
+
+Data compiled in the `prepDataForModels.R` script
+
+```{r}
+modDat <- readRDS("../../../data/DataForModels.rds")
+```
+
+Here are the climate variables we could potentially use in the models 
+```{r}
+kable(names(modDat)[c(24:41,100:138)])
+```
+
+# Correlation of potential predictors 
+This is using a subset of the data (50,000 rows), just for runtime purposes 
+
+Below is the correlation between only climate predictors that are averaged across 30 years
+ * Dropped tmin, tmax, t_warmest month, and t_coldest month and replaced w/ MAT
+ * Drop prcp wettest month - use MAP only
+ * dropped precip of driest month--was highly correlated w/ precip and precip seasonality
+ * drop prcpSeasonality -- highly correlated w/ water deficit and wet degree days
+ * Replace VPDmean with VPDmax
+ * Probably drop FreezeMon
+** also dropped vp (which we didn't talk about, but is highly correlated w/ VPD and pretty highly correlated w/ precip)
+
+
+```{r}
+(corrPlot_30yrMean <- modDat %>% 
+  rename("swe" = swe_meanAnnAvg_30yr, "tmean" = "tMean_meanAnnAvg_30yr", tmax = tmax_meanAnnAvg_30yr, "vp" = vp_meanAnnAvg_30yr, "prcp" = prcp_meanAnnTotal_30yr, T_warmest = T_warmestMonth_meanAnnAvg_30yr, T_coldest = T_coldestMonth_meanAnnAvg_30yr, prcpWettest = precip_wettestMonth_meanAnnAvg_30yr, prcpDriest = precip_driestMonth_meanAnnAvg_30yr, prcpSeasonality = precip_Seasonality_meanAnnAvg_30yr, prcpTempCorr = PrecipTempCorr_meanAnnAvg_30yr, abvFreezeMonth = aboveFreezing_month_meanAnnAvg_30yr, isothermality = isothermality_meanAnnAvg_30yr, WatDeficit = annWaterDeficit_meanAnnAvg_30yr, WetDegDays = annWetDegDays_meanAnnAvg_30yr, VPDmean = annVPD_mean_meanAnnAvg_30yr, VPD_max = annVPD_max_meanAnnAvg_30yr, VPD_min = annVPD_min_meanAnnAvg_30yr) %>% 
+select(swe, tmean, prcp,  prcpTempCorr, isothermality, #WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+  #slice_sample(n = 5e4) %>% 
+  #select(-matches("_")) %>% 
+ggpairs(lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2))))
+```
+
+
+visualize the residuals from the 'best mod' for total tree cover
+```{r}
+treeMod <- betareg(TotalTreeCover_dec ~ stats::poly(I(log10(I(swe_meanAnnAvg_5yr+1))),2,raw=TRUE) + stats::poly(tmin_meanAnnAvg_5yr,2,raw=TRUE) + stats::poly(prcp_meanAnnTotal_5yr,2,raw=TRUE) + stats::poly(I(sqrt(precip_Seasonality_meanAnnAvg_5yr)),2,raw=TRUE) + stats::poly(PrecipTempCorr_meanAnnAvg_5yr,2, raw = TRUE), data = modDat %>% slice_sample(n = 50000), link = c("logit"), link.phi = NULL,
+                              type = c("ML"))
+
+# predict responses
+response <- "TotalTreeCover_dec"
+predict_by_response <- function(mod, df) {
+  df_out <- df
+
+  response_name <- paste0(response, "_pred")
+  df_out[[response_name]] <- predict(mod, df, type = 'response')
+  df_out
+}
+testDat <- modDat %>% slice_sample(n = 50000)
+pred_glm1 <- predict_by_response(treeMod, testDat)
+pred_glm1$resid <- pred_glm1$TotalTreeCover_dec - pred_glm1$TotalTreeCover_dec_pred
+
+
+ggplot(pred_glm1[!is.na(pred_glm1$resid),]) +
+  geom_point(aes(x = Lon, y = Lat, col = resid)) + 
+  ggtitle("Residuals from model predicting Total Tree Cover")
+```
+

@@ -80,7 +80,9 @@ allDat <- allDat %>%
          C4GramProportion = C4GramCover/TotalCover,
          TotalTreeProportion = TotalTreeCover/TotalCover, 
          ConifTreeProportion = ConifTreeCover/TotalCover, 
-         AngioTreeProportion = AngioTreeCover/TotalCover
+         AngioTreeProportion = AngioTreeCover/TotalCover,
+         AnnualHerbGramProportion = AnnualHerbGramCover/TotalCover,
+         PerennialHerbGramCoverProportion = PerennialHerbGramCover/TotalCover
          )
 
 modDat <- allDat %>% 
@@ -91,7 +93,9 @@ modDat <- allDat %>%
          C4GramCover_dec = C4GramCover/100,
          TotalTreeCover_dec = TotalTreeCover/100,
          ConifTreeCover_dec = ConifTreeCover/100,
-         AngioTreeCover_dec = AngioTreeCover/100
+         AngioTreeCover_dec = AngioTreeCover/100, 
+         AnnualHerbGram_dec = AnnualHerbGramCover/100, 
+         PerennialHerbGram_dec = PerennialHerbGramCover/100
          ) %>% 
   st_drop_geometry() %>% # drop geometry
   # add back lat long data just in case
@@ -106,6 +110,8 @@ modDat[modDat$C4GramCover_dec == 0 & !is.na(modDat$C4GramCover_dec), "C4GramCove
 modDat[modDat$TotalTreeCover_dec == 0 & !is.na(modDat$TotalTreeCover_dec), "TotalTreeCover_dec"]  <- .0001
 modDat[modDat$ConifTreeCover_dec == 0 & !is.na(modDat$ConifTreeCover_dec), "ConifTreeCover_dec"]  <- .0001
 modDat[modDat$AngioTreeCover_dec == 0 & !is.na(modDat$AngioTreeCover_dec), "AngioTreeCover_dec"]  <- .0001
+modDat[modDat$AnnualHerbGram_dec == 0 & !is.na(modDat$AnnualHerbGram_dec), "AnnualHerbGram_dec"]  <- .0001
+modDat[modDat$PerennialHerbGram_dec == 0 & !is.na(modDat$PerennialHerbGram_dec), "PerennialHerbGram_dec"]  <- .0001
 
 
 modDat[(modDat$ShrubCover_dec==1 | (modDat$ShrubCover_dec>1 & modDat$ShrubCover_dec<1.5)) & !is.na(modDat$ShrubCover), "ShrubCover_dec"] <- .999 
@@ -115,7 +121,9 @@ modDat[(modDat$C3GramCover_dec==1 | (modDat$C3GramCover_dec>1 & modDat$C3GramCov
 modDat[(modDat$C4GramCover_dec==1 | (modDat$C4GramCover_dec>1 & modDat$C4GramCover_dec<1.5)) & !is.na(modDat$C4GramCover), "C4GramCover_dec"] <- .999 
 modDat[(modDat$TotalTreeCover_dec==1 | (modDat$TotalTreeCover_dec>1 & modDat$TotalTreeCover_dec<1.5)) & !is.na(modDat$TotalTreeCover), "TotalTreeCover_dec"] <- .999 
 modDat[(modDat$ConifTreeCover_dec==1 | (modDat$ConifTreeCover_dec>1 & modDat$ConifTreeCover_dec<1.5)) & !is.na(modDat$ConifTreeCover), "ConifTreeCover_dec"] <- .999 
-modDat[(modDat$AngioTreeCover_dec==1 | (modDat$AngioTreeCover_dec>1 & modDat$AngioTreeCover_dec<1.5)) & !is.na(modDat$AngioTreeCover), "AngioTreeCover_dec"] <- .999 
+modDat[(modDat$AngioTreeCover_dec==1 | (modDat$AngioTreeCover_dec>1 & modDat$AngioTreeCover_dec<1.5)) & !is.na(modDat$AngioTreeCover), "AngioTreeCover_dec"] <- .999
+modDat[(modDat$AnnualHerbGram_dec==1 | (modDat$AnnualHerbGram_dec>1 & modDat$AnnualHerbGram_dec<1.5)) & !is.na(modDat$AnnualHerbGram), "AnnualHerbGram_dec"] <- .999
+modDat[(modDat$PerennialHerbGram_dec==1 | (modDat$PerennialHerbGram_dec>1 & modDat$PerennialHerbGram_dec<1.5)) & !is.na(modDat$PerennialHerbGram), "PerennialHerbGram_dec"] <- .999 
 
 modDat[modDat$ShrubCover_dec >= 1 & !is.na(modDat$ShrubCover), "ShrubCover_dec"] <- NA
 modDat[modDat$HerbCover_dec>=1 & !is.na(modDat$HerbCover), "HerbCover_dec"] <- NA
@@ -125,6 +133,8 @@ modDat[modDat$C4GramCover_dec>=1 & !is.na(modDat$C4GramCover), "C4GramCover_dec"
 modDat[modDat$TotalTreeCover_dec>=1  & !is.na(modDat$TotalTreeCover), "TotalTreeCover_dec"] <- NA
 modDat[modDat$ConifTreeCover_dec>=1 & !is.na(modDat$ConifTreeCover), "ConifTreeCover_dec"] <- NA
 modDat[modDat$AngioTreeCover_dec>=1   & !is.na(modDat$AngioTreeCover), "AngioTreeCover_dec"] <- NA
+modDat[modDat$AnnualHerbGram_dec>=1   & !is.na(modDat$AnnualHerbGram), "AnnualHerbGram_dec"] <- NA
+modDat[modDat$PerennialHerbGram_dec>=1   & !is.na(modDat$PerennialHerbGram), "PerennialHerbGram_dec"] <- NA
 
 
 ggplot(data = modDat) + 
