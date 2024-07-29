@@ -24,6 +24,8 @@ library(gridExtra)
 library(knitr)
 library(patchwork) # for figure insets etc. 
 library(ggtext)
+library(betareg)
+library(ggplot2)
 theme_set(theme_classic())
 ```
 
@@ -54,15 +56,70 @@ Below is the correlation between only climate predictors that are averaged acros
 
 
 ```{r}
-(corrPlot_30yrMean <- modDat %>% 
-  rename("swe" = swe_meanAnnAvg_30yr, "tmean" = "tMean_meanAnnAvg_30yr", tmax = tmax_meanAnnAvg_30yr, "vp" = vp_meanAnnAvg_30yr, "prcp" = prcp_meanAnnTotal_30yr, T_warmest = T_warmestMonth_meanAnnAvg_30yr, T_coldest = T_coldestMonth_meanAnnAvg_30yr, prcpWettest = precip_wettestMonth_meanAnnAvg_30yr, prcpDriest = precip_driestMonth_meanAnnAvg_30yr, prcpSeasonality = precip_Seasonality_meanAnnAvg_30yr, prcpTempCorr = PrecipTempCorr_meanAnnAvg_30yr, abvFreezeMonth = aboveFreezing_month_meanAnnAvg_30yr, isothermality = isothermality_meanAnnAvg_30yr, WatDeficit = annWaterDeficit_meanAnnAvg_30yr, WetDegDays = annWetDegDays_meanAnnAvg_30yr, VPDmean = annVPD_mean_meanAnnAvg_30yr, VPD_max = annVPD_max_meanAnnAvg_30yr, VPD_min = annVPD_min_meanAnnAvg_30yr) %>% 
-select(swe, tmean, prcp,  prcpTempCorr, isothermality, #WatDeficit, 
+(corrPlot_30yrMean <- 
+   modDat %>% 
+  rename("swe" = swe_meanAnnAvg_30yr, "tmean" = tmean_meanAnnAvg_30yr, tmax = tmax_meanAnnAvg_30yr, "vp" = vp_meanAnnAvg_30yr, "prcp" = prcp_meanAnnTotal_30yr, T_warmest = T_warmestMonth_meanAnnAvg_30yr, T_coldest = T_coldestMonth_meanAnnAvg_30yr, prcpWettest = precip_wettestMonth_meanAnnAvg_30yr, prcpDriest = precip_driestMonth_meanAnnAvg_30yr, prcpSeasonality = precip_Seasonality_meanAnnAvg_30yr, prcpTempCorr = PrecipTempCorr_meanAnnAvg_30yr, abvFreezeMonth = aboveFreezing_month_meanAnnAvg_30yr, isothermality = isothermality_meanAnnAvg_30yr, WatDeficit = annWaterDeficit_meanAnnAvg_30yr, WetDegDays = annWetDegDays_meanAnnAvg_30yr, VPDmean = annVPD_mean_meanAnnAvg_30yr, VPD_max = annVPD_max_meanAnnAvg_30yr, VPD_min = annVPD_min_meanAnnAvg_30yr) %>% 
+select(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
        WetDegDays, VPD_max ) %>% 
-  #slice_sample(n = 5e4) %>% 
+  slice_sample(n = 5e4) %>% 
   #select(-matches("_")) %>% 
 ggpairs(lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2))))
 ```
+spatial distribution of VPD_max
+```{r}
+# raster to get the dayMet resolution we want for visualization
+test_rast <-  rast("../../../data/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
+  terra::aggregate(fact = 16, fun = "mean")
 
+# rasterize data
+plotRast_annVPD <- modDat %>% 
+         drop_na(annVPD_max_meanAnnAvg_30yr) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("Lon", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "annVPD_max_meanAnnAvg_30yr", 
+                   fun = mean) %>% 
+  terra::crop(ext(-2000000, 2500000, -2000000, 1200000))
+terra::plot(plotRast_annVPD, main = "VPD Max (30 yr avg.) at 16km2 scale", clip = TRUE, 
+            plg = list(title = "VPD Max (KPa)"))
+
+```
+
+spatial distribution of Wet degree days
+```{r}
+# rasterize data
+plotRast_wetDD <- modDat %>% 
+         drop_na(annWetDegDays_meanAnnAvg_30yr) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("Lon", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "annWetDegDays_meanAnnAvg_30yr", 
+                   fun = mean) %>% 
+  terra::crop(ext(-2000000, 2500000, -2000000, 1200000))
+terra::plot(plotRast_wetDD, main = "Wet Deg. Days (30 yr avg.) at 16km2 scale", clip = TRUE, 
+            plg = list(title = "Deg. Days"), 
+            col = map.pal("ryb"))
+
+```
+spatial distribution of water deficit
+```{r}
+# rasterize data
+plotRast_watDef <- modDat %>% 
+         drop_na(annWaterDeficit_meanAnnAvg_30yr) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("Lon", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "annWaterDeficit_meanAnnAvg_30yr", 
+                   fun = mean) %>% 
+  terra::crop(ext(-2000000, 2500000, -2000000, 1200000))
+terra::plot(plotRast_watDef, main = "Water Deficit (30 yr avg.) at 16km2 scale", clip = TRUE, 
+            plg = list(title = "Deg. Days"), 
+            col = map.pal("plasma"))
+
+```
 
 visualize the residuals from the 'best mod' for total tree cover
 ```{r}
@@ -83,8 +140,22 @@ pred_glm1 <- predict_by_response(treeMod, testDat)
 pred_glm1$resid <- pred_glm1$TotalTreeCover_dec - pred_glm1$TotalTreeCover_dec_pred
 
 
-ggplot(pred_glm1[!is.na(pred_glm1$resid),]) +
-  geom_point(aes(x = Lon, y = Lat, col = resid)) + 
-  ggtitle("Residuals from model predicting Total Tree Cover")
+# rasterize
+test_rast <-  rast("../../../data/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
+  terra::aggregate(fact = 32, fun = "mean")
+
+# rasterize data
+plotResid_rast <- pred_glm1 %>% 
+         drop_na(resid) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("Lon", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "resid", 
+                   fun = mean) %>% 
+  terra::crop(ext(-2000000, 2500000, -2000000, 1200000))
+terra::plot(plotResid_rast, main = "Residuals from total tree cover model at 32km2 scale", clip = TRUE, 
+            plg = list(title = "residual"), 
+            col = map.pal("curvature"))
 ```
 
