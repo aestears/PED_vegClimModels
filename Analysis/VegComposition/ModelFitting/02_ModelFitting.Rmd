@@ -4,13 +4,13 @@ subtitle: "Based on code from Martin Holdrege's Sagebrush-Fire paper"
 author: "Alice Stears"
 date: "`r lubridate::today()`"
 params: 
-  test_run: TRUE
+  test_run: FALSE
   save_figs: FALSE
-  response: "AngioTreeCover_dec" 
+  response: "ConifTreeCover_dec" 
   hmod: FALSE
-  s: "AngioTreeCover"
+  s: "ConifTreeCover"
   #inter: !r c('afgAGB:MAP' = "afgAGB:MAP")
-  #sample_group: 1
+  sample_group: 1
 output:
   html_document:
     toc: true
@@ -42,18 +42,20 @@ response <- params$response
 s <- params$s # string to paste to file names e.g., that defines the interactions in the model
 # such as (summer ppt * MAT) and annuals*temperature interactions
 fit_sample <- TRUE # fit model to a sample of the data
-n_train <- 5e6 # sample size of the training data
+n_train <- 5e4 # sample size of the training data
 n_test <- 1e6 # sample size of the testing data (if this is too big the decile dotplot code throws memory errors)
 ```
 
 
 ```{r warning=FALSE, message=FALSE}
 # set option so resampled dataset created here reproduces earlier runs of this code with dplyr 1.0.10
-source("../../Functions/glmTransformsIterates.R")
-source("../../Functions/transformPreds.R")
+source("../../../Functions/glmTransformsIterates.R")
+source("../../../Functions/transformPreds.R")
+source("../../../Functions/StepBeta_mine.R")
 #source("src/fig_params.R")
 #source("src/modeling_functions.R")
 
+library(caret)
 library(betareg)
 library(tidyverse)
 library(GGally) # for ggpairs()
@@ -62,6 +64,7 @@ library(gridExtra)
 library(knitr)
 library(patchwork) # for figure insets etc. 
 library(ggtext)
+library(StepBeta)
 theme_set(theme_classic())
 ```
 
@@ -70,7 +73,7 @@ theme_set(theme_classic())
 Data compiled in the `prepDataForModels.R` script
 
 ```{r}
-modDat <- readRDS("../../data/DataForModels.rds")
+modDat <- readRDS("../../../data/DataForModels.rds")
 ```
 
 
@@ -92,7 +95,8 @@ For now, not doing any resampling
 ```{r}
 set.seed(1234)
 
-pred_vars <- c("swe_meanAnnAvg_5yr", "tmin_meanAnnAvg_5yr", "prcp_meanAnnTotal_5yr",    "precip_Seasonality_meanAnnAvg_5yr", "PrecipTempCorr_meanAnnAvg_5yr")
+pred_vars <- c("swe_meanAnnAvg_30yr", "tmean_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr", "PrecipTempCorr_meanAnnAvg_30yr", "isothermality_meanAnnAvg_30yr", "annWetDegDays_meanAnnAvg_30yr")
+# removed VPD, since it's highly correlated w/ tmean and prcp
 
 names(pred_vars) <- pred_vars
 
@@ -101,12 +105,10 @@ names(pred_vars) <- pred_vars
 ## remove rows for data that have NAs in the predictors (lag starts before range of DayMet data)
 
 modDat_1 <- modDat_1 %>% 
-  filter(!is.na(swe_meanAnnAvg_5yr) & 
-           !is.na(tmin_meanAnnAvg_5yr) & 
-           !is.na(prcp_meanAnnTotal_5yr) &
-           !is.na(precip_Seasonality_meanAnnAvg_5yr) & 
-           !is.na(PrecipTempCorr_meanAnnAvg_5yr) & 
-           !is.na(paste(response)))
+  drop_na(swe_meanAnnAvg_30yr, tmean_meanAnnAvg_30yr, prcp_meanAnnTotal_30yr, 
+          precip_Seasonality_meanAnnAvg_30yr, PrecipTempCorr_meanAnnAvg_30yr, 
+          isothermality_meanAnnAvg_30yr, all_of(response))
+  
 
 df_pred <- modDat_1[, pred_vars]
 
@@ -122,7 +124,11 @@ df_sample <- if(fit_sample & !test_run) {
   low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
   high <- low + n_train - 1 # last row
   if(high > nrow(modDat_1)) {
-    stop('trying to sample from rows that dont exist')
+    warning(paste0("n_train size due to low sample size (i.e. < ", n_train,")"))
+    n_train <- n_train*.8
+     low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
+  high <- low + n_train - 1 # last row
+   #stop('trying to sample from rows that dont exist')
   }
   reordered[low:high, ]
 } else {
@@ -184,11 +190,12 @@ here using pred dataframe, because smaller and this code is slow.
 df_pred %>% 
   slice_sample(n = 5e4) %>% 
   #select(-matches("_")) %>% 
-ggpairs(lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)))
+ggpairs(lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), 
+        columnLabels = c("swe", "tmean", "prcp", "prcpTempCorr", "isothermality", "wetDegDays"))
 
 ```
 
-## boxplots-- # of fires vs predictor variables
+## boxplots-- # predictor variables compared to binned response variables
 
 ```{r n_fires_boxplots, fig.height=9, fig.width=8}
 
@@ -201,13 +208,14 @@ df_sample_plots <-  df_sample %>%
   mutate(response = case_when(
     response <= .25 ~ ".25", 
     response > .25 & response <=.5 ~ ".5", 
-    response > 5 & response <=.75 ~ ".75", 
+    response > .5 & response <=.75 ~ ".75", 
     response >= .75  ~ "1", 
   )) %>% 
   select(c(response, pred_vars)) %>% 
-  pivot_longer(cols = swe_meanAnnAvg_5yr:PrecipTempCorr_meanAnnAvg_5yr, 
+  pivot_longer(cols = names(pred_vars), 
                names_to = "predictor", 
-               values_to = "value")
+               values_to = "value") %>% 
+  filter(!is.na(response) & !is.na(value))
 # df_biome_long <- 
 #   # for some reason select() was giving me problems
 #   # adding numYrs here so can take weighted average
@@ -219,7 +227,7 @@ df_sample_plots <-  df_sample %>%
 ggplot(df_sample_plots, aes_string(x= "response", y = 'value')) +
   geom_boxplot() +
   facet_wrap(~predictor, scales = 'free_y') + 
-  ylab("Number of Observations")
+  ylab("Predictor Variable Values")
 ```
 
 
@@ -280,6 +288,175 @@ var_transformed <- map(mods_glm_cwf2, function(x) x$var_transformed)
 var_transformed
 ```
 
+### adding interaction terms 
+Plot potential interaction terms using raw data
+
+across values of swe
+```{r}
+# calculate quantiles
+swe_quants <- quantile(df_sample$swe_meanAnnAvg_30yr, na.rm = TRUE)
+# longformat dataframe for making boxplots
+df_sample_swe <-  df_sample %>% 
+  select(c(response, pred_vars)) %>% 
+  # transform the predictors according to above process
+  mutate(isotherm_squared = as.numeric(stats::poly(isothermality_meanAnnAvg_30yr,2,raw=TRUE)[,2]),
+         wetDegDays_squared = as.numeric(stats::poly(annWetDegDays_meanAnnAvg_30yr,2,raw=TRUE)[,2]),
+         swe_log = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,1]),
+         swe_log_squared = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2]),
+         tmean_log =            as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,1] ),
+         tmean_log_squared =    as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2] ),
+         prcp_log =             as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,1]),
+         prcp_log_squared =     as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,2]),
+         prcpTempCorr_squared = as.numeric(stats::poly(PrecipTempCorr_meanAnnAvg_30yr,2,raw=TRUE)[,2])
+         ) %>% 
+  rename(response = all_of(response)) %>% 
+  # mutate(response = case_when(
+  #   response <= .25 ~ ".25", 
+  #   response > .25 & response <=.5 ~ ".5", 
+  #   response > .5 & response <=.75 ~ ".75", 
+  #   response >= .75  ~ "1", 
+  # )) %>% 
+  # pivot_longer(cols = 2:16, 
+  #              names_to = "predictor", 
+  #              values_to = "value") %>% 
+  # filter(!is.na(response) & !is.na(value))
+  mutate(swe_meanAnnAvg_30yr_quants = case_when(
+    swe_meanAnnAvg_30yr <= swe_quants[2] ~ swe_quants[2], 
+    swe_meanAnnAvg_30yr > swe_quants[2]  & swe_meanAnnAvg_30yr <= swe_quants[3]  ~ swe_quants[3], 
+    swe_meanAnnAvg_30yr > swe_quants[3]  & swe_meanAnnAvg_30yr <= swe_quants[4]  ~ swe_quants[4], 
+    swe_meanAnnAvg_30yr >= swe_quants[4]  ~ swe_quants[5], 
+  )) %>% 
+  pivot_longer(cols = 2:16, 
+               names_to = "predictor", 
+               values_to = "value") %>% 
+  filter(!is.na(response) & !is.na(value))
+
+# plot relationships amongst variables according to different levels of SWE 
+ggplot(data = df_sample_swe[!(df_sample_swe$predictor %in% c("swe_log", "swe_log_squared", "swe_meanAnnAvg_30yr")),]) + 
+  geom_point(aes(y = response, x = value, col = as.factor(swe_meanAnnAvg_30yr_quants)), alpha = .5) +
+  geom_smooth(aes(y = response, x = value,  col = as.factor(swe_meanAnnAvg_30yr_quants)), method = "glm") + 
+  facet_wrap(~predictor, scales = "free_x")
+```
+
+Mean Annual Temperature
+```{r}
+tmean_quants <- quantile(df_sample$tmean_meanAnnAvg_30yr, na.rm = TRUE)
+
+# longformat dataframe for making boxplots
+df_sample_tmean <-  df_sample %>% 
+  select(c(response, pred_vars)) %>% 
+  # transform the predictors according to above process
+  mutate(isotherm_squared = as.numeric(stats::poly(isothermality_meanAnnAvg_30yr,2,raw=TRUE)[,2]),
+         wetDegDays_squared = as.numeric(stats::poly(annWetDegDays_meanAnnAvg_30yr,2,raw=TRUE)[,2]),
+         swe_log = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,1]),
+         swe_log_squared = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2]),
+         tmean_log =            as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,1] ),
+         tmean_log_squared =    as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2] ),
+         prcp_log =             as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,1]),
+         prcp_log_squared =     as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,2]),
+         prcpTempCorr_squared = as.numeric(stats::poly(PrecipTempCorr_meanAnnAvg_30yr,2,raw=TRUE)[,2])
+         ) %>% 
+  rename(response = all_of(response)) %>% 
+  # mutate(response = case_when(
+  #   response <= .25 ~ ".25", 
+  #   response > .25 & response <=.5 ~ ".5", 
+  #   response > .5 & response <=.75 ~ ".75", 
+  #   response >= .75  ~ "1", 
+  # )) %>% 
+  # pivot_longer(cols = 2:16, 
+  #              names_to = "predictor", 
+  #              values_to = "value") %>% 
+  # filter(!is.na(response) & !is.na(value))
+  mutate(tmean_meanAnnAvg_30yr_quants = case_when(
+    tmean_meanAnnAvg_30yr <= tmean_quants[2] ~ tmean_quants[2], 
+    tmean_meanAnnAvg_30yr > tmean_quants[2]  & tmean_meanAnnAvg_30yr <= tmean_quants[3]  ~ tmean_quants[3], 
+    tmean_meanAnnAvg_30yr > tmean_quants[3]  & tmean_meanAnnAvg_30yr <= tmean_quants[4]  ~ tmean_quants[4], 
+    tmean_meanAnnAvg_30yr >= tmean_quants[4]  ~ tmean_quants[5], 
+  )) %>% 
+  pivot_longer(cols = 2:16, 
+               names_to = "predictor", 
+               values_to = "value") %>% 
+  filter(!is.na(response) & !is.na(value))
+
+# plot relationships amongst variables according to different levels of tmean 
+ggplot(data = df_sample_tmean[!(df_sample_tmean$predictor %in% c("tmean_log", "tmean_log_squared", "tmean_meanAnnAvg_30yr")),]) + 
+  geom_point(aes(y = response, x = value, col = as.factor(tmean_meanAnnAvg_30yr_quants)), alpha = .3) +
+  geom_smooth(aes(y = response, x = value,  col = as.factor(tmean_meanAnnAvg_30yr_quants)), method = "glm") + 
+  facet_wrap(~predictor, scales = "free_x")
+
+```
+
+Mean annual precipitation
+```{r}
+prcp_quants <- quantile(df_sample$prcp_meanAnnTotal_30yr, na.rm = TRUE)
+
+# longformat dataframe for making boxplots
+df_sample_prcp <-  df_sample %>% 
+  select(c(response, pred_vars)) %>% 
+  # transform the predictors according to above process
+  mutate(isotherm_squared = as.numeric(stats::poly(isothermality_meanAnnAvg_30yr,2,raw=TRUE)[,2]),
+         wetDegDays_squared = as.numeric(stats::poly(annWetDegDays_meanAnnAvg_30yr,2,raw=TRUE)[,2]),
+         swe_log = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,1]),
+         swe_log_squared = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2]),
+         tmean_log =            as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,1] ),
+         tmean_log_squared =    as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2] ),
+         prcp_log =             as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,1]),
+         prcp_log_squared =     as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,2]),
+         prcpTempCorr_squared = as.numeric(stats::poly(PrecipTempCorr_meanAnnAvg_30yr,2,raw=TRUE)[,2])
+         ) %>% 
+  rename(response = all_of(response)) %>% 
+  # mutate(response = case_when(
+  #   response <= .25 ~ ".25", 
+  #   response > .25 & response <=.5 ~ ".5", 
+  #   response > .5 & response <=.75 ~ ".75", 
+  #   response >= .75  ~ "1", 
+  # )) %>% 
+  # pivot_longer(cols = 2:16, 
+  #              names_to = "predictor", 
+  #              values_to = "value") %>% 
+  # filter(!is.na(response) & !is.na(value))
+  mutate(prcp_meanAnnTotal_30yr_quants = case_when(
+    prcp_meanAnnTotal_30yr <= prcp_quants[2] ~ prcp_quants[2], 
+    prcp_meanAnnTotal_30yr > prcp_quants[2]  & prcp_meanAnnTotal_30yr <= prcp_quants[3]  ~ prcp_quants[3], 
+    prcp_meanAnnTotal_30yr > prcp_quants[3]  & prcp_meanAnnTotal_30yr <= prcp_quants[4]  ~ prcp_quants[4], 
+    prcp_meanAnnTotal_30yr >= prcp_quants[4]  ~ prcp_quants[5], 
+  )) %>% 
+  pivot_longer(cols = 2:16, 
+               names_to = "predictor", 
+               values_to = "value") %>% 
+  filter(!is.na(response) & !is.na(value))
+
+# plot relationships amongst variables according to different levels of tmean 
+ggplot(data = df_sample_prcp[!(df_sample_prcp$predictor %in% c("prcp_log", "prcp_log_squared", "prcp_meanAnnTotal_30yr")),]) + 
+  geom_point(aes(y = response, x = value, col = as.factor(prcp_meanAnnTotal_30yr_quants)), alpha = .3) +
+  geom_smooth(aes(y = response, x = value,  col = as.factor(prcp_meanAnnTotal_30yr_quants)), method = "glm") + 
+  facet_wrap(~predictor, scales = "free_x")
+
+```
+
+
+#### we'll try running the model w/ interactions for swe:isothermality, swe:tmean, tmean:precip, and prcp:swe
+
+```{r}
+
+best_form <- mods_glm_cwf1$final_formula
+print(best_form)
+
+# formula w/ interactions included
+modWithInteractions <- paste(best_form, c("+ I(log10(I(swe_meanAnnAvg_30yr+1))):isothermality_meanAnnAvg_30yr + I(log10(I(swe_meanAnnAvg_30yr+1))):tmean_meanAnnAvg_30yr + tmean_meanAnnAvg_30yr:I(log10(I(prcp_meanAnnTotal_30yr+1))) + I(log10(I(prcp_meanAnnTotal_30yr+1))):I(log10(I(swe_meanAnnAvg_30yr+1)))")) %>% 
+  str_remove_all("stats::")
+
+# refitting the glm with the best formula
+
+mod_glm1 <- betareg(as.formula(modWithInteractions), data = df_sample, link = c("logit"), link.phi = NULL,
+                              type = c("ML"))
+```
+
+### performing backwards AIC-based model selection 
+Using the "StepBeta" function from the StepBeta R package
+```{r}
+modSelection <- StepBeta_mine(mod_glm1, data = df_sample)
+```
 
 ### same model for all response variables
 
@@ -288,17 +465,19 @@ Using best model formula selected in the previous step
 
 ```{r fit_glm1}
 
-best_form <- mods_glm_cwf1$final_formula
+best_form <- modSelection$formula
 print(best_form)
 
 # refitting the glm with the best formula
-mod_glm1 <- betareg(as.formula(best_form), data = df_sample, link = c("logit"), link.phi = NULL,
+mod_glmFinal <- betareg(as.formula(best_form), data = df_sample, link = c("logit"), link.phi = NULL,
                               type = c("ML"))
+# fit using glmmTMB for subsequent analyses (Same output)
+#mod_glmFinal_glmmTMB <- glmmTMB::glmmTMB(as.formula(best_form), data = df_sample, family=beta_family(link="logit"))
 
 # should be the same AIC (i.e. refitting the same model)
-AIC(mod_glm1)
+AIC(mod_glmFinal)
 
-#summary(mod_glm1)
+#summary(mod_glmFinal_glmmTMB)
 
 ```
 
@@ -307,12 +486,11 @@ AIC(mod_glm1)
 PDP plot trend made using a small sample of the data
 
 ```{r pdp_glm, warning = FALSE, fig.width = 8, fig.height=8}
-# vip::vip(bin_glm1) # variable importance
-#car::vif(mod_glm1)
-#vip::vip(mod_glm1, num_features = 15)
+#vip::vip(mod_glmFinal, num_features = 15)
 
-#pdp_all_vars(mod_glm1, mod_vars = pred_vars, ylab = 'probability',train = df_small)
+#pdp_all_vars(mod_glmFinal, mod_vars = pred_vars, ylab = 'probability',train = df_small)
 
+#caret::varImp(mod_glmFinal)
 ```
 
 
@@ -332,7 +510,7 @@ predict_by_response <- function(mod, df) {
   df_out
 }
 
-pred_glm1 <- predict_by_response(mod_glm1, df_test)
+pred_glm1 <- predict_by_response(mod_glmFinal, df_test)
 ```
 
 
@@ -385,7 +563,7 @@ if(save_figs) {
 20th and 80th percentiles for each climate variable
 
 ```{r}
-df <- pred_glm1[, c("swe_meanAnnAvg_5yr", "tmin_meanAnnAvg_5yr", "prcp_meanAnnTotal_5yr", "precip_Seasonality_meanAnnAvg_5yr", "PrecipTempCorr_meanAnnAvg_5yr" )] #%>% 
+df <- pred_glm1[, pred_vars] #%>% 
   #mutate(MAT = MAT - 273.15) # k to c
 map(df, quantile, probs = c(0.2, 0.8), na.rm = TRUE)
 ```
@@ -397,7 +575,7 @@ each climate variable.
 
 
 ```{r glm_deciles_filtered, fig.height = 10, fig.width = 5, message = FALSE}
-clim_vars <- c("swe_meanAnnAvg_5yr", "tmin_meanAnnAvg_5yr", "prcp_meanAnnTotal_5yr", "precip_Seasonality_meanAnnAvg_5yr", "PrecipTempCorr_meanAnnAvg_5yr")
+clim_vars <- c("swe_meanAnnAvg_30yr", "tmean_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr", "precip_Seasonality_meanAnnAvg_30yr", "isothermality_meanAnnAvg_30yr", "annWetDegDays_meanAnnAvg_30yr")
 pred_glm1_deciles_filt <- predvars2deciles( pred_glm1, 
                          response_vars = response_vars,
                          pred_vars = pred_vars,
@@ -418,10 +596,11 @@ Filtered quantile figure with middle 2 deciles also shown
 pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1, 
                          response_vars = response_vars,
                          pred_vars = pred_vars,
+                         filter_vars = pred_vars,
                          filter_var = TRUE,
                          add_mid = TRUE)
 
-g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt_mid)
+g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt_mid, xvars = pred_vars)
 g
 
 if(save_figs) {
@@ -438,7 +617,7 @@ dev.off()
 
 ```{r save_output}
 # glm models
-mods2save <- butcher::butcher(mod_glm1) # removes some model components so the saved object isn't huge
+mods2save <- butcher::butcher(mod_glmFinal) # removes some model components so the saved object isn't huge
 
 mods2save$formula <- best_form
 mods2save$pred_vars_inter <- pred_vars_inter # so have interactions
@@ -447,8 +626,9 @@ mods2save$data_rows <- n
 
 if(!test_run) {
   saveRDS(mods2save, 
-        paste0("models/glm_binomial_models_v3", s, "_", n, "n_g", 
-        sample_group, ".RDS"))
+        paste0("./models/glm_beta_model_FirstPass_", s, "_n", n, 
+        #sample_group, 
+        ".RDS"))
 }
 
 

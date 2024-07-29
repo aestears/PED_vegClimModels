@@ -26,6 +26,8 @@ library(patchwork) # for figure insets etc.
 library(ggtext)
 library(betareg)
 library(ggplot2)
+library(terra)
+library(sf)
 theme_set(theme_classic())
 ```
 
@@ -65,6 +67,8 @@ select(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit,
   #select(-matches("_")) %>% 
 ggpairs(lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2))))
 ```
+
+# Visualization of some predictors
 spatial distribution of VPD_max
 ```{r}
 # raster to get the dayMet resolution we want for visualization
@@ -121,7 +125,7 @@ terra::plot(plotRast_watDef, main = "Water Deficit (30 yr avg.) at 16km2 scale",
 
 ```
 
-visualize the residuals from the 'best mod' for total tree cover
+# visualize the residuals from the 'best mod' for total tree cover
 ```{r}
 treeMod <- betareg(TotalTreeCover_dec ~ stats::poly(I(log10(I(swe_meanAnnAvg_5yr+1))),2,raw=TRUE) + stats::poly(tmin_meanAnnAvg_5yr,2,raw=TRUE) + stats::poly(prcp_meanAnnTotal_5yr,2,raw=TRUE) + stats::poly(I(sqrt(precip_Seasonality_meanAnnAvg_5yr)),2,raw=TRUE) + stats::poly(PrecipTempCorr_meanAnnAvg_5yr,2, raw = TRUE), data = modDat %>% slice_sample(n = 50000), link = c("logit"), link.phi = NULL,
                               type = c("ML"))
@@ -159,3 +163,212 @@ terra::plot(plotResid_rast, main = "Residuals from total tree cover model at 32k
             col = map.pal("curvature"))
 ```
 
+# Correlations at Ecoregion scales
+### Here are the ecoregions
+```{r, out.width="0.3\\linewidth", include=TRUE, fig.align="center", fig.cap=c("your caption"), echo=FALSE}
+  knitr::include_graphics("../../../data/Level1Ecoregions/NA_LEVEL_I.pdf")
+```
+#### Northwestern Forested Mountains
+```{r, fig.dim = c(8, 8)}
+modDat_ecoregions <- readRDS("../../../data/DataForModels_withEcoregion.rds")
+# get data 
+ plotDat <- 
+   modDat_ecoregions %>% 
+   filter(NA_L1NAME == "NORTHWESTERN FORESTED MOUNTAINS") %>% 
+   st_drop_geometry() %>% 
+  rename("swe" = swe_meanAnnAvg_30yr, "tmean" = tmean_meanAnnAvg_30yr, tmax = tmax_meanAnnAvg_30yr, "vp" = vp_meanAnnAvg_30yr, "prcp" = prcp_meanAnnTotal_30yr, T_warmest = T_warmestMonth_meanAnnAvg_30yr, T_coldest = T_coldestMonth_meanAnnAvg_30yr, prcpWettest = precip_wettestMonth_meanAnnAvg_30yr, prcpDriest = precip_driestMonth_meanAnnAvg_30yr, prcpSeasonality = precip_Seasonality_meanAnnAvg_30yr, prcpTempCorr = PrecipTempCorr_meanAnnAvg_30yr, abvFreezeMonth = aboveFreezing_month_meanAnnAvg_30yr, isothermality = isothermality_meanAnnAvg_30yr, WatDeficit = annWaterDeficit_meanAnnAvg_30yr, WetDegDays = annWetDegDays_meanAnnAvg_30yr, VPDmean = annVPD_mean_meanAnnAvg_30yr, VPD_max = annVPD_max_meanAnnAvg_30yr, VPD_min = annVPD_min_meanAnnAvg_30yr) %>% 
+select(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+     drop_na(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+  slice_sample(n = 5e5) 
+  #select(-matches("_")) %>% 
+
+ # function to add colors to plot
+ my_fn <- function(data, mapping, method="p", use="pairwise", ...){
+
+              # grab data
+              x <- eval_data_col(data, mapping$x)
+              y <- eval_data_col(data, mapping$y)
+
+              # calculate correlation
+              corr <- cor(x, y, method=method, use=use)
+
+              # calculate colour based on correlation value
+              # Here I have set a correlation of minus one to blue, 
+              # zero to white, and one to red 
+              # Change this to suit: possibly extend to add as an argument of `my_fn`
+              colFn <- colorRampPalette(c("red", "white", "blue"), interpolate ='spline')
+              fill <- colFn(100)[findInterval(corr, seq(-1, 1, length=100))]
+
+              ggally_cor(data = data, mapping = mapping, stars = FALSE, 
+                         digits = 2, colour = I("black"),...) + 
+                theme_void() +
+                theme(panel.background = element_rect(fill=fill))
+              
+ }
+ 
+  p1 <- ggpairs(plotDat, upper = list(continuous = my_fn),
+                lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), title = "NORTHWESTERN FORESTED MOUNTAINS")
+print(p1)
+```
+
+#### NORTH AMERICAN DESERTS
+```{r, fig.dim = c(8, 8)}
+# get data 
+ plotDat <- 
+   modDat_ecoregions %>% 
+   filter(NA_L1NAME == "NORTH AMERICAN DESERTS") %>% 
+   st_drop_geometry() %>% 
+  rename("swe" = swe_meanAnnAvg_30yr, "tmean" = tmean_meanAnnAvg_30yr, tmax = tmax_meanAnnAvg_30yr, "vp" = vp_meanAnnAvg_30yr, "prcp" = prcp_meanAnnTotal_30yr, T_warmest = T_warmestMonth_meanAnnAvg_30yr, T_coldest = T_coldestMonth_meanAnnAvg_30yr, prcpWettest = precip_wettestMonth_meanAnnAvg_30yr, prcpDriest = precip_driestMonth_meanAnnAvg_30yr, prcpSeasonality = precip_Seasonality_meanAnnAvg_30yr, prcpTempCorr = PrecipTempCorr_meanAnnAvg_30yr, abvFreezeMonth = aboveFreezing_month_meanAnnAvg_30yr, isothermality = isothermality_meanAnnAvg_30yr, WatDeficit = annWaterDeficit_meanAnnAvg_30yr, WetDegDays = annWetDegDays_meanAnnAvg_30yr, VPDmean = annVPD_mean_meanAnnAvg_30yr, VPD_max = annVPD_max_meanAnnAvg_30yr, VPD_min = annVPD_min_meanAnnAvg_30yr) %>% 
+select(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+     drop_na(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+  slice_sample(n = 5e5) 
+  #select(-matches("_")) %>% 
+
+  p1 <- ggpairs(plotDat, upper = list(continuous = my_fn),
+                lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), title = "NORTH AMERICAN DESERTS")
+print(p1)
+```
+
+#### EASTERN TEMPERATE FORESTS 
+```{r, fig.dim = c(8, 8)}
+# get data 
+ plotDat <- 
+   modDat_ecoregions %>% 
+   filter(NA_L1NAME == "EASTERN TEMPERATE FORESTS") %>% 
+   st_drop_geometry() %>% 
+  rename("swe" = swe_meanAnnAvg_30yr, "tmean" = tmean_meanAnnAvg_30yr, tmax = tmax_meanAnnAvg_30yr, "vp" = vp_meanAnnAvg_30yr, "prcp" = prcp_meanAnnTotal_30yr, T_warmest = T_warmestMonth_meanAnnAvg_30yr, T_coldest = T_coldestMonth_meanAnnAvg_30yr, prcpWettest = precip_wettestMonth_meanAnnAvg_30yr, prcpDriest = precip_driestMonth_meanAnnAvg_30yr, prcpSeasonality = precip_Seasonality_meanAnnAvg_30yr, prcpTempCorr = PrecipTempCorr_meanAnnAvg_30yr, abvFreezeMonth = aboveFreezing_month_meanAnnAvg_30yr, isothermality = isothermality_meanAnnAvg_30yr, WatDeficit = annWaterDeficit_meanAnnAvg_30yr, WetDegDays = annWetDegDays_meanAnnAvg_30yr, VPDmean = annVPD_mean_meanAnnAvg_30yr, VPD_max = annVPD_max_meanAnnAvg_30yr, VPD_min = annVPD_min_meanAnnAvg_30yr) %>% 
+select(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+     drop_na(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+  slice_sample(n = 5e5) 
+  #select(-matches("_")) %>% 
+
+  p1 <- ggpairs(plotDat, upper = list(continuous = my_fn),
+                lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), title = "EASTERN TEMPERATE FORESTS")
+print(p1)
+```
+
+#### GREAT PLAINS 
+```{r, fig.dim = c(8, 8)}
+# get data 
+ plotDat <- 
+   modDat_ecoregions %>% 
+   filter(NA_L1NAME == "GREAT PLAINS") %>% 
+   st_drop_geometry() %>% 
+  rename("swe" = swe_meanAnnAvg_30yr, "tmean" = tmean_meanAnnAvg_30yr, tmax = tmax_meanAnnAvg_30yr, "vp" = vp_meanAnnAvg_30yr, "prcp" = prcp_meanAnnTotal_30yr, T_warmest = T_warmestMonth_meanAnnAvg_30yr, T_coldest = T_coldestMonth_meanAnnAvg_30yr, prcpWettest = precip_wettestMonth_meanAnnAvg_30yr, prcpDriest = precip_driestMonth_meanAnnAvg_30yr, prcpSeasonality = precip_Seasonality_meanAnnAvg_30yr, prcpTempCorr = PrecipTempCorr_meanAnnAvg_30yr, abvFreezeMonth = aboveFreezing_month_meanAnnAvg_30yr, isothermality = isothermality_meanAnnAvg_30yr, WatDeficit = annWaterDeficit_meanAnnAvg_30yr, WetDegDays = annWetDegDays_meanAnnAvg_30yr, VPDmean = annVPD_mean_meanAnnAvg_30yr, VPD_max = annVPD_max_meanAnnAvg_30yr, VPD_min = annVPD_min_meanAnnAvg_30yr) %>% 
+select(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+     drop_na(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+  slice_sample(n = 5e5) 
+  #select(-matches("_")) %>% 
+
+  p1 <- ggpairs(plotDat, upper = list(continuous = my_fn),
+                lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), title = "GREAT PLAINS")
+print(p1)
+```
+
+####  MARINE WEST COAST FOREST
+```{r, fig.dim = c(8, 8)}
+# get data 
+ plotDat <- 
+   modDat_ecoregions %>% 
+   filter(NA_L1NAME == "MARINE WEST COAST FOREST") %>% 
+   st_drop_geometry() %>% 
+  rename("swe" = swe_meanAnnAvg_30yr, "tmean" = tmean_meanAnnAvg_30yr, tmax = tmax_meanAnnAvg_30yr, "vp" = vp_meanAnnAvg_30yr, "prcp" = prcp_meanAnnTotal_30yr, T_warmest = T_warmestMonth_meanAnnAvg_30yr, T_coldest = T_coldestMonth_meanAnnAvg_30yr, prcpWettest = precip_wettestMonth_meanAnnAvg_30yr, prcpDriest = precip_driestMonth_meanAnnAvg_30yr, prcpSeasonality = precip_Seasonality_meanAnnAvg_30yr, prcpTempCorr = PrecipTempCorr_meanAnnAvg_30yr, abvFreezeMonth = aboveFreezing_month_meanAnnAvg_30yr, isothermality = isothermality_meanAnnAvg_30yr, WatDeficit = annWaterDeficit_meanAnnAvg_30yr, WetDegDays = annWetDegDays_meanAnnAvg_30yr, VPDmean = annVPD_mean_meanAnnAvg_30yr, VPD_max = annVPD_max_meanAnnAvg_30yr, VPD_min = annVPD_min_meanAnnAvg_30yr) %>% 
+select(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+     drop_na(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+  slice_sample(n = 5e5) 
+  #select(-matches("_")) %>% 
+
+  p1 <- ggpairs(plotDat, upper = list(continuous = my_fn),
+                lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), title = "MARINE WEST COAST FOREST")
+print(p1)
+```
+
+####  MEDITERRANEAN CALIFORNIA
+```{r, fig.dim = c(8, 8)}
+# get data 
+ plotDat <- 
+   modDat_ecoregions %>% 
+   filter(NA_L1NAME == "MEDITERRANEAN CALIFORNIA") %>% 
+   st_drop_geometry() %>% 
+  rename("swe" = swe_meanAnnAvg_30yr, "tmean" = tmean_meanAnnAvg_30yr, tmax = tmax_meanAnnAvg_30yr, "vp" = vp_meanAnnAvg_30yr, "prcp" = prcp_meanAnnTotal_30yr, T_warmest = T_warmestMonth_meanAnnAvg_30yr, T_coldest = T_coldestMonth_meanAnnAvg_30yr, prcpWettest = precip_wettestMonth_meanAnnAvg_30yr, prcpDriest = precip_driestMonth_meanAnnAvg_30yr, prcpSeasonality = precip_Seasonality_meanAnnAvg_30yr, prcpTempCorr = PrecipTempCorr_meanAnnAvg_30yr, abvFreezeMonth = aboveFreezing_month_meanAnnAvg_30yr, isothermality = isothermality_meanAnnAvg_30yr, WatDeficit = annWaterDeficit_meanAnnAvg_30yr, WetDegDays = annWetDegDays_meanAnnAvg_30yr, VPDmean = annVPD_mean_meanAnnAvg_30yr, VPD_max = annVPD_max_meanAnnAvg_30yr, VPD_min = annVPD_min_meanAnnAvg_30yr) %>% 
+select(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+     drop_na(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+  slice_sample(n = 5e5) 
+  #select(-matches("_")) %>% 
+
+  p1 <- ggpairs(plotDat, upper = list(continuous = my_fn),
+                lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), title = "MEDITERRANEAN CALIFORNIA")
+print(p1)
+```
+
+####  NORTHERN FORESTS
+```{r, fig.dim = c(8, 8)}
+# get data 
+ plotDat <- 
+   modDat_ecoregions %>% 
+   filter(NA_L1NAME == "NORTHERN FORESTS") %>% 
+   st_drop_geometry() %>% 
+  rename("swe" = swe_meanAnnAvg_30yr, "tmean" = tmean_meanAnnAvg_30yr, tmax = tmax_meanAnnAvg_30yr, "vp" = vp_meanAnnAvg_30yr, "prcp" = prcp_meanAnnTotal_30yr, T_warmest = T_warmestMonth_meanAnnAvg_30yr, T_coldest = T_coldestMonth_meanAnnAvg_30yr, prcpWettest = precip_wettestMonth_meanAnnAvg_30yr, prcpDriest = precip_driestMonth_meanAnnAvg_30yr, prcpSeasonality = precip_Seasonality_meanAnnAvg_30yr, prcpTempCorr = PrecipTempCorr_meanAnnAvg_30yr, abvFreezeMonth = aboveFreezing_month_meanAnnAvg_30yr, isothermality = isothermality_meanAnnAvg_30yr, WatDeficit = annWaterDeficit_meanAnnAvg_30yr, WetDegDays = annWetDegDays_meanAnnAvg_30yr, VPDmean = annVPD_mean_meanAnnAvg_30yr, VPD_max = annVPD_max_meanAnnAvg_30yr, VPD_min = annVPD_min_meanAnnAvg_30yr) %>% 
+select(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+     drop_na(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+  slice_sample(n = 5e5) 
+  #select(-matches("_")) %>% 
+
+  p1 <- ggpairs(plotDat, upper = list(continuous = my_fn),
+                lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), title = "NORTHERN FORESTS")
+print(p1)
+```
+
+#### SOUTHERN SEMIARID HIGHLANDS
+```{r, fig.dim = c(8, 8)}
+# get data 
+ plotDat <- 
+   modDat_ecoregions %>% 
+   filter(NA_L1NAME == "SOUTHERN SEMIARID HIGHLANDS") %>% 
+   st_drop_geometry() %>% 
+  rename("swe" = swe_meanAnnAvg_30yr, "tmean" = tmean_meanAnnAvg_30yr, tmax = tmax_meanAnnAvg_30yr, "vp" = vp_meanAnnAvg_30yr, "prcp" = prcp_meanAnnTotal_30yr, T_warmest = T_warmestMonth_meanAnnAvg_30yr, T_coldest = T_coldestMonth_meanAnnAvg_30yr, prcpWettest = precip_wettestMonth_meanAnnAvg_30yr, prcpDriest = precip_driestMonth_meanAnnAvg_30yr, prcpSeasonality = precip_Seasonality_meanAnnAvg_30yr, prcpTempCorr = PrecipTempCorr_meanAnnAvg_30yr, abvFreezeMonth = aboveFreezing_month_meanAnnAvg_30yr, isothermality = isothermality_meanAnnAvg_30yr, WatDeficit = annWaterDeficit_meanAnnAvg_30yr, WetDegDays = annWetDegDays_meanAnnAvg_30yr, VPDmean = annVPD_mean_meanAnnAvg_30yr, VPD_max = annVPD_max_meanAnnAvg_30yr, VPD_min = annVPD_min_meanAnnAvg_30yr) %>% 
+select(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+     drop_na(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+  slice_sample(n = 5e5) 
+  #select(-matches("_")) %>% 
+
+  p1 <- ggpairs(plotDat, upper = list(continuous = my_fn),
+                lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), title = "SOUTHERN SEMIARID HIGHLANDS")
+print(p1)
+```
+
+#### TEMPERATE SIERRAS
+```{r, fig.dim = c(8, 8)}
+# get data 
+ plotDat <- 
+   modDat_ecoregions %>% 
+   filter(NA_L1NAME == "TEMPERATE SIERRAS") %>% 
+   st_drop_geometry() %>% 
+  rename("swe" = swe_meanAnnAvg_30yr, "tmean" = tmean_meanAnnAvg_30yr, tmax = tmax_meanAnnAvg_30yr, "vp" = vp_meanAnnAvg_30yr, "prcp" = prcp_meanAnnTotal_30yr, T_warmest = T_warmestMonth_meanAnnAvg_30yr, T_coldest = T_coldestMonth_meanAnnAvg_30yr, prcpWettest = precip_wettestMonth_meanAnnAvg_30yr, prcpDriest = precip_driestMonth_meanAnnAvg_30yr, prcpSeasonality = precip_Seasonality_meanAnnAvg_30yr, prcpTempCorr = PrecipTempCorr_meanAnnAvg_30yr, abvFreezeMonth = aboveFreezing_month_meanAnnAvg_30yr, isothermality = isothermality_meanAnnAvg_30yr, WatDeficit = annWaterDeficit_meanAnnAvg_30yr, WetDegDays = annWetDegDays_meanAnnAvg_30yr, VPDmean = annVPD_mean_meanAnnAvg_30yr, VPD_max = annVPD_max_meanAnnAvg_30yr, VPD_min = annVPD_min_meanAnnAvg_30yr) %>% 
+select(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+     drop_na(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit, 
+       WetDegDays, VPD_max ) %>% 
+  slice_sample(n = 5e5) 
+  #select(-matches("_")) %>% 
+
+  p1 <- ggpairs(plotDat, upper = list(continuous = my_fn),
+                lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), title = "TEMPERATE SIERRAS")
+print(p1)
+```

@@ -25,7 +25,8 @@ fit_beta_glms <- function(forms, df, weights_col = NULL) {
     # some of these won't fit so returns NA if throws error
     # not using purrr::safely() didn't seem to work, maybe b/ 
     # of environment issues?
-    
+    #betareg(PerennialHerbGram_dec ~ swe_meanAnnAvg_30yr + tmean_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr + PrecipTempCorr_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + annWetDegDays_meanAnnAvg_30yr,
+            #data = df, link = c("logit"), link.phi = NULL, type = c("ML"))
       out <- tryCatch(betareg(formula = form, data = df, 
                               , link = c("logit"), link.phi = NULL,
                               type = c("ML")),
@@ -168,7 +169,7 @@ decile_dotplot_pq <- function(df, size = 0.5, response = response) {
   
   
   df2 <- df %>% 
-    filter(!name %in% 'herbAGB') %>% 
+    #filter(!name %in% response) %>% 
     mutate(name = var2lab(name, units_md = TRUE)) %>% 
     arrange(name) 
   
@@ -243,19 +244,23 @@ var2lab <- function(x = NULL, units_md = FALSE, add_letters = FALSE,
   
   # Including units that are written using markdown formating
   lookup_md <- c(
-    "PrecipTempCorr_meanAnnAvg_5yr" = "Corr. of monthly precip. temp. - 5 yr. mean",
-    "prcp_meanAnnTotal_5yr" = "Precipitation - 5 yr. mean - mm",
-    "precip_Seasonality_meanAnnAvg_5yr" = "Precip. seasonality - 5 yr. mean ",
-    "swe_meanAnnAvg_5yr" = "Annual Snow Water Equivalent - 5 yr. mean - kg/m2",
-    "tmin_meanAnnAvg_5yr" = "Annual min. temp - 5 yr. mean - C"
+    "PrecipTempCorr_meanAnnAvg_30yr" = "Corr. of monthly precip. temp. - 30 yr. mean",
+    "annWetDegDays_meanAnnAvg_30yr" = "Wet degree days - 30 yr. mean",
+    "isothermality_meanAnnAvg_30yr" = "isothermality - 30 yr. mean",
+    "prcp_meanAnnTotal_30yr" = "Precipitation - 30 yr. mean - mm",
+    #"precip_Seasonality_meanAnnAvg_30yr" = "Precip. seasonality - 30 yr. mean ",
+    "swe_meanAnnAvg_30yr" = "Annual Snow Water Equivalent - 30 yr. mean - kg/m2",
+    "tmean_meanAnnAvg_30yr" = "Annual min. temp - 30 yr. mean - C"
   )
   
   lookup_name_only <- c(
-    "PrecipTempCorr_meanAnnAvg_5yr" = "Corr. of monthly precip. temp. - 5 yr. mean",
-    "prcp_meanAnnTotal_5yr" = "Precipitation - 5 yr. mean",
-    "precip_Seasonality_meanAnnAvg_5yr" = "Precip. seasonality - 5 yr. mean ",
-    "swe_meanAnnAvg_5yr" = "Annual Snow Water Equivalent - 5 yr. mean",
-    "tmin_meanAnnAvg_5yr" = "Annual min. temp - 5 yr. mean"
+    "PrecipTempCorr_meanAnnAvg_30yr" = "Corr. of monthly precip. temp. - 30 yr. mean",
+    "annWetDegDays_meanAnnAvg_30yr" = "Wet degree days - 30 yr. mean",
+    "isothermality_meanAnnAvg_30yr" = "isothermality - 30 yr. mean",
+    "prcp_meanAnnTotal_30yr" = "Precipitation - 30 yr. mean",
+    #"precip_Seasonality_meanAnnAvg_30yr" = "Precip. seasonality - 30 yr. mean ",
+    "swe_meanAnnAvg_30yr" = "Annual Snow Water Equivalent - 30 yr. mean",
+    "tmean_meanAnnAvg_30yr" = "Annual min. temp - 30 yr. mean"
   )
   
   # if human modification layer included in the input,
@@ -347,8 +352,7 @@ decile_dotplot_filtered_pq <- function(df,
                                        add_smooth = TRUE,
                                        size = 0.5,
                                        return_df = FALSE,
-                                       xvars = c( "swe_meanAnnAvg_5yr","tmin_meanAnnAvg_5yr" ,"prcp_meanAnnTotal_5yr"            
-                                                  ,"precip_Seasonality_meanAnnAvg_5yr" ,"PrecipTempCorr_meanAnnAvg_5yr")
+                                       xvars
 ) {
   
   yvar <- response
@@ -395,8 +399,8 @@ decile_dotplot_filtered_pq <- function(df,
                    shape = percentile_category),
                size = size) +
     facet_grid(filter_var~name, scales = 'free_x', switch = 'x'
-               ,labeller = labeller(filter_var = ~var2lab(.x, FALSE),
-                                    name = ~var2lab(.x, TRUE))
+               ,labeller = labeller(filter_var = ~var2lab(.x, units_md = FALSE),
+                                   name = ~var2lab(.x, units_md = TRUE))
     ) +
     labs(x = paste0(response),
       #y = lab_fireProbPerc,
