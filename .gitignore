@@ -50,3 +50,6 @@ rsconnect/
 
 # data files
 data/
+
+# model output files
+Analysis/VegComposition/ModelFitting/models/
