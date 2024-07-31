@@ -6,11 +6,12 @@ date: "`r lubridate::today()`"
 params: 
   test_run: FALSE
   save_figs: FALSE
-  response: "ConifTreeCover_dec" 
+  response: "TotalTreeCover_dec" 
   hmod: FALSE
-  s: "ConifTreeCover"
+  s: "TotalTreeCover"
   #inter: !r c('afgAGB:MAP' = "afgAGB:MAP")
   sample_group: 1
+  byRegion: TRUE
 output:
   html_document:
     toc: true
@@ -44,6 +45,7 @@ s <- params$s # string to paste to file names e.g., that defines the interaction
 fit_sample <- TRUE # fit model to a sample of the data
 n_train <- 5e4 # sample size of the training data
 n_test <- 1e6 # sample size of the testing data (if this is too big the decile dotplot code throws memory errors)
+byRegion <- params$byRegion
 ```
 
 
@@ -73,15 +75,17 @@ theme_set(theme_classic())
 Data compiled in the `prepDataForModels.R` script
 
 ```{r}
-modDat <- readRDS("../../../data/DataForModels.rds")
+modDat <- readRDS("../../../data/DataForModels_withSubEcoreg.rds")
 ```
 
 
 # Prep data
 
 ```{r}
-set.seed(1)
-modDat_1 <- modDat
+set.seed(1234)
+modDat_1 <- modDat %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(newRegion))
 
 # small dataset for if testing the data
 if(test_run) {
@@ -114,10 +118,129 @@ df_pred <- modDat_1[, pred_vars]
 
 ```
 
+Break the data into three groups for model fitting based on lumped ecoregions
+
+```{r}
+if (byRegion == TRUE) {
+  modDat_westForest <- modDat_1 %>% 
+  filter(newRegion == "westForest")
+  
+  modDat_eastForest <- modDat_1 %>% 
+  filter(newRegion == "eastForest")
+  
+  modDat_shrubGrass <- modDat_1 %>% 
+  filter(newRegion == "dryShrubGrass")
+}
+
+```
+
 Training data
 
 ```{r}
+if (byRegion == TRUE) {
+  ## for western forests
+  wf_sample <- if(fit_sample & !test_run) {
+  reordered <- slice_sample(modDat_westForest, prop = 1)
+  
+  low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
+  high <- low + n_train - 1 # last row
+  if(high > nrow(modDat_westForest)) {
+    warning(paste0("n_train size due to low sample size (i.e. < ", n_train,")"))
+    n_train <- n_train*.8
+     low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
+  high <- low + n_train - 1 # last row
+   #stop('trying to sample from rows that dont exist')
+  }
+  reordered[low:high, ]
+} else {
+    modDat_westForest
+}
 
+wf_test <- if(fit_sample & !test_run & 
+              # antijoin only works if there are enough rows that meet 
+              # that criterion, i.e. if wf_sample contains most of the data i
+              # doesnt' work
+              (nrow(modDat_westForest) - nrow(wf_sample) > n_test)) {
+  modDat_westForest %>% 
+    anti_join(wf_sample, by = c("cell_num", "year")) %>% 
+    slice_sample(n = n_test)
+} else {
+  modDat_westForest %>% 
+    slice_sample(n = n_test)
+}
+
+# small sample for certain plots
+wf_small <- slice_sample(modDat_westForest, n = 1e5)
+
+# for eastern forests
+ef_sample <- if(fit_sample & !test_run) {
+  reordered <- slice_sample(modDat_eastForest, prop = 1)
+  
+  low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
+  high <- low + n_train - 1 # last row
+  if(high > nrow(modDat_eastForest)) {
+    warning(paste0("n_train size due to low sample size (i.e. < ", n_train,")"))
+    n_train <- n_train*.8
+     low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
+  high <- low + n_train - 1 # last row
+   #stop('trying to sample from rows that dont exist')
+  }
+  reordered[low:high, ]
+} else {
+    modDat_eastForest
+}
+
+ef_test <- if(fit_sample & !test_run & 
+              # antijoin only works if there are enough rows that meet 
+              # that criterion, i.e. if ef_sample contains most of the data i
+              # doesnt' work
+              (nrow(modDat_eastForest) - nrow(ef_sample) > n_test)) {
+  modDat_eastForest %>% 
+    anti_join(ef_sample, by = c("cell_num", "year")) %>% 
+    slice_sample(n = n_test)
+} else {
+  modDat_eastForest %>% 
+    slice_sample(n = n_test)
+}
+
+# small sample for certain plots
+ef_small <- slice_sample(modDat_eastForest, n = 1e5)
+
+## for grass/shrubs
+g_sample <- if(fit_sample & !test_run) {
+  reordered <- slice_sample(modDat_shrubGrass, prop = 1)
+  
+  low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
+  high <- low + n_train - 1 # last row
+  if(high > nrow(modDat_shrubGrass)) {
+    warning(paste0("n_train size due to low sample size (i.e. < ", n_train,")"))
+    n_train <- n_train*.8
+     low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
+  high <- low + n_train - 1 # last row
+   #stop('trying to sample from rows that dont exist')
+  }
+  reordered[low:high, ]
+} else {
+    modDat_shrubGrass
+}
+
+g_test <- if(fit_sample & !test_run & 
+              # antijoin only works if there are enough rows that meet 
+              # that criterion, i.e. if g_sample contains most of the data i
+              # doesnt' work
+              (nrow(modDat_shrubGrass) - nrow(g_sample) > n_test)) {
+  modDat_shrubGrass %>% 
+    anti_join(g_sample, by = c("cell_num", "year")) %>% 
+    slice_sample(n = n_test)
+} else {
+  modDat_shrubGrass %>% 
+    slice_sample(n = n_test)
+}
+
+# small sample for certain plots
+g_small <- slice_sample(modDat_shrubGrass, n = 1e5)
+
+## do full dataset as well 
 df_sample <- if(fit_sample & !test_run) {
   reordered <- slice_sample(modDat_1, prop = 1)
   
@@ -150,6 +273,40 @@ df_test <- if(fit_sample & !test_run &
 
 # small sample for certain plots
 df_small <- slice_sample(modDat_1, n = 1e5)
+} else {
+  df_sample <- if(fit_sample & !test_run) {
+  reordered <- slice_sample(modDat_1, prop = 1)
+  
+  low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
+  high <- low + n_train - 1 # last row
+  if(high > nrow(modDat_1)) {
+    warning(paste0("n_train size due to low sample size (i.e. < ", n_train,")"))
+    n_train <- n_train*.8
+     low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
+  high <- low + n_train - 1 # last row
+   #stop('trying to sample from rows that dont exist')
+  }
+  reordered[low:high, ]
+} else {
+    modDat_1
+}
+
+df_test <- if(fit_sample & !test_run & 
+              # antijoin only works if there are enough rows that meet 
+              # that criterion, i.e. if df_sample contains most of the data i
+              # doesnt' work
+              (nrow(modDat_1) - nrow(df_sample) > n_test)) {
+  modDat_1 %>% 
+    anti_join(df_sample, by = c("cell_num", "year")) %>% 
+    slice_sample(n = n_test)
+} else {
+  modDat_1 %>% 
+    slice_sample(n = n_test)
+}
+
+# small sample for certain plots
+df_small <- slice_sample(modDat_1, n = 1e5)
+}
 ```
 
 
@@ -203,6 +360,7 @@ ggpairs(lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2))
 vars_response <- response
 
 # longformat dataframes for making boxplots
+if (byRegion == FALSE) {
 df_sample_plots <-  df_sample %>% 
   rename(response = all_of(response)) %>% 
   mutate(response = case_when(
@@ -215,7 +373,30 @@ df_sample_plots <-  df_sample %>%
   pivot_longer(cols = names(pred_vars), 
                names_to = "predictor", 
                values_to = "value") %>% 
-  filter(!is.na(response) & !is.na(value))
+  filter(!is.na(response) & !is.na(value)) 
+} else {
+  df_sample_plots <-  df_sample %>% 
+  select(c(response, pred_vars, newRegion))  %>% 
+  rename(response = all_of(response), 
+         swe = swe_meanAnnAvg_30yr, 
+         MAT = tmean_meanAnnAvg_30yr,
+         MAP = prcp_meanAnnTotal_30yr,
+         PrecipTempCorr = PrecipTempCorr_meanAnnAvg_30yr, 
+         isothermality = isothermality_meanAnnAvg_30yr, 
+         wetDegDays = annWetDegDays_meanAnnAvg_30yr
+         ) %>% 
+  mutate(response = case_when(
+    response <= .25 ~ ".25", 
+    response > .25 & response <=.5 ~ ".5", 
+    response > .5 & response <=.75 ~ ".75", 
+    response >= .75  ~ "1", 
+  ))  %>% 
+  pivot_longer(cols = c(swe, MAT, MAP, PrecipTempCorr, isothermality, wetDegDays), 
+               names_to = "predictor", 
+               values_to = "value") %>% 
+  filter(!is.na(response) & !is.na(value)) 
+}
+
 # df_biome_long <- 
 #   # for some reason select() was giving me problems
 #   # adding numYrs here so can take weighted average
@@ -224,10 +405,18 @@ df_sample_plots <-  df_sample %>%
 #    # mutate(across(all_of(vars_nfire), factor))
 
 
-ggplot(df_sample_plots, aes_string(x= "response", y = 'value')) +
+if (byRegion == FALSE) {
+  ggplot(df_sample_plots, aes_string(x= "response", y = 'value')) +
   geom_boxplot() +
   facet_wrap(~predictor, scales = 'free_y') + 
   ylab("Predictor Variable Values")
+} else {
+  ggplot(df_sample_plots, aes_string(x= "response", y = 'value')) +
+  geom_boxplot() +
+  facet_wrap(~predictor + newRegion , scales = 'free_y') + 
+  ylab("Predictor Variable Values") 
+}
+
 ```
 
 
@@ -252,25 +441,25 @@ set.seed(1234)
 # at pixels with high afgAGB and high MAP. parentheses around interaction
 # term are included so that glms_iterate_transforms doesn't transform
 # the interaction term. 
-pred_vars_inter <- c(pred_vars, params$inter)
+#pred_vars_inter <- c(pred_vars, params$inter)
 
 
 # pred_vars_inter <- pred_vars
-
-mods_glm_cwf1 <- glmTransformsIterates(
-  preds = pred_vars_inter, 
+if (byRegion == FALSE) {
+  mods_glm_transf_temp <- glmTransformsIterates(
+  preds = pred_vars, 
   df = df_sample,
   response_var = response, 
   delta_aic = 10)
 
 # not including the last element of the list which is final_formula
-mods_glm_cwf2 <- mods_glm_cwf1[-length(mods_glm_cwf1)]
+mods_glm_transf <- mods_glm_transf_temp[-length(mods_glm_transf_temp)]
 
-map_dfc(mods_glm_cwf2, ~ names(.$aic[1:5])) %>% 
+map_dfc(mods_glm_transf, ~ names(.$aic[1:5])) %>% 
   kable(caption = "5 best transformations at each step")
-best_aic_by_step <- map_dbl(mods_glm_cwf2, ~.$aic[1])
+best_aic_by_step <- map_dbl(mods_glm_transf, ~.$aic[1])
 
-best_aic_by_step <- c(step0 = mods_glm_cwf1$step1$aic[['convert_none']], 
+best_aic_by_step <- c(step0 = mods_glm_transf_temp$step1$aic[['convert_none']], 
                       best_aic_by_step)
 # AIC improvement by step
 diff(best_aic_by_step)
@@ -278,14 +467,100 @@ plot(y = best_aic_by_step,
      x = 1:length(best_aic_by_step) - 1,
      ylab = "AIC",
      xlab = "Number of variables transformed")
+} else {
+  ## for western forests
+  mods_glm_transf_WF_temp <- glmTransformsIterates(
+  preds = pred_vars, 
+  df = wf_sample,
+  response_var = response, 
+  delta_aic = 10)
+
+# not including the last element of the list which is final_formula
+mods_glm_transf_WF <- mods_glm_transf_WF_temp[-length(mods_glm_transf_WF_temp)]
+
+map_dfc(mods_glm_transf_WF, ~ names(.$aic[1:5])) %>% 
+  kable(caption = "5 best transformations at each step")
+best_aic_by_step_WF <- map_dbl(mods_glm_transf_WF, ~.$aic[1])
+
+best_aic_by_step_WF <- c(step0 = mods_glm_transf_WF_temp$step1$aic[['convert_none']], 
+                      best_aic_by_step_WF)
+# AIC improvement by step
+diff(best_aic_by_step_WF)
+plot(y = best_aic_by_step_WF, 
+     x = 1:length(best_aic_by_step_WF) - 1,
+     ylab = "AIC",
+     xlab = "Number of variables transformed")
+
+## for eastern forests
+  mods_glm_transf_EF_temp <- glmTransformsIterates(
+  preds = pred_vars, 
+  df = ef_sample,
+  response_var = response, 
+  delta_aic = 10)
+
+# not including the last element of the list which is final_formula
+mods_glm_transf_EF <- mods_glm_transf_EF_temp[-length(mods_glm_transf_EF_temp)]
+
+map_dfc(mods_glm_transf_EF, ~ names(.$aic[1:5])) %>% 
+  kable(caption = "5 best transformations at each step")
+best_aic_by_step_EF <- map_dbl(mods_glm_transf_EF, ~.$aic[1])
+
+best_aic_by_step_EF <- c(step0 = mods_glm_transf_EF_temp$step1$aic[['convert_none']], 
+                      best_aic_by_step_EF)
+# AIC improvement by step
+diff(best_aic_by_step_EF)
+plot(y = best_aic_by_step_EF, 
+     x = 1:length(best_aic_by_step_EF) - 1,
+     ylab = "AIC",
+     xlab = "Number of variables transformed")
+
+## for grasslands/shrubs
+  mods_glm_transf_G_temp <- glmTransformsIterates(
+  preds = pred_vars, 
+  df = g_sample,
+  response_var = response, 
+  delta_aic = 10)
+
+# not including the last element of the list which is final_formula
+mods_glm_transf_G <- mods_glm_transf_G_temp[-length(mods_glm_transf_G_temp)]
+
+map_dfc(mods_glm_transf_G, ~ names(.$aic[1:5])) %>% 
+  kable(caption = "5 best transformations at each step")
+best_aic_by_step_G <- map_dbl(mods_glm_transf_G, ~.$aic[1])
+
+best_aic_by_step_G <- c(step0 = mods_glm_transf_G_temp$step1$aic[['convert_none']], 
+                      best_aic_by_step_G)
+# AIC improvement by step
+diff(best_aic_by_step_G)
+plot(y = best_aic_by_step_G, 
+     x = 1:length(best_aic_by_step_G) - 1,
+     ylab = "AIC",
+     xlab = "Number of variables transformed")
+}
+
 
 ```
 
 Best transformation each step.
 
 ```{r}
-var_transformed <- map(mods_glm_cwf2, function(x) x$var_transformed)
+if (byRegion == FALSE) {
+  var_transformed <- map(mods_glm_transf, function(x) x$var_transformed)
 var_transformed
+} else {
+  # for western forests
+  #var_transformed_WF <- map(mods_glm_transf_WF, function(x) x$var_transformed)
+bestTransformed_WF <- mods_glm_transf_WF_temp$final_formula
+
+# for eastern forests
+#var_transformed_EF <- map(mods_glm_transf_EF, function(x) x$var_transformed)
+bestTransformed_EF <- mods_glm_transf_EF_temp$final_formula
+
+# for grass/shrub
+#var_transformed_G <- map(mods_glm_transf_G, function(x) x$var_transformed)
+bestTransformed_G <- mods_glm_transf_G_temp$final_formula
+}
+
 ```
 
 ### adding interaction terms 
@@ -299,15 +574,16 @@ swe_quants <- quantile(df_sample$swe_meanAnnAvg_30yr, na.rm = TRUE)
 df_sample_swe <-  df_sample %>% 
   select(c(response, pred_vars)) %>% 
   # transform the predictors according to above process
-  mutate(isotherm_squared = as.numeric(stats::poly(isothermality_meanAnnAvg_30yr,2,raw=TRUE)[,2]),
-         wetDegDays_squared = as.numeric(stats::poly(annWetDegDays_meanAnnAvg_30yr,2,raw=TRUE)[,2]),
+  mutate(isotherm = as.numeric(stats::poly(isothermality_meanAnnAvg_30yr,2,raw=TRUE)[,1]),
+        
+          wetDegDays= as.numeric(stats::poly(annWetDegDays_meanAnnAvg_30yr,2,raw=TRUE)[,1]),
          swe_log = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,1]),
-         swe_log_squared = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2]),
+        #swe_log_squared = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2]),
          tmean_log =            as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,1] ),
-         tmean_log_squared =    as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2] ),
+         #tmean_log_squared =    as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2] ),
          prcp_log =             as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,1]),
-         prcp_log_squared =     as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,2]),
-         prcpTempCorr_squared = as.numeric(stats::poly(PrecipTempCorr_meanAnnAvg_30yr,2,raw=TRUE)[,2])
+        # prcp_log_squared =     as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,2]),
+         prcpTempCorr = as.numeric(stats::poly(PrecipTempCorr_meanAnnAvg_30yr,2,raw=TRUE)[,1])
          ) %>% 
   rename(response = all_of(response)) %>% 
   # mutate(response = case_when(
@@ -326,15 +602,15 @@ df_sample_swe <-  df_sample %>%
     swe_meanAnnAvg_30yr > swe_quants[3]  & swe_meanAnnAvg_30yr <= swe_quants[4]  ~ swe_quants[4], 
     swe_meanAnnAvg_30yr >= swe_quants[4]  ~ swe_quants[5], 
   )) %>% 
-  pivot_longer(cols = 2:16, 
+  pivot_longer(cols = 2:13, 
                names_to = "predictor", 
                values_to = "value") %>% 
   filter(!is.na(response) & !is.na(value))
 
 # plot relationships amongst variables according to different levels of SWE 
-ggplot(data = df_sample_swe[!(df_sample_swe$predictor %in% c("swe_log", "swe_log_squared", "swe_meanAnnAvg_30yr")),]) + 
-  geom_point(aes(y = response, x = value, col = as.factor(swe_meanAnnAvg_30yr_quants)), alpha = .5) +
-  geom_smooth(aes(y = response, x = value,  col = as.factor(swe_meanAnnAvg_30yr_quants)), method = "glm") + 
+ggplot(data = df_sample_swe[!(df_sample_swe$predictor %in% c("swe_log","swe_meanAnnAvg_30yr")),]) + 
+  #geom_point(aes(y = response, x = value, col = as.factor(swe_meanAnnAvg_30yr_quants)), alpha = .5) +
+  geom_smooth(aes(y = response, x = value,  col = as.factor(swe_meanAnnAvg_30yr_quants)), method = "gam") + 
   facet_wrap(~predictor, scales = "free_x")
 ```
 
@@ -346,15 +622,16 @@ tmean_quants <- quantile(df_sample$tmean_meanAnnAvg_30yr, na.rm = TRUE)
 df_sample_tmean <-  df_sample %>% 
   select(c(response, pred_vars)) %>% 
   # transform the predictors according to above process
-  mutate(isotherm_squared = as.numeric(stats::poly(isothermality_meanAnnAvg_30yr,2,raw=TRUE)[,2]),
-         wetDegDays_squared = as.numeric(stats::poly(annWetDegDays_meanAnnAvg_30yr,2,raw=TRUE)[,2]),
+  mutate(isotherm = as.numeric(stats::poly(isothermality_meanAnnAvg_30yr,2,raw=TRUE)[,1]),
+        
+          wetDegDays= as.numeric(stats::poly(annWetDegDays_meanAnnAvg_30yr,2,raw=TRUE)[,1]),
          swe_log = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,1]),
-         swe_log_squared = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2]),
+        #swe_log_squared = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2]),
          tmean_log =            as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,1] ),
-         tmean_log_squared =    as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2] ),
+         #tmean_log_squared =    as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2] ),
          prcp_log =             as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,1]),
-         prcp_log_squared =     as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,2]),
-         prcpTempCorr_squared = as.numeric(stats::poly(PrecipTempCorr_meanAnnAvg_30yr,2,raw=TRUE)[,2])
+        # prcp_log_squared =     as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,2]),
+         prcpTempCorr = as.numeric(stats::poly(PrecipTempCorr_meanAnnAvg_30yr,2,raw=TRUE)[,1])
          ) %>% 
   rename(response = all_of(response)) %>% 
   # mutate(response = case_when(
@@ -373,15 +650,15 @@ df_sample_tmean <-  df_sample %>%
     tmean_meanAnnAvg_30yr > tmean_quants[3]  & tmean_meanAnnAvg_30yr <= tmean_quants[4]  ~ tmean_quants[4], 
     tmean_meanAnnAvg_30yr >= tmean_quants[4]  ~ tmean_quants[5], 
   )) %>% 
-  pivot_longer(cols = 2:16, 
+  pivot_longer(cols = 2:13, 
                names_to = "predictor", 
                values_to = "value") %>% 
   filter(!is.na(response) & !is.na(value))
 
 # plot relationships amongst variables according to different levels of tmean 
-ggplot(data = df_sample_tmean[!(df_sample_tmean$predictor %in% c("tmean_log", "tmean_log_squared", "tmean_meanAnnAvg_30yr")),]) + 
-  geom_point(aes(y = response, x = value, col = as.factor(tmean_meanAnnAvg_30yr_quants)), alpha = .3) +
-  geom_smooth(aes(y = response, x = value,  col = as.factor(tmean_meanAnnAvg_30yr_quants)), method = "glm") + 
+ggplot(data = df_sample_tmean[!(df_sample_tmean$predictor %in% c("tmean_log", "tmean_meanAnnAvg_30yr")),]) + 
+  #geom_point(aes(y = response, x = value, col = as.factor(tmean_meanAnnAvg_30yr_quants)), alpha = .3) +
+  geom_smooth(aes(y = response, x = value,  col = as.factor(tmean_meanAnnAvg_30yr_quants)), method = "gam") + 
   facet_wrap(~predictor, scales = "free_x")
 
 ```
@@ -394,15 +671,16 @@ prcp_quants <- quantile(df_sample$prcp_meanAnnTotal_30yr, na.rm = TRUE)
 df_sample_prcp <-  df_sample %>% 
   select(c(response, pred_vars)) %>% 
   # transform the predictors according to above process
-  mutate(isotherm_squared = as.numeric(stats::poly(isothermality_meanAnnAvg_30yr,2,raw=TRUE)[,2]),
-         wetDegDays_squared = as.numeric(stats::poly(annWetDegDays_meanAnnAvg_30yr,2,raw=TRUE)[,2]),
+  mutate(isotherm = as.numeric(stats::poly(isothermality_meanAnnAvg_30yr,2,raw=TRUE)[,1]),
+        
+          wetDegDays= as.numeric(stats::poly(annWetDegDays_meanAnnAvg_30yr,2,raw=TRUE)[,1]),
          swe_log = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,1]),
-         swe_log_squared = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2]),
+        #swe_log_squared = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2]),
          tmean_log =            as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,1] ),
-         tmean_log_squared =    as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2] ),
+         #tmean_log_squared =    as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2] ),
          prcp_log =             as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,1]),
-         prcp_log_squared =     as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,2]),
-         prcpTempCorr_squared = as.numeric(stats::poly(PrecipTempCorr_meanAnnAvg_30yr,2,raw=TRUE)[,2])
+        # prcp_log_squared =     as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,2]),
+         prcpTempCorr = as.numeric(stats::poly(PrecipTempCorr_meanAnnAvg_30yr,2,raw=TRUE)[,1])
          ) %>% 
   rename(response = all_of(response)) %>% 
   # mutate(response = case_when(
@@ -421,35 +699,149 @@ df_sample_prcp <-  df_sample %>%
     prcp_meanAnnTotal_30yr > prcp_quants[3]  & prcp_meanAnnTotal_30yr <= prcp_quants[4]  ~ prcp_quants[4], 
     prcp_meanAnnTotal_30yr >= prcp_quants[4]  ~ prcp_quants[5], 
   )) %>% 
-  pivot_longer(cols = 2:16, 
+  pivot_longer(cols = 2:13, 
                names_to = "predictor", 
                values_to = "value") %>% 
   filter(!is.na(response) & !is.na(value))
 
 # plot relationships amongst variables according to different levels of tmean 
-ggplot(data = df_sample_prcp[!(df_sample_prcp$predictor %in% c("prcp_log", "prcp_log_squared", "prcp_meanAnnTotal_30yr")),]) + 
-  geom_point(aes(y = response, x = value, col = as.factor(prcp_meanAnnTotal_30yr_quants)), alpha = .3) +
-  geom_smooth(aes(y = response, x = value,  col = as.factor(prcp_meanAnnTotal_30yr_quants)), method = "glm") + 
+ggplot(data = df_sample_prcp[!(df_sample_prcp$predictor %in% c("prcp_log", "prcp_meanAnnTotal_30yr")),]) + 
+  #geom_point(aes(y = response, x = value, col = as.factor(prcp_meanAnnTotal_30yr_quants)), alpha = .3) +
+  geom_smooth(aes(y = response, x = value,  col = as.factor(prcp_meanAnnTotal_30yr_quants)), method = "gam") + 
   facet_wrap(~predictor, scales = "free_x")
 
 ```
 
 
-#### we'll try running the model w/ interactions for swe:isothermality, swe:tmean, tmean:precip, and prcp:swe
+#### we'll try running the model w/ all possible interactions
 
 ```{r}
+if (byRegion == FALSE) {
 
-best_form <- mods_glm_cwf1$final_formula
-print(best_form)
+  ## make table of possible interactions
+# make list of transformed variables into a data.frame
+var_transformed_df <- purrr::flatten_dfr(var_transformed) #%>%
 
+# if has a "stats::poly( to start, remove that part
+temp <- apply(var_transformed_df, MARGIN = 2, FUN = function(x) {
+if(str_detect(x, pattern = fixed("stats::poly("))) {
+  x_new <- str_remove(x, pattern = fixed("stats::poly(")) %>%
+  str_remove(pattern = fixed(",2,raw=TRUE)"))
+} else {
+  x_new <- x
+}
+})
+  
+# combine into the 32 possible interactions
+combos <- data.frame(gtools::permutations(n = length(temp),
+r = 2,
+v = temp))
+
+combos$interactions <- paste0(combos$X1, ":", combos$X2)
+# make text string of interactions
+int_string <-str_flatten(combos$interactions, collapse = " + ")
 # formula w/ interactions included
-modWithInteractions <- paste(best_form, c("+ I(log10(I(swe_meanAnnAvg_30yr+1))):isothermality_meanAnnAvg_30yr + I(log10(I(swe_meanAnnAvg_30yr+1))):tmean_meanAnnAvg_30yr + tmean_meanAnnAvg_30yr:I(log10(I(prcp_meanAnnTotal_30yr+1))) + I(log10(I(prcp_meanAnnTotal_30yr+1))):I(log10(I(swe_meanAnnAvg_30yr+1)))")) %>% 
-  str_remove_all("stats::")
-
+modWithInteractions <- paste(str_flatten(var_transformed_df, collapse = " + "), "+", int_string) %>% str_remove("stats::")
 # refitting the glm with the best formula
-
 mod_glm1 <- betareg(as.formula(modWithInteractions), data = df_sample, link = c("logit"), link.phi = NULL,
-                              type = c("ML"))
+ type = c("ML"))                   
+ 
+} else {
+  # western forests
+   ## make table of possible interactions
+# make list of transformed variables into a data.frame
+var_transformed_df_WF <- as.data.frame(str_remove(bestTransformed_WF, paste0(response, " ~ ")) %>% 
+  str_split(pattern = fixed(" + "), simplify = TRUE))#purrr::flatten_dfr(var_transformed_WF) #%>%
+
+# if has a "stats::poly( to start, remove that part
+temp_WF <- apply(var_transformed_df_WF, MARGIN = 2, FUN = function(x) {
+if(str_detect(x, pattern = fixed("stats::poly("))) {
+  x_new <- str_remove(x, pattern = fixed("stats::poly(")) %>%
+    str_remove_all(" ") %>% 
+  str_remove(pattern = fixed(",2,raw=TRUE)"))
+} else {
+  x_new <- x
+}
+})
+  
+# combine into the 32 possible interactions
+combos_WF <- data.frame(gtools::permutations(n = length(temp_WF),
+r = 2,
+v = temp_WF))
+
+combos_WF$interactions <- paste0(combos_WF$X1, ":", combos_WF$X2)
+# make text string of interactions
+int_string_WF <-str_flatten(combos_WF$interactions, collapse = " + ")
+# formula w/ interactions included
+modWithInteractions_WF <- paste(bestTransformed_WF, "+", int_string_WF) %>% str_remove_all(fixed("stats::"))
+# refitting the glm with the best formula
+mod_glm1_WF <- betareg(as.formula(modWithInteractions_WF), data = wf_sample, link = c("logit"), link.phi = NULL,
+ type = c("ML"))    
+
+  # eastern forests
+    ## make table of possible interactions
+# make list of transformed variables into a data.frame
+var_transformed_df_EF <- as.data.frame(str_remove(bestTransformed_EF, paste0(response, " ~ ")) %>% 
+  str_split(pattern = fixed(" + "), simplify = TRUE))#purrr::flatten_dfr(var_transformed_EF) #%>%
+
+# if has a "stats::poly( to start, remove that part
+temp_EF <- apply(var_transformed_df_EF, MARGIN = 2, FUN = function(x) {
+if(str_detect(x, pattern = fixed("stats::poly("))) {
+  x_new <- str_remove(x, pattern = fixed("stats::poly(")) %>%
+    str_remove_all(" ") %>% 
+  str_remove(pattern = fixed(",2,raw=TRUE)"))
+} else {
+  x_new <- x
+}
+})
+  
+# combine into the 30 possible interactions
+combos_EF <- data.frame(gtools::permutations(n = length(temp_EF),
+r = 2,
+v = temp_EF))
+
+combos_EF$interactions <- paste0(combos_EF$X1, ":", combos_EF$X2)
+# make text string of interactions
+int_string_EF <-str_flatten(combos_EF$interactions, collapse = " + ")
+# formula w/ interactions included
+modWithInteractions_EF <- paste(bestTransformed_EF, "+", int_string_EF) %>% str_remove_all(fixed("stats::"))
+# refitting the glm with the best formula
+mod_glm1_EF <- betareg(as.formula(modWithInteractions_EF), data = ef_sample, link = c("logit"), link.phi = NULL,
+ type = c("ML"))    
+
+  ## grassland/shrubs
+    ## make table of possible interactions
+# make list of transformed variables into a data.frame
+var_transformed_df_G <- as.data.frame(str_remove(bestTransformed_G, paste0(response, " ~ ")) %>% 
+  str_split(pattern = fixed(" + "), simplify = TRUE))#purrr::flatten_dfr(var_transformed_G) #%>%
+
+# if has a "stats::poly( to start, remove that part
+temp_G <- apply(var_transformed_df_G, MARGIN = 2, FUN = function(x) {
+if(str_detect(x, pattern = fixed("stats::poly("))) {
+  x_new <- str_remove(x, pattern = fixed("stats::poly(")) %>%
+    str_remove_all(" ") %>% 
+  str_remove(pattern = fixed(",2,raw=TRUE)"))
+} else {
+  x_new <- x
+}
+})
+  
+# combine into the 30 possible interactions
+combos_G <- data.frame(gtools::permutations(n = length(temp_G),
+r = 2,
+v = temp_G))
+
+combos_G$interactions <- paste0(combos_G$X1, ":", combos_G$X2)
+# make text string of interactions
+int_string_G <-str_flatten(combos_G$interactions, collapse = " + ")
+# formula w/ interactions included
+modWithInteractions_G <- paste(bestTransformed_G, "+", int_string_G) %>% str_remove_all(fixed("stats::"))
+# rGitting the glm with the best formula
+mod_glm1_G <- betareg(as.formula(modWithInteractions_G), data = g_sample, link = c("logit"), link.phi = NULL,
+ type = c("ML"))  
+
+}
+
 ```
 
 ### performing backwards AIC-based model selection 
