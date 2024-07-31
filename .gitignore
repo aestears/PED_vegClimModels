@@ -52,4 +52,21 @@ rsconnect/
 data/
 
 # model output files
-Analysis/VegComposition/ModelFitting/models/
+./Analysis/VegComposition/ModelFitting/models/
+./Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_C3GramCover_n50000.RDS
+./Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_C4GramCover_n50000.RDS
+./Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_ConifCover_n50000.RDS
+./Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_HerbCover_n50000.RDS
+./Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_ShrubCover_n50000.RDS
+./Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_TotalGramCover_n50000.RDS
+./Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_TotalTreeCover_n50000.RDS
+./Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_TotalTreeCover_n40000.RDS
+/Analysis/VegComposition/ModelFitting/models/
+/Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_C3GramCover_n50000.RDS
+/Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_C4GramCover_n50000.RDS
+/Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_ConifCover_n50000.RDS
+/Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_HerbCover_n50000.RDS
+/Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_ShrubCover_n50000.RDS
+/Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_TotalGramCover_n50000.RDS
+/Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_TotalTreeCover_n50000.RDS
+/Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_TotalTreeCover_n40000.RD
