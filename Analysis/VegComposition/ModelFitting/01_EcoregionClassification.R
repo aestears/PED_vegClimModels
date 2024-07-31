@@ -23,8 +23,14 @@ modDat <- readRDS("./data/DataForModels_withEcoregion.rds")
 ecoReg_lu <- data.frame("NA_L1NAME" = unique(modDat$NA_L1NAME), "newRegion" = c("westForest", "dryShrubGrass", "westForest", "dryShrubGrass", "dryShrubGrass", "dryShrubGrass",
                                                                              "westForest", NA, "eastForest", "eastForest", "eastForest", NA))
 # add to main data.frame 
-modDat_fit <- modDat %>% left_join(ecoReg_lu) %>% 
-  mutate(newRegion = as.factor(newRegion)) %>% 
+modDat_1 <- modDat %>% 
+  left_join(ecoReg_lu) %>% 
+  mutate(newRegion = as.factor(newRegion)) 
+
+## save for later
+saveRDS(modDat_1, file = "./data/DataForModels_withSubEcoreg.rds")
+
+modDat_fit <- modDat_x1  %>% 
   select(newRegion, swe_meanAnnAvg_30yr , annWetDegDays_meanAnnAvg_30yr , 
             tmean_meanAnnAvg_30yr , isothermality_meanAnnAvg_30yr , 
           prcp_meanAnnTotal_30yr , PrecipTempCorr_meanAnnAvg_30yr) %>% 
