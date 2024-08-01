@@ -317,12 +317,12 @@ add_dotplot_inset <- function(g, df, add_smooth = FALSE, ...) {
     geom_abline(slope = 1, size = 0.5) +
     labs(y = "Observed Cover (%)",
          x = "Predicted Cover (%)") +
-    geom_text(data = tibble(
-      letter = fig_letters[6],
-      x = -Inf,
-      y = Inf),
-      aes(x = x, y = y, label = letter),
-      hjust = -0.8, vjust = 1) +
+    # geom_text(data = tibble(
+    #   letter = fig_letters[6],
+    #   x = -Inf,
+    #   y = Inf),
+    #   aes(x = x, y = y, label = letter),
+    #   hjust = -0.8, vjust = 1) +
     theme(axis.title = element_text(size = 6),
           axis.text = element_text(size = 6),
           plot.margin = margin())+
@@ -336,9 +336,9 @@ add_dotplot_inset <- function(g, df, add_smooth = FALSE, ...) {
   
   
   g2 <- g +
-    inset_element(inset, left = .68,
-                  bottom = -0.05,
-                  right = 1, top = 0.4)
+    inset_element(inset, left = .85,
+                  bottom = 0.2,
+                  right = 1, top = 0.44)
   g2
 }
 
