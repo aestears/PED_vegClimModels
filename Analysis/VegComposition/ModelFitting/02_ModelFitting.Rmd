@@ -6,9 +6,9 @@ date: "`r lubridate::today()`"
 params: 
   test_run: FALSE
   save_figs: FALSE
-  response: "TotalTreeCover_dec" 
+  response: "TotalGramCover_dec" 
   hmod: FALSE
-  s: "TotalTreeCover"
+  s: "TotalGramCover"
   #inter: !r c('afgAGB:MAP' = "afgAGB:MAP")
   sample_group: 1
   byRegion: TRUE
@@ -57,6 +57,7 @@ source("../../../Functions/StepBeta_mine.R")
 #source("src/fig_params.R")
 #source("src/modeling_functions.R")
 
+library(terra)
 library(tidyterra)
 library(sf)
 library(caret)
