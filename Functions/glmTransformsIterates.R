@@ -36,7 +36,7 @@ fit_beta_glms <- function(forms, df, weights_col = NULL) {
     if (any(is.na(out))) message(paste(char_form,  "model couldn't fit \n"))
     butcher::butcher(out) # to save memory
   })
-  # removing models that couldn't be fit b/ they through an error
+  # removing models that couldn't be fit b/ they threw an error
   out <- keep(glm_list, function(x) all(!is.na(x)))
   out
 }
@@ -87,11 +87,15 @@ glmTransformsIterates <- function(preds, df, response_var,
     best_mod <- names(aic_sorted[1])# name of model with lowest aic
     
     # model with no transformations is considered best unless other
+    ## if the model w/ no transformations didn't converge, then we assign it an extremely high AIC value 
+    if (is.na(aic_sorted['convert_none'])) {
+      aic_sorted <- c(aic_sorted, "convert_none" = 10000000) 
+    }
     # model is delta_aic better
     cat('\n', aic_sorted['convert_none'], "\n")
     cat(aic_sorted[best_mod], "\n")
     cat('delta aic cutoff', delta_aic, "\n")
-    if((aic_sorted['convert_none'] - aic_sorted[best_mod]) < delta_aic) {
+    if ((aic_sorted['convert_none'] - aic_sorted[best_mod]) < delta_aic) {
       best_mod <- 'convert_none'
     }
     out[[step_name]]$best <- best_mod 

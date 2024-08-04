@@ -6,9 +6,9 @@ date: "`r lubridate::today()`"
 params: 
   test_run: FALSE
   save_figs: FALSE
-  response: "TotalGramCover_dec" 
+  response: "HerbCover_dec" 
   hmod: FALSE
-  s: "TotalGramCover"
+  s: "HerbCover"
   #inter: !r c('afgAGB:MAP' = "afgAGB:MAP")
   sample_group: 1
   byRegion: TRUE
@@ -361,7 +361,7 @@ ggpairs(lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2))
 
 ## boxplots-- # predictor variables compared to binned response variables
 
-```{r n_fires_boxplots, fig.height=9, fig.width=8}
+```{r climVar_boxplots, fig.height=9, fig.width=8}
 
 # vectors of names of response variables
 vars_response <- response
@@ -732,7 +732,8 @@ var_transformed_df <- as.data.frame(str_remove(bestTransformed, paste0(response,
 temp <- apply(var_transformed_df, MARGIN = 2, FUN = function(x) {
 if(str_detect(x, pattern = fixed("stats::poly("))) {
   x_new <- str_remove(x, pattern = fixed("stats::poly(")) %>%
-  str_remove(pattern = fixed(",2,raw=TRUE)"))
+    str_remove_all(pattern = " ") %>% 
+  str_remove(pattern = fixed(",2,raw=TRUE)")) 
 } else {
   x_new <- x
 }
@@ -747,12 +748,12 @@ combos$interactions <- paste0(combos$X1, ":", combos$X2)
 # make text string of interactions
 int_string <-str_flatten(combos$interactions, collapse = " + ")
 # formula w/ interactions included
-modWithInteractions <- paste(bestTransformed, "+", int_string) %>% str_remove_all(fixed("stats::"))
+modWithInteractions <- paste(bestTransformed, "+",int_string) %>% 
+str_remove_all(fixed("stats::"))
 # refitting the glm with the best formula
 mod_glm1 <- betareg(as.formula(modWithInteractions), data = df_sample, link = c("logit"), link.phi = NULL,
  type = c("ML"))                   
  
-
 
 if (byRegion == TRUE) {
   # western forests
@@ -969,7 +970,7 @@ if (byRegion == TRUE) {
 
 ### Maps of Residuals
 For CONUS-wide model
-```{r, fig.height = 7, fig.width = 8, }
+```{r ResidMap_CONUS, fig.height = 7, fig.width = 8, }
 
 pred_glm1 <- pred_glm1 %>% 
   mutate(resid = .[[response]] - .[[paste0(response,"_pred")]]) 
@@ -1001,7 +1002,7 @@ ggplot() +
 ```
 
 If applicable, residual plots of region-level models
-```{r, fig.height = 7, fig.width = 8, }
+```{r, ResidMap_allRegions, fig.height = 7, fig.width = 8, }
 if (byRegion == TRUE){
 pred_glm1_ALL <- pred_glm1_ALL %>% 
   mutate(resid = .[[response]] - .[[paste0(response,"_pred")]]) 
@@ -1027,7 +1028,7 @@ ggplot() +
 
 ```
 
-```{r, fig.height = 15, fig.width = 8, }
+```{r residMap_byRegion, fig.height = 15, fig.width = 8, }
 if (byRegion == TRUE){
 ## for western forests
   pred_glm1_WF <- pred_glm1_WF %>% 
@@ -1142,7 +1143,7 @@ if (byRegion == TRUE) {
 
 Publication quality quantile plot
 
-```{r, fig.height= 10}
+```{r decile_plot, fig.height= 10}
 
 # publication quality version
 g3 <- decile_dotplot_pq(pred_glm1_deciles, response = response) + ggtitle("Decile Plot for CONUS-wide model")
@@ -1234,7 +1235,7 @@ pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1,
 g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt_mid, xvars = pred_vars)
 g
 
-if(save_figs) {
+if(save_figs) {x
 jpeg(paste0("figures/quantile_plots/quantile_plot_filtered_mid_v1", s, ".jpeg"),
      units = "in", res = 600, width = 5.5, height = 6 )
   g 
