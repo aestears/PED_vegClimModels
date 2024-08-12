@@ -372,3 +372,52 @@ select(swe, tmean, prcp,  prcpTempCorr, isothermality, WatDeficit,
                 lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), title = "TEMPERATE SIERRAS")
 print(p1)
 ```
+
+## Make a figure of our new "ecoregions" we use in tne analysis 
+```{r}
+# get data for model fitting
+modRegions <- readRDS("../../../data/DataForModels_withSubEcoreg.rds")
+# also get data for ecoregions
+ecoRegions <- sf::st_read("../../../data/Level1Ecoregions/", layer = "NA_CEC_Eco_Level1")
+```
+
+```{r}
+# filter teh ecoregion data by CONUS boundary
+# add the ecoregions together as we've done in the model data
+CONUS <- st_read("../../../data/CONUS_extent", "CONUS_boundary") %>% 
+  st_transform(st_crs(ecoRegions)) %>% 
+  st_make_valid()
+# trim the ecoregions by CONUS extent
+ecoRegCrop <- ecoRegions %>% 
+  st_make_valid() %>% 
+  st_intersection( CONUS)
+
+unique(st_drop_geometry(modRegions)[,c("NA_L1NAME", "newRegion")])
+ecoRegCrop$newRegion <- NA
+ecoRegCrop[ecoRegCrop$NA_L1NAME %in% c("NORTHWESTERN FORESTED MOUNTAINS", "TEMPERATE SIERRAS", "MARINE WEST COAST FOREST"), "newRegion"] <- "Western Forests"
+
+ecoRegCrop[ecoRegCrop$NA_L1NAME %in% c("EASTERN TEMPERATE FORESTS", "NORTHERN FORESTS", "TROPICAL WET FORESTS"), "newRegion"] <- "Eastern Forests"
+
+ecoRegCrop[ecoRegCrop$NA_L1NAME %in% c("NORTH AMERICAN DESERTS", "SOUTHERN SEMIARID HIGHLANDS", "GREAT PLAINS", "MEDITERRANEAN CALIFORNIA"), "newRegion"] <- "Grass and Shrubland"
+
+ecoReg <- ecoRegCrop %>% 
+  aggregate(by = list(ecoRegCrop$newRegion),
+            FUN = unique,
+            do_union = TRUE)
+saveRDS(ecoReg, "../../../data/ecoRegionExtents.RDS")
+
+pdf(file = "../../../figures/EcoregionMap.pdf")
+ggplot(data = ecoReg) + 
+  geom_sf(aes(fill = newRegion)) + 
+  scale_fill_discrete(guide = 
+  guide_legend(title = c("Ecoregion")))
+dev.off()
+```
+
+# Figures from models 
+
+Tree cover 
+```{r}
+
+```
+

@@ -6,9 +6,9 @@ date: "`r lubridate::today()`"
 params: 
   test_run: FALSE
   save_figs: FALSE
-  response: "HerbCover_dec" 
+  response: "TotalGramCover_dec" 
   hmod: FALSE
-  s: "HerbCover"
+  s: "TotalGramCover"
   #inter: !r c('afgAGB:MAP' = "afgAGB:MAP")
   sample_group: 1
   byRegion: TRUE
@@ -79,6 +79,10 @@ Data compiled in the `prepDataForModels.R` script
 
 ```{r}
 modDat <- readRDS("../../../data/DataForModels_withSubEcoreg.rds")
+ ## if it's herbs, remove LDC data right now (has some weirdness that's skewing the data... need to figure that out)
+if (s == "HerbCover") {
+  modDat <- modDat[modDat$Source != "LANDFIRE",]
+}
 ```
 
 

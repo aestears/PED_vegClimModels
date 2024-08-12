@@ -110,6 +110,9 @@ LANDFIRE_all <- LANDFIRE_veg %>%
          Source = "LANDFIRE"
          ) 
 
+# ggplot(LANDFIRE_all[LANDFIRE_all$TotalGramCover < 150,]) +
+#   geom_point(aes(Lon, Lat, col = TotalGramCover))
+
 # load Landscape Data Commons data ----------------------------------------
 
 LDC_veg <- read.csv("./data/LandscapeDataCommonsDat/coverDat_use.csv") %>% 
@@ -146,7 +149,8 @@ LDC_all <- LDC_veg %>%
             Source = "LDC"
               ) 
 
-
+# ggplot(FIA_all) + 
+#    geom_point(aes(Lon, Lat, col = HerbCover))
 
 # load RAP data -----------------------------------------------------------
 RAP_all <- read.csv("./data/RAP_samplePoints/RAPdata_use.csv") %>% 
@@ -158,6 +162,7 @@ RAP_all <- read.csv("./data/RAP_samplePoints/RAPdata_use.csv") %>%
          C3GramCover,  C4GramCover, 
          AngioTreeCover ,   ConifTreeCover, TotalTreeCover, TreeBasalArea_in2, 
          BareGroundCover,   LitterCover,  LitterDepth, Source)
+
 
 # add datasets together ---------------------------------------------------
 dat_all <- FIA_all %>% 
