@@ -175,11 +175,12 @@ dat_all <- read.csv("./data/DataForAnalysis.csv")
 dat_all_sf_full <- st_as_sf(dat_all, coords = c("Lon", "Lat")) %>% 
   select(geometry) %>% 
   #unique() %>% 
-  sf::st_set_crs("EPSG:4326")
+  sf::st_set_crs("EPSG:4326") %>% 
+  cbind(dat_all)
 dat_all_sf <- dat_all_sf_full %>% 
   unique()
 
-#st_write(dat_all_sf, dsn = "./data/DataForAnalysisPoints", layer = "vegCompPoints", driver = "ESRI Shapefile")
+#st_write(dat_all_sf, dsn = "./data/DataForAnalysisPoints", layer = "vegCompPoints", driver = "ESRI Shapefile", append = FALSE)
 
 
 ## trim data to only that collected after 1979 
