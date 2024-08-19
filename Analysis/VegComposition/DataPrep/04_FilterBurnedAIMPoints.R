@@ -235,6 +235,12 @@ plotDat_noCWFList <- lapply(names(plotDat_noMtbsList),
 plotDat_noFireAll <- purrr::reduce(plotDat_noCWFList, rbind)
 
 ## for those plots that have been burned more than 20 years ago, remove values for trees and shrubs
+# remove tree values
+plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$TtlTrCv <- NA
+plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$AngTrCv <- NA
+plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$CnfTrCv <- NA
+# remove shrub values
+plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$ShrbCvr <- NA
 
 
 saveRDS(plotDat_noFireAll, file = "./data/dataForAnalysis_fireRemoved.rds")
