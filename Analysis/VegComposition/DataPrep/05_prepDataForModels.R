@@ -52,33 +52,10 @@ allDat <- vegDat2 %>%
   sf::st_join(dayMet3, by = c("Year" = "year", left = TRUE)) %>% 
   filter(Year == year)
 
-#AES missing 600 points... not too sure why?? address later (after ESA)
-# 
-# # plot those that have missing data ... not sure why? there are points that don't have corresponding climate data
-# good <- allDat[!is.na(allDat$tmax_annAvg),]
-# 
-# bad <- allDat[is.na(allDat$tmax_annAvg),]
-# ## add in the clim data for rounded lat/long points
-# bad <- bad %>% 
-#   select(-names(bad)[25:82]) %>% 
-#   mutate(Lat = round(Lat, 1),
-#          Lon = round(Lon, 1)) %>% 
-#   left_join((climVar %>% 
-#                mutate(Lat = round(Lat, 1),
-#                       Long = round(Long, 1))), by = c("Year" = "year", "Lon" = "Long", "Lat" = "Lat")) %>% 
-#   unique()
-# ## are still some messed up variables...will need to figure out later
-# badBad <- bad[!is.na(bad$tmin_annAvg),]
-# 
-# allDat <- rbind(bad, good)
-
 
 # Convert %covers to proportions of cover for each class ------------------
 
 # fix names
-allDat$Lon <- st_coordinates(allDat)[,1]
-allDat$Lat <- st_coordinates(allDat)[,2]
-
 allDat  <- allDat %>% 
   mutate(Lon = st_coordinates(st_centroid(allDat))[,1],
          Lat = st_coordinates(st_centroid(allDat))[,2]) %>% 
@@ -125,7 +102,9 @@ modDat <- allDat %>%
          ConifTreeCover_dec = ConifTreeCover/100,
          AngioTreeCover_dec = AngioTreeCover/100, 
          AnnualHerbGram_dec = AnnualHerbGramCover/100, 
-         PerennialHerbGram_dec = PerennialHerbGramCover/100
+         PerennialHerbGram_dec = PerennialHerbGramCover/100,
+         BareGroundCover_dec = BareGroundCover/100,
+         LitterCover_dec = LitterCover/100
          ) %>% 
   st_drop_geometry() 
 
@@ -140,6 +119,8 @@ modDat[modDat$ConifTreeCover_dec == 0 & !is.na(modDat$ConifTreeCover_dec), "Coni
 modDat[modDat$AngioTreeCover_dec == 0 & !is.na(modDat$AngioTreeCover_dec), "AngioTreeCover_dec"]  <- .0001
 modDat[modDat$AnnualHerbGram_dec == 0 & !is.na(modDat$AnnualHerbGram_dec), "AnnualHerbGram_dec"]  <- .0001
 modDat[modDat$PerennialHerbGram_dec == 0 & !is.na(modDat$PerennialHerbGram_dec), "PerennialHerbGram_dec"]  <- .0001
+modDat[modDat$BareGroundCover_dec == 0 & !is.na(modDat$BareGroundCover_dec), "BareGroundCover_dec"]  <- .0001
+modDat[modDat$LitterCover_dec == 0 & !is.na(modDat$LitterCover_dec), "LitterCover_dec"]  <- .0001
 
 
 modDat[(modDat$ShrubCover_dec==1 | (modDat$ShrubCover_dec>1 & modDat$ShrubCover_dec<1.5)) & !is.na(modDat$ShrubCover_dec), "ShrubCover_dec"] <- .999 
@@ -152,6 +133,8 @@ modDat[(modDat$ConifTreeCover_dec==1 | (modDat$ConifTreeCover_dec>1 & modDat$Con
 modDat[(modDat$AngioTreeCover_dec==1 | (modDat$AngioTreeCover_dec>1 & modDat$AngioTreeCover_dec<1.5)) & !is.na(modDat$AngioTreeCover_dec), "AngioTreeCover_dec"] <- .999
 modDat[(modDat$AnnualHerbGram_dec==1 | (modDat$AnnualHerbGram_dec>1 & modDat$AnnualHerbGram_dec<1.5)) & !is.na(modDat$AnnualHerbGram_dec), "AnnualHerbGram_dec"] <- .999
 modDat[(modDat$PerennialHerbGram_dec==1 | (modDat$PerennialHerbGram_dec>1 & modDat$PerennialHerbGram_dec<1.5)) & !is.na(modDat$PerennialHerbGram_dec), "PerennialHerbGram_dec"] <- .999 
+modDat[(modDat$BareGroundCover_dec==1 | (modDat$BareGroundCover_dec>1 & modDat$BareGroundCover_dec<1.5)) & !is.na(modDat$BareGroundCover_dec), "BareGroundCover_dec"] <- .999 
+modDat[(modDat$LitterCover_dec==1 | (modDat$LitterCover_dec>1 & modDat$LitterCover_dec<1.5)) & !is.na(modDat$LitterCover_dec), "LitterCover_dec"] <- .999 
 
 modDat[modDat$ShrubCover_dec >= 1 & !is.na(modDat$ShrubCover), "ShrubCover_dec"] <- NA
 modDat[modDat$HerbCover_dec>=1 & !is.na(modDat$HerbCover), "HerbCover_dec"] <- NA
@@ -163,6 +146,8 @@ modDat[modDat$ConifTreeCover_dec>=1 & !is.na(modDat$ConifTreeCover), "ConifTreeC
 modDat[modDat$AngioTreeCover_dec>=1   & !is.na(modDat$AngioTreeCover), "AngioTreeCover_dec"] <- NA
 modDat[modDat$AnnualHerbGram_dec>=1   & !is.na(modDat$AnnualHerbGram), "AnnualHerbGram_dec"] <- NA
 modDat[modDat$PerennialHerbGram_dec>=1   & !is.na(modDat$PerennialHerbGram), "PerennialHerbGram_dec"] <- NA
+modDat[modDat$BareGroundCover_dec>=1   & !is.na(modDat$BareGroundCover_dec), "BareGroundCover_dec"] <- NA
+modDat[modDat$LitterCover_dec>=1   & !is.na(modDat$LitterCover_dec), "LitterCover_dec"] <- NA
 
 
 ggplot(data = modDat) + 
@@ -173,7 +158,12 @@ ggplot(data = modDat) +
   geom_density(aes(C4GramCover_dec), col = "blue")+ 
   geom_density(aes(TotalTreeCover_dec), col = "purple")+ 
   geom_density(aes(ConifTreeCover_dec), col = "brown")+ 
-  geom_density(aes(AngioTreeCover_dec), col = "grey")
+  geom_density(aes(AngioTreeCover_dec), col = "grey") + 
+  geom_density(aes(PerennialHerbGram_dec), col = "black") + 
+  geom_density(aes(AnnualHerbGram_dec), col = "pink") + 
+  geom_density(aes(BareGroundCover_dec), col = "turquoise") + 
+  geom_density(aes(LitterCover_dec), col = "lightblue") 
+  
 
 ## save data for further analysis 
 saveRDS(modDat, file = "./data/DataForModels.RDS")

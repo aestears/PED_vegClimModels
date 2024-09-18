@@ -447,8 +447,7 @@ script
 ```{r iterate_transform, warning = FALSE}
 set.seed(1234)
 
-# adding an interaction term to help deal with over-predicting fire probability
-# at pixels with high afgAGB and high MAP. parentheses around interaction
+# parentheses around interaction
 # term are included so that glms_iterate_transforms doesn't transform
 # the interaction term. 
 #pred_vars_inter <- c(pred_vars, params$inter)
@@ -897,7 +896,7 @@ mod_glmFinal_WF <- betareg(as.formula(best_form_WF), data = wf_sample, link = c(
 # should be the same AIC (i.e. refitting the same model)
 AIC(mod_glmFinal_WF)
 
- ## easter forests 
+ ## eastern forests 
   best_form_EF <- modSelection_EF$formula
 print(best_form_EF)
 
