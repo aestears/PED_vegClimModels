@@ -28,7 +28,7 @@ library(taxonlookup)
 #   filter(Latitude_NAD83 < 55)
 # # save as a .rds object for later
 # saveRDS(indicatorDat, file = "./data/LandscapeDataCommonsDat/IndicatorDat.rds")
-indicatorDat <- readRDS(file = "./data/LandscapeDataCommonsDat/IndicatorDat.rds")
+indicatorDat <- readRDS(file = "./Data_raw/LandscapeDataCommonsDat/IndicatorDat.rds")
 indicatorDat$Year <- lubridate::year(indicatorDat$DateVisited)
 
 ## remove indicator Data points from plots that are croplands, cropland/natural vegetation mosiacs, permanent Snow and Ice, Urban and Built-up Lands, and Water Bodies
@@ -48,7 +48,7 @@ indicatorDat <- indicatorDat %>%
 # 
 # # save as a .rds object for later
 # saveRDS(speciesDat, file = "./data/LandscapeDataCommonsDat/SpeciesDat.rds")
-speciesDat_temp <- readRDS(file = "./data/LandscapeDataCommonsDat/SpeciesDat.rds")
+speciesDat_temp <- readRDS(file = "./Data_raw/LandscapeDataCommonsDat/SpeciesDat.rds")
 # aggregate the species data by year that it was sampled (sampled once per year, usually...)
 speciesDat <- speciesDat_temp %>% 
   mutate(Year = lubridate::year(DateVisited))
@@ -59,32 +59,32 @@ unique(lubridate::year(indicatorDat$DateVisited))
 ggplot(indicatorDat[1:20000,]) + 
   geom_point(aes(x = Longitude_NAD83, y = Latitude_NAD83, color = TotalFoliarCover))
 
-# what do the distributions of percent cover data look like? 
-# total foliar cove
-hist(indicatorDat$TotalFoliarCover) # pretty normally distributed between 0 and 100
+# # what do the distributions of percent cover data look like? 
+# # total foliar cover
+# hist(indicatorDat$TotalFoliarCover) # pretty normally distributed between 0 and 100
+# 
+# # I think other functional group cover values are all very right skewed
+# hist(indicatorDat$AH_AnnGrassCover) # very right skewed
+# hist(indicatorDat$AH_PerenGrassCover) # very right skewed
+# hist(indicatorDat$AH_PerenForbCover)
 
-# I think other functional group cover values are all very right skewed
-hist(indicatorDat$AH_AnnGrassCover) # very right skewed
-hist(indicatorDat$AH_PerenGrassCover) # very right skewed
-hist(indicatorDat$AH_PerenForbCover)
-
-# do cover values ever sum above 100%?
-summedCover <- indicatorDat %>% 
-  select(AH_ForbCover, AH_GrassCover, AH_ShrubCover) %>% 
-  rowSums()
-hist(summedCover)
+# # do cover values ever sum above 100%?
+# summedCover <- indicatorDat %>% 
+#   select(AH_ForbCover, AH_GrassCover, AH_ShrubCover) %>% 
+#   rowSums()
+# hist(summedCover)
 
 # Calculate % Cover by c3 vs c4 grass -------------------------------------
-# can just aggregate from Species-level data (double check that this is accurate, with shrubs, for example!)
-shrubTest <- speciesDat %>% 
-  filter(GrowthHabitSub == "Shrub") %>% 
-  group_by(PrimaryKey) %>% 
-  summarize("AH_shrub_sum" = sum(AH_SpeciesCover, na.rm = TRUE))
-
-# compare to actual data in indicatorDat
-testTest <- indicatorDat %>% 
-  select(PrimaryKey, AH_ShrubCover) %>% 
-  left_join(shrubTest)
+# # can just aggregate from Species-level data (double check that this is accurate, with shrubs, for example!)
+# shrubTest <- speciesDat %>% 
+#   filter(GrowthHabitSub == "Shrub") %>% 
+#   group_by(PrimaryKey) %>% 
+#   summarize("AH_shrub_sum" = sum(AH_SpeciesCover, na.rm = TRUE))
+# 
+# # compare to actual data in indicatorDat
+# testTest <- indicatorDat %>% 
+#   select(PrimaryKey, AH_ShrubCover) %>% 
+#   left_join(shrubTest)
 
 # The values are the same! Can proceed w/ DIY grouping of grasses by C3 vs. 
 # C4 using by aggregating the speciesDat data frame
@@ -142,7 +142,7 @@ grassNames <- unique(grassDat$Species) %>%
 
 names(grassNames) <- "Species"
 # get the species names lookup table from BLM 
-taxCodes <- read.csv("./data/USDA_plants_SppNameTable.csv")
+taxCodes <- read.csv("./Data_raw/USDA_plants_SppNameTable.csv")
 # deal w/ synonym issues (try to, anyway)
 uniqueSymbols <- unique(taxCodes$AcceptedSymbol)
 for (i in 1:length(uniqueSymbols)) {
@@ -159,7 +159,7 @@ for (i in 1:length(uniqueSymbols)) {
 
 # save the synonyms data
 #write.csv(taxCodes_new, "./data/USDA_plants_SppNameTable_synonymNames.csv", row.names = TRUE)
-taxCodes_new <- read.csv("./data/USDA_plants_SppNameTable_synonymNames.csv")
+taxCodes_new <- read.csv("./Data_raw/USDA_plants_SppNameTable_synonymNames.csv")
 # now, get photosynthetic pathway data
 # trim to just grasses in the names dataset
 # get just names in the dataset w/out synonyms
@@ -170,7 +170,7 @@ grassNames_all <- left_join(grassNames, taxCodes_new,  by = c("Species"= "Accept
 #write.csv(grassNames_all, "./data/USDA_plants_SppNameTable_allGrassInDataset.csv", row.names = FALSE)
 
 # read in dataset w/ photosynthetic pathway information
-grassNames_photo <- read.csv("./data/USDA_plants_SppNameTable_allGrassInDataset.csv") %>% 
+grassNames_photo <- read.csv("./Data_raw//USDA_plants_SppNameTable_allGrassInDataset.csv") %>% 
   select(Species, PhotosyntheticPathway) %>% 
   unique() %>% 
   filter(PhotosyntheticPathway %in% c("C3", "C4"))
@@ -199,7 +199,8 @@ grassCover <- grassCover %>%
 ## calculate perennial vs annual graminoid % cover
 gramAnnPenCover <- speciesDat %>% 
   filter(GrowthHabitSub == "Graminoid" | 
-           GrowthHabitSub == "Sedge") %>% 
+           GrowthHabitSub == "Sedge" | 
+           GrowthHabitSub == "Rush") %>% 
   group_by(PrimaryKey, Duration, Year) %>% 
   summarize(Cover = sum(AH_SpeciesCover, na.rm = TRUE)) %>% 
   pivot_wider(names_from = Duration, 
@@ -223,13 +224,13 @@ forbAnnPenCover <- speciesDat %>%
 # investigate tree data ---------------------------------------------------
 #There are actually 27,946 tree observations, so we should calculate decid vs coniferous tree data too
 # add tree and shrub species names
-taxTrees <- read.csv("./data/USDA_plants_SppNameTable_TREE.csv") %>% 
+taxTrees <- read.csv("./Data_raw/USDA_plants_SppNameTable_TREE.csv") %>% 
   rename("AcceptedSymbol" = Accepted.Symbol,
          "SynonymSymbol" = Synonym,
          "ScientificName" = Scientific.Name,
          "CommonName" = Common.Name) %>% 
   mutate(Status = "Accepted")
-taxShrub <- read.csv("./data/USDA_plants_SppNameTable_SHRUB.csv")  %>% 
+taxShrub <- read.csv("./Data_raw/USDA_plants_SppNameTable_SHRUB.csv")  %>% 
   rename("AcceptedSymbol" = Accepted.Symbol,
          "SynonymSymbol" = Synonym,
          "ScientificName" = Scientific.Name,
@@ -269,7 +270,7 @@ badTree <- treeDat %>%
   filter(AH_SpeciesCover > 10)
 badQuads_tree <- unique(badTree$PrimaryKey)                   
 
-# remove those plots from the data frame of grass species
+# remove those plots from the data frame of tree species
 treeDat <- treeDat %>% 
   filter(!(PrimaryKey %in% badQuads_tree))
 
@@ -277,7 +278,7 @@ treeDat <- treeDat %>%
 treeDat <- treeDat %>% 
   filter(!is.na(ScientificName))
 
-# remove observations that have no cover assiated with them (not sure why these observations were included? )
+# remove observations that have no cover associated with them (not sure why these observations were included? )
 treeDat <- treeDat %>% 
   filter(!is.na(AH_SpeciesCover))
 
@@ -299,11 +300,44 @@ treeDat<- treeDat %>%
   select(-Angiosperms, -Gymnosperms)
 ## assume that if there are no species of a group recorded in a plot, the cover for that group is 0 
 
+
+# calculate CAM species ---------------------------------------------------
+# data.frame that has species-level data as well as species names (speciesDat_new)
+# speciesDat_new
+# # get family information 
+# speciesDat_families <- taxonlookup::lookup_table(species_list = unique(speciesDat_new$ScientificName), by_species = TRUE)
+# speciesDat_families$Species <- row.names(speciesDat_families)
+# speciesDat_new <- left_join(speciesDat_new, speciesDat_families, by = c("ScientificName" = "Species"))
+# # narrow down to families that are likely to be CAM 
+# # source (first pass): https://doi.org/10.1093/aob/mcad135
+# CAM_species <- speciesDat_new %>% 
+#   filter(family %in% c("Crassulaceae", "Bromeliaceae", "Cactaceae", 
+#                        "Anacampserotaceae", "Portulacaceae", "Talinaceae", 
+#                        "Didiereaceae", "Halophytaceae", "Basellaceae"))
+
+# remove observations for weird species names w/ % cover less than 10%
+CAM_species <- speciesDat_new %>% 
+  filter(GrowthHabitSub == "Succulent")
+
+# remove observations that have no cover associated with them (not sure why these observations were included? )
+CAM_species <- CAM_species %>% 
+  filter(!is.na(AH_SpeciesCover))
+
+CAM_species<- CAM_species %>% 
+  group_by(PrimaryKey, Year) %>% 
+  summarize(AH_CAMCover = sum(AH_SpeciesCover))
+
+## assume that if there are no species of a group recorded in a plot, the cover for that group is 0 
+
+# Add all data pieces together  -------------------------------------------
+
+
 # add together 
 test <- grassCover %>% 
   full_join(treeDat, by = c("PrimaryKey", "Year")) %>% 
   full_join(forbAnnPenCover, by = c("PrimaryKey", "Year")) %>% 
-  full_join(gramAnnPenCover, by = c("PrimaryKey", "Year"))
+  full_join(gramAnnPenCover, by = c("PrimaryKey", "Year")) %>% 
+  full_join(CAM_species, by = c("PrimaryKey", "Year"))
 
 ## add in shrub and forb data from "Indicators" d.f
 datAll <- indicatorDat %>% 
@@ -318,6 +352,6 @@ datAll <- indicatorDat %>%
 
 # save data to file 
 write.csv(datAll, 
-          file = "./data/LandscapeDataCommonsDat/coverDat_use.csv",
+          file = "./Data_raw//LandscapeDataCommonsDat/coverDat_use.csv",
           row.names = FALSE)
 

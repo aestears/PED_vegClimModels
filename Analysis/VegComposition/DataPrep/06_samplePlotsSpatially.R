@@ -108,6 +108,11 @@ allDat_avg <- test5 %>%
 ##AES need to figure out how to do this better... maybe rasterize both layers, add together, and then extract points again?? 
 
 
+plot(test$daymet_v4_prcp_monttl_na_1980_1)
+points(clim[1:1000,"Lon"], clim[1:1000, "Lat"], add = TRUE, col = "orange")
+points(test5$x, test5$y, col = "green")
+
+
 ggplot() +
   geom_point(data = clim, aes(x = Lon, y = Lat), col = "red") +
   geom_point(data = test6[!is.na(test6$AngioTreeCover_dec),], aes(x = Lon, y = Lat, col = AngioTreeCover_dec), alpha = .5) 

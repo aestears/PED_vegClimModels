@@ -11,6 +11,7 @@ library(mdbr)
 library(mapview)
 #devtools::install_github("wcornwell/taxonlookup")
 library(taxonlookup)
+library(OpenStreetMap)
 
 #Read in Data ------------------------------------------------------------
 # there is an Microsoft access database for each of six regions of the US try
@@ -143,9 +144,9 @@ library(taxonlookup)
 # ## save data for later
 # write.csv(dat, file = "./data/LANDFIRE_LFRDB/coverDat_all.csv", row.names = FALSE)
 
-dat <- read.csv("./data/LANDFIRE_LFRDB/coverDat_all.csv")
+dat <- read.csv("./Data_raw//LANDFIRE_LFRDB/coverDat_all.csv")
 
-mapview(unique(dat[,c("Long","Lat")]), xcol = "Long", ycol = "Lat", crs = "EPSG:4326", map.types = "OpenStreetMap")
+#mapview(unique(dat[,c("Long","Lat")]), xcol = "Long", ycol = "Lat", crs = "EPSG:4326", map.types = "OpenStreetMap")
 
 
 # #Get Species-level cover data (For tree type and c3/c4 grams) ------------
@@ -211,7 +212,7 @@ mapview(unique(dat[,c("Long","Lat")]), xcol = "Long", ycol = "Lat", crs = "EPSG:
 
 ## save data for later
 #write.csv(sppDat, file = "./data/LANDFIRE_LFRDB/speciesCoverDat_all.csv", row.names = FALSE)
-sppDat <- read.csv(file = "./data/LANDFIRE_LFRDB/speciesCoverDat_all.csv")
+sppDat <- read.csv(file = "./Data_raw/LANDFIRE_LFRDB/speciesCoverDat_all.csv")
 ## use "sppDat$LFAbsCov", the absolute cover derived by LANDFIRE from the source dataset
 
 #### get data for c3 vs c4 grasses ####
@@ -219,16 +220,16 @@ sppDat <- read.csv(file = "./data/LANDFIRE_LFRDB/speciesCoverDat_all.csv")
 gramSpp <- unique(sppDat[sppDat$Lifeform == "G",c("Item", "SciName")])
 names(gramSpp) <- c("sppCode_dataset", "SciName_dataset")
 # load table of USDA PLANTS names
-gramPhotoDat <- read.csv("./data/USDA_plants_SppNameTable_synonymNames.csv")
+gramPhotoDat <- read.csv("./Data_raw/USDA_plants_SppNameTable_synonymNames.csv")
 # add species names to dataset (from USDA PLANTS)
 gramDat <- left_join(gramSpp, gramPhotoDat, by = c("sppCode_dataset" = "AcceptedSymbol"))
 # get data about photosynthetic pathway that we already have
-pathwaysDat <- read.csv("./data/USDA_plants_SppNameTable_allGrassInDataset.csv")
+pathwaysDat <- read.csv("./Data_raw/USDA_plants_SppNameTable_allGrassInDataset.csv")
 test <- left_join(gramDat, pathwaysDat, by = c("sppCode_dataset" = "Species", "ScientificName", "Status", "SynonymSymbol", "CommonName"))
 # write so that I can update photosynthetic pathway info
-write.csv(test, "./data/LANDFIRE_c3c4Names_temp.csv", row.names = FALSE)
+write.csv(test, "./Data_raw/LANDFIRE_c3c4Names_temp.csv", row.names = FALSE)
 # read back in the updated data
-pathway <- read.csv("./data/LANDFIRE_c3c4Names.csv") %>% 
+pathway <- read.csv("./Data_raw/LANDFIRE_c3c4Names.csv") %>% 
     select(sppCode_dataset, SciName_dataset, PhotosyntheticPathway) %>% 
   unique()
 
@@ -285,19 +286,75 @@ C4Dat <- C4Dat_spp %>%
             Type = unique(Type), 
             SourceID = unique(SourceID))
 
+
+# Get data for cactus/succulents  -----------------------------------------
+camNames <- unique(sppDat[sppDat$Lifeform %in% c("S", "T", "F", "H"), c("Item", "SciName")])
+names(camNames) <- c("sppCode_dataset", "SciName_dataset")
+# lookup species names to get family info
+camSpp <- taxonlookup::lookup_table(species_list = camNames$SciName_dataset, by_species = TRUE)
+# narrow down to families that are likely to be CAM 
+# source (first pass): https://doi.org/10.1093/aob/mcad135
+camSpp <- camSpp[camSpp$family %in% c("Crassulaceae", "Bromeliaceae", "Cactaceae", 
+                                      "Anacampserotaceae", "Portulacaceae", "Talinaceae", 
+                                      "Didiereaceae", "Halophytaceae", "Basellaceae"),]
+camSpp$Species <- row.names(camSpp) 
+camSpp$Pathway <- "CAM"
+# get the data for CAM species, and add the 'group' data
+camDatSpp <- sppDat[sppDat$Lifeform %in% c("S", "T", "F", "H") & !is.na(sppDat$Lifeform), ] %>% 
+  left_join(camSpp, by = c("SciName" = "Species")) %>% 
+  filter(Pathway == "CAM")
+
+## remove the CAM species from the species data.frame used in the tree and shrub groupings
+sppDat_new <- anti_join(sppDat, camDatSpp)
+
+# get summed absolute cover by plot 
+## now, sum % cover by plot 
+camDat <- camDatSpp %>% 
+  group_by(EventID) %>% 
+  summarize(CAM_LFAbsCov = sum(LFAbsCov),
+            CAM_LFRelCov = sum(LFRelCov), 
+            CAM_LFHgt = mean(LFHgt),
+            Lat = mean(Lat), 
+            Long = mean(Long),
+            LFX = mean(LFX), 
+            LFY = mean(LFY), 
+            LFZone = unique(LFZone),
+            AKRID = unique(AKRID),
+            VPU = unique(VPU),
+            GeoArea = unique(GeoArea),
+            LocMeth = unique(LocMeth),
+            YYYY = mean(YYYY), 
+            MM = unique(MM),
+            DD = unique(DD),
+            DDD = unique(DDD),
+            Type = unique(Type), 
+            SourceID = unique(SourceID))
+
+# ## plot the location of plots w/ CAM data to double-check
+# map <- openmap(upperLeft = c(50, -125), lowerRight = c(26, -73),  zoom =5 ,
+#                type = c("osm", "stamen-toner", "stamen-terrain","stamen-watercolor", "esri","esri-topo")[6],
+#                mergeTiles = TRUE)
+# map.latlon <- openproj(map, projection = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+# (
+# OSMap <- autoplot(map.latlon)  +
+#   labs(title = "Plot over OpenStreetMap", subtitle = "Bias [%]",x = "Longitude", y="Latitude") + 
+#     geom_point(data = camDat[camDat$CAM_LFAbsCov>5,], aes(x = Long, y = Lat, col = CAM_LFAbsCov))
+#   )
+
+
 #### get data for deciduous vs coniferous trees ####
 ## decided to do this taxonomically (i.e. gymnosperms vs angiosperms)
 #can  get taxonomic data using the "taxonlookup" R package\
 
 # get unique tree species names
-treeNames <- unique(sppDat[sppDat$Lifeform == "T",c("Item", "SciName")])
+treeNames <- unique(sppDat_new[sppDat_new$Lifeform == "T",c("Item", "SciName")])
 names(treeNames) <- c("sppCode_dataset", "SciName_dataset")
 # lookup species names 
 treeGroups <- taxonlookup::lookup_table(species_list = treeNames$SciName_dataset, by_species = TRUE)
 treeGroups$Species <- row.names(treeGroups)
 
 # get the data for all trees, and add the "group" data
-treeDat <- sppDat[sppDat$Lifeform == "T" & !is.na(sppDat$Lifeform), ] %>% 
+treeDat <- sppDat_new[sppDat_new$Lifeform == "T" & !is.na(sppDat_new$Lifeform), ] %>% 
   left_join(treeGroups, by = c("SciName" = "Species"))
 # "pinyon pine", "Hesperocyparis arizonica", "Unknown conifer", "Unknown conifer
 # tree", "Unknown conifer tree 1", "Hesperocyparis forbesii", "Hesperocyparis
@@ -361,7 +418,7 @@ ConifTreeDat <- ConifTreeDat_spp %>%
 
 #### Get annual vs. perennial Herb and Graminoid % cover ####
 ## for forbs
-ForbPerenAnnDat <- sppDat %>% 
+ForbPerenAnnDat <- sppDat_new %>% 
   filter(Lifeform == "H" | 
            Lifeform == "F") %>% # I think we want "H" for "herb" and "F" for "forb"
   group_by(EventID, Duration, Lat, Long, LFX, LFY, LFZone, YYYY, Type, SourceID) %>% 
@@ -385,7 +442,7 @@ ForbPerenAnnDat <- ForbPerenAnnDat %>%
   select(-Forb_NoDuration_LFAbsCov, -Forb_NoDuration_LFRelCov)
 
 ## for Graminoids
-GramPerenAnnDat <- sppDat %>% 
+GramPerenAnnDat <- sppDat_new %>% 
   filter(Lifeform == "G" ) %>% # I think we want "H" for "herb" and "F" for "forb"
   group_by(EventID, Duration, Lat, Long, LFX, LFY, LFZone, YYYY, Type, SourceID) %>% 
   summarize(Gram_LFAbsCov = sum(LFAbsCov), 
@@ -413,6 +470,7 @@ temp <- full_join(C3Dat, C4Dat) %>%
   full_join(ConifTreeDat) %>% 
   full_join(GramPerenAnnDat) %>% 
   full_join(ForbPerenAnnDat) %>% 
+  full_join(camDat) %>% 
   mutate(MM = as.integer(MM), 
          DD = as.integer(DD),
          DDD = as.integer(DDD))
@@ -424,69 +482,70 @@ datAll <- dat %>%
 
 ## hand calculated tree absolute cover data seems to track quite well with the functional-group data, with a few exceptions
 
-# visualize differences in % cover data between groups
-ggplot(datAll) +
-  geom_density(aes(LFConiferTreeCov), col = "red") +
-  geom_density(aes(ConifTree_LFAbsCov), col = "darkgreen")
-
-
-ggplot(datAll) +
-  geom_density(aes(ConifTree_LFAbsCov), col = "darkgreen") +
-  geom_density(aes(AngioTree_LFAbsCov), col = "green") + 
-  geom_density(aes(C3_LFAbsCov), col = "orange") + 
-  geom_density(aes(C4_LFAbsCov), col = "red") +
-  geom_density(aes(LFShrubCov), col = "blue") +
-  geom_density(aes(LFHerbCov), col = "purple") +
-  theme_dark() +
-  xlim(0,200)
+# # visualize differences in % cover data between groups
+# ggplot(datAll) +
+#   geom_density(aes(LFConiferTreeCov), col = "red") +
+#   geom_density(aes(ConifTree_LFAbsCov), col = "darkgreen")
+# 
+# 
+# ggplot(datAll) +
+#   geom_density(aes(ConifTree_LFAbsCov), col = "darkgreen") +
+#   geom_density(aes(AngioTree_LFAbsCov), col = "green") + 
+#   geom_density(aes(C3_LFAbsCov), col = "orange") + 
+#   geom_density(aes(C4_LFAbsCov), col = "red") +
+#   geom_density(aes(LFShrubCov), col = "blue") +
+#   geom_density(aes(LFHerbCov), col = "purple") +
+#   theme_dark() +
+#   xlim(0,200)
 
 ## trim down the dataset just to the variables we really want for analysis
 datLF_use <- datAll  %>% 
   select(EventID, Lat, Long, LFX, LFY, LFCoordSys, LFZone, YYYY, MM, DD, DDD,
          LFShrubCov, LFHerbCov, C3_LFAbsCov, C4_LFAbsCov, AngioTree_LFAbsCov, ConifTree_LFAbsCov, 
-         Gram_Peren_LFAbsCov, Gram_Ann_LFAbsCov, Forb_Peren_LFAbsCov, Forb_Ann_LFAbsCov)
+         Gram_Peren_LFAbsCov, Gram_Ann_LFAbsCov, Forb_Peren_LFAbsCov, Forb_Ann_LFAbsCov, CAM_LFAbsCov)
 
-# remove rows for plots that don't have all functional groups measured (can figure out by finding which have NAs in the 'dat' data frame)
-goodPlots <- datAll %>% 
- filter(!is.na(LFTreeCov) & 
-           !is.na(LFShrubCov) & 
-           !is.na(LFHerbCov)) %>% 
-  select(EventID)
+# # remove rows for plots that don't have all functional groups measured (can figure out by finding which have NAs in the 'dat' data frame)
+# goodPlots <- datAll %>% 
+#  filter(!is.na(LFTreeCov) & 
+#            !is.na(LFShrubCov) & 
+#            !is.na(LFHerbCov)) %>% 
+#   select(EventID)
 
-
-## subset the datLF_use dataframe to have only plots where all functional groups were measured (have accurate zeros)
-datLF_use  <- datLF_use %>% 
-  filter(EventID %in% goodPlots$EventID)
-# replace NAs w/ zeros 
-datLF_use[is.na(datLF_use$C3_LFAbsCov) , "C3_LFAbsCov"] <- 0
-datLF_use[is.na(datLF_use$C4_LFAbsCov) , "C4_LFAbsCov"] <- 0
-datLF_use[is.na(datLF_use$ConifTree_LFAbsCov) , "ConifTree_LFAbsCov"] <- 0
-datLF_use[is.na(datLF_use$AngioTree_LFAbsCov) , "AngioTree_LFAbsCov"] <- 0
+# 
+# ## subset the datLF_use dataframe to have only plots where all functional groups were measured (have accurate zeros)
+# datLF_use  <- datLF_use %>% 
+#   filter(EventID %in% goodPlots$EventID)
+# # replace NAs w/ zeros 
+# datLF_use[is.na(datLF_use$C3_LFAbsCov) , "C3_LFAbsCov"] <- 0
+# datLF_use[is.na(datLF_use$C4_LFAbsCov) , "C4_LFAbsCov"] <- 0
+# datLF_use[is.na(datLF_use$ConifTree_LFAbsCov) , "ConifTree_LFAbsCov"] <- 0
+# datLF_use[is.na(datLF_use$AngioTree_LFAbsCov) , "AngioTree_LFAbsCov"] <- 0
 
 #save data to file 
-write.csv(datLF_use,"./data/LANDFIRE_LFRDB/coverDat_USE.csv", row.names = FALSE)
+write.csv(datAll,"./Data_raw/LANDFIRE_LFRDB/coverDat_USE.csv", row.names = FALSE)
 
-ggplot(datLF_use) +
-  geom_density(aes(ConifTree_LFAbsCov), col = "darkgreen") +
-  geom_density(aes(AngioTree_LFAbsCov), col = "green") + 
-  geom_density(aes(C3_LFAbsCov), col = "orange") + 
-  geom_density(aes(C4_LFAbsCov), col = "red") +
-  geom_density(aes(LFShrubCov), col = "blue") +
-  geom_density(aes(LFHerbCov), col = "purple") +
-  theme_dark() +
-  xlim(0,200)
+# ggplot(datLF_use) +
+#   geom_density(aes(ConifTree_LFAbsCov), col = "darkgreen") +
+#   geom_density(aes(AngioTree_LFAbsCov), col = "green") + 
+#   geom_density(aes(C3_LFAbsCov), col = "orange") + 
+#   geom_density(aes(C4_LFAbsCov), col = "red") +
+#   geom_density(aes(LFShrubCov), col = "blue") +
+#   geom_density(aes(LFHerbCov), col = "purple") +
+#   theme_dark() +
+#   xlim(0,200)
+# 
+# test <- sf::st_as_sf(datLF_use, coords = c("Long", "Lat"), crs = "EPSG:4326")
+# # get basemap
+# library(maps)
+# usa1 <- sf::st_as_sf(map('usa', plot = FALSE, fill = TRUE))
+# 
+# usa2 <- sf::st_transform(
+#   usa1,
+#   dst = st_crs(test)
+# )
+# 
+# # visualize the data spatially to ensure it makes sense
+# ggplot(test) + 
+#   geom_sf(data = usa2, aes()) +
+#   geom_sf(aes(alpha= C4_LFAbsCov)) 
 
-test <- sf::st_as_sf(datLF_use, coords = c("Long", "Lat"), crs = "EPSG:4326")
-# get basemap
-library(maps)
-usa1 <- sf::st_as_sf(map('usa', plot = FALSE, fill = TRUE))
-
-usa2 <- sf::st_transform(
-  usa1,
-  dst = st_crs(test)
-)
-
-# visualize the data spatially to ensure it makes sense
-ggplot(test) + 
-  geom_sf(data = usa2, aes()) +
-  geom_sf(aes(alpha= C4_LFAbsCov)) 

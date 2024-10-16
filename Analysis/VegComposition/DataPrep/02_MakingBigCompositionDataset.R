@@ -14,14 +14,14 @@ library(maps)
 # load FIA data -----------------------------------------------------------
 
 # vegetation data 
-FIA_veg <- read.csv("./data/FIA/vegetationComposition_use.csv") %>% 
+FIA_veg <- read.csv("./Data_raw/FIA/vegetationComposition_use.csv") %>% 
   mutate(Source = "FIA")
 # ground cover data 
-FIA_groundCover <- read.csv("./data/FIA/groundCover_use.csv")
+FIA_groundCover <- read.csv("./Data_raw/FIA/groundCover_use.csv")
 # litter data 
-FIA_litter <- read.csv("./data/FIA/LitterDuffFuel_use.csv")
+FIA_litter <- read.csv("./Data_raw/FIA/LitterDuffFuel_use.csv")
 # tree data
-FIA_tree <- readRDS("./data/FIA/TREEtable_use.rds")
+FIA_tree <- readRDS("./Data_raw/FIA/TREEtable_use.rds")
 
 ## add datasets together 
 FIA_all <- FIA_veg %>% 
@@ -53,6 +53,7 @@ FIA_all <- FIA_veg %>%
          AngioTreeCover = TallyTree_AerialCover * basalArea_Angiosperms_perc/100, 
          ConifTreeCover = TallyTree_AerialCover * basalArea_Gymnosperms_perc/100,
          TotalTreeCover = TallyTree_AerialCover + NonTallyTree_AerialCover,
+         CAMCover = NA,
          TreeBasalArea_in2 = basalArea_allGroups_in2, 
          BareGroundCover_temp = BareGround_PctCover, 
          PCTBARE_RMRS = PCTBARE_RMRS, 
@@ -70,11 +71,11 @@ FIA_all <- FIA_all %>%
   select(UniqueID, StateUnitCounty, Plot,  PlotCondition, Month, Day, Year, Lat,  Lon,
          ShrubCover, HerbCover,  TotalGramCover, AnnualHerbGramCover, PerennialHerbGramCover,
          C3GramCover,  C4GramCover, 
-         AngioTreeCover ,   ConifTreeCover, TotalTreeCover, TreeBasalArea_in2, 
+         AngioTreeCover ,   ConifTreeCover, TotalTreeCover, CAMCover, TreeBasalArea_in2, 
          BareGroundCover,   LitterCover,  LitterDepth, Source)
 # load LANDFIRE data ------------------------------------------------------
 
-LANDFIRE_veg <- read.csv("./data/LANDFIRE_LFRDB/coverDat_USE.csv") %>% 
+LANDFIRE_veg <- read.csv("./Data_raw//LANDFIRE_LFRDB/coverDat_USE.csv") %>% 
   mutate(Source = "LANDFIRE")
 ## remove values that don't have dates
 LANDFIRE_veg <- 
@@ -103,6 +104,7 @@ LANDFIRE_all <- LANDFIRE_veg %>%
          AngioTreeCover = AngioTree_LFAbsCov, 
          ConifTreeCover = ConifTree_LFAbsCov,
          TotalTreeCover = AngioTree_LFAbsCov + ConifTree_LFAbsCov,
+         CAMCover = CAM_LFAbsCov,
          TreeBasalArea_in2 = NA, 
          BareGroundCover = NA, 
          LitterCover = NA,
@@ -115,7 +117,7 @@ LANDFIRE_all <- LANDFIRE_veg %>%
 
 # load Landscape Data Commons data ----------------------------------------
 
-LDC_veg <- read.csv("./data/LandscapeDataCommonsDat/coverDat_use.csv") %>% 
+LDC_veg <- read.csv("./Data_raw//LandscapeDataCommonsDat/coverDat_use.csv") %>% 
   mutate(Source = "LDC") %>% 
   filter(!is.na(DateVisited))
 
@@ -142,6 +144,7 @@ LDC_all <- LDC_veg %>%
             AngioTreeCover = AH_AngioTotalCover, 
             ConifTreeCover = AH_ConifTotalCover,
             TotalTreeCover = AH_AngioTotalCover + AH_ConifTotalCover,
+            CAMCover = AH_CAMCover,
             TreeBasalArea_in2 = NA, 
             BareGroundCover = BareSoilCover, 
             LitterCover = FH_TotalLitterCover,
@@ -153,23 +156,65 @@ LDC_all <- LDC_veg %>%
 #    geom_point(aes(Lon, Lat, col = HerbCover))
 
 # load RAP data -----------------------------------------------------------
-RAP_all <- read.csv("./data/RAP_samplePoints/RAPdata_use.csv") %>% 
+RAP_all <- read.csv("./Data_raw/RAP_samplePoints/RAPdata_use.csv") %>% 
   mutate(Year = date, 
          Month = NA, 
-         Day = NA) %>% 
+         Day = NA, 
+         CAMCover = NA) %>% 
   select(UniqueID, StateUnitCounty, Plot,  PlotCondition, Month, Day, Year, Lat,  Lon,
          ShrubCover, HerbCover,  TotalGramCover, AnnualHerbGramCover, PerennialHerbGramCover,
          C3GramCover,  C4GramCover, 
-         AngioTreeCover ,   ConifTreeCover, TotalTreeCover, TreeBasalArea_in2, 
+         AngioTreeCover ,   ConifTreeCover, TotalTreeCover, CAMCover, TreeBasalArea_in2, 
          BareGroundCover,   LitterCover,  LitterDepth, Source)
 
 
 # add datasets together ---------------------------------------------------
 dat_all <- FIA_all %>% 
   rbind(LANDFIRE_all, LDC_all, RAP_all)
+
+
+# Calculate Total Herbaceous Cover (where necessary) ----------------------
+dat_all2 <- dat_all %>% 
+  mutate(TotalHerbaceousCover_A =  pmap_dbl(.[c("AnnualHerbGramCover","PerennialHerbGramCover")], sum), # captures RAP data
+         TotalHerbaceousCover_B = pmap_dbl(.[c("HerbCover", "TotalGramCover")], sum)
+         ) %>% 
+  mutate(TotalHerbaceousCover = pmap_dbl(.[c("TotalHerbaceousCover_A", "TotalHerbaceousCover_B")], sum, na.rm = TRUE)) %>% 
+  select(-TotalHerbaceousCover_A, -TotalHerbaceousCover_B)
+
+
+# Breaking herbaceous and trees into proportions ----------------------
+dat_all3 <- dat_all2 %>% 
+  mutate(HerbCover_prop = pmap_dbl(.[c("HerbCover", "TotalHerbaceousCover")], 
+                                   function(HerbCover, TotalHerbaceousCover, ...) {
+                                     HerbCover/TotalHerbaceousCover
+                                   } ),
+         C3GramCover_prop = pmap_dbl(.[c("C3GramCover", "TotalHerbaceousCover")], 
+                                     function(C3GramCover, TotalHerbaceousCover, ...) {
+                                       C3GramCover/TotalHerbaceousCover
+                                     } ),
+         C4GramCover_prop = pmap_dbl(.[c("C4GramCover", "TotalHerbaceousCover")], 
+                                    function(C4GramCover, TotalHerbaceousCover, ...) {
+                                      C4GramCover/TotalHerbaceousCover
+                                    } ),
+         AngioTreeCover_prop = pmap_dbl(.[c("AngioTreeCover", "TotalTreeCover")], 
+                                      function(AngioTreeCover, TotalTreeCover, ...) {
+                                        AngioTreeCover/TotalTreeCover
+                                      } ),
+         ConifTreeCover_prop = pmap_dbl(.[c("ConifTreeCover", "TotalTreeCover")], 
+                                        function(ConifTreeCover, TotalTreeCover, ...) {
+                                          ConifTreeCover/TotalTreeCover
+                                        } ),
+         )
+
+## fix "NaN" values caused by instances where there are NO herbaceous or tree cover (is a divide by zero problem)
+dat_all3[dat_all3$TotalTreeCover == 0 & !is.na(dat_all3$TotalTreeCover), c("AngioTreeCover_prop", "ConifTreeCover_prop")] <- 0
+dat_all3[dat_all3$TotalHerbaceousCover == 0 & !is.na(dat_all3$TotalHerbaceousCover), c("HerbCover_prop", "C3GramCover_prop", "C4GramCover_prop")
+         ] <- 0
+
+
 ## save dataset for further analysis
 #write.csv(dat_all, file = "./data/DataForAnalysis.csv", row.names = FALSE)
-dat_all <- read.csv("./data/DataForAnalysis.csv")
+dat_all <- read.csv("./Data_processed/DataForAnalysis.csv")
 
 ## make a shapefile of the sample points also and save
 dat_all_sf_full <- st_as_sf(dat_all, coords = c("Lon", "Lat")) %>% 
@@ -180,7 +225,7 @@ dat_all_sf_full <- st_as_sf(dat_all, coords = c("Lon", "Lat")) %>%
 dat_all_sf <- dat_all_sf_full %>% 
   unique()
 
-#st_write(dat_all_sf, dsn = "./data/DataForAnalysisPoints", layer = "vegCompPoints", driver = "ESRI Shapefile", append = FALSE)
+st_write(dat_all_sf, dsn = "./Data_processed/DataForAnalysisPoints", layer = "vegCompPoints", driver = "ESRI Shapefile", append = FALSE)
 
 
 ## trim data to only that collected after 1979 
