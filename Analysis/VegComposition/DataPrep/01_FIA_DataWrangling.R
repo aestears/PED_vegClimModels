@@ -392,6 +392,7 @@ TREE_10 <- TREE_10 %>%
 
 TREE <- rbind(TREE_1, TREE_2, TREE_3, TREE_4, TREE_5, TREE_6, TREE_7, TREE_8, TREE_9, TREE_10)
 #saveRDS(TREE, file = "./data/FIA/TREEtable.RDS")
+
 # add group information for TREEs that are "Tree broadleaf" and "Tree evergreen"
 TREE[TREE$SCIENTIFIC_NAME == "Tree broadleaf", "group"] <- "Angiosperms"
 TREE[TREE$SCIENTIFIC_NAME == "Tree evergreen", "group"] <- "Gymnosperms"
@@ -410,7 +411,7 @@ TREE_SubPlot <- TREE %>%
             DryBio_stem_sum = sum(DRYBIO_STEM), 
             DryBio_foliage_sum = sum(DRYBIO_FOLIAGE),
             DryBio_branch_sum = sum(DRYBIO_BRANCH)
-            )
+  )
 
 # group by plot (values averaged within each plot--averages of summed values in each subplot w/in a plot--, grouped by species group)
 TREE_Plot <- TREE_SubPlot %>% 
@@ -418,11 +419,11 @@ TREE_Plot <- TREE_SubPlot %>%
   summarize(Height_subpAvg_plotAvg_ft = mean(HeightAvg_ft),
             Dia_subpAvg_plotAvg_in = mean(DiaAvg_in),
             basalArea_subpSum_plotAvg_in2 = mean(basalAreaSum_in2, na.rm = TRUE),
-            Carbon_AG_subpSum_plotAvg = sum(Carbon_AG_sum), 
-            Carbon_BG_subpSum_plotAvg = sum(Carbon_BG_sum), 
-            DryBio_stem_subpSum_plotAvg = sum(DryBio_stem_sum), 
-            DryBio_foliage_subpSum_plotAvg = sum(DryBio_foliage_sum),
-            DryBio_branch_subpSum_plotAvg = sum(DryBio_branch_sum)
+            Carbon_AG_subpSum_plotSum = sum(Carbon_AG_sum), 
+            Carbon_BG_subpSum_plotSum = sum(Carbon_BG_sum), 
+            DryBio_stem_subpSum_plotSum = sum(DryBio_stem_sum), 
+            DryBio_foliage_subpSum_plotSum = sum(DryBio_foliage_sum),
+            DryBio_branch_subpSum_plotSum = sum(DryBio_branch_sum)
   ) %>% ## add location information and filter for plots we don't want
   mutate(PLT_CN = as.double(PLT_CN)) %>% 
   left_join(COND[,c("PLT_CN", "INVYR", "STATECD", "UNITCD", "COUNTYCD", "PLOT", 
@@ -440,13 +441,13 @@ TREE_use <- TREE_Plot %>%
          "basalArea_Gymnosperms_in2" = "Gymnosperms",
          "basalArea_UnknownGroup_in2" = "Unknown",
          "basalArea_Pteridophytes_in2" = "Pteridophytes"
-         ) %>% 
-## the basal area values in TREE_Plots d.fs do not have zeros, so the NAs in these biomass columns are true zeros 
+  ) %>% 
+  ## the basal area values in TREE_Plots d.fs do not have zeros, so the NAs in these biomass columns are true zeros 
   mutate(basalArea_Angiosperms_in2 = replace(basalArea_Angiosperms_in2, is.na(basalArea_Angiosperms_in2), 0),
          basalArea_Gymnosperms_in2 = replace(basalArea_Gymnosperms_in2, is.na(basalArea_Gymnosperms_in2), 0),
          basalArea_UnknownGroup_in2 = replace(basalArea_UnknownGroup_in2, is.na(basalArea_UnknownGroup_in2), 0),
          basalArea_Pteridophytes_in2 = replace(basalArea_Pteridophytes_in2, is.na(basalArea_Pteridophytes_in2), 0))  
- 
+
 # calculate total plot-level basal area (averaged across subplots))
 TREE_use$basalArea_allGroups_in2 = rowSums(TREE_use[,c("basalArea_Angiosperms_in2", "basalArea_Gymnosperms_in2", "basalArea_UnknownGroup_in2", "basalArea_Pteridophytes_in2")])
 # calculate the proportion of the biomass that corresponds to each functional group 

@@ -7,3 +7,161 @@
 # load packages -----------------------------------------------------------
 
 library(tidyverse)
+
+
+# get metadata/plot-level info ---------------------------------------------------------------
+#First, get 
+file <- "./Data_raw/FIA/CSV_FIADB_ENTIRE/"
+
+# get state codes
+stateCodes <- FIESTA::ref_statecd %>% 
+  rename(STATECD = VALUE, STATENAME = MEANING, STATEABB = ABBR) %>% 
+  select(-c(RS, RSCD, REGION, REGION_SPGRPCD))
+
+#plot table gives location of plot, m/d/y of sampling
+PLOT <- read.csv(paste0(file, "ENTIRE_PLOT.csv"))
+
+#The Conditions table (COND) gives you forest type, slope, aspect, disturbance
+#codes and treatment codes (filter for sites without fire or thinning treatments
+# --a "condition" is a stand, so there can be multiple conditions within the same
+#plot, although there can also only be one
+#-- have to look at the help manual to get the key for what codes actually
+#mean), and other plot-level things
+#-- want to filter out water: (COND_STATUS_CD) exclude codes #3 ('noncensus water') and #4 ('census water')
+#--want to filter by disturbance code (DSTRBCD...) -- exclude fire (general fire = 30, ground fire damage = 31)?
+#exclude grazing? (#46); exclude disease damage (understory = #21, trees =
+##22)?; human damage (#80)?; landslide (#91); avalanche track (#92); volcanic
+#blast zone (#93)
+#-- we probably also want to filter by "treatment" (TRTCD__ column): 10 = cutting; 
+# 20 = "site preparation" (slashing, burning, etc.); 
+# 30 = artificial regeneration after treatment; 40 = natural regeneration after treatment; 
+# 50 = other silvicultural practices
+#-- should also maybe exclude things based on PRESNFCD column (present nonforest code)
+# 10 = agricultural land; 11 = cropland; 12 = improved pasture; 31 = cultural; 30 = developed;
+# 32 = rights of way
+COND_temp <- read.csv(paste0(file, "ENTIRE_COND.csv")) 
+#filter out unwanted plots/conditions
+COND_temp2 <- COND_temp %>% 
+  filter(!(COND_STATUS_CD %in% c(3,4))) %>% # filter out water
+  filter(!(DSTRBCD1 %in% c(30, 31, 46, 21, 22, 80, 91, 92, 93))) %>% 
+  filter(!(DSTRBCD2 %in% c(30, 31, 46, 21, 22, 80, 91, 92, 93))) %>% 
+  filter(!(DSTRBCD3 %in% c(30, 31, 46, 21, 22, 80, 91, 92, 93))) %>% # remove disturbances
+  filter(!(TRTCD1 %in% c(10, 20, 30, 40, 50))) %>% 
+  filter(!(TRTCD2 %in% c(10, 20, 30, 40, 50))) %>% 
+  filter(!(TRTCD3 %in% c(10, 20, 30, 40, 50))) %>% # remove forest treatments
+  filter(!(PRESNFCD %in% c(10, 11, 12, 31, 30, 32))) # remove agricultural uses
+
+# add in lat long information for plots from PLOT dataset
+COND <- COND_temp2 %>% 
+  left_join(PLOT[,c("STATECD", "UNITCD", "COUNTYCD", "PLOT", "INVYR", "LAT", "LON")]) %>% 
+  left_join(stateCodes) %>% # add state names
+  filter(!(STATEABB %in% c("VI", "PR", "PW", "MP", "MH", "GU", "FM", "AS", "HI", "AK"))) # remove data for Alaska and islands
+
+
+# Get tree biomass data from the TREE table -------------------------------
+# previously generated in "./Analysis/VegComposition/DataPrep/01_FIA_DataWrangling.R"
+TREE <- readRDS(file = "./Data_raw/FIA/TREEtable.RDS")
+
+# add group information for TREEs that are "Tree broadleaf" and "Tree evergreen"
+TREE[TREE$SCIENTIFIC_NAME == "Tree broadleaf", "group"] <- "Angiosperms"
+TREE[TREE$SCIENTIFIC_NAME == "Tree evergreen", "group"] <- "Gymnosperms"
+TREE[TREE$SCIENTIFIC_NAME == "Tree unknown", "group"] <- "Unknown"
+
+
+# group by subplot (values summed across each subplot, grouped by species group)
+TREE_SubPlot <- TREE %>% 
+  mutate(basalArea_in2 = pi*(DIA/2)^2) %>% # calculate the basal area of each tree (in square inches)
+  group_by(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, CONDID, STATUSCD, group) %>% 
+  summarize(HeightAvg_ft = mean(HT),
+            DiaAvg_in = mean(DIA),
+            basalAreaSum_in2 = sum(basalArea_in2, na.rm = TRUE),
+            Carbon_AG_sum = sum(CARBON_AG), # no na.rm in this or follow rows, 
+            #since there are usually NAs for biomass values when there is not a 
+            #species name... so those plots would have an incomplete plot-level 
+            #sum of plot-level biomass if we were to remove NAs 
+            Carbon_BG_sum = sum(CARBON_BG), 
+            DryBio_stem_sum = sum(DRYBIO_STEM), 
+            DryBio_foliage_sum = sum(DRYBIO_FOLIAGE),
+            DryBio_branch_sum = sum(DRYBIO_BRANCH)
+  )
+
+# group by plot (values averaged within each plot--averages of summed values in each subplot w/in a plot--, grouped by species group)
+TREE_Plot <- TREE_SubPlot %>% 
+  group_by(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, CONDID, STATUSCD, group) %>% 
+  summarize(Height_subpAvg_plotAvg_ft = mean(HeightAvg_ft),
+            Dia_subpAvg_plotAvg_in = mean(DiaAvg_in),
+            basalArea_subpSum_plotAvg_in2 = mean(basalAreaSum_in2, na.rm = TRUE),
+            Carbon_AG_subpSum_plotSum = sum(Carbon_AG_sum), 
+            Carbon_BG_subpSum_plotSum = sum(Carbon_BG_sum), 
+            DryBio_stem_subpSum_plotSum = sum(DryBio_stem_sum), 
+            DryBio_foliage_subpSum_plotSum = sum(DryBio_foliage_sum),
+            DryBio_branch_subpSum_plotSum = sum(DryBio_branch_sum)
+  ) %>% ## add location information and filter for plots we don't want
+  mutate(PLT_CN = as.double(PLT_CN)) %>% 
+  left_join(COND[,c("PLT_CN", "INVYR", "STATECD", "UNITCD", "COUNTYCD", "PLOT", 
+                    "CONDID", "PCTBARE_RMRS", "SLOPE", "ASPECT", "STATENAME", "LAT", "LON")]) %>% 
+  filter(!is.na(LAT))
+
+## make into a simpler format for us to use
+TREE_use <- TREE_Plot %>% 
+  ungroup() %>% 
+  filter(STATUSCD == 1) %>% # remove dead trees 
+  select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, CONDID, group, LAT, 
+         LON, basalArea_subpSum_plotAvg_in2, 
+         Carbon_AG_subpSum_plotSum, Carbon_BG_subpSum_plotSum, 
+         DryBio_stem_subpSum_plotSum, 
+         DryBio_foliage_subpSum_plotSum,
+         DryBio_branch_subpSum_plotSum) %>% # select only basal area variable
+  pivot_wider(values_from = basalArea_subpSum_plotAvg_in2, names_from = group) %>% 
+  rename("basalArea_Angiosperms_in2" = "Angiosperms", 
+         "basalArea_Gymnosperms_in2" = "Gymnosperms",
+         "basalArea_UnknownGroup_in2" = "Unknown",
+         "basalArea_Pteridophytes_in2" = "Pteridophytes"
+  ) %>% 
+  ## the basal area values in TREE_Plots d.fs do not have zeros, so the NAs in these biomass columns are true zeros 
+  mutate(basalArea_Angiosperms_in2 = replace(basalArea_Angiosperms_in2, is.na(basalArea_Angiosperms_in2), 0),
+         basalArea_Gymnosperms_in2 = replace(basalArea_Gymnosperms_in2, is.na(basalArea_Gymnosperms_in2), 0),
+         basalArea_UnknownGroup_in2 = replace(basalArea_UnknownGroup_in2, is.na(basalArea_UnknownGroup_in2), 0),
+         basalArea_Pteridophytes_in2 = replace(basalArea_Pteridophytes_in2, is.na(basalArea_Pteridophytes_in2), 0))  
+
+# calculate total plot-level basal area (averaged across subplots))
+TREE_use$basalArea_allGroups_in2 = rowSums(TREE_use[,c("basalArea_Angiosperms_in2", "basalArea_Gymnosperms_in2", "basalArea_UnknownGroup_in2", "basalArea_Pteridophytes_in2")])
+# calculate the proportion of the biomass that corresponds to each functional group 
+TREE_use$basalArea_Angiosperms_perc = TREE_use$basalArea_Angiosperms_in2/TREE_use$basalArea_allGroups_in2*100
+TREE_use$basalArea_Gymnosperms_perc = TREE_use$basalArea_Gymnosperms_in2/TREE_use$basalArea_allGroups_in2*100
+TREE_use$basalArea_UnknownGroup_perc = TREE_use$basalArea_UnknownGroup_in2/TREE_use$basalArea_allGroups_in2*100
+TREE_use$basalArea_Pteridophytes_perc = TREE_use$basalArea_Pteridophytes_in2/TREE_use$basalArea_allGroups_in2*100
+
+plot(TREE_use$LON, TREE_use$LAT, col = as.factor(TREE_use$basalArea_UnknownGroup_perc))
+ggplot(TREE_use) +
+  geom_point(aes(LON, LAT, col = basalArea_allGroups_in2))
+
+# Get vegetation cover data -----------------------------------------------
+# previously generated in "./Analysis/VegComposition/DataPrep/05_prepDataForModels.R" 
+#(includes weather data, and burned plots have been filtered out)
+vegDat <- readRDS(file = "./Data_processed/DataForModels.RDS")
+
+# Add cover and biomass data together -------------------------------------
+
+biomassCoverDat <- TREE_use %>% 
+  mutate(StateUnitCode =paste0(STATECD, "_", UNITCD, "_", COUNTYCD)) %>% 
+    full_join((vegDat %>% filter(Source == "FIA"))
+            , by = c("StateUnitCode", "PLOT" = "Plot", "CONDID" = "PlotCondition", "INVYR" = "year")) %>% 
+## get just the columns that we need for tree biomass and tree cover 
+select(UniquID, StateUnitCode, INVYR, Month, Day, Lat, Lon, 
+       Carbon_AG_subpSum_plotSum:DryBio_branch_subpSum_plotSum, BroadLeavedTreeCover, NeedleLeavedTreeCover,
+       TotalTreeCover, burnedMoreThan20YearsAgo, annVPD_mean:geometry) %>% 
+  # remove data for any plots that don't have tree cover data (since that's what we're interested in)
+filter(!is.na(TotalTreeCover)) %>% 
+  # because we're working with tree data, remove data for any plots that have burned at all 
+filter(burnedMoreThan20YearsAgo == FALSE)
+
+## save the data 
+saveRDS(biomassCoverDat, "./Data_processed/BiomassQuantityData/TreeBiomassCover_withWeatherAndFireFiltering.rds")
+
+# Visualize the spread of the cover/biomass data --------------------------
+
+ggplot(data = biomassCoverDat) + 
+  geom_point(aes(Lon, Lat)) + 
+  facet_wrap(~INVYR) + 
+  theme_classic()
