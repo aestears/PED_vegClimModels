@@ -49,11 +49,12 @@ surf_to_poly <- function(obj) {
   
   # For the rows that are of geometry type "LINESTRING", 
   # we cast them to a "POLYGON" then to a "MULTIPOLYGON", 
-  # calling it out_redlight.
+  # calling it out_redlight. 
   out_redlight <- out |> 
     dplyr::slice(idx) |> 
+    sf::st_make_valid() |> 
     sf::st_cast(to = "POLYGON") |> 
-    sf::st_cast(to = "MULTIPOLYGON")
+    sf::st_cast(to = "MULTIPOLYGON") 
   
   # we cast everything to MULTIPOLYGON and 
   # make those geometries valid using sf::st_make_valid()

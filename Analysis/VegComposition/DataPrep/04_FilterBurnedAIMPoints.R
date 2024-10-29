@@ -17,68 +17,68 @@ library(tidyverse)
 # source internal functions -----------------------------------------------
 sapply(paste0("./Functions/",list.files("./Functions/")), source)
 
-# Download combined wildland fire dataset ---------------------------------
+#Download combined wildland fire dataset ---------------------------------
 # https://www.sciencebase.gov/catalog/item/61707c2ad34ea36449a6b066
 ##
 ## script uses sbtools https://github.com/DOI-USGS/sbtools
 ## a package for interfacing to ScienceBase
 ## training module: https://owi.usgs.gov/R/training-curriculum/usgs-packages/sbtools-intro/index.html
-## downloading the data requires a ScienceBase account 
+## downloading the data requires a ScienceBase account
 
-# Destination folders 
+# Destination folders
 
 # use here to get current directory
 here::i_am("Analysis/VegComposition/DataPrep/04_FilterBurnedAIMPoints.R")
 
 # input where you will download the Zip files from Science Base
 # as well as the unzipped data files
-destinationDirectory <- here::here("data","combinedWildlandFireDB")
-
-# Authenticate to ScienceBase 
-# uses new authentication method in sbtools>=1.3.1
-initialize_sciencebase_session()
-
-# Query for the data release 
-# use the most recent data release version 
-results <- query_sb_text("Combined wildland fire datasets for the United States and certain territories")
-
-# +input the item Science Base item ID 
-combinedWildlandFire_ID <- "61707c2ad34ea36449a6b066"
-combinedWildlandFirePolygon_ID <- "61aa537dd34eb622f699df81"
-combinedWildlandFireRaster_ID <- "61aa5483d34eb622f699df85"
-identifier_exists(combinedWildlandFire_ID)
-
-# Download item 
-item_file_download(combinedWildlandFire_ID,dest_dir=destinationDirectory)
-item_file_download(combinedWildlandFirePolygon_ID,dest_dir=destinationDirectory)
-# item_file_download(combinedWildlandFireRaster_ID,dest_dir=destinationDirectory)
-
-
-# Get Monitoring Trends in Burn Severity data -----------------------------
-
-destinationDirectory <- here::here("data","mtbs_perimeter_data")
-
-# Query perimeters 
-
-## MTBS fire perimeters (burned area boundaries), 1984-2022
-# will be downloaded directly to Data folder
-MTBS_download <- file.path(destinationDirectory, 'mtbs_perims_DD.shp')
-if (!file.exists(MTBS_download)) {
-  dataSourceLink <-"https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/MTBS_Fire/data/composite_data/burned_area_extent_shapefile/mtbs_perimeter_data.zip"
-  destinationDirectoryZip <- paste0(destinationDirectory, ".zip")
-  download.file(dataSourceLink, destinationDirectoryZip)
-  unzip(destinationDirectoryZip, exdir = destinationDirectory)
-  unlink(destinationDirectoryZip)
-  assert_that(file.exists(MTBS_download))
-}
+destinationDirectory <- here::here("Data_raw/","combinedWildlandFireDB")
+# 
+# # Authenticate to ScienceBase
+# # uses new authentication method in sbtools>=1.3.1
+# initialize_sciencebase_session()
+# 
+# # Query for the data release
+# # use the most recent data release version
+# results <- query_sb_text("Combined wildland fire datasets for the United States and certain territories")
+# 
+# # +input the item Science Base item ID
+# combinedWildlandFire_ID <- "61707c2ad34ea36449a6b066"
+# combinedWildlandFirePolygon_ID <- "61aa537dd34eb622f699df81"
+# combinedWildlandFireRaster_ID <- "61aa5483d34eb622f699df85"
+# identifier_exists(combinedWildlandFire_ID)
+# 
+# # Download item
+# item_file_download(combinedWildlandFire_ID,dest_dir=destinationDirectory)
+# item_file_download(combinedWildlandFirePolygon_ID,dest_dir=destinationDirectory)
+# # item_file_download(combinedWildlandFireRaster_ID,dest_dir=destinationDirectory)
+# 
+# 
+# # Get Monitoring Trends in Burn Severity data -----------------------------
+# 
+# destinationDirectory <- here::here("Data_raw/","mtbs_perimeter_data")
+# 
+# # Query perimeters
+# 
+# ## MTBS fire perimeters (burned area boundaries), 1984-2022
+# # will be downloaded directly to Data folder
+# MTBS_download <- file.path(destinationDirectory, 'mtbs_perims_DD.shp')
+# if (!file.exists(MTBS_download)) {
+#   dataSourceLink <-"https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/MTBS_Fire/data/composite_data/burned_area_extent_shapefile/mtbs_perimeter_data.zip"
+#   destinationDirectoryZip <- paste0(destinationDirectory, ".zip")
+#   download.file(dataSourceLink, destinationDirectoryZip)
+#   unzip(destinationDirectoryZip, exdir = destinationDirectory)
+#   unlink(destinationDirectoryZip)
+#   assert_that(file.exists(MTBS_download))
+# }
 
 # Read in Data ----------------------------------------------------------
 # mtbs data
-mtbs <- st_read(dsn = "./data/mtbs_perimeter_data/", layer = "mtbs_perims_DD")
+mtbs <- st_read(dsn = "./Data_raw/mtbs_perimeter_data/", layer = "mtbs_perims_DD")
 
 #combined wildland fire 
-cwf_layers <- st_layers(dsn = "./data/combinedWildlandFireDB/Fire_Feature_Data_Pro2_8_Geodatabase/Fire_Feature_Data.gdb/")
-cwf <- st_read(dsn = "./data/combinedWildlandFireDB/Fire_Feature_Data_Pro2_8_Geodatabase/Fire_Feature_Data.gdb/", layer = "USGS_Wildland_Fire_Combined_Dataset")
+cwf_layers <- st_layers(dsn = "./Data_raw/combinedWildlandFireDB/Fire_Feature_Data_Pro2_8_Geodatabase/Fire_Feature_Data.gdb/")
+cwf <- st_read(dsn = "./Data_raw/combinedWildlandFireDB/Fire_Feature_Data_Pro2_8_Geodatabase/Fire_Feature_Data.gdb/", layer = "USGS_Wildland_Fire_Combined_Dataset")
  # transform crs to match mtbs
 cwf <- cwf %>% 
   st_transform(st_crs(mtbs)) %>% 
@@ -89,13 +89,14 @@ cwf <- cwf %>%
 cwf_multi <- cwf[st_geometry_type(cwf) == "MULTISURFACE",]
 cwf_nonMulti <- cwf[st_geometry_type(cwf) != "MULTISURFACE",]
 
-cwf_multi_fixed <- cwf_multi %>% 
-  surf_to_poly()
+# cwf_multi_fixed <- cwf_multi %>% 
+# 
+#   #st_make_valid() %>% 
+#   surf_to_poly()
 
-cwf_new <- cwf_multi_fixed %>% 
-  rbind(cwf_nonMulti) 
-
-
+cwf_new <- #cwf_multi_fixed %>% 
+ # rbind(cwf_nonMulti) %>% 
+  cwf_nonMulti
 
 ## remove fire perimeter data that isn't in CONUS (ie Alaska)
 us_states <- tigris::states()
@@ -121,13 +122,14 @@ cwf_conus <- cwf_new %>%
   st_intersection(st_make_valid(CONUS_states))
 
 
-# get AIM plots 
-plotDat <- st_read("./data/DataForAnalysisPoints/", "vegCompPoints") %>% 
+# get Vegetation plots 
+plotDat <- st_read("./Data_processed/DataForAnalysisPoints/", "vegCompPoints") %>% 
   st_transform(st_crs(mtbs))
 
 
 # Identify overlaps between fire boundaries and plots --------------------------
-rm(us_states, CONUS_states, cwf_layers, cwf_multi, cwf_multi_fixed, cwf_nonMulti, cwf_new, mtbs, cwf)
+rm(us_states, CONUS_states, cwf_layers, cwf_multi, #cwf_multi_fixed, 
+   cwf_nonMulti, cwf_new, mtbs, cwf)
 gc()
 
 ## divide the plot data into sections and put them into a list
@@ -243,4 +245,4 @@ plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$CnfTrCv <
 plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$ShrbCvr <- NA
 
 
-saveRDS(plotDat_noFireAll, file = "./data/dataForAnalysis_fireRemoved.rds")
+saveRDS(plotDat_noFireAll, file = "./Data_processed/dataForAnalysis_fireRemoved.rds")

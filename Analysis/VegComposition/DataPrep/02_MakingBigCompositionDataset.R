@@ -213,15 +213,15 @@ dat_all3[dat_all3$TotalHerbaceousCover == 0 & !is.na(dat_all3$TotalHerbaceousCov
 
 
 ## save dataset for further analysis
-#write.csv(dat_all, file = "./data/DataForAnalysis.csv", row.names = FALSE)
-dat_all <- read.csv("./Data_processed/DataForAnalysis.csv")
+#write.csv(dat_all3, file = "./Data_processed/DataForAnalysis.csv", row.names = FALSE)
+dat_all3 <- read.csv("./Data_processed/DataForAnalysis.csv")
 
 ## make a shapefile of the sample points also and save
-dat_all_sf_full <- st_as_sf(dat_all, coords = c("Lon", "Lat")) %>% 
+dat_all_sf_full <- st_as_sf(dat_all3, coords = c("Lon", "Lat")) %>% 
   select(geometry) %>% 
   #unique() %>% 
   sf::st_set_crs("EPSG:4326") %>% 
-  cbind(dat_all)
+  cbind(dat_all3)
 dat_all_sf <- dat_all_sf_full %>% 
   unique()
 
@@ -229,7 +229,7 @@ st_write(dat_all_sf, dsn = "./Data_processed/DataForAnalysisPoints", layer = "ve
 
 
 ## trim data to only that collected after 1979 
-dat_all <- dat_all %>% 
+dat_all <- dat_all3 %>% 
   filter(Year > 1978)
 # plot of all data points
 plot(dat_all$Lon, dat_all$Lat, col = as.factor(dat_all$Source))
