@@ -14,14 +14,14 @@ library(terra)
 # load data ---------------------------------------------------------------
 
 # data ready for model fitting
-modDat <- readRDS("./data/DataForModels.rds")
+modDat <- readRDS("./Data_processed/DataForModels_spatiallyAveraged_sf.rds")
 # get level 1 ecoregions shapefiles
-regions <- sf::st_read(dsn = "./data/Level1Ecoregions/", layer = "NA_CEC_Eco_Level1")
+regions <- sf::st_read(dsn = "./Data_raw/Level1Ecoregions/", layer = "NA_CEC_Eco_Level1")
 
 
 # ensure projections are the same -----------------------------------------
 # want them both to have this same crs as below
-test_rast <-  rast("./data/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif")
+test_rast <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif")
 
 regions_2 <- st_transform(regions, crs = st_crs(test_rast)) %>% 
   st_make_valid()
@@ -37,5 +37,5 @@ plot(modDat_3[is.na(modDat_3$NA_L1CODE), "geometry"])
 
 
 # Save Data for further analysis ------------------------------------------
-saveRDS(modDat_3, "./data/DataForModels_withEcoregion.rds")
+saveRDS(modDat_3, "./Data_processed/DataForModels_withEcoregion.rds")
 
