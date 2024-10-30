@@ -165,3 +165,4 @@ ggplot(data = biomassCoverDat) +
   geom_point(aes(Lon, Lat)) + 
   facet_wrap(~INVYR) + 
   theme_classic()
+

@@ -53,7 +53,7 @@ test2_c <- lapply(layerNames[5:6], FUN = function(x) {
 test2_abc <- c(test2_ab, test2_c)
 rm(test2_ab, test2_c)
 
-test2_d <- lapply(layerNames[7:8], FUN = function(x) {
+test2_d <- lapply(layerNames[7], FUN = function(x) {
   terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
                    , by = "Year")
 }
@@ -61,7 +61,7 @@ test2_d <- lapply(layerNames[7:8], FUN = function(x) {
 test2_abcd <- c(test2_abc, test2_d)
 rm(test2_abc, test2_d)
 
-test2_e <- lapply(layerNames[9], FUN = function(x) {
+test2_e <- lapply(layerNames[8], FUN = function(x) {
   terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
                    , by = "Year")
 }
@@ -70,14 +70,23 @@ test2_e <- lapply(layerNames[9], FUN = function(x) {
 test2_abcde <- c(test2_abcd, test2_e)
 rm(test2_abcd, test2_e)
 
-test2_f <- lapply(layerNames[10], FUN = function(x) {
+test2_f <- lapply(layerNames[9], FUN = function(x) {
   terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
                    , by = "Year")
 }
 )
 
-test2 <- c(test2_abcde, test2_f)
+test2_abcdef <- c(test2_abcde, test2_f)
 rm(test2_abcde, test2_f)
+
+test2_g <- lapply(layerNames[10], FUN = function(x) {
+  terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                   , by = "Year")
+}
+)
+
+test2 <- c(test2_abcdef, test2_g)
+rm(test2_abcdef, test2_g)
 
 names(test2) <- layerNames
 

@@ -213,8 +213,8 @@ dat_all3[dat_all3$TotalHerbaceousCover == 0 & !is.na(dat_all3$TotalHerbaceousCov
 
 
 ## save dataset for further analysis
-#write.csv(dat_all3, file = "./Data_processed/DataForAnalysis.csv", row.names = FALSE)
-dat_all3 <- read.csv("./Data_processed/DataForAnalysis.csv")
+write.csv(dat_all3, file = "./Data_processed/DataForAnalysis.csv", row.names = FALSE)
+#dat_all3 <- read.csv("./Data_processed/CoverData/DataForAnalysis.csv")
 
 ## make a shapefile of the sample points also and save
 dat_all_sf_full <- st_as_sf(dat_all3, coords = c("Lon", "Lat")) %>% 

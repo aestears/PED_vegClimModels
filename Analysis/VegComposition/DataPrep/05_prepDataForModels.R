@@ -36,8 +36,8 @@ test <-  terra::rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8fa
 #points_sf <- st_read(dsn = "./data/DataForAnalysisPoints/", layer = "vegCompPoints")
 v <- vect(st_drop_geometry(vegDat)[,c("Lon", "Lat")], geom = c("Lon", "Lat"), crs=crs(vegDat))
 y <- project(v, crs(test)) 
-vegDat[,c("Lon", "Lat")] <- st_coordinates(st_as_sf(y))
-plot(vegDat$Lon, vegDat$Lat)
+#vegDat[,c("Lon", "Lat")] <- st_coordinates(st_as_sf(y))
+#plot(vegDat$Lon, vegDat$Lat)
 vegDat2 <- st_as_sf(vegDat, coords = c("Lon", "Lat"))
 vegDat2 <- vegDat2 %>% 
  # st_set_crs(value = st_crs(y)) %>% 
@@ -194,3 +194,4 @@ allDat <- allDat %>%
 
 ## save data for further analysis 
 saveRDS(allDat, file = "./Data_processed/DataForModels.RDS")
+

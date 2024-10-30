@@ -123,7 +123,7 @@ cwf_conus <- cwf_new %>%
 
 
 # get Vegetation plots 
-plotDat <- st_read("./Data_processed/DataForAnalysisPoints/", "vegCompPoints") %>% 
+plotDat <- st_read("./Data_processed/CoverData/DataForAnalysisPoints/", "vegCompPoints") %>% 
   st_transform(st_crs(mtbs))
 
 
@@ -134,7 +134,7 @@ gc()
 
 ## divide the plot data into sections and put them into a list
 plotDat$burnedMoreThan20YearsAgo <- FALSE
-plotDat$group <- rep(1:700, 1000)[1:nrow(plotDat)]
+plotDat$group <- rep(1:700, 10000)[1:nrow(plotDat)]
 plotDat_list <- plotDat %>% 
   base::split(f = plotDat$group)
 
