@@ -7,7 +7,9 @@
 # load packages -----------------------------------------------------------
 
 library(tidyverse)
-
+library(terra)
+library(sf)
+library(tidyterra)
 
 # get metadata/plot-level info ---------------------------------------------------------------
 #First, get 
@@ -158,11 +160,61 @@ filter(burnedMoreThan20YearsAgo == FALSE)
 
 ## save the data 
 saveRDS(biomassCoverDat, "./Data_processed/BiomassQuantityData/TreeBiomassCover_withWeatherAndFireFiltering.rds")
+biomassCoverDat <- readRDS("./Data_processed/BiomassQuantityData/TreeBiomassCover_withWeatherAndFireFiltering.rds")
 
 # Visualize the spread of the cover/biomass data --------------------------
+#rasterize to make visualizing easier
+test <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif")
 
-ggplot(data = biomassCoverDat) + 
-  geom_point(aes(Lon, Lat)) + 
-  facet_wrap(~INVYR) + 
-  theme_classic()
+## visualize above ground carbon data
+biomassCoverDat_temp <- biomassCoverDat %>% 
+  select(c("INVYR", "Carbon_AG_subpSum_plotSum", "geometry")) %>% 
+  st_as_sf() %>% 
+  st_cast("POINT")
+
+years <-as.matrix(unique(biomassCoverDat_temp$INVYR))
+biomassCoverDat_rast <- apply(years, MARGIN = 1, function(x) {
+  rast <- terra::rasterize(terra::vect(biomassCoverDat_temp[biomassCoverDat_temp$INVYR == x,]), field = "Carbon_AG_subpSum_plotSum",
+                   y = test, fun = mean, na.rm = TRUE) %>% 
+    terra::aggregate(fact = 64, fun = "mean", na.rm = TRUE) %>% 
+    terra::crop(ext(-2000000, 2500000, -2000000, 1200000))
+  return(rast)
+})
+names(biomassCoverDat_rast) <- years
+biomassCoverDat_rast <- biomassCoverDat_rast[order(years)]
+biomassCoverDat_rastAll <- rast(biomassCoverDat_rast)
+
+par(mfrow = c(1,1))
+ggplot() + 
+  geom_spatraster(data = biomassCoverDat_rastAll) + 
+  ggtitle("Tree above ground carbon and cover data from FIA") + 
+  scale_fill_viridis_c(option = "turbo", na.value = "white") + 
+  facet_wrap(~lyr)
+
+## visualize stem + foliage + branch biomass ( a lot of plots don't have stem and branch, only foliage, which is why there are fewer data points)
+biomassDryBio_temp <- biomassCoverDat %>% 
+  mutate(DryBio_stemFoliageBranch =(DryBio_stem_subpSum_plotSum + DryBio_foliage_subpSum_plotSum + DryBio_branch_subpSum_plotSum)) %>% 
+  select(INVYR, DryBio_stemFoliageBranch, geometry) %>% 
+  st_as_sf() %>% 
+  st_cast("POINT")
+
+years <-as.matrix(unique(biomassDryBio_temp$INVYR))
+
+biomassDryBio_rast <- apply(years, MARGIN = 1, function(x) {
+  rast <- terra::rasterize(terra::vect(biomassDryBio_temp[biomassDryBio_temp$INVYR == x,]), 
+                           field = "DryBio_stemFoliageBranch",
+                           y = test, fun = mean, na.rm = TRUE) %>% 
+    terra::aggregate(fact = 64, fun = "mean", na.rm = TRUE) %>% 
+    terra::crop(ext(-2000000, 2500000, -2000000, 1200000))
+  return(rast)
+})
+names(biomassDryBio_rast) <- years
+biomassDryBio_rast <- biomassDryBio_rast[order(years)]
+biomassDryBio_rast <- rast(biomassDryBio_rast)
+
+ggplot() + 
+  geom_spatraster(data = biomassDryBio_rast) + 
+  ggtitle("Tree biomass in stem + foliage + branch data from FIA") + 
+  scale_fill_viridis_c(option = "turbo", na.value = "white") + 
+  facet_wrap(~lyr)
 
