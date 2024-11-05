@@ -1,5 +1,5 @@
 #///////////////////////////
-# Preparing data from FIA to be used in subsequent biomass ~ climate relationships
+# Preparing data from RAP to be used in subsequent biomass ~ climate relationships
 # Alice Stears
 # 30 September 2024
 #///////////////////////////
@@ -65,6 +65,11 @@ RAPall <- RAPbiomass_sf %>%
   select(Year, HerbaceousBiomass, StateUnitCode, Lat, Lon, TotalHerbaceousCover, annVPD_mean:geometry) %>% 
   # convert biomass from lbs/acre to kg/hectare
   mutate(HerbaceousBiomass_kgPerHect = HerbaceousBiomass*1.12085)
+
+
+# save data
+saveRDS(RAPall, "./Data_processed/BiomassQuantityData/HerbBiomassCover_withWeatherAndFireFiltering.rds")
+# visualize data ----------------------------------------------------------
 
 test <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif")
 

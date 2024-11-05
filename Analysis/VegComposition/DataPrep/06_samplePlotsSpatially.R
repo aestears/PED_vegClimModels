@@ -1,8 +1,7 @@
 #///////////////////
-# Averaging values from plots w/in 
+# Averaging values from plots w/in each dayMet gridcell
 # Alice Stears
 # 8/19/24
-# code for acquiring fire perimiters and overlaying them on AIM plots adapted from G. Siegmund 
 #///////////////////
 
 
@@ -105,6 +104,8 @@ centroidPoints <- xyFromCell(test2[[2]], cell = 1:ncell(test2[[2]])) %>%
   vect()
   
 names(test2$NeedleLeavedTreeCover_prop)[44] <- "test"
+names(test2$TotalTreeCover)[44] <- "test"
+
 # extract the points from the raster back to the data.frame 
 test3 <- lapply(names(test2), FUN = function(y) {
   print(y)
@@ -164,7 +165,7 @@ gc()
 
 # add back in climate data  -----------------------------------------------
 
-climDat <- readRDS( "./Data_processed/dayMetClimateValuesForAnalysis_final.rds")
+climDat <- readRDS( "./Data_processed/CoverData/dayMetClimateValuesForAnalysis_final.rds")
 ## assign a 'unique ID' to each location (So the same location has the same ID across years)
 uniqueLocs <- unique(climDat[,c("Lat", "Long")])
 uniqueLocs$locID <- seq(from = 1, to = nrow(uniqueLocs), by = 1)
