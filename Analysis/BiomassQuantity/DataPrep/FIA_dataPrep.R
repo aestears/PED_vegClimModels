@@ -114,25 +114,27 @@ TREE_use <- TREE_Plot %>%
          DryBio_stem_subpSum_plotSum, 
          DryBio_foliage_subpSum_plotSum,
          DryBio_branch_subpSum_plotSum) %>% # select only basal area variable
-  pivot_wider(values_from = basalArea_subpSum_plotAvg_in2, names_from = group) %>% 
-  rename("basalArea_Angiosperms_in2" = "Angiosperms", 
-         "basalArea_Gymnosperms_in2" = "Gymnosperms",
-         "basalArea_UnknownGroup_in2" = "Unknown",
-         "basalArea_Pteridophytes_in2" = "Pteridophytes"
-  ) %>% 
+  pivot_wider(values_from = c(basalArea_subpSum_plotAvg_in2:DryBio_branch_subpSum_plotSum), names_from = group) 
+  # rename("basalArea_Angiosperms_in2" = "Angiosperms", 
+  #        "basalArea_Gymnosperms_in2" = "Gymnosperms",
+  #        "basalArea_UnknownGroup_in2" = "Unknown",
+  #        "basalArea_Pteridophytes_in2" = "Pteridophytes"
+  # ) %>% 
   ## the basal area values in TREE_Plots d.fs do not have zeros, so the NAs in these biomass columns are true zeros 
-  mutate(basalArea_Angiosperms_in2 = replace(basalArea_Angiosperms_in2, is.na(basalArea_Angiosperms_in2), 0),
-         basalArea_Gymnosperms_in2 = replace(basalArea_Gymnosperms_in2, is.na(basalArea_Gymnosperms_in2), 0),
-         basalArea_UnknownGroup_in2 = replace(basalArea_UnknownGroup_in2, is.na(basalArea_UnknownGroup_in2), 0),
-         basalArea_Pteridophytes_in2 = replace(basalArea_Pteridophytes_in2, is.na(basalArea_Pteridophytes_in2), 0))  
+
+
 
 # calculate total plot-level basal area (averaged across subplots))
-TREE_use$basalArea_allGroups_in2 = rowSums(TREE_use[,c("basalArea_Angiosperms_in2", "basalArea_Gymnosperms_in2", "basalArea_UnknownGroup_in2", "basalArea_Pteridophytes_in2")])
+TREE_use$basalArea_allGroups_in2 = rowSums(TREE_use[,c("basalArea_subpSum_plotAvg_in2_Angiosperms", 
+                                                       "basalArea_subpSum_plotAvg_in2_Gymnosperms", 
+                                                       "basalArea_subpSum_plotAvg_in2_Unknown", 
+                                                       "basalArea_subpSum_plotAvg_in2_Pteridophytes")], na.rm = TRUE)
+
 # calculate the proportion of the biomass that corresponds to each functional group 
-TREE_use$basalArea_Angiosperms_perc = TREE_use$basalArea_Angiosperms_in2/TREE_use$basalArea_allGroups_in2*100
-TREE_use$basalArea_Gymnosperms_perc = TREE_use$basalArea_Gymnosperms_in2/TREE_use$basalArea_allGroups_in2*100
-TREE_use$basalArea_UnknownGroup_perc = TREE_use$basalArea_UnknownGroup_in2/TREE_use$basalArea_allGroups_in2*100
-TREE_use$basalArea_Pteridophytes_perc = TREE_use$basalArea_Pteridophytes_in2/TREE_use$basalArea_allGroups_in2*100
+TREE_use$basalArea_Angiosperms_perc = TREE_use$basalArea_subpSum_plotAvg_in2_Angiosperms/TREE_use$basalArea_allGroups_in2*100
+TREE_use$basalArea_Gymnosperms_perc = TREE_use$basalArea_subpSum_plotAvg_in2_Gymnosperms/TREE_use$basalArea_allGroups_in2*100
+TREE_use$basalArea_UnknownGroup_perc = TREE_use$basalArea_subpSum_plotAvg_in2_Unknown/TREE_use$basalArea_allGroups_in2*100
+TREE_use$basalArea_Pteridophytes_perc = TREE_use$basalArea_subpSum_plotAvg_in2_Pteridophytes/TREE_use$basalArea_allGroups_in2*100
 
 plot(TREE_use$LON, TREE_use$LAT, col = as.factor(TREE_use$basalArea_UnknownGroup_perc))
 ggplot(TREE_use) +
@@ -151,12 +153,22 @@ biomassCoverDat <- TREE_use %>%
             , by = c("StateUnitCode", "PLOT" = "Plot", "CONDID" = "PlotCondition", "INVYR" = "year")) %>% 
 ## get just the columns that we need for tree biomass and tree cover 
 select(UniquID, StateUnitCode, INVYR, Month, Day, Lat, Lon, 
-       Carbon_AG_subpSum_plotSum:DryBio_branch_subpSum_plotSum, BroadLeavedTreeCover, NeedleLeavedTreeCover,
+       Carbon_AG_subpSum_plotSum_Angiosperms, Carbon_AG_subpSum_plotSum_Gymnosperms,
+       Carbon_BG_subpSum_plotSum_Angiosperms, Carbon_BG_subpSum_plotSum_Gymnosperms,
+       DryBio_stem_subpSum_plotSum_Angiosperms, DryBio_stem_subpSum_plotSum_Gymnosperms,
+       DryBio_foliage_subpSum_plotSum_Angiosperms, DryBio_foliage_subpSum_plotSum_Gymnosperms,
+       DryBio_branch_subpSum_plotSum_Angiosperms, DryBio_branch_subpSum_plotSum_Gymnosperms,
+       BroadLeavedTreeCover, NeedleLeavedTreeCover,
        TotalTreeCover, burnedMoreThan20YearsAgo, annVPD_mean:geometry) %>% 
   # remove data for any plots that don't have tree cover data (since that's what we're interested in)
 filter(!is.na(TotalTreeCover)) %>% 
   # because we're working with tree data, remove data for any plots that have burned at all 
-filter(burnedMoreThan20YearsAgo == FALSE)
+filter(burnedMoreThan20YearsAgo == FALSE) %>% 
+  mutate(Carbon_AG_trees = pmap_dbl(.[8:9], sum, na.rm = TRUE),
+         Carbon_BG_trees =  pmap_dbl(.[10:11], sum, na.rm = TRUE),
+         DryBio_stem_trees =  pmap_dbl(.[12:13], sum, na.rm = TRUE),
+         DryBio_foliage_trees =  pmap_dbl(.[14:15], sum, na.rm = TRUE),
+         DryBio_branch_trees =  pmap_dbl(.[16:17], sum, na.rm = TRUE))
 
 ## save the data 
 saveRDS(biomassCoverDat, "./Data_processed/BiomassQuantityData/TreeBiomassCover_withWeatherAndFireFiltering.rds")

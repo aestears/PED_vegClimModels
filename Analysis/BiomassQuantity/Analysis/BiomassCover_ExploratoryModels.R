@@ -280,3 +280,178 @@ sampledDat <- treeBio_mod %>%
 
 
 ggpubr::ggarrange(tempPlot, prcpPlot, nrow = 1)
+
+# Fit a basic model comparing BROAD LEAVED foliar biomass to cover + climate -------------
+# look at distribution of response (biomass)
+hist(treeBio$DryBio_branch_subpSum_plotSum_Angiosperms)
+hist(treeBio$BroadLeavedTreeCover)
+hist(treeBio$tmean_meanAnnAvg_10yr)
+hist(treeBio$prcp_meanAnnTotal_10yr)
+
+## remove zeros from the tree data
+#treeBio 
+treeBio_mod<- treeBio %>% 
+  filter(DryBio_branch_subpSum_plotSum_Angiosperms !=0 & BroadLeavedTreeCover != 0)
+## simple test model
+testMod_tree <- glm(DryBio_branch_subpSum_plotSum_Angiosperms ~ BroadLeavedTreeCover + BroadLeavedTreeCover * tmean_meanAnnAvg_10yr + BroadLeavedTreeCover * prcp_meanAnnTotal_10yr, data = treeBio_mod)
+coeffs_tree <- testMod_tree$coefficients
+summary(testMod_tree)
+# look at interaction slopes
+int_slopes_tmean <- sim_slopes(testMod_tree, pred = BroadLeavedTreeCover, modx = tmean_meanAnnAvg_10yr, data = treeBio_mod)
+int_slopes_prcp <- sim_slopes(testMod_tree, pred = BroadLeavedTreeCover, modx = prcp_meanAnnTotal_10yr, data = treeBio_mod)
+# plot the variation in the relationship between biomass and cover across different values of MAP and MAT
+#MAT
+tmeanMean <- mean(treeBio_mod$tmean_meanAnnAvg_10yr, na.rm = TRUE)
+tmeanSD <- sd(treeBio_mod$tmean_meanAnnAvg_10yr, na.rm = TRUE)
+tmeanVals <- round(c(tmeanMean - 1.5*tmeanSD, tmeanMean - tmeanSD, tmeanMean, 
+                     tmeanMean + tmeanSD, tmeanMean + 1.5*tmeanSD),2)
+#MAP 
+prcpMean <- mean(treeBio_mod$prcp_meanAnnTotal_10yr, na.rm = TRUE)
+prcpSD <- sd(treeBio_mod$prcp_meanAnnTotal_10yr, na.rm = TRUE)
+prcpVals <- round(c(prcpMean - 1.5*prcpSD, prcpMean - prcpSD, prcpMean, prcpMean + prcpSD, prcpMean + 1.5*prcpSD),2)
+
+# predicted data for tmean values
+for (i in 1:length(tmeanVals)) {
+  temp <- data.frame("BroadLeavedTreeCover" = seq(100), "prcp_meanAnnTotal_10yr" = prcpMean, 
+                     "tmean_meanAnnAvg_10yr" = tmeanVals[i])
+  temp2 <- cbind(temp, data.frame("DryBio_branch_subpSum_plotSum_Angiosperms" = predict(testMod_tree, temp), "tmeanVal" = tmeanVals[i]))
+  if (i == 1) {
+    tmeanDat <- temp2
+  } else {
+    tmeanDat <- rbind(tmeanDat, temp2)
+  }
+}
+# predicted data for precip values
+for (i in 1:length(prcpVals)) {
+  temp <- data.frame("BroadLeavedTreeCover" = seq(0:100), "prcp_meanAnnTotal_10yr" = prcpVals[i], 
+                     "tmean_meanAnnAvg_10yr" = tmeanMean)
+  temp2 <- cbind(temp, data.frame("DryBio_branch_subpSum_plotSum_Angiosperms" = predict(testMod_tree, temp), "prcpVal" = prcpVals[i]))
+  if (i == 1) {
+    prcpDat <- temp2
+  } else {
+    prcpDat <- rbind(prcpDat, temp2)
+  }
+}
+
+# MAT interaction plot
+(tempPlot <-
+    ggplot() +
+    geom_point(data = treeBio_mod, aes(x = BroadLeavedTreeCover, y = DryBio_branch_subpSum_plotSum_Angiosperms), alpha = .1)+ 
+    geom_line(data = tmeanDat, aes(x = BroadLeavedTreeCover, y = DryBio_branch_subpSum_plotSum_Angiosperms, 
+                                   col = as.factor(tmeanVal), linetype = as.factor(tmeanVal))) + 
+    theme_minimal() + 
+    scale_color_brewer(type = "seq", palette = "Reds") + 
+    guides(color = guide_legend(title = "MAT - prev. 10 years", position = "bottom"), 
+           linetype = guide_legend(title = "MAT - prev. 10 years", position = "bottom")) + 
+    ggtitle("Model-predicted broad-leaved tree foliar biomass with \n mean(MAP) and different MAT values") + 
+    ylim(0,50000)
+  # interact_plot(testMod_tree, pred = BroadLeavedTreeCover, modx = tmean_meanAnnAvg_10yr, interval = TRUE, 
+  #               data = treeBio_mod, modx.values = tmeanVals, legend.main = "MAT-prev. 10 yrs", int.type = "confidence") 
+)
+# MAT interaction plot
+(prcpPlot <-
+    ggplot() +
+    geom_point(data = treeBio_mod, aes(x = BroadLeavedTreeCover, y = DryBio_branch_subpSum_plotSum_Angiosperms), alpha = .1)+ 
+    geom_line(data = prcpDat, aes(x = BroadLeavedTreeCover, y = DryBio_branch_subpSum_plotSum_Angiosperms, 
+                                  col = as.factor(prcpVal), linetype = as.factor(prcpVal))) + 
+    theme_minimal() + 
+    scale_color_brewer(type = "seq", palette = "Blues") + 
+    guides(color = guide_legend(title = "MAP - prev. 10 years", position = "bottom"), 
+           linetype = guide_legend(title = "MAP - prev. 10 years", position = "bottom")) + 
+    ggtitle("Model-predicted broad-leaved tree foliar biomass with \n mean(MAT) and different MAP values") + 
+    ylim(0,50000)
+  # interact_plot(testMod_tree, pred = BroadLeavedTreeCover, modx = tmean_meanAnnAvg_10yr, interval = TRUE, 
+  #               data = treeBio_mod, modx.values = tmeanVals, legend.main = "MAT-prev. 10 yrs", int.type = "confidence") 
+)
+
+
+
+ggpubr::ggarrange(tempPlot, prcpPlot, nrow = 1)
+
+# Fit a basic model comparing NEEDLE LEAVED foliar biomass to cover + climate -------------
+# look at distribution of response (biomass)
+hist(treeBio$DryBio_branch_subpSum_plotSum_Gymnosperms)
+hist(treeBio$NeedleLeavedTreeCover)
+hist(treeBio$tmean_meanAnnAvg_10yr)
+hist(treeBio$prcp_meanAnnTotal_10yr)
+
+## remove zeros from the tree data
+#treeBio 
+treeBio_mod<- treeBio %>% 
+  filter(DryBio_branch_subpSum_plotSum_Gymnosperms !=0 & NeedleLeavedTreeCover != 0)
+## simple test model
+testMod_tree <- glm(DryBio_branch_subpSum_plotSum_Gymnosperms ~ NeedleLeavedTreeCover + NeedleLeavedTreeCover * tmean_meanAnnAvg_10yr + NeedleLeavedTreeCover * prcp_meanAnnTotal_10yr, data = treeBio_mod)
+coeffs_tree <- testMod_tree$coefficients
+summary(testMod_tree)
+# look at interaction slopes
+int_slopes_tmean <- sim_slopes(testMod_tree, pred = NeedleLeavedTreeCover, modx = tmean_meanAnnAvg_10yr, data = treeBio_mod)
+int_slopes_prcp <- sim_slopes(testMod_tree, pred = NeedleLeavedTreeCover, modx = prcp_meanAnnTotal_10yr, data = treeBio_mod)
+# plot the variation in the relationship between biomass and cover across different values of MAP and MAT
+#MAT
+tmeanMean <- mean(treeBio_mod$tmean_meanAnnAvg_10yr, na.rm = TRUE)
+tmeanSD <- sd(treeBio_mod$tmean_meanAnnAvg_10yr, na.rm = TRUE)
+tmeanVals <- round(c(tmeanMean - 1.5*tmeanSD, tmeanMean - tmeanSD, tmeanMean, 
+                     tmeanMean + tmeanSD, tmeanMean + 1.5*tmeanSD),2)
+#MAP 
+prcpMean <- mean(treeBio_mod$prcp_meanAnnTotal_10yr, na.rm = TRUE)
+prcpSD <- sd(treeBio_mod$prcp_meanAnnTotal_10yr, na.rm = TRUE)
+prcpVals <- round(c(prcpMean - 1.5*prcpSD, prcpMean - prcpSD, prcpMean, prcpMean + prcpSD, prcpMean + 1.5*prcpSD),2)
+
+# predicted data for tmean values
+for (i in 1:length(tmeanVals)) {
+  temp <- data.frame("NeedleLeavedTreeCover" = seq(100), "prcp_meanAnnTotal_10yr" = prcpMean, 
+                     "tmean_meanAnnAvg_10yr" = tmeanVals[i])
+  temp2 <- cbind(temp, data.frame("DryBio_branch_subpSum_plotSum_Gymnosperms" = predict(testMod_tree, temp), "tmeanVal" = tmeanVals[i]))
+  if (i == 1) {
+    tmeanDat <- temp2
+  } else {
+    tmeanDat <- rbind(tmeanDat, temp2)
+  }
+}
+# predicted data for precip values
+for (i in 1:length(prcpVals)) {
+  temp <- data.frame("NeedleLeavedTreeCover" = seq(0:100), "prcp_meanAnnTotal_10yr" = prcpVals[i], 
+                     "tmean_meanAnnAvg_10yr" = tmeanMean)
+  temp2 <- cbind(temp, data.frame("DryBio_branch_subpSum_plotSum_Gymnosperms" = predict(testMod_tree, temp), "prcpVal" = prcpVals[i]))
+  if (i == 1) {
+    prcpDat <- temp2
+  } else {
+    prcpDat <- rbind(prcpDat, temp2)
+  }
+}
+
+# MAT interaction plot
+(tempPlot <-
+    ggplot() +
+    geom_point(data = treeBio_mod, aes(x = NeedleLeavedTreeCover, y = DryBio_branch_subpSum_plotSum_Gymnosperms), alpha = .1)+ 
+    geom_line(data = tmeanDat, aes(x = NeedleLeavedTreeCover, y = DryBio_branch_subpSum_plotSum_Gymnosperms, 
+                                   col = as.factor(tmeanVal), linetype = as.factor(tmeanVal))) + 
+    theme_minimal() + 
+    scale_color_brewer(type = "seq", palette = "Reds") + 
+    guides(color = guide_legend(title = "MAT - prev. 10 years", position = "bottom"), 
+           linetype = guide_legend(title = "MAT - prev. 10 years", position = "bottom")) + 
+    ggtitle("Model-predicted needle-leaved tree foliar biomass with \n mean(MAP) and different MAT values")+ 
+    ylim(0,100000)
+  # interact_plot(testMod_tree, pred = NeedleLeavedTreeCover, modx = tmean_meanAnnAvg_10yr, interval = TRUE, 
+  #               data = treeBio_mod, modx.values = tmeanVals, legend.main = "MAT-prev. 10 yrs", int.type = "confidence") 
+)
+# MAT interaction plot
+(prcpPlot <-
+    ggplot() +
+    geom_point(data = treeBio_mod, aes(x = NeedleLeavedTreeCover, y = DryBio_branch_subpSum_plotSum_Gymnosperms), alpha = .1)+ 
+    geom_line(data = prcpDat, aes(x = NeedleLeavedTreeCover, y = DryBio_branch_subpSum_plotSum_Gymnosperms, 
+                                  col = as.factor(prcpVal), linetype = as.factor(prcpVal))) + 
+    theme_minimal() + 
+    scale_color_brewer(type = "seq", palette = "Blues") + 
+    guides(color = guide_legend(title = "MAP - prev. 10 years", position = "bottom"), 
+           linetype = guide_legend(title = "MAP - prev. 10 years", position = "bottom")) + 
+    ggtitle("Model-predicted needle-leaved tree foliar biomass with \n mean(MAT) and different MAP values") + 
+    ylim(0,100000)
+  # interact_plot(testMod_tree, pred = NeedleLeavedTreeCover, modx = tmean_meanAnnAvg_10yr, interval = TRUE, 
+  #               data = treeBio_mod, modx.values = tmeanVals, legend.main = "MAT-prev. 10 yrs", int.type = "confidence") 
+)
+
+
+
+ggpubr::ggarrange(tempPlot, prcpPlot, nrow = 1)
+
