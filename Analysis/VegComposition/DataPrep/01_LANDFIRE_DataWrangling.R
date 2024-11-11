@@ -330,6 +330,9 @@ camDat <- camDatSpp %>%
             Type = unique(Type), 
             SourceID = unique(SourceID))
 
+## for now, I guess just force the absolute cover values >100 to be 100? 
+camDat[camDat$CAM_LFRelCov>100,"CAM_LFRelCov"] <- 100
+
 # ## plot the location of plots w/ CAM data to double-check
 # map <- openmap(upperLeft = c(50, -125), lowerRight = c(26, -73),  zoom =5 ,
 #                type = c("osm", "stamen-toner", "stamen-terrain","stamen-watercolor", "esri","esri-topo")[6],
@@ -337,10 +340,10 @@ camDat <- camDatSpp %>%
 # map.latlon <- openproj(map, projection = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 # (
 # OSMap <- autoplot(map.latlon)  +
-#   labs(title = "Plot over OpenStreetMap", subtitle = "Bias [%]",x = "Longitude", y="Latitude") + 
+#   labs(title = "Plot over OpenStreetMap", subtitle = "Bias [%]",x = "Longitude", y="Latitude") +
 #     geom_point(data = camDat[camDat$CAM_LFAbsCov>5,], aes(x = Long, y = Lat, col = CAM_LFAbsCov))
 #   )
-
+#  camDat
 
 #### get data for deciduous vs coniferous trees ####
 ## decided to do this taxonomically (i.e. gymnosperms vs angiosperms)
@@ -501,8 +504,8 @@ datAll <- dat %>%
 ## trim down the dataset just to the variables we really want for analysis
 datLF_use <- datAll  %>% 
   select(EventID, Lat, Long, LFX, LFY, LFCoordSys, LFZone, YYYY, MM, DD, DDD,
-         LFShrubCov, LFHerbCov, C3_LFAbsCov, C4_LFAbsCov, AngioTree_LFAbsCov, ConifTree_LFAbsCov, 
-         Gram_Peren_LFAbsCov, Gram_Ann_LFAbsCov, Forb_Peren_LFAbsCov, Forb_Ann_LFAbsCov, CAM_LFAbsCov)
+         LFShrubCovAdj, LFHerbCovAdj, LFTreeCovAdj, C3_LFRelCov, C4_LFRelCov, AngioTree_LFRelCov, ConifTree_LFRelCov, 
+         Gram_Peren_LFRelCov, Gram_Ann_LFRelCov, Forb_Peren_LFRelCov, Forb_Ann_LFRelCov, CAM_LFRelCov)
 
 # # remove rows for plots that don't have all functional groups measured (can figure out by finding which have NAs in the 'dat' data frame)
 # goodPlots <- datAll %>% 
