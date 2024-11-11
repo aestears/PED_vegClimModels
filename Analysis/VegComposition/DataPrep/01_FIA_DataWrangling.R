@@ -280,7 +280,7 @@ GRND_CVR_PlotAvgs <- GRND_CVR %>%
   filter(!is.na(LAT))
 
 ## save plot-level ground cover data
-write.csv(GRND_CVR_PlotAvgs, file = "./data/FIA/groundCover_use.csv", row.names = FALSE)
+write.csv(GRND_CVR_PlotAvgs, file = "./Data_raw/FIA/groundCover_use.csv", row.names = FALSE)
 
  ## get litter depth information
 DWM_DUFF_LITTER_FUEL <- read.csv(paste0(file,"ENTIRE_DWM_DUFF_LITTER_FUEL.csv"))
@@ -296,7 +296,7 @@ DWM_DUFF_LITTER_FUEL_PlotAvgs <- DWM_DUFF_LITTER_FUEL %>%
                     "CONDID", "PCTBARE_RMRS", "SLOPE", "ASPECT", "STATENAME", "LAT", "LON")]) %>% 
   filter(!is.na(LAT))
 ## save plot-level litter data
-write.csv(DWM_DUFF_LITTER_FUEL_PlotAvgs, file = "./data/FIA/LitterDuffFuel_use.csv", row.names = FALSE)
+write.csv(DWM_DUFF_LITTER_FUEL_PlotAvgs, file = "./Data_raw//FIA/LitterDuffFuel_use.csv", row.names = FALSE)
 
 
 
@@ -419,11 +419,11 @@ TREE_Plot <- TREE_SubPlot %>%
   summarize(Height_subpAvg_plotAvg_ft = mean(HeightAvg_ft),
             Dia_subpAvg_plotAvg_in = mean(DiaAvg_in),
             basalArea_subpSum_plotAvg_in2 = mean(basalAreaSum_in2, na.rm = TRUE),
-            Carbon_AG_subpSum_plotSum = sum(Carbon_AG_sum), 
-            Carbon_BG_subpSum_plotSum = sum(Carbon_BG_sum), 
-            DryBio_stem_subpSum_plotSum = sum(DryBio_stem_sum), 
-            DryBio_foliage_subpSum_plotSum = sum(DryBio_foliage_sum),
-            DryBio_branch_subpSum_plotSum = sum(DryBio_branch_sum)
+            Carbon_AG_subpSum_plotAvg = mean(Carbon_AG_sum), 
+            Carbon_BG_subpSum_plotAvg = mean(Carbon_BG_sum), 
+            DryBio_stem_subpSum_plotAvg = mean(DryBio_stem_sum), 
+            DryBio_foliage_subpSum_plotAvg = mean(DryBio_foliage_sum),
+            DryBio_branch_subpSum_plotAvg = mean(DryBio_branch_sum)
   ) %>% ## add location information and filter for plots we don't want
   mutate(PLT_CN = as.double(PLT_CN)) %>% 
   left_join(COND[,c("PLT_CN", "INVYR", "STATECD", "UNITCD", "COUNTYCD", "PLOT", 
@@ -461,4 +461,4 @@ ggplot(TREE_use) +
   geom_point(aes(LON, LAT, col = basalArea_allGroups_in2))
 
 ## save data
-saveRDS(TREE_use, "./data/FIA/TREEtable_use.rds")
+saveRDS(TREE_use, "./Data_raw//FIA/TREEtable_use.rds")
