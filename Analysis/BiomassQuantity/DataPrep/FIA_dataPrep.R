@@ -93,11 +93,11 @@ TREE_Plot <- TREE_SubPlot %>%
   summarize(Height_subpAvg_plotAvg_ft = mean(HeightAvg_ft),
             Dia_subpAvg_plotAvg_in = mean(DiaAvg_in),
             basalArea_subpSum_plotAvg_in2 = mean(basalAreaSum_in2, na.rm = TRUE),
-            Carbon_AG_subpSum_plotSum = sum(Carbon_AG_sum), 
-            Carbon_BG_subpSum_plotSum = sum(Carbon_BG_sum), 
-            DryBio_stem_subpSum_plotSum = sum(DryBio_stem_sum), 
-            DryBio_foliage_subpSum_plotSum = sum(DryBio_foliage_sum),
-            DryBio_branch_subpSum_plotSum = sum(DryBio_branch_sum)
+            Carbon_AG_subpSum_plotAvg = mean(Carbon_AG_sum), 
+            Carbon_BG_subpSum_plotAvg = mean(Carbon_BG_sum), 
+            DryBio_stem_subpSum_plotAvg = mean(DryBio_stem_sum), 
+            DryBio_foliage_subpSum_plotAvg = mean(DryBio_foliage_sum),
+            DryBio_branch_subpSum_plotAvg = mean(DryBio_branch_sum)
   ) %>% ## add location information and filter for plots we don't want
   mutate(PLT_CN = as.double(PLT_CN)) %>% 
   left_join(COND[,c("PLT_CN", "INVYR", "STATECD", "UNITCD", "COUNTYCD", "PLOT", 
@@ -110,11 +110,11 @@ TREE_use <- TREE_Plot %>%
   filter(STATUSCD == 1) %>% # remove dead trees 
   select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, CONDID, group, LAT, 
          LON, basalArea_subpSum_plotAvg_in2, 
-         Carbon_AG_subpSum_plotSum, Carbon_BG_subpSum_plotSum, 
-         DryBio_stem_subpSum_plotSum, 
-         DryBio_foliage_subpSum_plotSum,
-         DryBio_branch_subpSum_plotSum) %>% # select only basal area variable
-  pivot_wider(values_from = c(basalArea_subpSum_plotAvg_in2:DryBio_branch_subpSum_plotSum), names_from = group) 
+         Carbon_AG_subpSum_plotAvg, Carbon_BG_subpSum_plotAvg, 
+         DryBio_stem_subpSum_plotAvg, 
+         DryBio_foliage_subpSum_plotAvg,
+         DryBio_branch_subpSum_plotAvg) %>% # select only basal area variable
+  pivot_wider(values_from = c(basalArea_subpSum_plotAvg_in2:DryBio_branch_subpSum_plotAvg), names_from = group) 
   # rename("basalArea_Angiosperms_in2" = "Angiosperms", 
   #        "basalArea_Gymnosperms_in2" = "Gymnosperms",
   #        "basalArea_UnknownGroup_in2" = "Unknown",
@@ -153,11 +153,11 @@ biomassCoverDat <- TREE_use %>%
             , by = c("StateUnitCode", "PLOT" = "Plot", "CONDID" = "PlotCondition", "INVYR" = "year")) %>% 
 ## get just the columns that we need for tree biomass and tree cover 
 select(UniquID, StateUnitCode, INVYR, Month, Day, Lat, Lon, 
-       Carbon_AG_subpSum_plotSum_Angiosperms, Carbon_AG_subpSum_plotSum_Gymnosperms,
-       Carbon_BG_subpSum_plotSum_Angiosperms, Carbon_BG_subpSum_plotSum_Gymnosperms,
-       DryBio_stem_subpSum_plotSum_Angiosperms, DryBio_stem_subpSum_plotSum_Gymnosperms,
-       DryBio_foliage_subpSum_plotSum_Angiosperms, DryBio_foliage_subpSum_plotSum_Gymnosperms,
-       DryBio_branch_subpSum_plotSum_Angiosperms, DryBio_branch_subpSum_plotSum_Gymnosperms,
+       Carbon_AG_subpSum_plotAvg_Angiosperms, Carbon_AG_subpSum_plotAvg_Gymnosperms,
+       Carbon_BG_subpSum_plotAvg_Angiosperms, Carbon_BG_subpSum_plotAvg_Gymnosperms,
+       DryBio_stem_subpSum_plotAvg_Angiosperms, DryBio_stem_subpSum_plotAvg_Gymnosperms,
+       DryBio_foliage_subpSum_plotAvg_Angiosperms, DryBio_foliage_subpSum_plotAvg_Gymnosperms,
+       DryBio_branch_subpSum_plotAvg_Angiosperms, DryBio_branch_subpSum_plotAvg_Gymnosperms,
        BroadLeavedTreeCover, NeedleLeavedTreeCover,
        TotalTreeCover, burnedMoreThan20YearsAgo, annVPD_mean:geometry) %>% 
   # remove data for any plots that don't have tree cover data (since that's what we're interested in)
@@ -180,13 +180,13 @@ test <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d2
 
 ## visualize above ground carbon data
 biomassCoverDat_temp <- biomassCoverDat %>% 
-  select(c("INVYR", "Carbon_AG_subpSum_plotSum", "geometry")) %>% 
+  select(c("INVYR", "Carbon_AG_subpSum_plotAvg", "geometry")) %>% 
   st_as_sf() %>% 
   st_cast("POINT")
 
 years <-as.matrix(unique(biomassCoverDat_temp$INVYR))
 biomassCoverDat_rast <- apply(years, MARGIN = 1, function(x) {
-  rast <- terra::rasterize(terra::vect(biomassCoverDat_temp[biomassCoverDat_temp$INVYR == x,]), field = "Carbon_AG_subpSum_plotSum",
+  rast <- terra::rasterize(terra::vect(biomassCoverDat_temp[biomassCoverDat_temp$INVYR == x,]), field = "Carbon_AG_subpSum_plotAvg",
                    y = test, fun = mean, na.rm = TRUE) %>% 
     terra::aggregate(fact = 64, fun = "mean", na.rm = TRUE) %>% 
     terra::crop(ext(-2000000, 2500000, -2000000, 1200000))
@@ -205,7 +205,7 @@ ggplot() +
 
 ## visualize stem + foliage + branch biomass ( a lot of plots don't have stem and branch, only foliage, which is why there are fewer data points)
 biomassDryBio_temp <- biomassCoverDat %>% 
-  mutate(DryBio_stemFoliageBranch =(DryBio_stem_subpSum_plotSum + DryBio_foliage_subpSum_plotSum + DryBio_branch_subpSum_plotSum)) %>% 
+  mutate(DryBio_stemFoliageBranch =(DryBio_stem_subpSum_plotAvg + DryBio_foliage_subpSum_plotAvg + DryBio_branch_subpSum_plotAvg)) %>% 
   select(INVYR, DryBio_stemFoliageBranch, geometry) %>% 
   st_as_sf() %>% 
   st_cast("POINT")
