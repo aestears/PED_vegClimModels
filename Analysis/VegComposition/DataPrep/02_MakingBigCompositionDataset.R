@@ -95,14 +95,14 @@ LANDFIRE_all <- LANDFIRE_veg %>%
          Lat = Lat,
          Lon = Long,
          ShrubCover = LFShrubCovAdj, 
-         ForbCover = LFHerbCovAdj - C3_LFRelCov - C4_LFRelCov, ## this cover from LANDFIRE is herbaceous, not forbs! 
+         ForbCover = LFHerbCovAdj * (Forb_LFRelCov/100), ## the "LFHerbCovAdj" cover from LANDFIRE is herbaceous, not forbs! 
          AnnualHerbGramCover = NA,
          PerennialHerbGramCover = NA,
-         TotalGramCover = C3_LFRelCov + C4_LFRelCov,
-         C3GramCover = C3_LFRelCov, 
-         C4GramCover = C4_LFRelCov, 
-         AngioTreeCover = AngioTree_LFRelCov, 
-         ConifTreeCover = ConifTree_LFRelCov,
+         TotalGramCover = ((C3_LFRelCov/100)*LFHerbCovAdj) + ((C4_LFRelCov/100)*LFHerbCovAdj),
+         C3GramCover = ((C3_LFRelCov/100)*LFHerbCovAdj), 
+         C4GramCover = ((C4_LFRelCov/100)*LFHerbCovAdj), 
+         AngioTreeCover = (AngioTree_LFRelCov/100)*LFTreeCovAdj, 
+         ConifTreeCover = (ConifTree_LFRelCov/100)*LFTreeCovAdj,
          TotalTreeCover = LFTreeCovAdj,#AngioTree_LFRelCov + ConifTree_LFRelCov,
          CAMCover = CAM_LFRelCov,
          TreeBasalArea_in2 = NA, 
@@ -112,9 +112,14 @@ LANDFIRE_all <- LANDFIRE_veg %>%
          Source = "LANDFIRE"
          ) 
 
-# ggplot(LANDFIRE_all[LANDFIRE_all$TotalGramCover < 150,]) +
-#   geom_point(aes(Lon, Lat, col = TotalGramCover))
-
+# landfire_long <- LANDFIRE_all %>% 
+#   pivot_longer(cols = c(ShrubCover:ForbCover, TotalGramCover:CAMCover), 
+#                names_to = "coverType", 
+#                values_to = "relativeCover")
+# ggplot(landfire_long) +
+#   geom_histogram(aes(relativeCover, fill = coverType)) + 
+#   facet_wrap(~coverType) + 
+#   theme_minimal()
 # load Landscape Data Commons data ----------------------------------------
 
 LDC_veg <- read.csv("./Data_raw//LandscapeDataCommonsDat/coverDat_use.csv") %>% 
@@ -184,6 +189,15 @@ dat_all2 <- dat_all %>%
 
 
 # Breaking herbaceous and trees into proportions ----------------------
+# 
+# dat_all2$ConifTreeCover_prop <- NA
+# 
+# dat_all2[dat_all2$TotalTreeCover>0 & !is.na(dat_all2$TotalTreeCover), "ConifTreeCover_prop"] <- 
+#   dat_all2[dat_all2$TotalTreeCover>0 & !is.na(dat_all2$TotalTreeCover),"ConifTreeCover"] /  
+#   dat_all2[dat_all2$TotalTreeCover>0 & !is.na(dat_all2$TotalTreeCover),"TotalTreeCover"]
+# 
+# 
+# hist(dat_all2$ConifTreeCover_prop)
 dat_all3 <- dat_all2 %>% 
   mutate(ForbCover_prop = pmap_dbl(.[c("ForbCover", "TotalHerbaceousCover")], 
                                    function(ForbCover, TotalHerbaceousCover, ...) {
@@ -204,13 +218,28 @@ dat_all3 <- dat_all2 %>%
          ConifTreeCover_prop = pmap_dbl(.[c("ConifTreeCover", "TotalTreeCover")], 
                                         function(ConifTreeCover, TotalTreeCover, ...) {
                                           ConifTreeCover/TotalTreeCover
-                                        } ),
+                                        } )
          )
 
+
 ## fix "NaN" values caused by instances where there are NO herbaceous or tree cover (is a divide by zero problem)
-dat_all3[dat_all3$TotalTreeCover == 0 & !is.na(dat_all3$TotalTreeCover), c("AngioTreeCover_prop", "ConifTreeCover_prop")] <- 0
-dat_all3[dat_all3$TotalHerbaceousCover == 0 & !is.na(dat_all3$TotalHerbaceousCover), c("ForbCover_prop", "C3GramCover_prop", "C4GramCover_prop")
-         ] <- 0
+dat_all3[dat_all3$TotalTreeCover == 0 & !is.na(dat_all3$TotalTreeCover) & 
+           +              dat_all3$AngioTreeCover ==0 & !is.na(dat_all3$AngioTreeCover), "AngioTreeCover_prop"] <- 0
+
+dat_all3[dat_all3$TotalTreeCover == 0 & !is.na(dat_all3$TotalTreeCover) & 
+           +              dat_all3$ConifTreeCover ==0 & !is.na(dat_all3$ConifTreeCover), "ConifTreeCover_prop"] <- 0
+
+
+dat_all3[dat_all3$TotalHerbaceousCover == 0 & !is.na(dat_all3$TotalHerbaceousCover) & 
+           +              dat_all3$ForbCover ==0 & !is.na(dat_all3$ForbCover), "ForbCover_prop"] <- 0
+
+
+dat_all3[dat_all3$TotalHerbaceousCover == 0 & !is.na(dat_all3$TotalHerbaceousCover) & 
+           +              dat_all3$C3GramCover ==0 & !is.na(dat_all3$C3GramCover), "C3GramCover_prop"] <- 0
+
+
+dat_all3[dat_all3$TotalHerbaceousCover == 0 & !is.na(dat_all3$TotalHerbaceousCover) & 
+           +              dat_all3$C4GramCover ==0 & !is.na(dat_all3$C4GramCover), "C4GramCover_prop"] <- 0
 
 
 ## save dataset for further analysis
