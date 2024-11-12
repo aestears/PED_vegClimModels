@@ -181,45 +181,61 @@ grassDat2 <- left_join(grassDat, grassNames_photo,
 
 grassCoverTemp <- grassDat2 %>% 
   group_by(PrimaryKey, PhotosyntheticPathway, Year) %>% 
-  summarize(Cover = sum(AH_SpeciesCover)) %>% 
+  summarize(n_hits = sum(AH_SpeciesCover_n)) %>% 
   pivot_wider(names_from =  PhotosyntheticPathway, 
-              values_from = Cover) %>% 
-  mutate(AH_C3TotalCover = sum(c(C3, 0), na.rm = TRUE),
-         AH_C4TotalCover = sum(c(C4, 0), na.rm = TRUE)) %>% 
+              values_from = n_hits) %>% 
+  mutate(AH_C3_n_hits = sum(c(C3, 0), na.rm = TRUE),
+         AH_C4_n_hits = sum(c(C4, 0), na.rm = TRUE)) %>% 
   select(-C3, -C4) %>% 
   rename(NA_area = "NA") 
+
+
 
 # remove plots for which >15% of the "graminoids" did not have a photosynthetic pathway 
 grassCover <- grassCoverTemp[grassCoverTemp$NA_area <= 15 | is.na(grassCoverTemp$NA_area), ]
 grassCover <- grassCover %>% 
   select(-NA_area)
 
+## get total #n for all plots
+totalGram_nDat <- speciesDat %>% 
+  #filter(GrowthHabitSub == "Graminoid") %>% 
+  group_by(PrimaryKey, Year) %>% 
+  summarize("total_allSppCover_n" = sum(AH_SpeciesCover_n, na.rm = TRUE))
+# add this information to the C3/C4 count data
+grassCover_final <- grassCover %>% 
+  left_join(totalGram_nDat) %>% 
+  ## calculate the percentage of hits that are C3 vs C4
+  mutate(C3_hits_proportionOfAllSpecies = AH_C3_n_hits/total_allSppCover_n, 
+         C4_hits_proportionOfAllSpecies = AH_C4_n_hits/total_allSppCover_n) %>% 
+  # drop data afor plots that don't have total plot 'n' values
+  filter(!is.na(total_allSppCover_n))
+
 
 # Calculate perennial vs annual cover for forbs and grams -----------------
-## calculate perennial vs annual graminoid % cover
-gramAnnPenCover <- speciesDat %>% 
-  filter(GrowthHabitSub == "Graminoid" | 
-           GrowthHabitSub == "Sedge" | 
-           GrowthHabitSub == "Rush") %>% 
-  group_by(PrimaryKey, Duration, Year) %>% 
-  summarize(Cover = sum(AH_SpeciesCover, na.rm = TRUE)) %>% 
-  pivot_wider(names_from = Duration, 
-              values_from = Cover) %>% 
-  mutate(AH_GramPerenTotalCover = sum(c(Perennial, 0), na.rm = TRUE), 
-         AH_GramAnnTotalCover = sum(c(Annual, 0), na.rm = TRUE)) %>% 
-  select(-`NA`, -Annual, -Perennial)
-
-## calculate perennial vs annual forb % cover
-forbAnnPenCover <- speciesDat %>% 
-  filter(GrowthHabitSub == "Forb" | 
-           GrowthHabitSub == "Forb/herb") %>% 
-  group_by(PrimaryKey, Duration, Year) %>% 
-  summarize(Cover = sum(AH_SpeciesCover, na.rm = TRUE)) %>% 
-  pivot_wider(names_from = Duration, 
-              values_from = Cover) %>% 
-  mutate(AH_ForbPerenTotalCover = sum(c(Perennial, Biennial, 0), na.rm = TRUE), 
-         AH_ForbAnnTotalCover = sum(c(Annual, 0), na.rm = TRUE)) %>% 
-  select(-`NA`, -Annual, -Perennial, -Biennial, -PerennialÂ)
+# ## calculate perennial vs annual graminoid % cover
+# gramAnnPenCover <- speciesDat %>% 
+#   filter(GrowthHabitSub == "Graminoid" | 
+#            GrowthHabitSub == "Sedge" | 
+#            GrowthHabitSub == "Rush") %>% 
+#   group_by(PrimaryKey, Duration, Year) %>% 
+#   summarize(Cover = sum(AH_SpeciesCover, na.rm = TRUE)) %>% 
+#   pivot_wider(names_from = Duration, 
+#               values_from = Cover) %>% 
+#   mutate(AH_GramPerenTotalCover = sum(c(Perennial, 0), na.rm = TRUE), 
+#          AH_GramAnnTotalCover = sum(c(Annual, 0), na.rm = TRUE)) %>% 
+#   select(-`NA`, -Annual, -Perennial)
+# 
+# ## calculate perennial vs annual forb % cover
+# forbAnnPenCover <- speciesDat %>% 
+#   filter(GrowthHabitSub == "Forb" | 
+#            GrowthHabitSub == "Forb/herb") %>% 
+#   group_by(PrimaryKey, Duration, Year) %>% 
+#   summarize(Cover = sum(AH_SpeciesCover, na.rm = TRUE)) %>% 
+#   pivot_wider(names_from = Duration, 
+#               values_from = Cover) %>% 
+#   mutate(AH_ForbPerenTotalCover = sum(c(Perennial, Biennial, 0), na.rm = TRUE), 
+#          AH_ForbAnnTotalCover = sum(c(Annual, 0), na.rm = TRUE)) %>% 
+#   select(-`NA`, -Annual, -Perennial, -Biennial, -PerennialÂ)
 
 # investigate tree data ---------------------------------------------------
 #There are actually 27,946 tree observations, so we should calculate decid vs coniferous tree data too
@@ -293,14 +309,27 @@ treeDat[treeDat$ScientificName %in% c("Hesperocyparis sargentii", "Hesperocypari
 
 treeDat<- treeDat %>% 
   group_by(PrimaryKey, Year, group) %>% 
-  summarize(Cover = sum(AH_SpeciesCover)) %>% 
-  pivot_wider(values_from = Cover, names_from = group) %>% 
+  summarize(n_hits = sum(AH_SpeciesCover_n)) %>% 
+  pivot_wider(values_from = n_hits, names_from = group) %>% 
   mutate(AH_ConifTotalCover = sum(c(Gymnosperms, 0), na.rm = TRUE),
          AH_AngioTotalCover = sum(c(Angiosperms, 0), na.rm = TRUE)) %>% 
   select(-Angiosperms, -Gymnosperms)
-## assume that if there are no species of a group recorded in a plot, the cover for that group is 0 
 
-
+## get total #n for all plots
+totalTree_nDat <- speciesDat %>% 
+  #filter(GrowthHabitSub == "Tree") %>% 
+  group_by(PrimaryKey, Year) %>% 
+  summarize("total_speciesCover_n" = sum(AH_SpeciesCover_n, na.rm = TRUE))
+# add this information to the C3/C4 count data
+treeCover_final <- treeDat %>% 
+  left_join(totalTree_nDat) %>% 
+  ## calculate the percentage of hits that are C3 vs C4
+  mutate(Conif_hits_proportionOfAllSpp = AH_ConifTotalCover/total_speciesCover_n, 
+         Angio_hits_proportionOfAllSpp = AH_AngioTotalCover/total_speciesCover_n) %>% 
+  # drop data afor plots that don't have total plot 'n' values
+  filter(!is.na(total_speciesCover_n))
+  
+  
 # calculate CAM species ---------------------------------------------------
 # data.frame that has species-level data as well as species names (speciesDat_new)
 # speciesDat_new
@@ -323,9 +352,22 @@ CAM_species <- speciesDat_new %>%
 CAM_species <- CAM_species %>% 
   filter(!is.na(AH_SpeciesCover))
 
-CAM_species<- CAM_species %>% 
+CAM_species <- CAM_species %>% 
   group_by(PrimaryKey, Year) %>% 
-  summarize(AH_CAMCover = sum(AH_SpeciesCover))
+  summarize(CAM_n_hits = sum(AH_SpeciesCover_n)) %>% 
+  filter(!is.na(CAM_n_hits))
+
+## get total #n for all plots
+totalSpecies_nDat <- speciesDat %>% 
+  group_by(PrimaryKey, Year) %>% 
+  summarize("total_speciesCover_n" = sum(AH_SpeciesCover_n, na.rm = TRUE))
+# add this information to the C3/C4 count data
+camCover_final <- CAM_species  %>% 
+  left_join(totalSpecies_nDat) %>% 
+  ## calculate the percentage of hits that are C3 vs C4
+  mutate(cam_hits_proportionOfAllSpp = CAM_n_hits/total_speciesCover_n) %>% 
+  # drop data afor plots that don't have total plot 'n' values
+  filter(!is.na(total_speciesCover_n))
 
 ## assume that if there are no species of a group recorded in a plot, the cover for that group is 0 
 
@@ -333,17 +375,17 @@ CAM_species<- CAM_species %>%
 
 
 # add together 
-test <- grassCover %>% 
-  full_join(treeDat, by = c("PrimaryKey", "Year")) %>% 
-  full_join(forbAnnPenCover, by = c("PrimaryKey", "Year")) %>% 
-  full_join(gramAnnPenCover, by = c("PrimaryKey", "Year")) %>% 
-  full_join(CAM_species, by = c("PrimaryKey", "Year"))
+test <- grassCover_final %>% 
+  full_join(treeCover_final, by = c("PrimaryKey", "Year")) %>% 
+  #full_join(forbAnnPenCover, by = c("PrimaryKey", "Year")) %>% 
+  #full_join(gramAnnPenCover, by = c("PrimaryKey", "Year")) %>% 
+  full_join(camCover_final, by = c("PrimaryKey", "Year"))
 
 ## add in shrub and forb data from "Indicators" d.f
 datAll <- indicatorDat %>% 
   mutate(Year = lubridate::year(DateVisited)) %>% 
   select(rid, PrimaryKey, DBKey, ProjectKey, DateVisited, Latitude_NAD83, Longitude_NAD83,
-         BareSoilCover, TotalFoliarCover, AH_ForbCover, AH_ShrubCover,
+         BareSoilCover, TotalFoliarCover, AH_ForbCover, AH_ShrubCover, 
          FH_CyanobacteriaCover, FH_DepSoilCover, FH_DuffCover, FH_EmbLitterCover,
          FH_HerbLitterCover, FH_LichenCover, FH_MossCover, FH_RockCover, FH_TotalLitterCover,
          FH_WoodyLitterCover, Year) %>% 

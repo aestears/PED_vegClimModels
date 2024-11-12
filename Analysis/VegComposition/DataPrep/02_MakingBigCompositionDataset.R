@@ -44,7 +44,7 @@ FIA_all <- FIA_veg %>%
          Lat = LAT, 
          Lon = LON,
          ShrubCover = Shrub_AerialCover,
-         HerbCover = Forbs_AerialCover,
+         ForbCover = Forbs_AerialCover,
          AnnualHerbGramCover = NA,
          PerennialHerbGramCover = NA,
          TotalGramCover = Graminoid_AerialCover,
@@ -52,7 +52,7 @@ FIA_all <- FIA_veg %>%
          C4GramCover = NA, 
          AngioTreeCover = TallyTree_AerialCover * basalArea_Angiosperms_perc/100, 
          ConifTreeCover = TallyTree_AerialCover * basalArea_Gymnosperms_perc/100,
-         TotalTreeCover = TallyTree_AerialCover + NonTallyTree_AerialCover,
+         TotalTreeCover = TallyTree_AerialCover, #+ NonTallyTree_AerialCover,
          CAMCover = NA,
          TreeBasalArea_in2 = basalArea_allGroups_in2, 
          BareGroundCover_temp = BareGround_PctCover, 
@@ -69,7 +69,7 @@ FIA_all <- FIA_all %>%
   select(-BareGroundCover_temp, -PCTBARE_RMRS) %>% 
   mutate(BareGroundCover = replace(BareGroundCover, BareGroundCover == 999, NA)) %>% 
   select(UniqueID, StateUnitCounty, Plot,  PlotCondition, Month, Day, Year, Lat,  Lon,
-         ShrubCover, HerbCover,  TotalGramCover, AnnualHerbGramCover, PerennialHerbGramCover,
+         ShrubCover, ForbCover,  TotalGramCover, AnnualHerbGramCover, PerennialHerbGramCover,
          C3GramCover,  C4GramCover, 
          AngioTreeCover ,   ConifTreeCover, TotalTreeCover, CAMCover, TreeBasalArea_in2, 
          BareGroundCover,   LitterCover,  LitterDepth, Source)
@@ -94,17 +94,17 @@ LANDFIRE_all <- LANDFIRE_veg %>%
          Year = YYYY,
          Lat = Lat,
          Lon = Long,
-         ShrubCover = LFShrubCov, 
-         HerbCover = LFHerbCov, 
+         ShrubCover = LFShrubCovAdj, 
+         ForbCover = LFHerbCovAdj - C3_LFRelCov - C4_LFRelCov, ## this cover from LANDFIRE is herbaceous, not forbs! 
          AnnualHerbGramCover = NA,
          PerennialHerbGramCover = NA,
-         TotalGramCover = C3_LFAbsCov + C4_LFAbsCov,
-         C3GramCover = C3_LFAbsCov, 
-         C4GramCover = C4_LFAbsCov, 
-         AngioTreeCover = AngioTree_LFAbsCov, 
-         ConifTreeCover = ConifTree_LFAbsCov,
-         TotalTreeCover = AngioTree_LFAbsCov + ConifTree_LFAbsCov,
-         CAMCover = CAM_LFAbsCov,
+         TotalGramCover = C3_LFRelCov + C4_LFRelCov,
+         C3GramCover = C3_LFRelCov, 
+         C4GramCover = C4_LFRelCov, 
+         AngioTreeCover = AngioTree_LFRelCov, 
+         ConifTreeCover = ConifTree_LFRelCov,
+         TotalTreeCover = LFTreeCovAdj,#AngioTree_LFRelCov + ConifTree_LFRelCov,
+         CAMCover = CAM_LFRelCov,
          TreeBasalArea_in2 = NA, 
          BareGroundCover = NA, 
          LitterCover = NA,
@@ -135,16 +135,16 @@ LDC_all <- LDC_veg %>%
             Lat = Latitude_NAD83,
             Lon = Longitude_NAD83,
             ShrubCover = AH_ShrubCover, 
-            HerbCover = AH_ForbCover, 
+            ForbCover = AH_ForbCover, 
             AnnualHerbGramCover = NA,
             PerennialHerbGramCover = NA,
-            TotalGramCover = AH_C3TotalCover + AH_C4TotalCover,
-            C3GramCover = AH_C3TotalCover, 
-            C4GramCover = AH_C4TotalCover, 
-            AngioTreeCover = AH_AngioTotalCover, 
-            ConifTreeCover = AH_ConifTotalCover,
-            TotalTreeCover = AH_AngioTotalCover + AH_ConifTotalCover,
-            CAMCover = AH_CAMCover,
+            TotalGramCover = TotalFoliarCover * (C3_hits_proportionOfAllSpecies + C4_hits_proportionOfAllSpecies),
+            C3GramCover = TotalFoliarCover * C3_hits_proportionOfAllSpecies, 
+            C4GramCover = TotalFoliarCover * C4_hits_proportionOfAllSpecies, 
+            AngioTreeCover =  TotalFoliarCover * Angio_hits_proportionOfAllSpp, 
+            ConifTreeCover = TotalFoliarCover * Conif_hits_proportionOfAllSpp,
+            TotalTreeCover = TotalFoliarCover * (Angio_hits_proportionOfAllSpp + Conif_hits_proportionOfAllSpp),
+            CAMCover = TotalFoliarCover * cam_hits_proportionOfAllSpp,
             TreeBasalArea_in2 = NA, 
             BareGroundCover = BareSoilCover, 
             LitterCover = FH_TotalLitterCover,
@@ -153,7 +153,7 @@ LDC_all <- LDC_veg %>%
               ) 
 
 # ggplot(FIA_all) + 
-#    geom_point(aes(Lon, Lat, col = HerbCover))
+#    geom_point(aes(Lon, Lat, col = ForbCover))
 
 # load RAP data -----------------------------------------------------------
 RAP_all <- read.csv("./Data_raw/RAP_samplePoints/RAPdata_use.csv") %>% 
@@ -165,7 +165,8 @@ RAP_all <- read.csv("./Data_raw/RAP_samplePoints/RAPdata_use.csv") %>%
          ShrubCover, HerbCover,  TotalGramCover, AnnualHerbGramCover, PerennialHerbGramCover,
          C3GramCover,  C4GramCover, 
          AngioTreeCover ,   ConifTreeCover, TotalTreeCover, CAMCover, TreeBasalArea_in2, 
-         BareGroundCover,   LitterCover,  LitterDepth, Source)
+         BareGroundCover,   LitterCover,  LitterDepth, Source) %>% 
+  rename(ForbCover = HerbCover)
 
 
 # add datasets together ---------------------------------------------------
@@ -176,7 +177,7 @@ dat_all <- FIA_all %>%
 # Calculate Total Herbaceous Cover (where necessary) ----------------------
 dat_all2 <- dat_all %>% 
   mutate(TotalHerbaceousCover_A =  pmap_dbl(.[c("AnnualHerbGramCover","PerennialHerbGramCover")], sum), # captures RAP data
-         TotalHerbaceousCover_B = pmap_dbl(.[c("HerbCover", "TotalGramCover")], sum)
+         TotalHerbaceousCover_B = pmap_dbl(.[c("ForbCover", "TotalGramCover")], sum)
          ) %>% 
   mutate(TotalHerbaceousCover = pmap_dbl(.[c("TotalHerbaceousCover_A", "TotalHerbaceousCover_B")], sum, na.rm = TRUE)) %>% 
   select(-TotalHerbaceousCover_A, -TotalHerbaceousCover_B)
@@ -184,9 +185,9 @@ dat_all2 <- dat_all %>%
 
 # Breaking herbaceous and trees into proportions ----------------------
 dat_all3 <- dat_all2 %>% 
-  mutate(HerbCover_prop = pmap_dbl(.[c("HerbCover", "TotalHerbaceousCover")], 
-                                   function(HerbCover, TotalHerbaceousCover, ...) {
-                                     HerbCover/TotalHerbaceousCover
+  mutate(ForbCover_prop = pmap_dbl(.[c("ForbCover", "TotalHerbaceousCover")], 
+                                   function(ForbCover, TotalHerbaceousCover, ...) {
+                                     ForbCover/TotalHerbaceousCover
                                    } ),
          C3GramCover_prop = pmap_dbl(.[c("C3GramCover", "TotalHerbaceousCover")], 
                                      function(C3GramCover, TotalHerbaceousCover, ...) {
@@ -208,7 +209,7 @@ dat_all3 <- dat_all2 %>%
 
 ## fix "NaN" values caused by instances where there are NO herbaceous or tree cover (is a divide by zero problem)
 dat_all3[dat_all3$TotalTreeCover == 0 & !is.na(dat_all3$TotalTreeCover), c("AngioTreeCover_prop", "ConifTreeCover_prop")] <- 0
-dat_all3[dat_all3$TotalHerbaceousCover == 0 & !is.na(dat_all3$TotalHerbaceousCover), c("HerbCover_prop", "C3GramCover_prop", "C4GramCover_prop")
+dat_all3[dat_all3$TotalHerbaceousCover == 0 & !is.na(dat_all3$TotalHerbaceousCover), c("ForbCover_prop", "C3GramCover_prop", "C4GramCover_prop")
          ] <- 0
 
 
