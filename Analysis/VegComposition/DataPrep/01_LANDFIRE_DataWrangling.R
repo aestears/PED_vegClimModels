@@ -372,7 +372,7 @@ treeDat[treeDat$SciName %in% c("pinyon pine", "Pinyon pine", "Hesperocyparis ari
 # "Unknown deciduous tree", "Juglandaceae" -- needs an "angiosperm" label
 treeDat[treeDat$SciName %in% c("Unknown deciduous tree", "Juglandaceae"), "group"] <- "Angiosperms"
 
-# break into C3 vs C4 (data by species observation, not summed by plot yet)
+# break into broad leaved vs needle leaved (data by species observation, not summed by plot yet)
 AngioTreeDat_spp <- treeDat[treeDat$group=="Angiosperms" & !is.na(treeDat$group),]
 ConifTreeDat_spp <- treeDat[treeDat$group=="Gymnosperms" & !is.na(treeDat$group),]
 
@@ -418,6 +418,34 @@ ConifTreeDat <- ConifTreeDat_spp %>%
             DDD = unique(DDD),
             Type = unique(Type), 
             SourceID = unique(SourceID))
+
+#### Get data for forbs ####
+
+# get the data for all forbs, and add the "group" data
+forbDat <- sppDat_new[sppDat_new$Lifeform == "F" & !is.na(sppDat_new$Lifeform), ]
+
+## now, sum % cover by plot 
+forbDat <- forbDat %>% 
+  group_by(EventID) %>% 
+  summarize(Forb_LFAbsCov = sum(LFAbsCov),
+            Forb_LFRelCov = sum(LFRelCov), 
+            Forb_LFHgt = mean(LFHgt),
+            Lat = mean(Lat), 
+            Long = mean(Long),
+            LFX = mean(LFX), 
+            LFY = mean(LFY), 
+            LFZone = unique(LFZone),
+            AKRID = unique(AKRID),
+            VPU = unique(VPU),
+            GeoArea = unique(GeoArea),
+            LocMeth = unique(LocMeth),
+            YYYY = mean(YYYY), 
+            MM = unique(MM),
+            DD = unique(DD),
+            DDD = unique(DDD),
+            Type = unique(Type), 
+            SourceID = unique(SourceID))
+
 
 #### Get annual vs. perennial Herb and Graminoid % cover ####
 ## for forbs
@@ -473,6 +501,7 @@ temp <- full_join(C3Dat, C4Dat) %>%
   full_join(ConifTreeDat) %>% 
   full_join(GramPerenAnnDat) %>% 
   full_join(ForbPerenAnnDat) %>% 
+  full_join(forbDat) %>% 
   full_join(camDat) %>% 
   mutate(MM = as.integer(MM), 
          DD = as.integer(DD),
@@ -505,7 +534,7 @@ datAll <- dat %>%
 datLF_use <- datAll  %>% 
   select(EventID, Lat, Long, LFX, LFY, LFCoordSys, LFZone, YYYY, MM, DD, DDD,
          LFShrubCovAdj, LFHerbCovAdj, LFTreeCovAdj, C3_LFRelCov, C4_LFRelCov, AngioTree_LFRelCov, ConifTree_LFRelCov, 
-         Gram_Peren_LFRelCov, Gram_Ann_LFRelCov, Forb_Peren_LFRelCov, Forb_Ann_LFRelCov, CAM_LFRelCov)
+         Gram_Peren_LFRelCov, Gram_Ann_LFRelCov, Forb_Peren_LFRelCov, Forb_Ann_LFRelCov, Forb_LFRelCov, CAM_LFRelCov)
 
 # # remove rows for plots that don't have all functional groups measured (can figure out by finding which have NAs in the 'dat' data frame)
 # goodPlots <- datAll %>% 
