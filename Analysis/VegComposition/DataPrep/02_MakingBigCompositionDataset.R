@@ -188,6 +188,11 @@ dat_all2 <- dat_all %>%
   select(-TotalHerbaceousCover_A, -TotalHerbaceousCover_B)
 
 
+## deal w/ the fact that the total herbaceous data is >100 in many cases
+## for now, simply truncate to be max 100
+dat_all2[dat_all2$TotalHerbaceousCover >100, "TotalHerbaceousCover"] <- 100
+hist(dat_all2$TotalHerbaceousCover)
+
 # Breaking herbaceous and trees into proportions ----------------------
 # 
 # dat_all2$ConifTreeCover_prop <- NA
