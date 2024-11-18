@@ -14,43 +14,41 @@ library(sf)
 
 # Prepare Data ------------------------------------------------------------
 
-modDat <- readRDS("./data/DataForModels_withSubEcoreg.rds")
+modDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
 
-## if it's herbs, remove LDC data right now (has some weirdness that's skewing the data... need to figure that out)
-if (s == "HerbCover") {
-  modDat <- modDat[modDat$Source != "LANDFIRE",]
-}
 
-# sub sample for testing vs training data
+# sub sample for testing purposes
 set.seed(1234)
 modDat_1 <- modDat %>% 
-  mutate(Lon = st_coordinates(.)[,1], 
-         Lat = st_coordinates(.)[,2])  %>% 
-  st_drop_geometry() %>% 
+  #mutate(Lon = st_coordinates(.)[,1], 
+        # Lat = st_coordinates(.)[,2])  %>% 
+  #st_drop_geometry() %>% 
   filter(!is.na(newRegion))
 
 
-pred_vars <- c("swe_meanAnnAvg_30yr", "tmean_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr", "PrecipTempCorr_meanAnnAvg_30yr", "isothermality_meanAnnAvg_30yr", "annWetDegDays_meanAnnAvg_30yr")
+pred_vars <- c("swe_meanAnnAvg_30yr", "tmean_meanAnnAvg_30yr", 
+               "prcp_meanAnnTotal_30yr", "PrecipTempCorr_meanAnnAvg_30yr", 
+               "isothermality_meanAnnAvg_30yr", "annWetDegDays_meanAnnAvg_30yr")
 # removed VPD, since it's highly correlated w/ tmean and prcp
 
 names(pred_vars) <- pred_vars
 
-modDat$LitterCover_dec <- modDat$LitterCover/100
-## convert % cover into fractional cover (So they sum to one)
-modDat$TotalCover_dec <- base::rowSums(modDat[,c("ShrubCover_dec", "HerbCover_dec", 
-                                                 "TotalGramCover_dec", 
-                                                 "TotalTreeCover_dec", 
-                                                 "LitterCover_dec"
-                                                         )] %>% st_drop_geometry())
-
-# calculate cover in terms of 'fraction' (rather than the 'dec' version, which can sum to >1)
-modDat_temp <- 
-  modDat %>% 
-  mutate(ShrubCover_frac = ShrubCover_dec/TotalCover_dec, 
-         HerbCover_frac = HerbCover_dec/TotalCover_dec, 
-         TotalGramCover_frac = TotalGramCover_dec/TotalCover_dec, 
-         TotalTreeCover_frac = TotalTreeCover_dec/TotalCover_dec, 
-         LitterCover_frac = LitterCover_dec/TotalCover_dec)
+# modDat$LitterCover_dec <- modDat$LitterCover/100
+# ## convert % cover into fractional cover (So they sum to one)
+# modDat$TotalCover_dec <- base::rowSums(modDat[,c("ShrubCover_dec", "HerbCover_dec", 
+#                                                  "TotalGramCover_dec", 
+#                                                  "TotalTreeCover_dec", 
+#                                                  "LitterCover_dec"
+#                                                          )] %>% st_drop_geometry())
+# 
+# # calculate cover in terms of 'fraction' (rather than the 'dec' version, which can sum to >1)
+# modDat_temp <- 
+#   modDat %>% 
+#   mutate(ShrubCover_frac = ShrubCover_dec/TotalCover_dec, 
+#          HerbCover_frac = HerbCover_dec/TotalCover_dec, 
+#          TotalGramCover_frac = TotalGramCover_dec/TotalCover_dec, 
+#          TotalTreeCover_frac = TotalTreeCover_dec/TotalCover_dec, 
+#          LitterCover_frac = LitterCover_dec/TotalCover_dec)
 
 ## remove rows for data that have NAs in the predictors (lag starts before range of DayMet data)
 

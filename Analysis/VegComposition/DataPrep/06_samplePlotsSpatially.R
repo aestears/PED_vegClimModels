@@ -11,38 +11,97 @@ library(tidyverse)
 library(sf)
 library(terra)
 library(exactextractr)
+library(stars)
 
 # Load data ---------------------------------------------------------------
-dat <- readRDS("./Data_processed/DataForModels.rds") %>% 
-  st_drop_geometry()
+
+# get veg data
+dat <- readRDS("./Data_processed/DataForModels.rds") 
 # dayMet extent 
-test <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif")
+test <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
+  terra::project(crs(dat))
+
+# %>% 
+#   st_transform(crs(test)) %>% 
+#   st_drop_geometry() %>% 
+#   select(Year, UniquID:Day, Lat:annVPD_max_meanAnnAvg_1yrAnom) %>% 
+#   mutate(Year_fac = as.factor(Year)) #%>% 
+#   #st_buffer(.01)
+
+## make sure the projections are the same
+# add met data to veg data ------------------------------------------------
+# make veg data projection the same as raster data
+v <- vect(st_drop_geometry(dat)[,c("Lon", "Lat")], geom = c("Lon", "Lat"), crs=crs(dat))
+y <- project(v, crs(test))
+# make sure the veg data is in the appropriate projection
+dat2 <- dat %>%
+  #st_buffer(.01) %>%
+  #terra::vect() #%>%
+  sf::st_transform(crs(y)) %>% 
+ # st_buffer(.1)
+  st_centroid() %>% 
+  mutate("Year_char" = as.character(Year)) %>% 
+  select(Year, Year_char, UniquID:Day, Lat:geometry)
+  
+  
+# make sure the raster data is in the appropriate projection
+test <- test %>%
+terra::project(crs(y))
+st_crs(dat) == st_crs(test)
+
+#(xTest = st_rasterize(dat2[,"ShrubCover"], st_as_stars(st_bbox(test), nx = ncol(test), ny = nrow(test), values = NA_real_)))
 
 # rasterize values --------------------------------------------------------
-dat2 <- terra::vect(dat, geom = c("Lon", "Lat"), crs = terra::crs(test))
-
 # get the names of the columns w/ data we want to rasterize
-layerNames <- dat%>% 
+layerNames <- dat %>% 
   st_drop_geometry() %>% 
-  select(c(ShrubCover, TotalTreeCover, TotalHerbaceousCover, CAMCover, BareGroundCover, ForbCover_prop:NeedleLeavedTreeCover_prop)) %>% 
+  dplyr::select(c(ShrubCover, TotalTreeCover, TotalHerbaceousCover, CAMCover, BareGroundCover, 
+           ForbCover_prop:NeedleLeavedTreeCover_prop)) %>% 
   names() 
+years <- sort(unique(dat$Year))
 
-
-# fdat# function to rasterize and average cover values
+# dat# function to rasterize and average cover values
 test2_a <- lapply(layerNames[1:2], FUN = function(x) {
-  terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
-                     , by = "Year")
+   temp <- terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                   , by = "Year") 
+   names(temp) <- paste("ID_",years)
+   return(temp)
+  # temp <-  dat2 %>% 
+  #   select("Lat", "Lon", "Year", all_of(x)) %>% 
+  #   drop_na() %>% 
+  #   terra::vect()
+  #   
+  #   #dat2[!is.na(dat2[,x]), c("Lat", "Lon", "Year", x)]
+  # 
+  # temp2 <- lapply(years, FUN = function(y) {
+  #   # rasterize the points
+  #   temp3 <-  temp[temp$Year == y,] %>% 
+  #      terra::rasterize(y = test,#test, 
+  #                      field = x, 
+  #                      #by = "Year",
+  #                      fun = mean, na.rm = TRUE) %>% 
+  #   #re-extract as points at the centroid of each raster cell 
+  #   terra::extract(y = centroidPoints, xy = TRUE) %>% 
+  #     drop_na()
+  # }
+  # )
+  # 
+  # 
 }
 )
 
 test2_b <- lapply(layerNames[3:4], FUN = function(x) {
-  terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+  temp <- terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
                    , by = "Year")
+  
+  names(temp) <- paste("ID_",years)
+  return(temp)
 }
 )
 
 test2_ab <- c(test2_a, test2_b)
 rm(test2_a, test2_b)
+gc()
 
 test2_c <- lapply(layerNames[5:6], FUN = function(x) {
   terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
@@ -51,6 +110,7 @@ test2_c <- lapply(layerNames[5:6], FUN = function(x) {
 )
 test2_abc <- c(test2_ab, test2_c)
 rm(test2_ab, test2_c)
+gc()
 
 test2_d <- lapply(layerNames[7], FUN = function(x) {
   terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
@@ -59,6 +119,7 @@ test2_d <- lapply(layerNames[7], FUN = function(x) {
 )
 test2_abcd <- c(test2_abc, test2_d)
 rm(test2_abc, test2_d)
+gc()
 
 test2_e <- lapply(layerNames[8], FUN = function(x) {
   terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
@@ -92,19 +153,29 @@ gc()
 
 names(test2) <- layerNames
 
-saveRDS(test2, "./Data_processed/spatialSamplesInt_1.rds")
 
+# save for later
+lapply(layerNames, FUN = function(x) {
+  saveRDS(test2[[x]]*1, paste0("./Data_processed/spatialSamplesInt_",x,".rds"))
+})
 
+# # read back in saved data
+# testTest <- lapply(layerNames, FUN = function(x) {
+#  readRDS(paste0("./Data_processed/spatialSamplesInt_",x,".rds")) %>%
+#     rast()
+# }
+# )
+# names(testTest) <- layerNames
+# test2 <- testTest
 
 # ExtractValuesBackToPoints -----------------------------------------------
 
-centroidPoints <- xyFromCell(test2[[2]], cell = 1:ncell(test2[[2]])) %>% 
-  as.data.frame() %>% 
-  st_as_sf(coords = c("x", "y")) %>% 
-  vect()
+centroidPoints <- xyFromCell(test$daymet_v4_prcp_monttl_na_1980_1, cell = 1:ncell(test$daymet_v4_prcp_monttl_na_1980_1)) %>% 
+  #as.data.frame() %>% 
+  #st_as_sf(coords = c("x", "y")) %>% 
+  vect(crs = terra::crs(test)) 
+crs(centroidPoints) == crs(dat) 
   
-names(test2$NeedleLeavedTreeCover_prop)[44] <- "test"
-names(test2$TotalTreeCover)[44] <- "test"
 
 # extract the points from the raster back to the data.frame 
 test3 <- lapply(names(test2), FUN = function(y) {
@@ -200,6 +271,7 @@ test6 <- vect(test5, geom = c("x", "y"), crs = crs(test))
 temp <- terra::rasterize(test6, y = test, field = "ShrubCover", fun = function(x) mean(x, na.rm = TRUE)) %>% 
   terra::aggregate(fact = 32, fun = function(x) mean(x, na.rm = TRUE))
   
+plot(temp)
 
   # compare to raw data 
   
