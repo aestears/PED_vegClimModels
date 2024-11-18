@@ -36,6 +36,16 @@ modDat_3 <- sf::st_join(modDat_2, regions_2)
 plot(modDat_3[is.na(modDat_3$NA_L1CODE), "geometry"])
 
 
+
+# group into coarser ecoregions -------------------------------------------
+# make a lookup table
+ecoReg_lu <- data.frame("NA_L1NAME" = unique(modDat_3$NA_L1NAME), "newRegion" = c("westForest", "dryShrubGrass", "westForest", "dryShrubGrass", "dryShrubGrass", "dryShrubGrass",
+                                                                                "westForest", NA, "eastForest", "eastForest", "eastForest", "eastForest"))
+# add to main data.frame 
+newDat <- modDat_3 %>% 
+  left_join(ecoReg_lu) %>% 
+  mutate(newRegion = as.factor(newRegion)) 
+
 # Save Data for further analysis ------------------------------------------
-saveRDS(modDat_3, "./Data_processed/CoverData/DataForModels_withEcoregion.rds")
+saveRDS(newDat, "./Data_processed/CoverData/DataForModels_withEcoregion.rds")
 

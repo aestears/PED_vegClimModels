@@ -379,3 +379,12 @@ temp <- vegSoils_new %>%
 
 
 
+
+# save data  --------------------------------------------------------------
+# remove unnecessary soils variables 
+  vegSoils_final <- vegSoils_new %>% 
+    select(-c(clayPerc_2cm:y))
+  
+  saveRDS(vegSoils_final, 
+          "./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
+  #vegSoils_final <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
