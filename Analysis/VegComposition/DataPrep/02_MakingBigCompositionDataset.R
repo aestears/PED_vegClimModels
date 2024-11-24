@@ -54,14 +54,23 @@ FIA_all <- FIA_veg %>%
          ConifTreeCover = TallyTree_AerialCover * basalArea_Gymnosperms_perc/100,
          TotalTreeCover = TallyTree_AerialCover, #+ NonTallyTree_AerialCover,
          CAMCover = NA,
+         TotalHerbaceousCover = Graminoid_AerialCover + Forbs_AerialCover,
          TreeBasalArea_in2 = basalArea_allGroups_in2, 
          BareGroundCover_temp = BareGround_PctCover, 
          PCTBARE_RMRS = PCTBARE_RMRS, 
          LitterCover = Litter_PctCover,
          LitterDepth = LitterDepth,
-         Source = "FIA"
-         ) # update/change some names
-
+         Source = "FIA",
+         AngioTreeCover_prop = basalArea_Angiosperms_perc/100,
+         ConifTreeCover_prop = basalArea_Gymnosperms_perc/100
+         )  %>% # update/change some names
+  mutate(#AngioTreeCover_prop = AngioTreeCover/TotalTreeCover, 
+         #ConifTreeCover_prop = ConifTreeCover/TotalTreeCover,
+         C4GramCover_prop = C4GramCover/TotalHerbaceousCover,
+         C3GramCover_prop = C3GramCover/TotalHerbaceousCover,
+         ForbCover_prop = ForbCover/TotalHerbaceousCover)
+# ggplot(FIA_all) +
+#   geom_point(aes(Lon, Lat, col = AngioTreeCover))
 # average columns for BareGroundCover and PCTBARE_RMRS
 FIA_all$BareGroundCover  <- apply(FIA_all[,c("BareGroundCover_temp", "PCTBARE_RMRS")], MARGIN = 1, FUN = function(x) 
   mean(x, na.rm = TRUE))
@@ -71,8 +80,9 @@ FIA_all <- FIA_all %>%
   select(UniqueID, StateUnitCounty, Plot,  PlotCondition, Month, Day, Year, Lat,  Lon,
          ShrubCover, ForbCover,  TotalGramCover, AnnualHerbGramCover, PerennialHerbGramCover,
          C3GramCover,  C4GramCover, 
-         AngioTreeCover ,   ConifTreeCover, TotalTreeCover, CAMCover, TreeBasalArea_in2, 
-         BareGroundCover,   LitterCover,  LitterDepth, Source)
+         AngioTreeCover ,   ConifTreeCover, TotalTreeCover, CAMCover, TotalHerbaceousCover, TreeBasalArea_in2, 
+         BareGroundCover,   LitterCover,  LitterDepth, Source, AngioTreeCover_prop, 
+         ConifTreeCover_prop, C4GramCover_prop,C3GramCover_prop, ForbCover_prop)
 # load LANDFIRE data ------------------------------------------------------
 
 LANDFIRE_veg <- read.csv("./Data_raw//LANDFIRE_LFRDB/coverDat_USE.csv") %>% 
@@ -105,12 +115,18 @@ LANDFIRE_all <- LANDFIRE_veg %>%
          ConifTreeCover = (ConifTree_LFRelCov/100)*LFTreeCovAdj,
          TotalTreeCover = LFTreeCovAdj,#AngioTree_LFRelCov + ConifTree_LFRelCov,
          CAMCover = CAM_LFRelCov,
+         TotalHerbaceousCover = ((C3_LFRelCov/100)*LFHerbCovAdj) + ((C4_LFRelCov/100)*LFHerbCovAdj) + LFHerbCovAdj * (Forb_LFRelCov/100),
          TreeBasalArea_in2 = NA, 
          BareGroundCover = NA, 
          LitterCover = NA,
          LitterDepth = NA,
          Source = "LANDFIRE"
-         ) 
+         )  %>% # update/change some names
+  mutate(AngioTreeCover_prop = AngioTreeCover/TotalTreeCover, 
+         ConifTreeCover_prop = ConifTreeCover/TotalTreeCover,
+         C4GramCover_prop = C4GramCover/TotalHerbaceousCover,
+         C3GramCover_prop = C3GramCover/TotalHerbaceousCover,
+         ForbCover_prop = ForbCover/TotalHerbaceousCover)
 
 # landfire_long <- LANDFIRE_all %>% 
 #   pivot_longer(cols = c(ShrubCover:ForbCover, TotalGramCover:CAMCover), 
@@ -150,12 +166,18 @@ LDC_all <- LDC_veg %>%
             ConifTreeCover = TotalFoliarCover * Conif_hits_proportionOfAllSpp,
             TotalTreeCover = TotalFoliarCover * (Angio_hits_proportionOfAllSpp + Conif_hits_proportionOfAllSpp),
             CAMCover = TotalFoliarCover * cam_hits_proportionOfAllSpp,
+            TotalHerbaceousCover = TotalFoliarCover * (C3_hits_proportionOfAllSpecies + C4_hits_proportionOfAllSpecies) + AH_ForbCover,
             TreeBasalArea_in2 = NA, 
             BareGroundCover = BareSoilCover, 
             LitterCover = FH_TotalLitterCover,
             LitterDepth = NA,
             Source = "LDC"
-              ) 
+              )  %>% # update/change some names
+  mutate(AngioTreeCover_prop = AngioTreeCover/TotalTreeCover, 
+         ConifTreeCover_prop = ConifTreeCover/TotalTreeCover,
+         C4GramCover_prop = C4GramCover/TotalHerbaceousCover,
+         C3GramCover_prop = C3GramCover/TotalHerbaceousCover,
+         ForbCover_prop = ForbCover/TotalHerbaceousCover)
 
 # ggplot(FIA_all) + 
 #    geom_point(aes(Lon, Lat, col = ForbCover))
@@ -165,13 +187,19 @@ RAP_all <- read.csv("./Data_raw/RAP_samplePoints/RAPdata_use.csv") %>%
   mutate(Year = date, 
          Month = NA, 
          Day = NA, 
-         CAMCover = NA) %>% 
+         CAMCover = NA, 
+         TotalHerbaceousCover = AnnualHerbGramCover + PerennialHerbGramCover, 
+         ForbCover = NA) %>% 
   select(UniqueID, StateUnitCounty, Plot,  PlotCondition, Month, Day, Year, Lat,  Lon,
-         ShrubCover, HerbCover,  TotalGramCover, AnnualHerbGramCover, PerennialHerbGramCover,
+         ShrubCover, ForbCover,  TotalGramCover, AnnualHerbGramCover, PerennialHerbGramCover,
          C3GramCover,  C4GramCover, 
-         AngioTreeCover ,   ConifTreeCover, TotalTreeCover, CAMCover, TreeBasalArea_in2, 
-         BareGroundCover,   LitterCover,  LitterDepth, Source) %>% 
-  rename(ForbCover = HerbCover)
+         AngioTreeCover ,   ConifTreeCover, TotalTreeCover, TotalHerbaceousCover, CAMCover, TreeBasalArea_in2, 
+         BareGroundCover,   LitterCover,  LitterDepth, Source)  %>% 
+  mutate(AngioTreeCover_prop = AngioTreeCover/TotalTreeCover, 
+         ConifTreeCover_prop = ConifTreeCover/TotalTreeCover,
+         C4GramCover_prop = C4GramCover/TotalHerbaceousCover,
+         C3GramCover_prop = C3GramCover/TotalHerbaceousCover,
+         ForbCover_prop = ForbCover/TotalHerbaceousCover)
 
 
 # add datasets together ---------------------------------------------------
@@ -179,175 +207,206 @@ dat_all <- FIA_all %>%
   rbind(LANDFIRE_all, LDC_all, RAP_all)
 
 
-# Calculate Total Herbaceous Cover (where necessary) ----------------------
-dat_all2 <- dat_all %>% 
-  mutate(TotalHerbaceousCover_A =  pmap_dbl(.[c("AnnualHerbGramCover","PerennialHerbGramCover")], sum), # captures RAP data
-         TotalHerbaceousCover_B = pmap_dbl(.[c("ForbCover", "TotalGramCover")], sum)
-         ) %>% 
-  mutate(TotalHerbaceousCover = pmap_dbl(.[c("TotalHerbaceousCover_A", "TotalHerbaceousCover_B")], sum, na.rm = TRUE)) %>% 
-  select(-TotalHerbaceousCover_A, -TotalHerbaceousCover_B)
-
+# # Calculate Total Herbaceous Cover (where necessary) ----------------------
+# dat_all <- dat_all %>% 
+#   mutate(TotalHerbaceousCover_A =  pmap_dbl(.[c("AnnualHerbGramCover","PerennialHerbGramCover")], sum), # captures RAP data
+#          TotalHerbaceousCover_B = pmap_dbl(.[c("ForbCover", "TotalGramCover")], sum)
+#          ) %>% 
+#   mutate(TotalHerbaceousCover = pmap_dbl(.[c("TotalHerbaceousCover_A", "TotalHerbaceousCover_B")], sum, na.rm = TRUE)) %>% 
+#   select(-TotalHerbaceousCover_A, -TotalHerbaceousCover_B)
+# 
 
 ## deal w/ the fact that the total herbaceous data is >100 in many cases
 ## for now, simply truncate to be max 100
-dat_all2[dat_all2$TotalHerbaceousCover >100, "TotalHerbaceousCover"] <- 100
-hist(dat_all2$TotalHerbaceousCover)
+dat_all[dat_all$TotalHerbaceousCover >100 & !is.na(dat_all$TotalHerbaceousCover), "TotalHerbaceousCover"] <- 100
+hist(dat_all$TotalHerbaceousCover)
 
 # Breaking herbaceous and trees into proportions ----------------------
 # 
-# dat_all2$ConifTreeCover_prop <- NA
+# dat_all$ConifTreeCover_prop <- NA
 # 
-# dat_all2[dat_all2$TotalTreeCover>0 & !is.na(dat_all2$TotalTreeCover), "ConifTreeCover_prop"] <- 
-#   dat_all2[dat_all2$TotalTreeCover>0 & !is.na(dat_all2$TotalTreeCover),"ConifTreeCover"] /  
-#   dat_all2[dat_all2$TotalTreeCover>0 & !is.na(dat_all2$TotalTreeCover),"TotalTreeCover"]
+# dat_all[dat_all$TotalTreeCover>0 & !is.na(dat_all$TotalTreeCover), "ConifTreeCover_prop"] <- 
+#   dat_all[dat_all$TotalTreeCover>0 & !is.na(dat_all$TotalTreeCover),"ConifTreeCover"] /  
+#   dat_all[dat_all$TotalTreeCover>0 & !is.na(dat_all$TotalTreeCover),"TotalTreeCover"]
 # 
 # 
-# hist(dat_all2$ConifTreeCover_prop)
-dat_all3 <- dat_all2 %>% 
-  mutate(ForbCover_prop = pmap_dbl(.[c("ForbCover", "TotalHerbaceousCover")], 
-                                   function(ForbCover, TotalHerbaceousCover, ...) {
-                                     ForbCover/TotalHerbaceousCover
-                                   } ),
-         C3GramCover_prop = pmap_dbl(.[c("C3GramCover", "TotalHerbaceousCover")], 
-                                     function(C3GramCover, TotalHerbaceousCover, ...) {
-                                       C3GramCover/TotalHerbaceousCover
-                                     } ),
-         C4GramCover_prop = pmap_dbl(.[c("C4GramCover", "TotalHerbaceousCover")], 
-                                    function(C4GramCover, TotalHerbaceousCover, ...) {
-                                      C4GramCover/TotalHerbaceousCover
-                                    } ),
-         AngioTreeCover_prop = pmap_dbl(.[c("AngioTreeCover", "TotalTreeCover")], 
-                                      function(AngioTreeCover, TotalTreeCover, ...) {
-                                        AngioTreeCover/TotalTreeCover
-                                      } ),
-         ConifTreeCover_prop = pmap_dbl(.[c("ConifTreeCover", "TotalTreeCover")], 
-                                        function(ConifTreeCover, TotalTreeCover, ...) {
-                                          ConifTreeCover/TotalTreeCover
-                                        } )
-         )
+# hist(dat_all$ConifTreeCover_prop)
+# dat_all <- dat_all %>% 
+#   mutate(ForbCover_prop = pmap_dbl(.[c("ForbCover", "TotalHerbaceousCover")], 
+#                                    function(ForbCover, TotalHerbaceousCover, ...) {
+#                                      ForbCover/TotalHerbaceousCover
+#                                    } ),
+#          C3GramCover_prop = pmap_dbl(.[c("C3GramCover", "TotalHerbaceousCover")], 
+#                                      function(C3GramCover, TotalHerbaceousCover, ...) {
+#                                        C3GramCover/TotalHerbaceousCover
+#                                      } ),
+#          C4GramCover_prop = pmap_dbl(.[c("C4GramCover", "TotalHerbaceousCover")], 
+#                                     function(C4GramCover, TotalHerbaceousCover, ...) {
+#                                       C4GramCover/TotalHerbaceousCover
+#                                     } ),
+#          AngioTreeCover_prop = pmap_dbl(.[c("AngioTreeCover", "TotalTreeCover")], 
+#                                       function(AngioTreeCover, TotalTreeCover, ...) {
+#                                         AngioTreeCover/TotalTreeCover
+#                                       } ),
+#          ConifTreeCover_prop = pmap_dbl(.[c("ConifTreeCover", "TotalTreeCover")], 
+#                                         function(ConifTreeCover, TotalTreeCover, ...) {
+#                                           ConifTreeCover/TotalTreeCover
+#                                         } )
+#          )
 
 
+## If the total herbaceous cover is 0, we can assume that fob, graminoid, c3, and c4 cover is also 0
+dat_all[dat_all$TotalHerbaceousCover == 0 & !is.na(dat_all$TotalHerbaceousCover), 
+        c("ForbCover", "TotalGramCover","C3GramCover", "C4GramCover")] <- NA
 ## fix "NaN" values caused by instances where there are NO herbaceous or tree cover (is a divide by zero problem)
-dat_all3[dat_all3$TotalTreeCover == 0 & !is.na(dat_all3$TotalTreeCover) & 
-           +              dat_all3$AngioTreeCover ==0 & !is.na(dat_all3$AngioTreeCover), "AngioTreeCover_prop"] <- 0
+# also, change all values for proportion cover to NA when the corresponding umbrella variable is 0 (can't have a proportion of no cover)
+dat_all[dat_all$TotalTreeCover == 0 & !is.na(dat_all$TotalTreeCover) & 
+           +              dat_all$AngioTreeCover ==0 & !is.na(dat_all$AngioTreeCover), "AngioTreeCover_prop"] <- NA
 
-dat_all3[dat_all3$TotalTreeCover == 0 & !is.na(dat_all3$TotalTreeCover) & 
-           +              dat_all3$ConifTreeCover ==0 & !is.na(dat_all3$ConifTreeCover), "ConifTreeCover_prop"] <- 0
-
-
-dat_all3[dat_all3$TotalHerbaceousCover == 0 & !is.na(dat_all3$TotalHerbaceousCover) & 
-           +              dat_all3$ForbCover ==0 & !is.na(dat_all3$ForbCover), "ForbCover_prop"] <- 0
+dat_all[dat_all$TotalTreeCover == 0 & !is.na(dat_all$TotalTreeCover) & 
+           +              dat_all$ConifTreeCover ==0 & !is.na(dat_all$ConifTreeCover), "ConifTreeCover_prop"] <- NA
 
 
-dat_all3[dat_all3$TotalHerbaceousCover == 0 & !is.na(dat_all3$TotalHerbaceousCover) & 
-           +              dat_all3$C3GramCover ==0 & !is.na(dat_all3$C3GramCover), "C3GramCover_prop"] <- 0
+dat_all[dat_all$TotalHerbaceousCover == 0 & !is.na(dat_all$TotalHerbaceousCover) & 
+           +              dat_all$ForbCover ==0 & !is.na(dat_all$ForbCover), "ForbCover_prop"] <- NA
 
 
-dat_all3[dat_all3$TotalHerbaceousCover == 0 & !is.na(dat_all3$TotalHerbaceousCover) & 
-           +              dat_all3$C4GramCover ==0 & !is.na(dat_all3$C4GramCover), "C4GramCover_prop"] <- 0
+dat_all[dat_all$TotalHerbaceousCover == 0 & !is.na(dat_all$TotalHerbaceousCover) & 
+           +              dat_all$C3GramCover ==0 & !is.na(dat_all$C3GramCover), "C3GramCover_prop"] <- NA
 
+
+dat_all[dat_all$TotalHerbaceousCover == 0 & !is.na(dat_all$TotalHerbaceousCover) & 
+           +              dat_all$C4GramCover ==0 & !is.na(dat_all$C4GramCover), "C4GramCover_prop"] <- NA
+
+
+test <- dat_all$C4GramCover_prop + dat_all$C3GramCover_prop + dat_all$ForbCover_prop
+hist(test)
+test2 <- dat_all$AngioTreeCover_prop + dat_all$ConifTreeCover_prop
+hist(test2)
 
 ## save dataset for further analysis
-write.csv(dat_all3, file = "./Data_processed/DataForAnalysis.csv", row.names = FALSE)
-#dat_all3 <- read.csv("./Data_processed/CoverData/DataForAnalysis.csv")
+write.csv(dat_all, file = "./Data_processed/CoverData/ForAnalysis.csv", row.names = FALSE)
+#dat_all <- read.csv("./Data_processed/CoverData/DataForAnalysis.csv")
 
 ## make a shapefile of the sample points also and save
-dat_all_sf_full <- st_as_sf(dat_all3, coords = c("Lon", "Lat")) %>% 
+dat_all_sf_full <- st_as_sf(dat_all, coords = c("Lon", "Lat")) %>% 
   select(geometry) %>% 
   #unique() %>% 
   sf::st_set_crs("EPSG:4326") %>% 
-  cbind(dat_all3)
+  cbind(dat_all)
 dat_all_sf <- dat_all_sf_full %>% 
   unique()
 
-st_write(dat_all_sf, dsn = "./Data_processed/DataForAnalysisPoints", layer = "vegCompPoints", driver = "ESRI Shapefile", append = FALSE)
+st_write(dat_all_sf, dsn = "./Data_processed/CoverData/DataForAnalysisPoints", layer = "vegCompPoints", driver = "ESRI Shapefile", append = FALSE)
 
 
-## trim data to only that collected after 1979 
-dat_all <- dat_all3 %>% 
-  filter(Year > 1978)
-# plot of all data points
-plot(dat_all$Lon, dat_all$Lat, col = as.factor(dat_all$Source))
-ggplot(dat_all) +
-  geom_point(aes(Lon, Lat, col = Source), alpha = .5)
+# Making figures to check data --------------------------------------------
+# 
+# 
+# ## trim data to only that collected after 1979 
+# dat_all <- dat_all %>% 
+#   filter(Year > 1978)
+# # plot of all data points
+# plot(dat_all$Lon, dat_all$Lat, col = as.factor(dat_all$Source))
+# ggplot(dat_all) +
+#   geom_point(aes(Lon, Lat, col = Source), alpha = .5)
+# 
+# baseMap <- st_as_sf(map("state", plot = FALSE, fill = TRUE), crs = st_crs(dat_all_new)) %>% 
+#   rename("geometry" = "geom")
+# 
+# # plot AIM data 
+# pdf("./figures/LDC_dataextent.pdf")
+# dat_all_new %>% 
+#   filter(Source == "LDC") %>% 
+#   ggplot() +
+#   geom_sf(data = baseMap) + 
+#   geom_sf(alpha = .5, col = "cornflowerblue") +
+#   ggtitle("Landscape Data Commons (AIM + a bit more)", 
+#           subtitle = "Cov vars: angio. trees, gymno. trees, shrubs, herbs, C3 grams, C4 grams, bare ground, litter") + 
+#   theme_minimal()
+# dev.off()
+# 
+# # plot FIA data 
+# pdf("./figures/FIA_dataextent.pdf")
+# dat_all_new %>% 
+#   filter(Source == "FIA") %>% 
+#   ggplot() +
+#   geom_sf(data = baseMap) + 
+#   geom_sf(alpha = .5, col = "tomato") +
+#   ggtitle("Forest Inventory and Analysis plots", 
+#           subtitle = "Cover variables: angio. trees, gymno. trees, shrubs, herbs, grams, (litter), (bare ground)") + 
+#   theme_minimal()
+# dev.off()
+# 
+# # plot LANDFIRE data 
+# pdf("./figures/LANDFIRE_dataextent.pdf")
+# dat_all_new %>% 
+#   filter(Source == "LANDFIRE") %>% 
+#   ggplot() +
+#   geom_sf(data = baseMap) + 
+#   geom_sf(alpha = .5, col = "forestgreen") +
+#   ggtitle("LANDFIRE reference database plots", 
+#           subtitle = "Cover variables: angio. trees, gymno. trees, shrubs, herbs, C3 grams, C4 grams") + 
+#   theme_minimal()
+# dev.off()
+# 
+# # plot LANDFIRE data 
+# pdf("./figures/RAP_dataextent.pdf")
+# dat_all_new %>% 
+#   filter(Source == "RAP") %>% 
+#   ggplot() +
+#   geom_sf(data = baseMap) + 
+#   geom_sf(alpha = .3, col = "orchid") +
+#   ggtitle("RAP points -- 300,000 point sampled from undeveloped, non-ag. area", 
+#           subtitle = "Cover variables: all trees, shrubs, ann. herbaceous, perenn. herbaceous, bare ground, litter") + 
+#   theme_minimal()
+# dev.off()
+# 
+# 
+# # plot of data that has c3/c4 and broad leaf vs. conifer
+# dat_all %>% 
+#   filter(!is.na(ConifTreeCover) & 
+#            !is.na(AngioTreeCover) &
+#            !is.na(C3GramCover) & 
+#            !is.na(C4GramCover)) %>% 
+#   ggplot() +
+#   geom_point(aes(Lon, Lat, col = Source), alpha = .5) + 
+#   scale_color_manual(values = c("forestgreen", "cornflowerblue"))
+# 
+# # plot of data that have litter cover
+# dat_all %>% 
+# filter(!is.na(LitterCover)) %>% 
+#   ggplot() +
+#   geom_point(aes(Lon, Lat, col = Source), alpha = .5)
+# 
+# # plot of data that have litter depth
+# dat_all %>% 
+#   filter(!is.na(LitterDepth)) %>% 
+#   ggplot() +
+#   geom_point(aes(Lon, Lat, col = Source), alpha = .5) 
+# 
+# # plot of data that have bare ground cover
+# dat_all %>% 
+#   filter(!is.na(BareGroundCover)) %>% 
+#   ggplot() +
+#   geom_point(aes(Lon, Lat, col = Source), alpha = .5) 
+# 
 
-baseMap <- st_as_sf(map("state", plot = FALSE, fill = TRUE), crs = st_crs(dat_all_new)) %>% 
-  rename("geometry" = "geom")
 
-# plot AIM data 
-pdf("./figures/LDC_dataextent.pdf")
-dat_all_new %>% 
-  filter(Source == "LDC") %>% 
-  ggplot() +
-  geom_sf(data = baseMap) + 
-  geom_sf(alpha = .5, col = "cornflowerblue") +
-  ggtitle("Landscape Data Commons (AIM + a bit more)", 
-          subtitle = "Cov vars: angio. trees, gymno. trees, shrubs, herbs, C3 grams, C4 grams, bare ground, litter") + 
-  theme_minimal()
-dev.off()
-
-# plot FIA data 
-pdf("./figures/FIA_dataextent.pdf")
-dat_all_new %>% 
+treeCover_rast <- dat_all%>% 
+  #FIA_all %>% 
+  as.data.frame() %>%
   filter(Source == "FIA") %>% 
-  ggplot() +
-  geom_sf(data = baseMap) + 
-  geom_sf(alpha = .5, col = "tomato") +
-  ggtitle("Forest Inventory and Analysis plots", 
-          subtitle = "Cover variables: angio. trees, gymno. trees, shrubs, herbs, grams, (litter), (bare ground)") + 
-  theme_minimal()
-dev.off()
-
-# plot LANDFIRE data 
-pdf("./figures/LANDFIRE_dataextent.pdf")
-dat_all_new %>% 
-  filter(Source == "LANDFIRE") %>% 
-  ggplot() +
-  geom_sf(data = baseMap) + 
-  geom_sf(alpha = .5, col = "forestgreen") +
-  ggtitle("LANDFIRE reference database plots", 
-          subtitle = "Cover variables: angio. trees, gymno. trees, shrubs, herbs, C3 grams, C4 grams") + 
-  theme_minimal()
-dev.off()
-
-# plot LANDFIRE data 
-pdf("./figures/RAP_dataextent.pdf")
-dat_all_new %>% 
-  filter(Source == "RAP") %>% 
-  ggplot() +
-  geom_sf(data = baseMap) + 
-  geom_sf(alpha = .3, col = "orchid") +
-  ggtitle("RAP points -- 300,000 point sampled from undeveloped, non-ag. area", 
-          subtitle = "Cover variables: all trees, shrubs, ann. herbaceous, perenn. herbaceous, bare ground, litter") + 
-  theme_minimal()
-dev.off()
-
-
-# plot of data that has c3/c4 and broad leaf vs. conifer
-dat_all %>% 
-  filter(!is.na(ConifTreeCover) & 
-           !is.na(AngioTreeCover) &
-           !is.na(C3GramCover) & 
-           !is.na(C4GramCover)) %>% 
-  ggplot() +
-  geom_point(aes(Lon, Lat, col = Source), alpha = .5) + 
-  scale_color_manual(values = c("forestgreen", "cornflowerblue"))
-
-# plot of data that have litter cover
-dat_all %>% 
-filter(!is.na(LitterCover)) %>% 
-  ggplot() +
-  geom_point(aes(Lon, Lat, col = Source), alpha = .5)
-
-# plot of data that have litter depth
-dat_all %>% 
-  filter(!is.na(LitterDepth)) %>% 
-  ggplot() +
-  geom_point(aes(Lon, Lat, col = Source), alpha = .5) 
-
-# plot of data that have bare ground cover
-dat_all %>% 
-  filter(!is.na(BareGroundCover)) %>% 
-  ggplot() +
-  geom_point(aes(Lon, Lat, col = Source), alpha = .5) 
-
+  terra::vect(geom = c("Lon", "Lat"), crs = st_crs("EPSG:4326")) %>%
+  terra::rasterize(y = test_rast,
+                   field = "ConifTreeCover_prop",
+                   fun = mean, na.rm = TRUE) %>%
+  terra::crop(ext(-130, -65, 25, 50))
+(treeCov_plot_LF <- ggplot() +
+    scale_fill_viridis_c(option = "B", guide = guide_colorbar(title = "Prop. of tree cover"), 
+                         limits = c(0,1)) +
+    geom_spatraster(data = treeCover_rast, aes(fill = mean), na.rm = TRUE) +
+    theme_minimal() +
+    ggtitle("FIA", subtitle = "ConifTreeCover_prop" ))
+names(dat_all)
+# 

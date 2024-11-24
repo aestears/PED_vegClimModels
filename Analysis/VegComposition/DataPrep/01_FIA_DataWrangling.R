@@ -315,7 +315,7 @@ TREE_10 <- FIESTA::DBgetCSV("TREE", states = unique(COND$STATECD)[46:48])
 
 # get list of tree species codes
 sppCodes <- FIESTA::ref_species
-sppCodes$E_SPGRPCD - sppCodes$W_SPGRPCD
+#sppCodes$E_SPGRPCD - sppCodes$W_SPGRPCD
 # use the "taxonlookup" R package to get the families for each tree species
 sppCodes_temp <- taxonlookup::lookup_table(
   species_list = unique(sppCodes$SCIENTIFIC_NAME)
@@ -338,66 +338,72 @@ sppCodes[sppCodes$GENUS %in% c("Acoelorraphe", "Family Arecaceae", "Howeia"),
 sppCodes[sppCodes$GENUS %in% c("Cupressocyparis"), 
          "group"] <- "Gymnosperms"
 
-## add species data to the tree tables
-TREE_1 <- TREE_1 %>% 
+
+sppCodes[sppCodes$SCIENTIFIC_NAME == "Tree broadleaf","group"] <- "Angiosperms"
+
+sppCodes[sppCodes$SCIENTIFIC_NAME == "Tree evergreen","group"] <- "Gymnosperms"
+
+## add species data to the tree table
+TREE_1NEW <- TREE_1 %>% 
   left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")]) %>% 
   select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
          STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
          TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH, SCIENTIFIC_NAME, group)
-TREE_2 <- TREE_2 %>% 
+TREE_2NEW <- TREE_2 %>% 
   left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])%>% 
   select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
          STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
          TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH, SCIENTIFIC_NAME, group)
-TREE_3 <- TREE_3 %>% 
+TREE_3NEW <- TREE_3 %>% 
   left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])%>% 
   select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
          STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
          TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH, SCIENTIFIC_NAME, group)
-TREE_4 <- TREE_4 %>% 
+TREE_4NEW <- TREE_4 %>% 
   left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])%>% 
   select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
          STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
          TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH, SCIENTIFIC_NAME, group)
-TREE_5 <- TREE_5 %>% 
+TREE_5NEW <- TREE_5 %>% 
   left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])%>% 
   select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
          STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
          TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH, SCIENTIFIC_NAME, group)
-TREE_6 <- TREE_6 %>% 
+TREE_6NEW <- TREE_6 %>% 
   left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])%>% 
   select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
          STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
          TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH, SCIENTIFIC_NAME, group)
-TREE_7 <- TREE_7 %>% 
+TREE_7NEW <- TREE_7 %>% 
   left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])%>% 
   select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
          STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
          TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH, SCIENTIFIC_NAME, group)
-TREE_8 <- TREE_8 %>% 
+TREE_8NEW <- TREE_8 %>% 
   left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])%>% 
   select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
          STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
          TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH, SCIENTIFIC_NAME, group)
-TREE_9 <- TREE_9 %>% 
+TREE_9NEW <- TREE_9 %>% 
   left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])%>% 
   select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
          STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
          TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH, SCIENTIFIC_NAME, group)
-TREE_10 <- TREE_10 %>% 
+TREE_10NEW <- TREE_10 %>% 
   left_join(sppCodes[,c("SPCD", "SCIENTIFIC_NAME", "family", "group")])%>% 
   select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, SUBP, TREE, CONDID, 
          STATUSCD, SPCD, DIA, DIAHTCD, HT, HTCD, ACTUALHT, TREECLCD, CCLCD, 
          TREEGRCD, CARBON_AG, CARBON_BG, DRYBIO_STEM, DRYBIO_FOLIAGE, DRYBIO_BRANCH, SCIENTIFIC_NAME, group)
 
-TREE <- rbind(TREE_1, TREE_2, TREE_3, TREE_4, TREE_5, TREE_6, TREE_7, TREE_8, TREE_9, TREE_10)
-#saveRDS(TREE, file = "./data/FIA/TREEtable.RDS")
+TREE <- rbind(TREE_1NEW, TREE_2NEW, TREE_3NEW, TREE_4NEW, TREE_5NEW, TREE_6NEW,
+              TREE_7NEW, TREE_8NEW, TREE_9NEW, TREE_10NEW)
+#saveRDS(TREE, file = "./data_raw/FIA/TREEtable.RDS")
+# TREE <- readRDS(file = "./data_raw/FIA/TREEtable.RDS")
 
 # add group information for TREEs that are "Tree broadleaf" and "Tree evergreen"
 TREE[TREE$SCIENTIFIC_NAME == "Tree broadleaf", "group"] <- "Angiosperms"
 TREE[TREE$SCIENTIFIC_NAME == "Tree evergreen", "group"] <- "Gymnosperms"
 TREE[TREE$SCIENTIFIC_NAME == "Tree unknown", "group"] <- "Unknown"
-
 
 # group by subplot (values summed across each subplot, grouped by species group)
 TREE_SubPlot <- TREE %>% 
@@ -411,24 +417,41 @@ TREE_SubPlot <- TREE %>%
             DryBio_stem_sum = sum(DRYBIO_STEM), 
             DryBio_foliage_sum = sum(DRYBIO_FOLIAGE),
             DryBio_branch_sum = sum(DRYBIO_BRANCH)
-  )
-
-# group by plot (values averaged within each plot--averages of summed values in each subplot w/in a plot--, grouped by species group)
-TREE_Plot <- TREE_SubPlot %>% 
-  group_by(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, CONDID, STATUSCD, group) %>% 
-  summarize(Height_subpAvg_plotAvg_ft = mean(HeightAvg_ft),
-            Dia_subpAvg_plotAvg_in = mean(DiaAvg_in),
-            basalArea_subpSum_plotAvg_in2 = mean(basalAreaSum_in2, na.rm = TRUE),
-            Carbon_AG_subpSum_plotAvg = mean(Carbon_AG_sum), 
-            Carbon_BG_subpSum_plotAvg = mean(Carbon_BG_sum), 
-            DryBio_stem_subpSum_plotAvg = mean(DryBio_stem_sum), 
-            DryBio_foliage_subpSum_plotAvg = mean(DryBio_foliage_sum),
-            DryBio_branch_subpSum_plotAvg = mean(DryBio_branch_sum)
   ) %>% ## add location information and filter for plots we don't want
   mutate(PLT_CN = as.double(PLT_CN)) %>% 
   left_join(COND[,c("PLT_CN", "INVYR", "STATECD", "UNITCD", "COUNTYCD", "PLOT", 
                     "CONDID", "PCTBARE_RMRS", "SLOPE", "ASPECT", "STATENAME", "LAT", "LON")]) %>% 
   filter(!is.na(LAT))
+
+ggplot(TREE_SubPlot) + 
+  facet_wrap(~group) + 
+  geom_point(aes(LON, LAT, col = basalAreaSum_in2), pch = 1)
+
+
+
+# group by plot (values averaged within each plot--averages of summed values in each subplot w/in a plot--, grouped by species group)
+TREE_Plot <- TREE_SubPlot %>% 
+  #select(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, CONDID, PCTBARE_RMRS, 
+         #SLOPE, ASPECT, STATENAME, LAT, LON, group) %>% 
+  group_by(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, CONDID, STATUSCD, group) %>% 
+  summarize(Height_subpAvg_plotAvg_ft = mean(HeightAvg_ft, na.rm = TRUE),
+            Dia_subpAvg_plotAvg_in = mean(DiaAvg_in),
+            basalArea_subpSum_plotAvg_in2 = mean(basalAreaSum_in2, na.rm = TRUE),
+            Carbon_AG_subpSum_plotAvg = mean(Carbon_AG_sum, na.rm = TRUE), 
+            Carbon_BG_subpSum_plotAvg = mean(Carbon_BG_sum, na.rm = TRUE), 
+            DryBio_stem_subpSum_plotAvg = mean(DryBio_stem_sum, na.rm = TRUE), 
+            DryBio_foliage_subpSum_plotAvg = mean(DryBio_foliage_sum, na.rm = TRUE),
+            DryBio_branch_subpSum_plotAvg = mean(DryBio_branch_sum, na.rm = TRUE)
+  ) %>% ## add location information and filter for plots we don't want
+  mutate(PLT_CN = as.double(PLT_CN)) %>% 
+  left_join(COND[,c("PLT_CN", "INVYR", "STATECD", "UNITCD", "COUNTYCD", "PLOT", 
+                    "CONDID", "PCTBARE_RMRS", "SLOPE", "ASPECT", "STATENAME", "LAT", "LON")]) %>% 
+  filter(!is.na(LAT))
+
+
+ggplot(TREE_Plot) + 
+  facet_wrap(~group) + 
+  geom_point(aes(LON, LAT, col = basalArea_subpSum_plotAvg_in2), pch = 1)
 
 ## make into a simpler format for us to use
 TREE_use <- TREE_Plot %>% 
@@ -440,13 +463,16 @@ TREE_use <- TREE_Plot %>%
   rename("basalArea_Angiosperms_in2" = "Angiosperms", 
          "basalArea_Gymnosperms_in2" = "Gymnosperms",
          "basalArea_UnknownGroup_in2" = "Unknown",
-         "basalArea_Pteridophytes_in2" = "Pteridophytes"
-  ) %>% 
-  ## the basal area values in TREE_Plots d.fs do not have zeros, so the NAs in these biomass columns are true zeros 
+         "basalArea_Pteridophytes_in2" = "Pteridophytes") %>%
+  ## the basal area values in TREE_Plots d.fs do not have zeros, so the NAs in these biomass columns are true zeros
   mutate(basalArea_Angiosperms_in2 = replace(basalArea_Angiosperms_in2, is.na(basalArea_Angiosperms_in2), 0),
          basalArea_Gymnosperms_in2 = replace(basalArea_Gymnosperms_in2, is.na(basalArea_Gymnosperms_in2), 0),
          basalArea_UnknownGroup_in2 = replace(basalArea_UnknownGroup_in2, is.na(basalArea_UnknownGroup_in2), 0),
-         basalArea_Pteridophytes_in2 = replace(basalArea_Pteridophytes_in2, is.na(basalArea_Pteridophytes_in2), 0))  
+         basalArea_Pteridophytes_in2 = replace(basalArea_Pteridophytes_in2, is.na(basalArea_Pteridophytes_in2), 0))
+
+ggplot(TREE_use[,c("LAT", "LON", "INVYR", "basalArea_Angiosperms_in2")]) + 
+  geom_point(aes(LON, LAT, col = basalArea_Angiosperms_in2), pch = 1)
+
 
 # calculate total plot-level basal area (averaged across subplots))
 TREE_use$basalArea_allGroups_in2 = rowSums(TREE_use[,c("basalArea_Angiosperms_in2", "basalArea_Gymnosperms_in2", "basalArea_UnknownGroup_in2", "basalArea_Pteridophytes_in2")])
@@ -456,9 +482,11 @@ TREE_use$basalArea_Gymnosperms_perc = TREE_use$basalArea_Gymnosperms_in2/TREE_us
 TREE_use$basalArea_UnknownGroup_perc = TREE_use$basalArea_UnknownGroup_in2/TREE_use$basalArea_allGroups_in2*100
 TREE_use$basalArea_Pteridophytes_perc = TREE_use$basalArea_Pteridophytes_in2/TREE_use$basalArea_allGroups_in2*100
 
-plot(TREE_use$LON, TREE_use$LAT, col = as.factor(TREE_use$basalArea_UnknownGroup_perc))
+
+plot(TREE_use$LON, TREE_use$LAT, col = as.factor(TREE_use$basalArea_Gymnosperms_perc))
 ggplot(TREE_use) +
-  geom_point(aes(LON, LAT, col = basalArea_allGroups_in2))
+  geom_point(aes(LON, LAT, col = basalArea_Gymnosperms_perc)) + 
+  facet_wrap(~INVYR)
 
 ## save data
 saveRDS(TREE_use, "./Data_raw//FIA/TREEtable_use.rds")
