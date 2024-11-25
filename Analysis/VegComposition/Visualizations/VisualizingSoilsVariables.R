@@ -15,7 +15,7 @@ library(tidyterra)
 
 # load data ---------------------------------------------------------------
 # load shapefile version of "big composition dataset"
-vegSoils_final <- readRDS("./Data_processed/soilsFigData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
+vegSoils_final <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
 # filter for unique soils data (same across years)
 soilsFigDat <- vegSoils_final %>% 
   select(Long, Lat, soilDepth:totalAvailableWaterHoldingCapacity) %>% 
@@ -107,7 +107,7 @@ orgPerc_rast <- soilsFigDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "avgOrganicCarbonPerc_acrossDepth", 
+                   field = "avgOrganicCarbonPerc_0_3cm", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
   ))
@@ -117,7 +117,7 @@ orgPerc_rast <- soilsFigDat %>%
     scale_fill_viridis_c(option = "D", guide = guide_colorbar(title = "%")#, 
                          #limits = c(0,100)
                          ) +
-    ggtitle("Organic Carbon % - weighted avg. across depth"))
+    ggtitle("Organic Carbon % - first 3 cm"))
 
 ## total available water holding capacity
 awc_rast <- soilsFigDat %>% 
@@ -146,3 +146,4 @@ awc_rast <- soilsFigDat %>%
     filename = "./Figures/soilsVariableFigures.pdf", 
     width = 11, height = 12)
 
+d

@@ -35,7 +35,7 @@ vegDat <- vegDat_temp %>%
 # * conversion point depths to soil layers: trapezoidal rule
 # * extrapolation from 150-cm point depth to deeper layers: 150-cm values
 
-if (sum(list.files("./Data_processed/") == SoilsRaster.rds) == 0) {
+if (sum(list.files("./Data_processed/") == "SoilsRaster.rds") == 0) {
   # if there is NOT an .rds file called SoilsRaster, do the following
   # load gridded soils data from Daniel (currently an old version, will be updated w/ SOLUS100 data)
   gridClay <- terra::rast(x = "./Data_raw/soilsDB_new/claytotal_PED-CONUS4km_SOLUS100.nc") %>% 
@@ -219,33 +219,35 @@ vegSoils_new <-
                                        }
     ), 
     # soil organic carbon average across depths (avg. weighted by width of layer)
-    avgOrganicCarbonPerc_acrossDepth = pmap_dbl(.[c("horizonThickness_cm_2cm" , "horizonThickness_cm_7cm" , "horizonThickness_cm_15cm" , 
-                                             "horizonThickness_cm_25cm" , "horizonThickness_cm_35cm" , "horizonThickness_cm_50cm" , 
-                                             "horizonThickness_cm_70cm" , "horizonThickness_cm_90cm" , "horizonThickness_cm_125cm" , 
-                                             "horizonThickness_cm_176cm", "organicCarbonPerc_2cm", "organicCarbonPerc_7cm" , "organicCarbonPerc_15cm",
-                                             "organicCarbonPerc_25cm" , "organicCarbonPerc_35cm", "organicCarbonPerc_50cm" , "organicCarbonPerc_70cm", "organicCarbonPerc_90cm" ,
-                                             "organicCarbonPerc_125cm","organicCarbonPerc_176cm", "soilDepth")], 
-                                         function(horizonThickness_cm_2cm , horizonThickness_cm_7cm , horizonThickness_cm_15cm , 
-                                                  horizonThickness_cm_25cm , horizonThickness_cm_35cm , horizonThickness_cm_50cm , 
-                                                  horizonThickness_cm_70cm , horizonThickness_cm_90cm , horizonThickness_cm_125cm , 
-                                                  horizonThickness_cm_176cm, organicCarbonPerc_2cm, organicCarbonPerc_7cm , organicCarbonPerc_15cm,
-                                                  organicCarbonPerc_25cm , organicCarbonPerc_35cm, organicCarbonPerc_50cm , organicCarbonPerc_70cm, organicCarbonPerc_90cm ,
-                                                  organicCarbonPerc_125cm,organicCarbonPerc_176cm, soilDepth) {
-                                           y <- sum(c(organicCarbonPerc_2cm *  horizonThickness_cm_2cm/soilDepth, 
-                                                      organicCarbonPerc_7cm *    horizonThickness_cm_7cm/soilDepth, 
-                                                      organicCarbonPerc_15cm *   horizonThickness_cm_15cm/soilDepth, 
-                                                      organicCarbonPerc_25cm *   horizonThickness_cm_25cm/soilDepth, 
-                                                      organicCarbonPerc_35cm *   horizonThickness_cm_35cm/soilDepth, 
-                                                      organicCarbonPerc_50cm *   horizonThickness_cm_50cm/soilDepth, 
-                                                      organicCarbonPerc_70cm *   horizonThickness_cm_70cm/soilDepth, 
-                                                      organicCarbonPerc_90cm *   horizonThickness_cm_90cm/soilDepth, 
-                                                      organicCarbonPerc_125cm *  horizonThickness_cm_125cm/soilDepth, 
-                                                      organicCarbonPerc_176cm *  horizonThickness_cm_176cm/soilDepth), 
-                                                    na.rm = TRUE)/1 
-                                           # following weighted average formula here: weighted average = sum(x * weight)/sum(weights)
-                                           return(y)
-                                         }
-    )                     )
+    avgOrganicCarbonPerc_0_3cm = organicCarbonPerc_2cm
+    #   pmap_dbl(.[c("horizonThickness_cm_2cm" , "horizonThickness_cm_7cm" , "horizonThickness_cm_15cm" , 
+    #                                          "horizonThickness_cm_25cm" , "horizonThickness_cm_35cm" , "horizonThickness_cm_50cm" , 
+    #                                          "horizonThickness_cm_70cm" , "horizonThickness_cm_90cm" , "horizonThickness_cm_125cm" , 
+    #                                          "horizonThickness_cm_176cm", "organicCarbonPerc_2cm", "organicCarbonPerc_7cm" , "organicCarbonPerc_15cm",
+    #                                          "organicCarbonPerc_25cm" , "organicCarbonPerc_35cm", "organicCarbonPerc_50cm" , "organicCarbonPerc_70cm", "organicCarbonPerc_90cm" ,
+    #                                          "organicCarbonPerc_125cm","organicCarbonPerc_176cm", "soilDepth")], 
+    #                                      function(horizonThickness_cm_2cm , horizonThickness_cm_7cm , horizonThickness_cm_15cm , 
+    #                                               horizonThickness_cm_25cm , horizonThickness_cm_35cm , horizonThickness_cm_50cm , 
+    #                                               horizonThickness_cm_70cm , horizonThickness_cm_90cm , horizonThickness_cm_125cm , 
+    #                                               horizonThickness_cm_176cm, organicCarbonPerc_2cm, organicCarbonPerc_7cm , organicCarbonPerc_15cm,
+    #                                               organicCarbonPerc_25cm , organicCarbonPerc_35cm, organicCarbonPerc_50cm , organicCarbonPerc_70cm, organicCarbonPerc_90cm ,
+    #                                               organicCarbonPerc_125cm,organicCarbonPerc_176cm, soilDepth) {
+    #                                        y <- sum(c(organicCarbonPerc_2cm *  horizonThickness_cm_2cm/soilDepth, 
+    #                                                   organicCarbonPerc_7cm *    horizonThickness_cm_7cm/soilDepth, 
+    #                                                   organicCarbonPerc_15cm *   horizonThickness_cm_15cm/soilDepth, 
+    #                                                   organicCarbonPerc_25cm *   horizonThickness_cm_25cm/soilDepth, 
+    #                                                   organicCarbonPerc_35cm *   horizonThickness_cm_35cm/soilDepth, 
+    #                                                   organicCarbonPerc_50cm *   horizonThickness_cm_50cm/soilDepth, 
+    #                                                   organicCarbonPerc_70cm *   horizonThickness_cm_70cm/soilDepth, 
+    #                                                   organicCarbonPerc_90cm *   horizonThickness_cm_90cm/soilDepth, 
+    #                                                   organicCarbonPerc_125cm *  horizonThickness_cm_125cm/soilDepth, 
+    #                                                   organicCarbonPerc_176cm *  horizonThickness_cm_176cm/soilDepth), 
+    #                                                 na.rm = TRUE)/1 
+    #                                        # following weighted average formula here: weighted average = sum(x * weight)/sum(weights)
+    #                                        return(y)
+    #                                      }
+    # )                     
+    )
      
 
 # # total profile available water-holding capacity
