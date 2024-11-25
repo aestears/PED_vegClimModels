@@ -35,8 +35,6 @@ modDat_3 <- sf::st_join(modDat_2, regions_2)
 # missing for places right on the coast... but not a big deal to not have those
 plot(modDat_3[is.na(modDat_3$NA_L1CODE), "geometry"])
 
-
-
 # group into coarser ecoregions -------------------------------------------
 # make a lookup table
 ecoReg_lu <- data.frame("NA_L1NAME" = unique(modDat_3$NA_L1NAME), "newRegion" = c("westForest", "dryShrubGrass", "westForest", "dryShrubGrass", "dryShrubGrass", "dryShrubGrass",

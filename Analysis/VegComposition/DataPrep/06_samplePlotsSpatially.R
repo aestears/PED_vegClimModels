@@ -16,7 +16,7 @@ library(stars)
 # Load data ---------------------------------------------------------------
 
 # get veg data
-dat <- readRDS("./Data_processed/DataForModels.rds") 
+dat <- readRDS("./Data_processed/CoverData/DataForModels.rds") 
 # dayMet extent 
 test <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
   terra::project(crs(dat))
@@ -60,11 +60,11 @@ layerNames <- dat %>%
   names() 
 years <- sort(unique(dat$Year))
 
-# dat# function to rasterize and average cover values
+# rasterize and average cover values
 test2_a <- lapply(layerNames[1:2], FUN = function(x) {
    temp <- terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
                    , by = "Year") 
-   names(temp) <- paste("ID_",years)
+   names(temp) <- paste0("ID_",years)
    return(temp)
   # temp <-  dat2 %>% 
   #   select("Lat", "Lon", "Year", all_of(x)) %>% 
@@ -94,7 +94,7 @@ test2_b <- lapply(layerNames[3:4], FUN = function(x) {
   temp <- terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
                    , by = "Year")
   
-  names(temp) <- paste("ID_",years)
+  names(temp) <- paste0("ID_",years)
   return(temp)
 }
 )
@@ -104,8 +104,11 @@ rm(test2_a, test2_b)
 gc()
 
 test2_c <- lapply(layerNames[5:6], FUN = function(x) {
-  terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
-                   , by = "Year")
+  temp <- terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                           , by = "Year")
+  
+  names(temp) <- paste0("ID_",years)
+  return(temp)
 }
 )
 test2_abc <- c(test2_ab, test2_c)
@@ -113,8 +116,11 @@ rm(test2_ab, test2_c)
 gc()
 
 test2_d <- lapply(layerNames[7], FUN = function(x) {
-  terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
-                   , by = "Year")
+  temp <- terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                           , by = "Year")
+  
+  names(temp) <- paste0("ID_",years)
+  return(temp)
 }
 )
 test2_abcd <- c(test2_abc, test2_d)
@@ -122,8 +128,11 @@ rm(test2_abc, test2_d)
 gc()
 
 test2_e <- lapply(layerNames[8], FUN = function(x) {
-  terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
-                   , by = "Year")
+  temp <- terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                           , by = "Year")
+  
+  names(temp) <- paste0("ID_",years)
+  return(temp)
 }
 )
 
@@ -132,8 +141,11 @@ rm(test2_abcd, test2_e)
 gc()
 
 test2_f <- lapply(layerNames[9], FUN = function(x) {
-  terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
-                   , by = "Year")
+  temp <- terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                           , by = "Year")
+  
+  names(temp) <- paste0("ID_",years)
+  return(temp)
 }
 )
 
@@ -142,8 +154,11 @@ rm(test2_abcde, test2_f)
 gc()
 
 test2_g <- lapply(layerNames[10], FUN = function(x) {
-  terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
-                   , by = "Year")
+  temp <- terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                           , by = "Year")
+  
+  names(temp) <- paste0("ID_",years)
+  return(temp)
 }
 )
 
@@ -152,7 +167,6 @@ rm(test2_abcdef, test2_g)
 gc()
 
 names(test2) <- layerNames
-
 
 # save for later
 lapply(layerNames, FUN = function(x) {
@@ -262,8 +276,8 @@ allDat_avg <- test7 %>%
   left_join(climDat, by = c("locID", "Year" = "year"))
 
 ## save the data
-saveRDS(allDat_avg, "./Data_processed/DataForModels_spatiallyAveraged_sf.rds")
-saveRDS(st_drop_geometry(allDat_avg), "./Data_processed/DataForModels_spatiallyAveraged_NoSf.rds")
+saveRDS(allDat_avg, "./Data_processed/CoverData/DataForModels_spatiallyAveraged_sf.rds")
+saveRDS(st_drop_geometry(allDat_avg), "./Data_processed/CoverData/DataForModels_spatiallyAveraged_NoSf.rds")
 
 # Testing -----------------------------------------------------------------
   # determine if the results are accurate 
