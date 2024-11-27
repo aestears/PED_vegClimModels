@@ -69,16 +69,24 @@ RAPall <- RAPbiomass_sf %>%
 
 # save data
 saveRDS(RAPall, "./Data_processed/BiomassQuantityData/HerbBiomassCover_withWeatherAndFireFiltering.rds")
+RAPall <- readRDS("./Data_processed/BiomassQuantityData/HerbBiomassCover_withWeatherAndFireFiltering.rds")
 # visualize data ----------------------------------------------------------
 
 test <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif")
 
-RAPall_rast <- terra::rasterize(terra::vect(RAPall), field = "HerbaceousBiomass_kgPerHect",
-                                y = test, fun = mean, na.rm = TRUE) %>% 
-  terra::aggregate(fact = 32, fun = "mean", na.rm = TRUE) %>% 
-  terra::crop(ext(-2000000, 2500000, -2000000, 1200000))
+years <- unique(RAPall$Year)
+RAPall_rast <- lapply(years, FUN = function(x) {
+  temp <- RAPall %>% 
+    filter(Year == x) %>% 
+    terra::vect() %>% 
+    terra::rasterize(field = "HerbaceousBiomass_kgPerHect",
+                     y = test, fun = mean, na.rm = TRUE)
+  return(temp)
+})
+names(RAPall_rast) <- years
+RAPall_rast <- c(RAPall_rast[[1]], RAPall_rast[[2]], RAPall_rast[[3]])
+names(RAPall_rast) <- years
 
-plot(RAPall_rast)
+# save RAP data
+saveRDS(RAPall_rast, "./Data_processed/BiomassQuantityData/HerbBiomassCover_withWeatherAndFireFiltering_rast.rds")
 
-ggplot(RAPall[1:10000,]) + 
-  geom_sf(aes(col = HerbaceousBiomass_kgPerHect))

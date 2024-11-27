@@ -143,7 +143,7 @@ ggplot(TREE_use) +
 # Get vegetation cover data -----------------------------------------------
 # previously generated in "./Analysis/VegComposition/DataPrep/05_prepDataForModels.R" 
 #(includes weather data, and burned plots have been filtered out)
-vegDat <- readRDS(file = "./Data_processed/DataForModels.RDS")
+vegDat <- readRDS(file = "./Data_processed/CoverData/DataForModels.RDS")
 
 # Add cover and biomass data together -------------------------------------
 
@@ -180,13 +180,13 @@ test <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d2
 
 ## visualize above ground carbon data
 biomassCoverDat_temp <- biomassCoverDat %>% 
-  select(c("INVYR", "Carbon_AG_subpSum_plotAvg", "geometry")) %>% 
+  select(c("INVYR", "DryBio_foliage_trees", "geometry")) %>% 
   st_as_sf() %>% 
   st_cast("POINT")
 
 years <-as.matrix(unique(biomassCoverDat_temp$INVYR))
 biomassCoverDat_rast <- apply(years, MARGIN = 1, function(x) {
-  rast <- terra::rasterize(terra::vect(biomassCoverDat_temp[biomassCoverDat_temp$INVYR == x,]), field = "Carbon_AG_subpSum_plotAvg",
+  rast <- terra::rasterize(terra::vect(biomassCoverDat_temp[biomassCoverDat_temp$INVYR == x,]), field = "DryBio_foliage_trees",
                    y = test, fun = mean, na.rm = TRUE) %>% 
     terra::aggregate(fact = 64, fun = "mean", na.rm = TRUE) %>% 
     terra::crop(ext(-2000000, 2500000, -2000000, 1200000))
@@ -199,7 +199,7 @@ biomassCoverDat_rastAll <- rast(biomassCoverDat_rast)
 par(mfrow = c(1,1))
 ggplot() + 
   geom_spatraster(data = biomassCoverDat_rastAll) + 
-  ggtitle("Tree above ground carbon and cover data from FIA") + 
+  ggtitle("Tree foliar biomass") + 
   scale_fill_viridis_c(option = "turbo", na.value = "white") + 
   facet_wrap(~lyr)
 
