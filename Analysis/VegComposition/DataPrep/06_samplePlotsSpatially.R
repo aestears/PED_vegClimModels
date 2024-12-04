@@ -16,7 +16,7 @@ library(stars)
 # Load data ---------------------------------------------------------------
 
 # get veg data
-dat <- readRDS("./Data_processed/CoverData/DataForModels.rds") 
+dat <- readRDS("./Data_processed/CoverData/DataForModels.RDS") 
 # dayMet extent 
 test <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
   terra::project(crs(dat))
@@ -55,8 +55,8 @@ st_crs(dat) == st_crs(test)
 # get the names of the columns w/ data we want to rasterize
 layerNames <- dat %>% 
   st_drop_geometry() %>% 
-  dplyr::select(c(ShrubCover, TotalTreeCover, TotalHerbaceousCover, CAMCover, BareGroundCover, 
-           ForbCover_prop:NeedleLeavedTreeCover_prop)) %>% 
+  dplyr::select(c(TotalTreeCover:TotalHerbaceousCover, BareGroundCover, 
+                  BroadleavedTreeCover_prop:ForbCover_prop, ShrubCover)) %>% 
   names() 
 years <- sort(unique(dat$Year))
 
@@ -168,14 +168,25 @@ gc()
 
 names(test2) <- layerNames
 
-# save for later
-lapply(layerNames, FUN = function(x) {
-  saveRDS(test2[[x]]*1, paste0("./Data_processed/spatialSamplesInt_",x,".rds"))
-})
+# library(tidyterra)
+# plotDat <- test2$NeedleLeavedTreeCover_prop %>% 
+#   terra::mean(na.rm = TRUE) %>% 
+#   terra::aggregate(fact = 8, fun = "mean", na.rm = TRUE)
+# (treeCov_plot_AVG <- ggplot() + 
+#     geom_spatraster(data = plotDat, aes(), na.rm = TRUE) +
+#     theme_minimal() + 
+#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,1)) +
+#     ggtitle("Averaged Data", subtitle = "Tree % cover" ))
+
+# # save for later
+# lapply(layerNames, FUN = function(x) {
+#   saveRDS(test2[[x]]*1, paste0("./Data_processed/CoverData/spatialSamplesInt_",x,".rds"))
+# })
 
 # # read back in saved data
 # testTest <- lapply(layerNames, FUN = function(x) {
-#  readRDS(paste0("./Data_processed/spatialSamplesInt_",x,".rds")) %>%
+#  readRDS(paste0("./Data_processed/CoverData/spatialSamplesInt_",x,".rds")) %>%
 #     rast()
 # }
 # )
@@ -222,7 +233,7 @@ test3 <- lapply(names(test2), FUN = function(y) {
   
 names(test3) <- layerNames
 # save output! 
-saveRDS(test3, "./Data_processed/spatiallyAverageData_intermediate.rds")
+saveRDS(test3, "./Data_processed/CoverData/spatiallyAverageData_intermediate.rds")
 #test3 <- readRDS("./Data_processed/spatiallyAverageData_intermediate.rds")
 
 # put together into a data.frame 

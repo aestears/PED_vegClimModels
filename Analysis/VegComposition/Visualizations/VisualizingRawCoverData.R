@@ -1268,7 +1268,6 @@ camCover_rast <- coverDat %>%
 
 
 # For data averaged across each grid cell ---------------------------------
-# load data ---------------------------------------------------------------
 # load shapefile version of "big composition dataset"
 coverDatAvg <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds") %>% 
   st_as_sf(coords = c("Long", "Lat"), crs = ("PROJCRS[\"unnamed\",BASEGEOGCRS[\"unknown\", DATUM[\"unknown\",
@@ -1488,3 +1487,45 @@ ggarrange(
     filename = "./Figures/coverDatFigures/ForbHerbaceousCamShrubFigures.pdf",
     width = 14, height = 17)
 
+
+# Testing ---------------------------------
+# load shapefile version of "big composition dataset"
+coverDatAvg <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds") %>% 
+  st_as_sf(coords = c("Long", "Lat"), crs = ("PROJCRS[\"unnamed\",BASEGEOGCRS[\"unknown\", DATUM[\"unknown\",
+   ELLIPSOID[\"Spheroid\",6378137,298.257223563, LENGTHUNIT[\"metre\",1,  ID[\"EPSG\",9001]]]],   PRIMEM[\"Greenwich\",0,   
+                                             ANGLEUNIT[\"degree\",0.0174532925199433,  ID[\"EPSG\",9122]]]],
+                                             \nCONVERSION[\"Lambert Conic Conformal (2SP)\",   
+                                             METHOD[\"Lambert Conic Conformal (2SP)\",   ID[\"EPSG\",9802]],   
+                                             PARAMETER[\"Latitude of false origin\",42.5,   ANGLEUNIT[\"degree\",0.0174532925199433],   
+                                             ID[\"EPSG\",8821]],   PARAMETER[\"Longitude of false origin\",-100,   
+                                             ANGLEUNIT[\"degree\",0.0174532925199433],   ID[\"EPSG\",8822]],  
+                                             PARAMETER[\"Latitude of 1st standard parallel\",25,   
+                                             ANGLEUNIT[\"degree\",0.0174532925199433],   
+                                             ID[\"EPSG\",8823]],   PARAMETER[\"Latitude of 2nd standard parallel\",60,   
+                                             ANGLEUNIT[\"degree\",0.0174532925199433],   ID[\"EPSG\",8824]],  
+                                             PARAMETER[\"Easting at false origin\",0,   LENGTHUNIT[\"metre\",1], 
+                                             ID[\"EPSG\",8826]],   PARAMETER[\"Northing at false origin\",0,   
+                                             LENGTHUNIT[\"metre\",1],   ID[\"EPSG\",8827]]],\nCS[Cartesian,2],  
+                                             AXIS[\"easting\",east,   ORDER[1],   LENGTHUNIT[\"metre\",1, 
+                                             ID[\"EPSG\",9001]]],   AXIS[\"northing\",north,   ORDER[2],   
+                                             LENGTHUNIT[\"metre\",1,  ID[\"EPSG\",9001]]]]")) %>% 
+  st_transform(crs(test_rast))
+
+# use 'test_rast' from above
+
+# total tree cover data 
+# rasterize data
+treeCover_rast <- coverDatAvg %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect() %>% 
+  #terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "TotalTreeCover", 
+                   fun = mean, na.rm = TRUE) %>% 
+  terra::crop(ext(-128, -65, 23, 51))
+(treeCov_plot_AVG <- ggplot() + 
+    geom_spatraster(data = treeCover_rast, aes(fill = mean), na.rm = TRUE) +
+    theme_minimal() + 
+    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+                         limits = c(0,100)) +
+    ggtitle("Averaged Data", subtitle = "Tree % cover" ))

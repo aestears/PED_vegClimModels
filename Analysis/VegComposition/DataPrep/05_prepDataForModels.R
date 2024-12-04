@@ -20,7 +20,7 @@ library(sf)
 # load data ---------------------------------------------------------------
 
 # load vegetation data
-vegDat <- readRDS("./Data_processed/dataForAnalysis_fireRemoved.rds") 
+vegDat <- readRDS("./Data_processed/CoverData/dataForAnalysis_fireRemoved.rds") 
 # load meteorological data
 dayMet <- readRDS("./Data_raw/dayMet/climateValuesForAnalysis_final.rds")
 # remove monthly values 
@@ -57,25 +57,31 @@ allDat <- allDat %>%
   rename(StateUnitCode = SttUntC, # fix names 
          PlotCondition = PltCndt,
          ShrubCover = ShrbCvr,
-         ForbCover = HerbCvr,
-         TotalHerbaceousCover = TtlHrbC,
-         AnnualHerbaceousCover = AnnlHGC,
-         PerennialHerbaceousCover = PrnnHGC,
-         CAMCover = CAMCovr,
-         C3GramCover = C3GrmCv,
-         C4GramCover = C4GrmCv,
-         BroadLeavedTreeCover = AngTrCv,
-         NeedleLeavedTreeCover = CnfTrCv,
-         TotalTreeCover = TtlTrCv,
+         TotalTreeCover = TtlTrCv, 
+         TotalHerbaceousCover = TtlHrbC, 
+         CAMCover  = CAMCovr, 
+         BareGroundCover = BrGrndC, 
+         ForbCover_prop = FrbCvr_,
+         C3Cover_prop = C3GrmC_,
+         C4Cover_prop = C4GrmC_,
+         BroadleavedTreeCover_prop = AngTrC_,
+         NeedleLeavedTreeCover_prop = CnfTrC_,
+         #AnnualHerbaceousCover = AnnlHGC,
+         #PerennialHerbaceousCover = PrnnHGC,,
+         #C3GramCover = C3GrmCv,
+         #C4GramCover = C4GrmCv,
+         #BroadLeavedTreeCover = AngTrCv,
+         #NeedleLeavedTreeCover = CnfTrCv,
+         #TotalTreeCover = TtlTrCv,
          TotalTreeBasalArea_m2 = TrBsA_2,
          BareGroundCover = BrGrndC,
          LitterCover = LttrCvr,
          LitterDepth = LttrDpt,
-         ForbCover_prop = HrbCvr_,
-         C3GramCover_prop = C3GrmC_,
-         C4GramCover_prop = C4GrmC_,
-         BroadLeavedTreeCover_prop = AngTrC_,
-         NeedleLeavedTreeCover_prop = CnfTrC_
+         #ForbCover_prop = HrbCvr_,
+         #C3GramCover_prop = C3GrmC_,
+         #C4GramCover_prop = C4GrmC_,
+         #BroadLeavedTreeCover_prop = AngTrC_,
+         #NeedleLeavedTreeCover_prop = CnfTrC_
          ) 
   # calculate proportion of C3/C4/Herb and Broad-leaved and Needle-leaved trees
   
@@ -193,4 +199,4 @@ allDat <- allDat %>%
 #   
 
 ## save data for further analysis 
-saveRDS(allDat, file = "./Data_processed/DataForModels.RDS")
+saveRDS(allDat, file = "./Data_processed/CoverData/DataForModels.RDS")

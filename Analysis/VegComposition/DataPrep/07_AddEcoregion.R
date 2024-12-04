@@ -14,7 +14,7 @@ library(terra)
 # load data ---------------------------------------------------------------
 
 # data ready for model fitting
-modDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_sf.rds")
+modDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_sf.rds")
 # get level 1 ecoregions shapefiles
 regions <- sf::st_read(dsn = "./Data_raw/Level1Ecoregions/", layer = "NA_CEC_Eco_Level1")
 

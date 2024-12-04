@@ -111,66 +111,94 @@ rm(test2_ab, test2_c)
 gc()
 
 names(test2) <- layerNames[1:5]
-# 
-# test2_c <- lapply(layerNames[5:6], FUN = function(x) {
-#   temp <- terra::rasterize(dat2, y = test, field = x, fun = length#function(x) mean(x, na.rm = TRUE)
-#                            , by = "Year")
-#   
-#   names(temp) <- paste0("ID_",years)
-#   return(temp)
-# }
-# )
-# test2_abc <- c(test2_ab, test2_c)
-# rm(test2_ab, test2_c)
-# gc()
-# 
-# test2_d <- lapply(layerNames[7], FUN = function(x) {
-#   temp <- terra::rasterize(dat2, y = test, field = x, fun = length#function(x) mean(x, na.rm = TRUE)
-#                            , by = "Year")
-#   
-#   names(temp) <- paste0("ID_",years)
-#   return(temp)
-# }
-# )
-# test2_abcd <- c(test2_abc, test2_d)
-# rm(test2_abc, test2_d)
-# gc()
-# 
-# test2_e <- lapply(layerNames[8], FUN = function(x) {
-#   temp <- terra::rasterize(dat2, y = test, field = x, fun = length#function(x) mean(x, na.rm = TRUE)
-#                            , by = "Year")
-#   
-#   names(temp) <- paste0("ID_",years)
-#   return(temp)
-# }
-# )
-# 
-# test2_abcde <- c(test2_abcd, test2_e)
-# rm(test2_abcd, test2_e)
-# gc()
-# 
-# test2_f <- lapply(layerNames[9], FUN = function(x) {
-#   temp <- terra::rasterize(dat2, y = test, field = x, fun = length#function(x) mean(x, na.rm = TRUE)
-#                            , by = "Year")
-#   
-#   names(temp) <- paste0("ID_",years)
-#   return(temp)
-# }
-# )
-# 
-# test2_abcdef <- c(test2_abcde, test2_f)
-# rm(test2_abcde, test2_f)
-# gc()
-# 
-# test2_g <- lapply(layerNames[10], FUN = function(x) {
-#   temp <- terra::rasterize(dat2, y = test, field = x, fun = length#function(x) mean(x, na.rm = TRUE)
-#                            , by = "Year")
-#   
-#   names(temp) <- paste0("ID_",years)
-#   return(temp)
-# }
-# )
 
+
+# extract values back to points -------------------------------------------
+
+centroidPoints <- xyFromCell(test$daymet_v4_prcp_monttl_na_1980_1, cell = 1:ncell(test$daymet_v4_prcp_monttl_na_1980_1)) %>% 
+  #as.data.frame() %>% 
+  #st_as_sf(coords = c("x", "y")) %>% 
+  vect(crs = terra::crs(test)) 
+crs(centroidPoints) == crs(dat) 
+
+
+# extract the points from the raster back to the data.frame 
+test3 <- lapply(names(test2), FUN = function(y) {
+  print(y)
+  temp <- lapply(1:length(unique(dat$Year)), FUN = function(x) {
+    
+    # is the raster for this data/year all NAs? 
+    if (any(as.numeric(terra::global(test2[[y]][[x]], fun = "notNA")[,1]) > 0)) { # if there is data
+      print(x)
+      layer_i <- test2[[y]][[x]] %>% 
+        terra::extract(y = centroidPoints, xy = TRUE) %>% # get data just for the points
+        filter(!is.na(.data[[names(test2[[y]])[x]]])) 
+      layer_i$Year <- sort(unique(dat$Year))[x]
+      return(layer_i)
+    } else {
+      message(paste0("year ", sort(unique(dat$Year))[[x]], " (index ", x,") has no data"))
+    }
+    
+  }) %>% 
+    list_rbind 
+  
+  temp2 <- temp %>% 
+    transmute(value = base::rowSums(temp %>% select(any_of(names(test2[[1]]))), na.rm = TRUE), 
+              ID = ID, 
+              x = x,
+              y = y, 
+              Year = Year)
+}
+)
+
+names(test3) <- layerNames[1:5]
+# save output! 
+saveRDS(test3, "./Data_processed/CoverData/spatiallyAverageData_n_plotsPerGridCell.rds")
+#test3 <- readRDS("./Data_processed/spatiallyAverageData_intermediate.rds")
+
+# put together into a data.frame 
+test4 <- lapply(layerNames[1:5], function(x) {
+  temp <- test3[[x]] %>% 
+    select(-ID) 
+  names(temp)[1] <- x
+  return(temp)
+}) 
+test5 <- test4[[1]] %>% 
+  full_join(test4[[2]], by = c("x", "y", "Year")) %>% 
+  full_join(test4[[3]], by = c("x", "y", "Year")) %>% 
+  full_join(test4[[4]], by = c("x", "y", "Year")) %>% 
+  full_join(test4[[5]], by = c("x", "y", "Year"))
+
+
+rm(test3, test4)
+gc()
+
+
+# add plot counts to actual averaged data ---------------------------------
+# read in data
+coverData <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_sf.rds")
+test6 <- test5 %>% 
+    rename(ShrubCover_N = ShrubCover,
+           TotalTreeCover_N = TotalTreeCover, 
+           TotalHerbaceousCover_N = TotalHerbaceousCover, 
+           CAMCover_N = CAMCover, 
+           BareGroundCover_N = BareGroundCover) %>% 
+    select(x, y, Year, ShrubCover_N, TotalTreeCover_N, TotalHerbaceousCover_N, 
+           CAMCover_N, BareGroundCover_N) %>% 
+  st_as_sf(coords = c("x", "y"), crs = st_crs(coverData), remove = FALSE)
+
+datAll <- coverData %>% 
+  st_join(test6) %>% 
+  filter(Year.x == Year.y)
+
+#View(datAll[,c("Lat", "Long", "Year.x", "Year.y")])
+
+
+# save results ------------------------------------------------------------
+
+## save the data
+saveRDS(datAll, "./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_sf.rds")
+saveRDS(st_drop_geometry(datAll), "./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_NoSf.rds")
 
 # Visualize results -------------------------------------------------------
 ## shrub

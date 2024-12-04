@@ -245,4 +245,4 @@ plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$CnfTrCv <
 plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$ShrbCvr <- NA
 
 
-saveRDS(plotDat_noFireAll, file = "./Data_processed/dataForAnalysis_fireRemoved.rds")
+saveRDS(plotDat_noFireAll, file = "./Data_processed/CoverData/dataForAnalysis_fireRemoved.rds")

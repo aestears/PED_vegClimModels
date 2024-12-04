@@ -433,18 +433,18 @@ a6<-0.00000000006136820929
 ## calculating vapor pressure deficit, annual water deficit, and wet degree days (based on code from Adam Noel)
 climVar2 <- allMetDat2%>% 
   # approximation of mean temp (just avg. of max and min, which I realize is not totally accurate)
-  mutate(tmean_Jan = (tmax_Jan - tmin_Jan)/2,
-         tmean_Feb = (tmax_Feb - tmin_Feb)/2,
-         tmean_March = (tmax_March - tmin_March)/2,
-         tmean_April = (tmax_April - tmin_April)/2,
-         tmean_May = (tmax_May - tmin_May)/2,
-         tmean_June = (tmax_June - tmin_June)/2,
-         tmean_July = (tmax_July - tmin_July)/2,
-         tmean_Aug = (tmax_Aug - tmin_Aug)/2,
-         tmean_Sept = (tmax_Sept - tmin_Sept)/2,
-         tmean_Oct = (tmax_Oct - tmin_Oct)/2,
-         tmean_Nov = (tmax_Nov - tmin_Nov)/2,
-         tmean_Dec = (tmax_Dec - tmin_Dec)/2,
+  mutate(tmean_Jan = (tmax_Jan + tmin_Jan)/2,
+         tmean_Feb = (tmax_Feb + tmin_Feb)/2,
+         tmean_March = (tmax_March + tmin_March)/2,
+         tmean_April = (tmax_April + tmin_April)/2,
+         tmean_May = (tmax_May + tmin_May)/2,
+         tmean_June = (tmax_June + tmin_June)/2,
+         tmean_July = (tmax_July + tmin_July)/2,
+         tmean_Aug = (tmax_Aug + tmin_Aug)/2,
+         tmean_Sept = (tmax_Sept + tmin_Sept)/2,
+         tmean_Oct = (tmax_Oct + tmin_Oct)/2,
+         tmean_Nov = (tmax_Nov + tmin_Nov)/2,
+         tmean_Dec = (tmax_Dec + tmin_Dec)/2,
   ) %>% 
   mutate(
     # monthly water deficit 
@@ -656,7 +656,7 @@ annMeans_30yr <- lapply(endDats, function(x) {
 annMeans_30yr <- data.table::rbindlist(annMeans_30yr)
 
 names(annMeans_30yr)[3:28] <- paste0(names(annMeans_30yr)[3:28], "_30yr")
-saveRDS(annMeans_30yr, "./Data_processed/dayMet_intermediate/annMeans_30yrs.rds")
+saveRDS(annMeans_30yr, "./Data_processed/CoverData/dayMet_intermediate/annMeans_30yrs.rds")
 
 # for last 10-year window
 endDats <- as.matrix(c(1990:2023))
@@ -673,7 +673,7 @@ annMeans_10yr <- lapply(endDats, function(x) {
 
 annMeans_10yr <- data.table::rbindlist(annMeans_10yr)
 names(annMeans_10yr)[3:28] <- paste0(names(annMeans_10yr)[3:28], "_10yr")
-saveRDS(annMeans_10yr, "./Data_processed/dayMet_intermediate/annMeans_10yrs.rds")
+saveRDS(annMeans_10yr, "./Data_processed/CoverData/dayMet_intermediate/annMeans_10yrs.rds")
 
 # for last 5-year window
 endDats <- as.matrix(c(1985:2023))
@@ -690,7 +690,7 @@ annMeans_5yr <- lapply(endDats, function(x) {
 
 annMeans_5yr <- data.table::rbindlist(annMeans_5yr)
 names(annMeans_5yr)[3:28] <- paste0(names(annMeans_5yr)[3:28], "_5yr")
-saveRDS(annMeans_5yr, "./Data_processed/dayMet_intermediate/annMeans_5yrs.rds")
+saveRDS(annMeans_5yr, "./Data_processed/CoverData/dayMet_intermediate/annMeans_5yrs.rds")
 
 # for last 1-year window
 endDats <- as.matrix(c(1981:2023))
@@ -707,7 +707,7 @@ annMeans_1yr <- lapply(endDats, function(x) {
 
 annMeans_1yr <- data.table::rbindlist(annMeans_1yr)
 names(annMeans_1yr)[3:28] <- paste0(names(annMeans_1yr)[3:28], "_1yr")
-saveRDS(annMeans_1yr, "./Data_processed/dayMet_intermediate/annMeans_1yrs.rds")
+saveRDS(annMeans_1yr, "./Data_processed/CoverData/dayMet_intermediate/annMeans_1yrs.rds")
 
 ## add lagged data to the main climate value data.frame
 test <- climVar %>% 
@@ -735,7 +735,7 @@ test3 <- test2 %>%
                                  "Lat" = "Lat"))
 
 # save intermediate data 
-saveRDS(test3, "./Data_processed/dayMet_intermediate/climVars_AnnualMeansAndLaggedValues.rds")
+saveRDS(test3, "./Data_processed/CoverData/dayMet_intermediate/climVars_AnnualMeansAndLaggedValues.rds")
 
 #### calculate anomalies ####
 # i.e. how do the 10 yr. lagged values compare to the 30yr lagged values? 5 yr? previous yr? 
@@ -910,14 +910,14 @@ anomDat_1yr <- anomDat_1yr_temp %>%
 climDat <- cbind(test3, anomDat_10yr, anomDat_5yr, anomDat_1yr)
 # save climate values for analysis 
 #write.csv(climDat, "./data/dayMet/climateValuesForAnalysis_final.csv", row.names = FALSE)
-saveRDS(climDat, "./Data_processed/dayMetClimateValuesForAnalysis_final.rds")
+saveRDS(climDat, "./Data_processed/CoverData/dayMetClimateValuesForAnalysis_final.rds")
 
-#plot MAP and MAT for sites for most recent 30-year period
-plotDat <- annMeans_30yr %>% 
-  filter(End_30yr == 2022)
-
-ggplot(plotDat) +
-  geom_point(aes(y = prcp_meanAnnTotal_30yr, x = tmin_meanAnnAvg_30yr))
-
-ggplot(plotDat) +
-  geom_point(aes(x = Long, y = Lat, col = tmax_meanAnnAvg_30yr))
+# #plot MAP and MAT for sites for most recent 30-year period
+# plotDat <- annMeans_30yr %>% 
+#   filter(End_30yr == 2022)
+# 
+# ggplot(plotDat) +
+#   geom_point(aes(y = prcp_meanAnnTotal_30yr, x = tmin_meanAnnAvg_30yr))
+# 
+# ggplot(plotDat) +
+#   geom_point(aes(x = Long, y = Lat, col = tmax_meanAnnAvg_30yr))
