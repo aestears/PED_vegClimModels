@@ -154,12 +154,12 @@ test3 <- lapply(names(test2), FUN = function(y) {
 names(test3) <- layerNames[1:5]
 # save output! 
 saveRDS(test3, "./Data_processed/CoverData/spatiallyAverageData_n_plotsPerGridCell.rds")
-#test3 <- readRDS("./Data_processed/spatiallyAverageData_intermediate.rds")
+#test3 <- readRDS("./Data_processed/CoverData/spatiallyAverageData_n_plotsPerGridCell.rds")
 
 # put together into a data.frame 
-test4 <- lapply(layerNames[1:5], function(x) {
+test4 <- lapply(layerNames[c(1:4,10)], function(x) {
   temp <- test3[[x]] %>% 
-    select(-ID) 
+    dplyr::select(-ID) 
   names(temp)[1] <- x
   return(temp)
 }) 

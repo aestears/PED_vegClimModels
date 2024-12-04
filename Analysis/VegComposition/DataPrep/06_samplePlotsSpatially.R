@@ -169,13 +169,13 @@ gc()
 names(test2) <- layerNames
 
 # library(tidyterra)
-# plotDat <- test2$NeedleLeavedTreeCover_prop %>% 
-#   terra::mean(na.rm = TRUE) %>% 
+# plotDat <- test2$NeedleLeavedTreeCover_prop %>%
+#   terra::mean(na.rm = TRUE) %>%
 #   terra::aggregate(fact = 8, fun = "mean", na.rm = TRUE)
-# (treeCov_plot_AVG <- ggplot() + 
+# (treeCov_plot_AVG <- ggplot() +
 #     geom_spatraster(data = plotDat, aes(), na.rm = TRUE) +
-#     theme_minimal() + 
-#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+#     theme_minimal() +
+#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"),
 #                          limits = c(0,1)) +
 #     ggtitle("Averaged Data", subtitle = "Tree % cover" ))
 
@@ -235,6 +235,23 @@ names(test3) <- layerNames
 # save output! 
 saveRDS(test3, "./Data_processed/CoverData/spatiallyAverageData_intermediate.rds")
 #test3 <- readRDS("./Data_processed/spatiallyAverageData_intermediate.rds")
+# treeCover_rast <- test3$NeedleLeavedTreeCover_prop %>% 
+#   st_as_sf(coords = c('x', 'y')) %>% 
+#   #slice_sample(n = 5e4) %>%
+#   terra::vect() %>% 
+#   #terra::set.crs(crs(test_rast)) %>% 
+#   terra::rasterize(y = test2$NeedleLeavedTreeCover_prop, 
+#                    field = "value", 
+#                    fun = mean, na.rm = TRUE) %>% 
+#   terra::aggregate(fact = 16, fun = "mean", na.rm = TRUE) %>% 
+#   terra::crop(ext(-2560750, 3253250, -2090500, 1284500))
+# (treeCov_plot_AVG <- ggplot() + 
+#     geom_spatraster(data = treeCover_rast, aes(fill = mean), na.rm = TRUE) +
+#     theme_minimal() + 
+#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,1)) +
+#     ggtitle("Averaged Data", subtitle = "Tree % cover" ))
+
 
 # put together into a data.frame 
 test4 <- lapply(layerNames, function(x) {

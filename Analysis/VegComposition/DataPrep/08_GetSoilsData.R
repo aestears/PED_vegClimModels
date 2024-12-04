@@ -147,7 +147,7 @@ if (sum(list.files("./Data_processed/") == "SoilsRaster.rds") == 0) {
 # sample raster to get values for the points in the cover dataset
 
 vegSoils_df <- soilRast %>% 
-  terra::extract(y = vegDat, xy = TRUE, bind = TRUE) %>% 
+  terra::extract(y = vegDat %>% dplyr::select(-x,-y), xy = TRUE, bind = TRUE) %>% 
   as.data.frame()
 
 # calculate soils variables w/ cover data ---------------------------------
