@@ -36,14 +36,24 @@ theme_set(theme_classic())
 Data compiled in the `prepDataForModels.R` script
 
 ```{r}
-modDat <- readRDS("../../../data/DataForModels.rds")
+modDat <- readRDS("../../../Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
 ```
 
-Here are the climate variables we could potentially use in the models 
+Here are the climate variables (30-year lag) we could potentially use in the models 
 ```{r}
-kable(names(modDat)[c(24:41,100:138)])
+kable(modDat %>% 
+        select(swe_meanAnnAvg_30yr:durationFrostFreeDays_meanAnnAvg_30yr) %>% 
+        names()
+)
 ```
 
+Here are the weather anomaly variables (5-year lag) we could potentially use in the models 
+```{r}
+kable(modDat %>% 
+        select(swe_meanAnn_5yrAnom:durationFrostFreeDays_meanAnnAvg_30yr) %>% 
+        names()
+)
+```
 # Correlation of potential predictors 
 This is using a subset of the data (50,000 rows), just for runtime purposes 
 
