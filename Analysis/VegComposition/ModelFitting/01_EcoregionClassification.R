@@ -10,7 +10,7 @@ library(sf)
 library(nnet)
 library(caret)
 library(GGally) # for ggpairs()
-library(ipred)
+library(partykit)
 
 # Load Data ---------------------------------------------------------------
 # data ready for modeling 
@@ -299,176 +299,105 @@ caret::confusionMatrix(data = treeMatrix$newRegion_Fact,
 
 
 
-# Bagged classification tree with caret package ------------------------------------
-ctrl <- trainControl(method = "cv",  number = 10) 
+# Conditional Inference Regression Tree -----------------------------------
+## now, try using partykit r package (conditional inference, nonparametric regression tree)
+# partyTree <- ctree(newRegionFact ~  swe_meanAnnAvg_30yr + annWetDegDays_meanAnnAvg_30yr +
+#                      tmean_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr +
+#                      PrecipTempCorr_meanAnnAvg_30yr +  soilDepth + surfaceClay_perc +
+#                      avgSandPerc_acrossDepth + avgCoarsePerc_acrossDepth +
+#                      avgOrganicCarbonPerc_0_3cm + totalAvailableWaterHoldingCapacity,
+#                    data = modDat_fit)
+# try restricting the tree depth (too long right now)
+partyTree <- partykit::ctree(newRegion ~  swe_meanAnnAvg_30yr + annWetDegDays_meanAnnAvg_30yr +
+                     tmean_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr +
+                     PrecipTempCorr_meanAnnAvg_30yr + surfaceClay_perc +
+                     avgSandPerc_acrossDepth + avgCoarsePerc_acrossDepth +
+                     avgOrganicCarbonPerc_0_3cm + totalAvailableWaterHoldingCapacity,
+                   data = modDat_fit, control = partykit::ctree_control(maxdepth = 7))
+partyTree
 
-# CV bagged model
-bagged_tree <- caret::train(
-    newRegion ~  swe_meanAnnAvg_30yr + annWetDegDays_meanAnnAvg_30yr + 
-      tmean_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr + 
-      PrecipTempCorr_meanAnnAvg_30yr + surfaceClay_perc +             
-      avgSandPerc_acrossDepth + avgCoarsePerc_acrossDepth +              
-      avgOrganicCarbonPerc_0_3cm + totalAvailableWaterHoldingCapacity,
-    data = modDat_fit, #method = 'class',
-    # control = list(minsplit = 15, maxdepth = 8)
-  method = "treebag",
-  trControl = ctrl,
-  importance = TRUE
-)
+# variable importance
+varImp_temp <- data.frame("variable" = names(sort((varimp(partyTree)), decreasing = TRUE)),
+                     "importance" = sort((varimp(partyTree)), decreasing = TRUE))
+varImp <- varImp_temp  %>%
+  # tibble::rownames_to_column() %>%
+  # dplyr::rename("variable" = rowname) %>%
+  dplyr::arrange(importance) %>%
+  dplyr::mutate(variable = forcats::fct_inorder(variable))
+ggplot(varImp) +
+  geom_segment(aes(x = variable, y = 0, xend = variable, yend = importance),
+               size = 1.5, alpha = 0.7) +
+  geom_point(aes(x = variable, y = importance, col = variable),
+             size = 4, show.legend = F) +
+  coord_flip() +
+  theme_bw()
 
-# assess results
-bagged_tree
-
-# plot most important variables
-plot(varImp(bagged_tree))  
-
-# predict the classes
-(treePreds <- predictionDat %>% 
-    cbind( "treePrediction" = predict(bagged_tree, newdata = predictionDat, type = "prob"), 
-           "treePrediction" = predict(bagged_tree, newdata = predictionDat)) %>% 
-    cbind(modDat_test %>% 
-            dplyr::select(Long, Lat)))
-
-treePreds$goodPred <- as.factor(treePreds$newRegion) == treePreds$treePrediction
+# predict categories based on this simple model
+partyTreePreds <- cbind(predictionDat, "partyPrediction" = partykit::predict.party(partyTree, newdata = predictionDat, type = "response")) %>%
+  cbind("partyPrediction" = partykit::predict.party(partyTree, newdata = predictionDat, type = "prob")) %>% 
+  cbind(modDat_test %>%
+          dplyr::select(Long, Lat))
+partyTreePreds$goodPred <- partyTreePreds$newRegion == partyTreePreds$partyPrediction
 # percentage of misclassifications
-sum(!treePreds$goodPred)/nrow(treePreds) * 100
+sum(!partyTreePreds$goodPred)/nrow(partyTreePreds) * 100
 
-ggplot(treePreds) + 
-  geom_point(aes(Long, Lat, col = treePrediction), alpha = .1) + 
-  ggtitle("model-predicted ecoregion classification", 
-          subtitle = paste0("black dots indicate misclassification, \n fill color indicates which ecoregion a point was misclassified as;\n  ",
-                            round((100-sum(!treePreds$goodPred)/nrow(treePreds) 
-                                   * 100),1), "% classification accuracy" )) + 
-  geom_point(data = treePreds[treePreds$goodPred == FALSE,], aes(Long, Lat, fill = treePrediction), 
+ggplot(partyTreePreds) +
+  geom_point(aes(Long, Lat, col = partyPrediction), alpha = .1) +
+  ggtitle("model-predicted ecoregion classification",
+          subtitle = paste0("black dots indicate misclassification, \n fill color indicates which ecoregion a point was misclassified as; \n  ", round((100-sum(!partyTreePreds$goodPred)/nrow(partyTreePreds) * 100),1), "% classification accuracy" )) +
+  geom_point(data = partyTreePreds[partyTreePreds$goodPred == FALSE,], aes(Long, Lat, fill = partyPrediction),
              col = "black"
              , shape = 21)
 
-## confusion matrix 
-treeMatrix <- treePreds[,c("newRegion_Fact", "newRegion_group")]
-caret::confusionMatrix(data = treeMatrix$newRegion_Fact, 
-                       reference = treeMatrix$newRegion_group)
+## confusion matrix
+partyMatrix <- partyTreePreds[,c("newRegion", "partyPrediction")]
+caret::confusionMatrix(data = partyTreePreds$partyPrediction,
+                       reference = partyTreePreds$newRegion)
 
+## remove swe and awdd
+# try restricting the tree depth (too long right now)
+partyTree_2 <- partykit::ctree(newRegionFact ~
+                               tmean_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr +
+                               PrecipTempCorr_meanAnnAvg_30yr +  soilDepth + surfaceClay_perc +
+                               avgSandPerc_acrossDepth + avgCoarsePerc_acrossDepth +
+                               avgOrganicCarbonPerc_0_3cm + totalAvailableWaterHoldingCapacity,
+                             data = modDat_fit, control = partykit::ctree_control(maxdepth = 7))
+partyTree_2
+# variable importance
+varImp_temp <- data.frame("variable" = names(sort((varimp(partyTree_2)), decreasing = TRUE)),
+                          "importance" = sort((varimp(partyTree_2)), decreasing = TRUE))
+varImp <- varImp_temp  %>%
+  # tibble::rownames_to_column() %>%
+  # dplyr::rename("variable" = rowname) %>%
+  dplyr::arrange(importance) %>%
+  dplyr::mutate(variable = forcats::fct_inorder(variable))
+ggplot(varImp) +
+  geom_segment(aes(x = variable, y = 0, xend = variable, yend = importance),
+               size = 1.5, alpha = 0.7) +
+  geom_point(aes(x = variable, y = importance, col = variable),
+             size = 4, show.legend = F) +
+  coord_flip() +
+  theme_bw()
 
-# bagged classification tree with ipred package ---------------------------
+plot(partyTree_2, main="Conditional Inference Tree for ecoregions")
 
-set.seed(12011993)
+# predict categories based on this simple model
+partyTree_2Preds <- cbind(predictionDat, "partyPrediction" = partykit::predict.party(partyTree_2, newdata = predictionDat)) %>%
+  cbind(modDat_test %>%
+          dplyr::select(Long, Lat))
+partyTree_2Preds$goodPred <- partyTree_2Preds$newRegion == partyTree_2Preds$partyPrediction
+# percentage of misclassifications
+sum(!partyTree_2Preds$goodPred)/nrow(partyTree_2Preds) * 100
 
-# train bagged model
-tree_bag1 <- bagging(
-  formula = newRegion ~  swe_meanAnnAvg_30yr + annWetDegDays_meanAnnAvg_30yr + 
-    tmean_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr + 
-    PrecipTempCorr_meanAnnAvg_30yr + surfaceClay_perc +             
-    avgSandPerc_acrossDepth + avgCoarsePerc_acrossDepth +              
-    avgOrganicCarbonPerc_0_3cm + totalAvailableWaterHoldingCapacity,
-  data = modDat_fit,
-  nbagg = 10,  
-  coob = TRUE,
-  control = list(minsplit = 15, maxdepth = 8)
-)
+ggplot(partyTree_2Preds) +
+  geom_point(aes(Long, Lat, col = partyPrediction), alpha = .1) +
+  ggtitle("model-predicted ecoregion classification",
+          subtitle = paste0("black dots indicate misclassification, \n fill color indicates which ecoregion a point was misclassified as; \n  ", round((100-sum(!partyTree_2Preds$goodPred)/nrow(partyTree_2Preds) * 100),1), "% classification accuracy" )) +
+  geom_point(data = partyTree_2Preds[partyTree_2Preds$goodPred == FALSE,], aes(Long, Lat, fill = partyPrediction),
+             col = "black"
+             , shape = 21)
 
-tree_bag1 
-
-# 
-# 
-# ## now, try using partykit r package (conditional inference, nonparametric regression tree)
-# library(partykit)
-# # partyTree <- ctree(newRegionFact ~  swe_meanAnnAvg_30yr + annWetDegDays_meanAnnAvg_30yr + 
-# #                      tmean_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr + 
-# #                      PrecipTempCorr_meanAnnAvg_30yr +  soilDepth + surfaceClay_perc +             
-# #                      avgSandPerc_acrossDepth + avgCoarsePerc_acrossDepth +              
-# #                      avgOrganicCarbonPerc_0_3cm + totalAvailableWaterHoldingCapacity,
-# #                    data = modDat_fit)
-# # try restricting the tree depth (too long right now)
-# partyTree <- partykit::ctree(newRegionFact ~  swe_meanAnnAvg_30yr + annWetDegDays_meanAnnAvg_30yr + 
-#                      tmean_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr + 
-#                      PrecipTempCorr_meanAnnAvg_30yr +  soilDepth + surfaceClay_perc +             
-#                      avgSandPerc_acrossDepth + avgCoarsePerc_acrossDepth +              
-#                      avgOrganicCarbonPerc_0_3cm + totalAvailableWaterHoldingCapacity,
-#                    data = modDat_fit, control = partykit::ctree_control(maxdepth = 7))
-# partyTree
-# # variable importance
-# varImp_temp <- data.frame("variable" = names(sort((varimp(partyTree)), decreasing = TRUE)), 
-#                      "importance" = sort((varimp(partyTree)), decreasing = TRUE))
-# varImp <- varImp_temp  %>% 
-#   # tibble::rownames_to_column() %>% 
-#   # dplyr::rename("variable" = rowname) %>% 
-#   dplyr::arrange(importance) %>%
-#   dplyr::mutate(variable = forcats::fct_inorder(variable))
-# ggplot(varImp) + 
-#   geom_segment(aes(x = variable, y = 0, xend = variable, yend = importance), 
-#                size = 1.5, alpha = 0.7) +
-#   geom_point(aes(x = variable, y = importance, col = variable), 
-#              size = 4, show.legend = F) +
-#   coord_flip() +
-#   theme_bw()
-# 
-# plot(partyTree, main="Conditional Inference Tree for ecoregions")
-# 
-# # predict categories based on this simple model
-# partyTreePreds <- cbind(predictionDat, "partyPrediction" = partykit::predict.party(partyTree, newdata = predictionDat)) %>% 
-#   cbind(modDat_test %>% 
-#           dplyr::select(Long, Lsat))
-# partyTreePreds$goodPred <- partyTreePreds$newRegion == partyTreePreds$partyPrediction
-# # percentage of misclassifications
-# sum(!partyTreePreds$goodPred)/nrow(partyTreePreds) * 100
-# 
-# ggplot(partyTreePreds) + 
-#   geom_point(aes(Long, Lat, col = partyPrediction), alpha = .1) + 
-#   ggtitle("model-predicted ecoregion classification", 
-#           subtitle = paste0("black dots indicate misclassification, \n fill color indicates which ecoregion a point was misclassified as; \n  ", round((100-sum(!partyTreePreds$goodPred)/nrow(partyTreePreds) * 100),1), "% classification accuracy" )) + 
-#   geom_point(data = partyTreePreds[partyTreePreds$goodPred == FALSE,], aes(Long, Lat, fill = partyPrediction), 
-#              col = "black"
-#              , shape = 21)
-#  
-# ## confusion matrix 
-# partyMatrix <- partyTreePreds[,c("newRegion", "partyPrediction")]
-# caret::confusionMatrix(data = partyTreePreds$partyPrediction, 
-#                        reference = partyTreePreds$newRegion)
-# 
-# ## remove swe and awdd
-# # try restricting the tree depth (too long right now)
-# partyTree_2 <- partykit::ctree(newRegionFact ~  
-#                                tmean_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr + 
-#                                PrecipTempCorr_meanAnnAvg_30yr +  soilDepth + surfaceClay_perc +             
-#                                avgSandPerc_acrossDepth + avgCoarsePerc_acrossDepth +              
-#                                avgOrganicCarbonPerc_0_3cm + totalAvailableWaterHoldingCapacity,
-#                              data = modDat_fit, control = partykit::ctree_control(maxdepth = 7))
-# partyTree_2
-# # variable importance
-# varImp_temp <- data.frame("variable" = names(sort((varimp(partyTree_2)), decreasing = TRUE)), 
-#                           "importance" = sort((varimp(partyTree_2)), decreasing = TRUE))
-# varImp <- varImp_temp  %>% 
-#   # tibble::rownames_to_column() %>% 
-#   # dplyr::rename("variable" = rowname) %>% 
-#   dplyr::arrange(importance) %>%
-#   dplyr::mutate(variable = forcats::fct_inorder(variable))
-# ggplot(varImp) + 
-#   geom_segment(aes(x = variable, y = 0, xend = variable, yend = importance), 
-#                size = 1.5, alpha = 0.7) +
-#   geom_point(aes(x = variable, y = importance, col = variable), 
-#              size = 4, show.legend = F) +
-#   coord_flip() +
-#   theme_bw()
-# 
-# plot(partyTree_2, main="Conditional Inference Tree for ecoregions")
-# 
-# # predict categories based on this simple model
-# partyTree_2Preds <- cbind(predictionDat, "partyPrediction" = partykit::predict.party(partyTree_2, newdata = predictionDat)) %>% 
-#   cbind(modDat_test %>% 
-#           dplyr::select(Long, Lat))
-# partyTree_2Preds$goodPred <- partyTree_2Preds$newRegion == partyTree_2Preds$partyPrediction
-# # percentage of misclassifications
-# sum(!partyTree_2Preds$goodPred)/nrow(partyTree_2Preds) * 100
-# 
-# ggplot(partyTree_2Preds) + 
-#   geom_point(aes(Long, Lat, col = partyPrediction), alpha = .1) + 
-#   ggtitle("model-predicted ecoregion classification", 
-#           subtitle = paste0("black dots indicate misclassification, \n fill color indicates which ecoregion a point was misclassified as; \n  ", round((100-sum(!partyTree_2Preds$goodPred)/nrow(partyTree_2Preds) * 100),1), "% classification accuracy" )) + 
-#   geom_point(data = partyTree_2Preds[partyTree_2Preds$goodPred == FALSE,], aes(Long, Lat, fill = partyPrediction), 
-#              col = "black"
-#              , shape = 21)
-# 
-# ## confusion matrix 
-# partyMatrix <- partyTree_2Preds[,c("newRegion", "partyPrediction")]
-# caret::confusionMatrix(data = partyTree_2Preds$partyPrediction, 
-#                        reference = partyTree_2Preds$newRegion)
+## confusion matrix
+partyMatrix <- partyTree_2Preds[,c("newRegion", "partyPrediction")]
+caret::confusionMatrix(data = partyTree_2Preds$partyPrediction,
+                       reference = partyTree_2Preds$newRegion)
