@@ -16,10 +16,10 @@ library(ggpubr)
 
 # load data ---------------------------------------------------------------
 # load shapefile version of "big composition dataset"
-clim_final <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
+clim_final <- readRDS("./Data_processed/CoverData/DataForModels_finalFINAL.rds")
 # filter for unique soils data (same across years)
 climFigDat <- clim_final %>% 
-  select(Year, Long, Lat, prcp_annTotal:durationFrostFreeDays_meanAnnAvg_1yr) %>% 
+  select(Year, Long, Lat, prcp_annTotal:durationFrostFreeDays_meanAnnAvg_1yr, swe_meanAnnAvg_CLIM:Start_CLIM) %>% 
   unique() %>% 
   # make into an sf data.frame
   st_as_sf(coords = c("Long", "Lat"), crs = crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"))
@@ -47,7 +47,7 @@ climFigDat <- climFigDat %>%
     #terra::vect() %>% 
     #terra::set.crs(crs(test_rast)) %>% 
     terra::rasterize(y = test_rast, 
-                     field = "prcp_meanAnnTotal_30yr", 
+                     field = "prcp_meanAnnTotal_CLIM", 
                      
                      fun = mean, na.rm = TRUE) %>% 
     terra::crop(ext(-2000000, 2500000, -2000000, 1200000
@@ -69,12 +69,12 @@ swe_rast <- climFigDat %>%
   #terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "swe_meanAnnAvg_30yr", 
+                   field = "swe_meanAnnAvg_CLIM", 
                    
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
   ))
-(swe_30yr_plotAll <- ggplot() + 
+(swe_CLIM_plotAll <- ggplot() + 
     tidyterra::geom_spatraster(data = swe_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
     scale_fill_viridis_c(#option = "D", 
@@ -92,12 +92,12 @@ tmin_rast <- climFigDat %>%
   #terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "tmin_meanAnnAvg_30yr", 
+                   field = "tmin_meanAnnAvg_CLIM", 
                    
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
   ))
-(tmin_30yr_plotAll <- ggplot() + 
+(tmin_CLIM_plotAll <- ggplot() + 
     tidyterra::geom_spatraster(data = tmin_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
     scale_fill_viridis_c(#option = "D", 
@@ -115,12 +115,12 @@ tmax_rast <- climFigDat %>%
   #terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "tmax_meanAnnAvg_30yr", 
+                   field = "tmax_meanAnnAvg_CLIM", 
                    
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
   ))
-(tmax_30yr_plotAll <- ggplot() + 
+(tmax_CLIM_plotAll <- ggplot() + 
     tidyterra::geom_spatraster(data = tmax_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
     scale_fill_viridis_c(#option = "D", 
@@ -138,12 +138,12 @@ tmean_rast <- climFigDat %>%
   #terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "tmean_meanAnnAvg_30yr", 
+                   field = "tmean_meanAnnAvg_CLIM", 
                    
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
   ))
-(tmean_30yr_plotAll <- ggplot() + 
+(tmean_CLIM_plotAll <- ggplot() + 
     tidyterra::geom_spatraster(data = tmean_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
     scale_fill_viridis_c(#option = "D", 
@@ -161,12 +161,12 @@ vp_rast <- climFigDat %>%
   #terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "vp_meanAnnAvg_30yr", 
+                   field = "vp_meanAnnAvg_CLIM", 
                    
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
   ))
-(vp_30yr_plotAll <- ggplot() + 
+(vp_CLIM_plotAll <- ggplot() + 
     tidyterra::geom_spatraster(data = vp_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
     scale_fill_viridis_c(#option = "D", 
@@ -184,12 +184,12 @@ T_warmestMonth_rast <- climFigDat %>%
   #terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "T_warmestMonth_meanAnnAvg_30yr", 
+                   field = "T_warmestMonth_meanAnnAvg_CLIM", 
                    
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
   ))
-(T_warmestMonth_meanAnnAvg_30yr_plotAll <- ggplot() + 
+(T_warmestMonth_meanAnnAvg_CLIM_plotAll <- ggplot() + 
     tidyterra::geom_spatraster(data = T_warmestMonth_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
     scale_fill_viridis_c(#option = "D", 
@@ -207,12 +207,12 @@ T_coldestMonth_rast <- climFigDat %>%
   #terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "T_coldestMonth_meanAnnAvg_30yr", 
+                   field = "T_coldestMonth_meanAnnAvg_CLIM", 
                    
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
   ))
-(T_coldestMonth_meanAnnAvg_30yr_plotAll <- ggplot() + 
+(T_coldestMonth_meanAnnAvg_CLIM_plotAll <- ggplot() + 
     tidyterra::geom_spatraster(data = T_coldestMonth_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
     scale_fill_viridis_c(#option = "D", 
@@ -230,7 +230,7 @@ precipSeasonality_rast <- climFigDat %>%
   #terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "precip_Seasonality_meanAnnAvg_30yr", 
+                   field = "precip_Seasonality_meanAnnAvg_CLIM", 
                    
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
@@ -253,7 +253,7 @@ precipTempCorr_rast <- climFigDat %>%
   #terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "PrecipTempCorr_meanAnnAvg_30yr", 
+                   field = "PrecipTempCorr_meanAnnAvg_CLIM", 
                    
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
@@ -276,7 +276,7 @@ aboveFreezeMonth_rast <- climFigDat %>%
   #terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "aboveFreezing_month_meanAnnAvg_30yr", 
+                   field = "aboveFreezing_month_meanAnnAvg_CLIM", 
                    
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
@@ -300,7 +300,7 @@ isothermality_rast <- climFigDat %>%
   #terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "isothermality_meanAnnAvg_30yr", 
+                   field = "isothermality_meanAnnAvg_CLIM", 
                    
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
@@ -324,7 +324,7 @@ annWatDef_rast <- climFigDat %>%
   #terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "annWaterDeficit_95percentile_30yr", 
+                   field = "annWaterDeficit_95percentile_CLIM", 
                    
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
@@ -348,7 +348,7 @@ annWetDegDays_rast <- climFigDat %>%
   #terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "annWetDegDays_5percentile_30yr", 
+                   field = "annWetDegDays_5percentile_CLIM", 
                    
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
@@ -372,7 +372,7 @@ annVPD_rast <- climFigDat %>%
   #terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "annVPD_max_95percentile_30yr", 
+                   field = "annVPD_max_95percentile_CLIM", 
                    
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
@@ -396,7 +396,7 @@ frostFreeDays_rast <- climFigDat %>%
   #terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "durationFrostFreeDays_5percentile_30yr", 
+                   field = "durationFrostFreeDays_5percentile_CLIM", 
                    
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
@@ -414,9 +414,9 @@ frostFreeDays_rast <- climFigDat %>%
 # Put all plots together  -------------------------------------------------
 #pdf(file = "./Figures/soilsFigDatFigures/TotalTreeFigures.pdf", width = 11, height = 3.75, compress = FALSE)
 # tree figures
-ggarrange(prcp_totalAnn30yr_plotAll, swe_30yr_plotAll, tmin_30yr_plotAll, 
-          tmax_30yr_plotAll, tmean_30yr_plotAll, vp_30yr_plotAll, 
-          T_warmestMonth_meanAnnAvg_30yr_plotAll, T_coldestMonth_meanAnnAvg_30yr_plotAll,
+ggarrange(prcp_totalAnn30yr_plotAll, swe_CLIM_plotAll, tmin_CLIM_plotAll, 
+          tmax_CLIM_plotAll, tmean_CLIM_plotAll, vp_CLIM_plotAll, 
+          T_warmestMonth_meanAnnAvg_CLIM_plotAll, T_coldestMonth_meanAnnAvg_CLIM_plotAll,
           precipSeasonality_rast_plotAll, precipTempCorr_rast_plotAll, 
           aboveFreezeMonth_rast_plotAll, isothermality_rast_plotAll, 
           annWatDef_rast_plotAll, annWetDegDays_rast_plotAll, 
