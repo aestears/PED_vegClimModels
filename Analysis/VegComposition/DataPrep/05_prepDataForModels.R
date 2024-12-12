@@ -22,10 +22,10 @@ library(sf)
 # load vegetation data
 vegDat <- readRDS("./Data_processed/CoverData/dataForAnalysis_fireRemoved.rds") 
 # load meteorological data
-dayMet <- readRDS("./Data_raw/dayMet/climateValuesForAnalysis_final.rds")
+dayMet <- readRDS("./Data_processed/CoverData/dayMetClimateValuesForAnalysis_final.rds")
 # remove monthly values 
 dayMet2 <- dayMet %>% 
-  select(-names(dayMet)[c(4:24)])
+  select(-names(dayMet)[c(4:22)])
 # make dayMet spatial 
 dayMet3 <- dayMet2 %>% 
   st_as_sf(coords = c("Long", "Lat"))
@@ -47,13 +47,37 @@ dayMet3 <- dayMet3 %>%
   st_set_crs(value = st_crs(y)) %>% 
   st_transform(st_crs(y))
 
-allDat <- vegDat2 %>% 
-  st_buffer(.1) %>% 
-  sf::st_join(dayMet3, by = c("Year" = "year", left = TRUE)) %>% 
+rm(dayMet2, test, v, vegDat, y, dayMet)
+gc()
+
+vegDat2 <- vegDat2 %>% 
+  mutate(vegRowID = c(1:nrow(vegDat2)))
+dayMet3 <- dayMet3 %>% 
+  mutate(dayMetRowID = c(1:nrow(dayMet3)))
+  
+vegDatTemp <- vegDat2 %>% 
+  select(geometry, Year, vegRowID)
+
+dayMet3Temp <- dayMet3 %>% 
+  select(geometry, year, dayMetRowID) 
+
+allDat <- vegDatTemp %>% 
+  st_buffer(.01) %>% 
+  sf::st_join(dayMet3Temp, by = c("Year" = "year"), left = TRUE#, join = st_nearest_feature
+              ) %>% 
   filter(Year == year)
 
-
-allDat <- allDat %>% 
+# add back in actual climate and veg data
+allDatNew <- allDat %>% 
+  left_join(vegDat2 %>% 
+              st_drop_geometry() %>% 
+              select(-Year), by = "vegRowID") %>% 
+  left_join((dayMet3 %>% 
+              st_drop_geometry() %>% 
+              select(-year)), by = "dayMetRowID") %>% 
+  filter(!duplicated(vegRowID))
+  
+allDat <- allDatNew  %>% 
   rename(StateUnitCode = SttUntC, # fix names 
          PlotCondition = PltCndt,
          ShrubCover = ShrbCvr,

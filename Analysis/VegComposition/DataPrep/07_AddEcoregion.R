@@ -18,8 +18,8 @@ modDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveragedWit
 # get level 1 ecoregions shapefiles
 regions <- sf::st_read(dsn = "./Data_raw/Level1Ecoregions/", layer = "NA_CEC_Eco_Level1")
 
-ggplot(regions[200:400,]) + 
-  geom_sf(aes(col = NA_L1NAME))
+# ggplot(regions[200:400,]) + 
+#   geom_sf(aes(col = NA_L1NAME))
 # ensure projections are the same -----------------------------------------
 # want them both to have this same crs as below
 test_rast <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif")

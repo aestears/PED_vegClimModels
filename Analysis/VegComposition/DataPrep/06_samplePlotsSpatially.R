@@ -234,7 +234,7 @@ test3 <- lapply(names(test2), FUN = function(y) {
 names(test3) <- layerNames
 # save output! 
 saveRDS(test3, "./Data_processed/CoverData/spatiallyAverageData_intermediate.rds")
-#test3 <- readRDS("./Data_processed/spatiallyAverageData_intermediate.rds")
+#test3 <- readRDS("./Data_processed/CoverData/spatiallyAverageData_intermediate.rds")
 # treeCover_rast <- test3$NeedleLeavedTreeCover_prop %>% 
 #   st_as_sf(coords = c('x', 'y')) %>% 
 #   #slice_sample(n = 5e4) %>%
@@ -276,14 +276,20 @@ rm(test3, test4)
 gc()
 
 
-# add back in climate data  -----------------------------------------------
+saveRDS(test5, "./Data_processed/CoverData/spatiallyAverageData_intermediate_test5.rds")
+rm(test5)
+gc()
 
+# add back in climate data  -----------------------------------------------
 climDat <- readRDS( "./Data_processed/CoverData/dayMetClimateValuesForAnalysis_final.rds")
 ## assign a 'unique ID' to each location (So the same location has the same ID across years)
-uniqueLocs <- unique(climDat[,c("Lat", "Long")])
-uniqueLocs$locID <- seq(from = 1, to = nrow(uniqueLocs), by = 1)
-climDat  <- climDat %>% 
-  left_join(uniqueLocs)
+#uniqueLocs <- unique(climDat[,c("Lat", "Long")])
+
+climDat$locID <- paste0(climDat$Lat, "_", climDat$Long)
+climDat$uniqueID <- c(1:nrow(climDat))
+
+# climDat  <- climDat %>%
+#   left_join(uniqueLocs, by = c("Lat", "Long"))
 
 # make points for "locID" in a single year into a raster
 climSF <- climDat %>% 
@@ -291,6 +297,8 @@ climSF <- climDat %>%
   sf::st_as_sf(coords = c("Long", "Lat"), crs = st_crs(test)) %>% 
   select(locID)
 
+
+test5 <- readRDS("./Data_processed/CoverData/spatiallyAverageData_intermediate_test5.rds")
 
 #allDat_avg <- 
   test7 <- test5 %>% 
@@ -312,7 +320,13 @@ saveRDS(st_drop_geometry(allDat_avg), "./Data_processed/CoverData/DataForModels_
 test6 <- vect(test5, geom = c("x", "y"), crs = crs(test))
 temp <- terra::rasterize(test6, y = test, field = "ShrubCover", fun = function(x) mean(x, na.rm = TRUE)) %>% 
   terra::aggregate(fact = 32, fun = function(x) mean(x, na.rm = TRUE))
-  
+ 
+test6 <- vect(st_centroid(allDat_avg))
+(temp <- terra::rasterize(test6, y = test, 
+                          field = "precip_driestMonth_meanAnnAvg_CLIM", 
+                          fun = mean, na.rm = TRUE) %>% 
+  terra::aggregate(fact = 32, fun = function(x) mean(x, na.rm = TRUE))
+)
 plot(temp)
 
   # compare to raw data 
