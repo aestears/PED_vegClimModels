@@ -18,7 +18,7 @@ library(gt)
 
 # Load Data ---------------------------------------------------------------
 # data ready for modeling 
-modDat <- readRDS("./Data_processed/CoverData/DataForModels_finalFINAL.rds")
+modDat <- readRDS("./Data_processed/EcoRegion_climSoilData.rds")
 
 # Prepare data for model-fitting  ----------------------------------------------
 # (eastern forest) put eastern temperate forests, tropical wet forests and northern forests together
@@ -26,12 +26,12 @@ modDat <- readRDS("./Data_processed/CoverData/DataForModels_finalFINAL.rds")
 # (western forest) put northwestern forested mountains, marine west coast forests together, and temperate sierras together
 set.seed(12011993)
 
+# ggplot(modDat) + 
+#   geom_point(aes(x = Long, y = Lat))
+
 modDat_use <- modDat %>% 
-  dplyr::select(c(newRegion, swe_meanAnnAvg_CLIM:
-                  # tmean_meanAnnAvg_CLIM:prcp_meanAnnTotal_CLIM,
-                  #                        precip_wettestMonth_meanAnnAvg_CLIM:PrecipTempCorr_meanAnnAvg_CLIM, 
-                  #                        isothermality_meanAnnAvg_CLIM:annVPD_min_meanAnnAvg_CLIM, 
-                                         durationFrostFreeDays_meanAnnAvg_CLIM,
+  dplyr::select(c(newRegion, #swe_meanAnnAvg_30yr:
+                  tmin_meanAnnAvg_30yr:durationFrostFreeDays_meanAnnAvg_30yr,
                                          soilDepth                  , surfaceClay_perc          ,                
                                          avgSandPerc_acrossDepth    ,  avgCoarsePerc_acrossDepth,                 
                                          avgOrganicCarbonPerc_0_3cm ,  totalAvailableWaterHoldingCapacity,
@@ -52,11 +52,11 @@ modDat_fit <- modDat_use[default_idx, ] %>%
 
 modDat_test <-  modDat_use[-default_idx, ] %>% 
   mutate(newRegion = as.factor(newRegion)) %>% 
-  # dplyr::select(c(newRegion, swe_meanAnnAvg_CLIM:
-  #                   # tmean_meanAnnAvg_CLIM:prcp_meanAnnTotal_CLIM,
-  #                   #                        precip_wettestMonth_meanAnnAvg_CLIM:PrecipTempCorr_meanAnnAvg_CLIM, 
-  #                   #                        isothermality_meanAnnAvg_CLIM:annVPD_min_meanAnnAvg_CLIM, 
-  #                   durationFrostFreeDays_meanAnnAvg_CLIM,
+  # dplyr::select(c(newRegion, swe_meanAnnAvg_30yr:
+  #                   # tmean_meanAnnAvg_30yr:prcp_meanAnnTotal_30yr,
+  #                   #                        precip_wettestMonth_meanAnnAvg_30yr:PrecipTempCorr_meanAnnAvg_30yr, 
+  #                   #                        isothermality_meanAnnAvg_30yr:annVPD_min_meanAnnAvg_30yr, 
+  #                   durationFrostFreeDays_meanAnnAvg_30yr,
   #                 soilDepth                  , surfaceClay_perc          ,                
   #                 avgSandPerc_acrossDepth    ,  avgCoarsePerc_acrossDepth,                 
   #                 avgOrganicCarbonPerc_0_3cm ,  totalAvailableWaterHoldingCapacity,
@@ -91,27 +91,32 @@ my_fn <- function(data, mapping, method="p", use="pairwise", ...){
 
 (corrPlot <- 
     modDat_fit %>% 
-    select(precip_driestMonth_meanAnnAvg_CLIM, 
-           PrecipTempCorr_meanAnnAvg_CLIM, 
+    select(precip_driestMonth_meanAnnAvg_30yr, 
+           PrecipTempCorr_meanAnnAvg_30yr, 
            avgOrganicCarbonPerc_0_3cm, 
-           T_warmestMonth_meanAnnAvg_CLIM, 
-           vp_meanAnnAvg_CLIM, 
-           prcp_meanAnnTotal_CLIM) %>% 
+           T_warmestMonth_meanAnnAvg_30yr, 
+          # vp_meanAnnAvg_30yr, 
+           prcp_meanAnnTotal_30yr) %>% 
     # select(c("swe_meanAnnAvg_30yr","annWetDegDays_meanAnnAvg_30yr",     
     #          "tmean_meanAnnAvg_30yr" ,"isothermality_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr" ,      
     #          "PrecipTempCorr_meanAnnAvg_30yr" ,"soilDepth" ,      "surfaceClay_perc"            ,      
     #           "avgSandPerc_acrossDepth" , "avgCoarsePerc_acrossDepth"   ,       "avgOrganicCarbonPerc_0_3cm" ,       
     #           "totalAvailableWaterHoldingCapacity")) %>% 
-     # rename("swe" = swe_meanAnnAvg_CLIM,  "tmean" = tmean_meanAnnAvg_CLIM,
-     #        "prcp" = prcp_meanAnnTotal_CLIM, 
-     #       "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  "isothermality" = isothermality_meanAnnAvg_CLIM,
-     #       "Wet \n DegDays" = annWetDegDays_meanAnnAvg_CLIM) %>% 
+     # rename("swe" = swe_meanAnnAvg_30yr,  "tmean" = tmean_meanAnnAvg_30yr,
+     #        "prcp" = prcp_meanAnnTotal_30yr, 
+     #       "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_30yr,  "isothermality" = isothermality_meanAnnAvg_30yr,
+     #       "Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr) %>% 
     slice_sample(n = 5e4) %>% 
     #select(-matches("_")) %>% 
     ggpairs( upper = list(continuous = my_fn), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), progress = FALSE))
 
 ## remove Soil Depth, since it's highly correlated w/ total available water holding capacity
 
+
+
+# set controls ------------------------------------------------------------
+
+# fit models --------------------------------------------------------------
 # Fit a simple regression (multinomial log-normal regression) 
 # # I think the classification algorithm would be more straightforward to implement?? 
 # # following this example: 
@@ -174,171 +179,163 @@ predictionDat <- modDat_test
 # ## the predictions are ok, but not great 
 
 
-
-
 # Fit single classification tree  ----------------------------------------------
 ## first, try using rpart R package
 #https://www.datacamp.com/doc/r/cart
 #http://cran.nexr.com/web/packages/partykit/vignettes/partykit.pdf
 
-library(rpart)
-# fit a basic classification tree model
-treeMod <- rpart(newRegion ~  swe_meanAnnAvg_30yr + annWetDegDays_meanAnnAvg_30yr + 
-                   tmean_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr + 
-                   PrecipTempCorr_meanAnnAvg_30yr + surfaceClay_perc +             
-                   avgSandPerc_acrossDepth + avgCoarsePerc_acrossDepth +              
-                   avgOrganicCarbonPerc_0_3cm + totalAvailableWaterHoldingCapacity,
-                 data = modDat_fit, method = 'class')
-print(treeMod)
-# look at variable importance
-# variable importance
-varImp_temp <- data.frame("variable" = names(sort((treeMod$variable.importance), decreasing = TRUE)), 
-                          "importance" = sort((treeMod$variable.importance), decreasing = TRUE))
-varImp <- varImp_temp  %>% 
-  # tibble::rownames_to_column() %>% 
-  # dplyr::rename("variable" = rowname) %>% 
-  dplyr::arrange(importance) %>%
-  dplyr::mutate(variable = forcats::fct_inorder(variable))
-ggplot(varImp) + 
-  geom_segment(aes(x = variable, y = 0, xend = variable, yend = importance), 
-               size = 1.5, alpha = 0.7) +
-  geom_point(aes(x = variable, y = importance, col = variable), 
-             size = 4, show.legend = F) +
-  coord_flip() +
-  theme_bw()
-
-# look at cross-validation error 
-plotcp(treeMod)
-treeMod$cptable
-
-# prune the tree
-# tune typer-parameters
-hyper_grid <- expand.grid(
-  minsplit = seq(5, 15, 1),
-  maxdepth = seq(5, 15, 1)
-)
-head(hyper_grid)
-# total number of combinations
-nrow(hyper_grid)
-## [1] 121
-
-# fit different models to find the ideal set of hyperparameters
-models <- list()
-
-for (i in 1:nrow(hyper_grid)) {
-  
-  # get minsplit, maxdepth values at row i
-  minsplit <- hyper_grid$minsplit[i]
-  maxdepth <- hyper_grid$maxdepth[i]
-  
-  # train a model and store in the list
-  models[[i]] <- rpart(
-    newRegion ~  swe_meanAnnAvg_30yr + annWetDegDays_meanAnnAvg_30yr + 
-      tmean_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr + 
-      PrecipTempCorr_meanAnnAvg_30yr + surfaceClay_perc +             
-      avgSandPerc_acrossDepth + avgCoarsePerc_acrossDepth +              
-      avgOrganicCarbonPerc_0_3cm + totalAvailableWaterHoldingCapacity,
-    data = modDat_fit, method = 'class',
-    control = list(minsplit = minsplit, maxdepth = maxdepth)
-  )
-}
-
-# function to get optimal cp
-get_cp <- function(x) {
-  min    <- which.min(x$cptable[, "xerror"])
-  cp <- x$cptable[min, "CP"] 
-}
-
-# function to get minimum error
-get_min_error <- function(x) {
-  min    <- which.min(x$cptable[, "xerror"])
-  xerror <- x$cptable[min, "xerror"] 
-}
-
-bestParams <- hyper_grid %>%
-  mutate(
-    cp    = purrr::map_dbl(models, get_cp),
-    error = purrr::map_dbl(models, get_min_error)
-  ) %>%
-  arrange(error) %>%
-  top_n(-5, wt = error)
-# minsplit maxdepth   cp     error
-# 1       15        8 0.01 0.2303705
-
-## fit the best tree
-bestTree <- rpart(
-  newRegion ~  swe_meanAnnAvg_30yr + annWetDegDays_meanAnnAvg_30yr + 
-    tmean_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr + 
-    PrecipTempCorr_meanAnnAvg_30yr + surfaceClay_perc +             
-    avgSandPerc_acrossDepth + avgCoarsePerc_acrossDepth +              
-    avgOrganicCarbonPerc_0_3cm + totalAvailableWaterHoldingCapacity,
-  data = modDat_fit, method = 'class',
-  control = list(minsplit = 15, maxdepth = 8)
-)
-
-
-# predict categories based on this single 'best tree' 
-(treePreds <- predictionDat %>% 
-    cbind( "treePrediction" = predict(bestTree, newdata = predictionDat)) %>% 
-    mutate(newRegion_Fact = as.factor(newRegion),
-           newRegion_predicted = pmap_dbl(.[c("treePrediction.dryShrubGrass", 
-                                              "treePrediction.eastForest", 
-                                              "treePrediction.westForest")], max), 
-           across(treePrediction.dryShrubGrass:treePrediction.westForest, ~.x == newRegion_predicted)) %>% 
-    mutate(treePrediction.dryShrubGrass = str_replace(treePrediction.dryShrubGrass, 'TRUE', 'dryShrubGrass'), 
-           treePrediction.eastForest = str_replace(treePrediction.eastForest, 'TRUE', "eastForest"), 
-           treePrediction.westForest = str_replace(treePrediction.westForest, 'TRUE', "westForest"),
-           treePrediction.dryShrubGrass = str_replace(treePrediction.dryShrubGrass, 'FALSE', ""), 
-           treePrediction.eastForest = str_replace(treePrediction.eastForest, 'FALSE', ""), 
-           treePrediction.westForest = str_replace(treePrediction.westForest, 'FALSE', "")) %>% 
-    mutate(
-      newRegion_group = as.factor(pmap_chr(.[c("treePrediction.dryShrubGrass", "treePrediction.eastForest", 
-                                               "treePrediction.westForest")], paste0))) %>% 
-    cbind(modDat_test %>% 
-            dplyr::select(Long, Lat)))
+# library(rpart)
+# # fit a basic classification tree model
+# treeMod <- rpart(newRegion ~  swe_meanAnnAvg_30yr + annWetDegDays_meanAnnAvg_30yr + 
+#                    tmean_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr + 
+#                    PrecipTempCorr_meanAnnAvg_30yr + surfaceClay_perc +             
+#                    avgSandPerc_acrossDepth + avgCoarsePerc_acrossDepth +              
+#                    avgOrganicCarbonPerc_0_3cm + totalAvailableWaterHoldingCapacity,
+#                  data = modDat_fit, method = 'class')
+# print(treeMod)
+# # look at variable importance
+# # variable importance
+# varImp_temp <- data.frame("variable" = names(sort((treeMod$variable.importance), decreasing = TRUE)), 
+#                           "importance" = sort((treeMod$variable.importance), decreasing = TRUE))
+# varImp <- varImp_temp  %>% 
+#   # tibble::rownames_to_column() %>% 
+#   # dplyr::rename("variable" = rowname) %>% 
+#   dplyr::arrange(importance) %>%
+#   dplyr::mutate(variable = forcats::fct_inorder(variable))
+# ggplot(varImp) + 
+#   geom_segment(aes(x = variable, y = 0, xend = variable, yend = importance), 
+#                size = 1.5, alpha = 0.7) +
+#   geom_point(aes(x = variable, y = importance, col = variable), 
+#              size = 4, show.legend = F) +
+#   coord_flip() +
+#   theme_bw()
 # 
-treePreds$goodPred <- treePreds$newRegion_Fact == treePreds$newRegion_group
-# percentage of misclassifications
-sum(!treePreds$goodPred)/nrow(treePreds) * 100
-ggplot(treePreds) + 
-  geom_point(aes(Long, Lat, col = newRegion_group), alpha = .1) + 
-  ggtitle("model-predicted ecoregion classification", 
-          subtitle = paste0("black dots indicate misclassification, \n fill color indicates which ecoregion a point was misclassified as;\n  ",
-                            round((100-sum(!treePreds$goodPred)/nrow(treePreds) 
-                                          * 100),1), "% classification accuracy" )) + 
-  geom_point(data = treePreds[treePreds$goodPred == FALSE,], aes(Long, Lat, fill = newRegion_group), 
-             col = "black"
-             , shape = 21)
-
-## confusion matrix 
-treeMatrix <- treePreds[,c("newRegion_Fact", "newRegion_group")]
-caret::confusionMatrix(data = treeMatrix$newRegion_Fact, 
-                       reference = treeMatrix$newRegion_group)
+# # look at cross-validation error 
+# plotcp(treeMod)
+# treeMod$cptable
+# 
+# # prune the tree
+# # tune typer-parameters
+# hyper_grid <- expand.grid(
+#   minsplit = seq(5, 15, 1),
+#   maxdepth = seq(5, 15, 1)
+# )
+# head(hyper_grid)
+# # total number of combinations
+# nrow(hyper_grid)
+# ## [1] 121
+# 
+# # fit different models to find the ideal set of hyperparameters
+# models <- list()
+# 
+# for (i in 1:nrow(hyper_grid)) {
+#   
+#   # get minsplit, maxdepth values at row i
+#   minsplit <- hyper_grid$minsplit[i]
+#   maxdepth <- hyper_grid$maxdepth[i]
+#   
+#   # train a model and store in the list
+#   models[[i]] <- rpart(
+#     newRegion ~  swe_meanAnnAvg_30yr + annWetDegDays_meanAnnAvg_30yr + 
+#       tmean_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr + 
+#       PrecipTempCorr_meanAnnAvg_30yr + surfaceClay_perc +             
+#       avgSandPerc_acrossDepth + avgCoarsePerc_acrossDepth +              
+#       avgOrganicCarbonPerc_0_3cm + totalAvailableWaterHoldingCapacity,
+#     data = modDat_fit, method = 'class',
+#     control = list(minsplit = minsplit, maxdepth = maxdepth)
+#   )
+# }
+# 
+# # function to get optimal cp
+# get_cp <- function(x) {
+#   min    <- which.min(x$cptable[, "xerror"])
+#   cp <- x$cptable[min, "CP"] 
+# }
+# 
+# # function to get minimum error
+# get_min_error <- function(x) {
+#   min    <- which.min(x$cptable[, "xerror"])
+#   xerror <- x$cptable[min, "xerror"] 
+# }
+# 
+# bestParams <- hyper_grid %>%
+#   mutate(
+#     cp    = purrr::map_dbl(models, get_cp),
+#     error = purrr::map_dbl(models, get_min_error)
+#   ) %>%
+#   arrange(error) %>%
+#   top_n(-5, wt = error)
+# # minsplit maxdepth   cp     error
+# # 1       15        8 0.01 0.2303705
+# 
+# ## fit the best tree
+# bestTree <- rpart(
+#   newRegion ~  swe_meanAnnAvg_30yr + annWetDegDays_meanAnnAvg_30yr + 
+#     tmean_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr + 
+#     PrecipTempCorr_meanAnnAvg_30yr + surfaceClay_perc +             
+#     avgSandPerc_acrossDepth + avgCoarsePerc_acrossDepth +              
+#     avgOrganicCarbonPerc_0_3cm + totalAvailableWaterHoldingCapacity,
+#   data = modDat_fit, method = 'class',
+#   control = list(minsplit = 15, maxdepth = 8)
+# )
+# 
+# 
+# # predict categories based on this single 'best tree' 
+# (treePreds <- predictionDat %>% 
+#     cbind( "treePrediction" = predict(bestTree, newdata = predictionDat)) %>% 
+#     mutate(newRegion_Fact = as.factor(newRegion),
+#            newRegion_predicted = pmap_dbl(.[c("treePrediction.dryShrubGrass", 
+#                                               "treePrediction.eastForest", 
+#                                               "treePrediction.westForest")], max), 
+#            across(treePrediction.dryShrubGrass:treePrediction.westForest, ~.x == newRegion_predicted)) %>% 
+#     mutate(treePrediction.dryShrubGrass = str_replace(treePrediction.dryShrubGrass, 'TRUE', 'dryShrubGrass'), 
+#            treePrediction.eastForest = str_replace(treePrediction.eastForest, 'TRUE', "eastForest"), 
+#            treePrediction.westForest = str_replace(treePrediction.westForest, 'TRUE', "westForest"),
+#            treePrediction.dryShrubGrass = str_replace(treePrediction.dryShrubGrass, 'FALSE', ""), 
+#            treePrediction.eastForest = str_replace(treePrediction.eastForest, 'FALSE', ""), 
+#            treePrediction.westForest = str_replace(treePrediction.westForest, 'FALSE', "")) %>% 
+#     mutate(
+#       newRegion_group = as.factor(pmap_chr(.[c("treePrediction.dryShrubGrass", "treePrediction.eastForest", 
+#                                                "treePrediction.westForest")], paste0))) %>% 
+#     cbind(modDat_test %>% 
+#             dplyr::select(Long, Lat)))
+# # 
+# treePreds$goodPred <- treePreds$newRegion_Fact == treePreds$newRegion_group
+# # percentage of misclassifications
+# sum(!treePreds$goodPred)/nrow(treePreds) * 100
+# ggplot(treePreds) + 
+#   geom_point(aes(Long, Lat, col = newRegion_group), alpha = .1) + 
+#   ggtitle("model-predicted ecoregion classification", 
+#           subtitle = paste0("black dots indicate misclassification, \n fill color indicates which ecoregion a point was misclassified as;\n  ",
+#                             round((100-sum(!treePreds$goodPred)/nrow(treePreds) 
+#                                           * 100),1), "% classification accuracy" )) + 
+#   geom_point(data = treePreds[treePreds$goodPred == FALSE,], aes(Long, Lat, fill = newRegion_group), 
+#              col = "black"
+#              , shape = 21)
+# 
+# ## confusion matrix 
+# treeMatrix <- treePreds[,c("newRegion_Fact", "newRegion_group")]
+# caret::confusionMatrix(data = treeMatrix$newRegion_Fact, 
+#                        reference = treeMatrix$newRegion_group)
+# 
 
 
 
 # Conditional Inference Regression Tree with all possible variables ------------
 ## now, try using partykit r package (conditional inference, nonparametric regression tree)
-# partyTree <- ctree(newRegionFact ~  swe_meanAnnAvg_30yr + annWetDegDays_meanAnnAvg_30yr +
-#                      tmean_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr +
-#                      PrecipTempCorr_meanAnnAvg_30yr +  soilDepth + surfaceClay_perc +
-#                      avgSandPerc_acrossDepth + avgCoarsePerc_acrossDepth +
-#                      avgOrganicCarbonPerc_0_3cm + totalAvailableWaterHoldingCapacity,
-#                    data = modDat_fit)
-# try restricting the tree depth (too long right now)
-partyTreeALL <- partykit::ctree(newRegion ~  swe_meanAnnAvg_CLIM  + tmin_meanAnnAvg_CLIM                  +
-                             tmax_meanAnnAvg_CLIM                   + tmean_meanAnnAvg_CLIM             +     vp_meanAnnAvg_CLIM                      +
-                             prcp_meanAnnTotal_CLIM                 + T_warmestMonth_meanAnnAvg_CLIM    +     T_coldestMonth_meanAnnAvg_CLIM         +
-                              precip_wettestMonth_meanAnnAvg_CLIM   +  precip_driestMonth_meanAnnAvg_CLIM   +  precip_Seasonality_meanAnnAvg_CLIM     +
-                              PrecipTempCorr_meanAnnAvg_CLIM        +  aboveFreezing_month_meanAnnAvg_CLIM  +  isothermality_meanAnnAvg_CLIM          +
-                              annWaterDeficit_meanAnnAvg_CLIM       +  annWetDegDays_meanAnnAvg_CLIM        +  annVPD_mean_meanAnnAvg_CLIM            +
-                              annVPD_max_meanAnnAvg_CLIM            +  annVPD_min_meanAnnAvg_CLIM           +  annVPD_max_95percentile_CLIM           +
-                              annWaterDeficit_95percentile_CLIM     +  annWetDegDays_5percentile_CLIM       +  durationFrostFreeDays_5percentile_CLIM +
-                              durationFrostFreeDays_meanAnnAvg_CLIM +  soilDepth                            +  surfaceClay_perc                       +
-                              avgSandPerc_acrossDepth               +  avgCoarsePerc_acrossDepth            +  avgOrganicCarbonPerc_0_3cm             +
+partyTreeALL <- partykit::ctree(newRegion ~  tmin_meanAnnAvg_30yr                  +
+                             tmax_meanAnnAvg_30yr                   + tmean_meanAnnAvg_30yr                            +
+                             prcp_meanAnnTotal_30yr                 + T_warmestMonth_meanAnnAvg_30yr    +     T_coldestMonth_meanAnnAvg_30yr         +
+                              precip_wettestMonth_meanAnnAvg_30yr   +  precip_driestMonth_meanAnnAvg_30yr   +  precip_Seasonality_meanAnnAvg_30yr     +
+                              PrecipTempCorr_meanAnnAvg_30yr        +  aboveFreezing_month_meanAnnAvg_30yr  +  isothermality_meanAnnAvg_30yr          +
+                              annWaterDeficit_meanAnnAvg_30yr       +  annWetDegDays_meanAnnAvg_30yr        +  annVPD_mean_meanAnnAvg_30yr            +
+                              annVPD_max_meanAnnAvg_30yr            +  annVPD_min_meanAnnAvg_30yr           +  annVPD_max_95percentile_30yr           +
+                              annWaterDeficit_95percentile_30yr     +  annWetDegDays_5percentile_30yr       +  durationFrostFreeDays_5percentile_30yr +
+                              durationFrostFreeDays_meanAnnAvg_30yr +  soilDepth                            +  surfaceClay_perc                       +
+                              avgSandPerc_acrossDepth               +  avgCoarsePerc_acrossDepth            + avgOrganicCarbonPerc_0_3cm +
                               totalAvailableWaterHoldingCapacity,
                    data = modDat_fit, control = partykit::ctree_control(maxdepth = 7))
-partyTreeALL
+ partyTreeALL
 
 # variable importance
 varImp_temp <- data.frame("variable" = names(sort((varimp(partyTreeALL)), decreasing = TRUE)),
@@ -348,14 +345,14 @@ varImp <- varImp_temp  %>%
   # dplyr::rename("variable" = rowname) %>%
   dplyr::arrange(importance) %>%
   dplyr::mutate(variable = forcats::fct_inorder(variable))
-ggplot(varImp) +
+(partyTreeALL_varImpPlot <- ggplot(varImp) +
   geom_segment(aes(x = variable, y = 0, xend = variable, yend = importance),
                size = 1.5, alpha = 0.7) +
   geom_point(aes(x = variable, y = importance, col = variable),
              size = 4, show.legend = F) +
   coord_flip() +
   theme_bw()
-
+)
 # predict categories based on this simple model
 partyTreeALLPreds <- cbind(predictionDat, "partyPrediction" = partykit::predict.party(partyTreeALL, newdata = predictionDat, type = "response")) %>%
   cbind("partyPrediction" = partykit::predict.party(partyTreeALL, newdata = predictionDat, type = "prob")) 
@@ -437,27 +434,29 @@ partyTreeALLPreds$color <- rgb(red = partyTreeALLPreds$partyPrediction.dryShrubG
     scale_fill_distiller(type = "seq", palette = "Blues")
 ) 
 
-## arrange all of the figures for this model
 
+
+## arrange all of the figures for this model
 ggpubr::annotate_figure(ggarrange(
+  partyTreeALL_varImpPlot,
   ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("dryShrubGrass" =  data.frame(partyTreeALL_confMat)$Freq[1:3], 
                                                                "eastForest" = data.frame(partyTreeALL_confMat)$Freq[4:6],
                                                                "westForest" = data.frame(partyTreeALL_confMat)$Freq[7:9], 
                                                                row.names = c("dryShrubGrass", "eastForest", "westForest")), 
                                                     rownames_to_stub = TRUE))), 
-            ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("inputs" = c("swe_meanAnnAvg"  ,   "tmin_meanAnnAvg"      ,
-                                                                            "tmax_meanAnnAvg"    ,"tmean_meanAnnAvg" ,    "vp_meanAnnAvg", "prcp_meanAnnTotal", 
-                                                                            "T_warmestMonth_meanAnnAvg"    ,    "T_coldestMonth_meanAnnAvg" ),
-                                                               "inputs...1" =  c( "precip_wettestMonth_meanAnnAvg"   , "precip_driestMonth_meanAnnAvg", "precip_Seasonality_meanAnnAvg"     ,
-                                                                            "PrecipTempCorr_meanAnnAvg", "aboveFreezing_month_meanAnnAvg"  , "isothermality_meanAnnAvg"          ,
-                                                                            "annWaterDeficit_meanAnnAvg", "annWetDegDays_meanAnnAvg" )   , 
-                                                               "inputs...2" =c( "annVPD_mean_meanAnnAvg" ,  "annVPD_max_meanAnnAvg", "annVPD_min_meanAnnAvg",
-                                                                                "annVPD_max_95percentile", "annWaterDeficit_95percentile"     , "annWetDegDays_5percentile",
-                                                                                "durationFrostFreeDays_5percentile" , "durationFrostFreeDays_meanAnnAvg" )  , 
-                                                               "inputs...3" =c("soilDepth", "surfaceClay_perc"                       ,
-                                                                               "avgSandPerc_acrossDepth"               , "avgCoarsePerc_acrossDepth"            , "avgOrganicCarbonPerc_0_3cm"             ,
-                                                                               "totalAvailableWaterHoldingCapacity", NA, NA)
-                                                               )))),
+            # ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("inputs" = c("tmin_meanAnnAvg"      ,
+            #                                                                 "tmax_meanAnnAvg"    ,"tmean_meanAnnAvg" ,    "vp_meanAnnAvg", "prcp_meanAnnTotal", 
+            #                                                                 "T_warmestMonth_meanAnnAvg"    ,    "T_coldestMonth_meanAnnAvg", NA),
+            #                                                    "inputs...1" =  c( "precip_wettestMonth_meanAnnAvg"   , "precip_driestMonth_meanAnnAvg", "precip_Seasonality_meanAnnAvg"     ,
+            #                                                                 "PrecipTempCorr_meanAnnAvg", "aboveFreezing_month_meanAnnAvg"  , "isothermality_meanAnnAvg"          ,
+            #                                                                 "annWaterDeficit_meanAnnAvg", "annWetDegDays_meanAnnAvg" )   , 
+            #                                                    "inputs...2" =c( "annVPD_mean_meanAnnAvg" ,  "annVPD_max_meanAnnAvg", "annVPD_min_meanAnnAvg",
+            #                                                                     "annVPD_max_95percentile", "annWaterDeficit_95percentile"     , "annWetDegDays_5percentile",
+            #                                                                     "durationFrostFreeDays_5percentile" , "durationFrostFreeDays_meanAnnAvg" )  , 
+            #                                                    "inputs...3" =c("soilDepth", "surfaceClay_perc"                       ,
+            #                                                                    "avgSandPerc_acrossDepth"               , "avgCoarsePerc_acrossDepth"             ,
+            #                                                                    "totalAvailableWaterHoldingCapacity", NA, NA, NA)
+            #                                                    )))),
   partyTreeALLPredMAP, 
                                   ggarrange((ggtern::arrangeGrob(partyTreeALL_ternGoodPreds)), 
                                             (ggtern::arrangeGrob(partyTreeALL_ternBadPreds))), 
@@ -474,10 +473,12 @@ ggpubr::annotate_figure(ggarrange(
 
 # Conditional Inference Regression Tree with top 7 most important variables ------------
 # try restricting the tree depth (too long right now)
-partyTree_1 <- partykit::ctree(newRegion ~  precip_driestMonth_meanAnnAvg_CLIM   + PrecipTempCorr_meanAnnAvg_CLIM        +
-                                 T_warmestMonth_meanAnnAvg_CLIM    + avgOrganicCarbonPerc_0_3cm + 
-                                 vp_meanAnnAvg_CLIM                      +  prcp_meanAnnTotal_CLIM                 +
-                                 swe_meanAnnAvg_CLIM,
+partyTree_1 <- partykit::ctree(newRegion ~  precip_driestMonth_meanAnnAvg_30yr   + PrecipTempCorr_meanAnnAvg_30yr        +
+                                avgOrganicCarbonPerc_0_3cm + 
+                                 surfaceClay_perc + 
+                                 annVPD_max_meanAnnAvg_30yr + 
+                                 prcp_meanAnnTotal_30yr + 
+                                 annWetDegDays_5percentile_30yr
                                   ,
                                 data = modDat_fit, control = partykit::ctree_control(maxdepth = 7))
 partyTree_1
@@ -490,13 +491,13 @@ varImp <- varImp_temp  %>%
   # dplyr::rename("variable" = rowname) %>%
   dplyr::arrange(importance) %>%
   dplyr::mutate(variable = forcats::fct_inorder(variable))
-ggplot(varImp) +
+(partyTree_1_varImpPlot <- ggplot(varImp) +
   geom_segment(aes(x = variable, y = 0, xend = variable, yend = importance),
                size = 1.5, alpha = 0.7) +
   geom_point(aes(x = variable, y = importance, col = variable),
              size = 4, show.legend = F) +
   coord_flip() +
-  theme_bw()
+  theme_bw())
 
 # predict categories based on this simple model
 partyTree_1Preds <- cbind(predictionDat, "partyPrediction" = partykit::predict.party(partyTree_1, newdata = predictionDat, type = "response")) %>%
@@ -579,20 +580,155 @@ partyTree_1Preds$color <- rgb(red = partyTree_1Preds$partyPrediction.dryShrubGra
     scale_fill_distiller(type = "seq", palette = "Blues")
 ) 
 
+
+## make response curves 
+# (partyTree_1_precipOfDriestMonth <-  partyTree_1Preds %>%
+#     mutate(
+#       partyPrediction_prob = pmap_dbl(.[c("partyPrediction.dryShrubGrass", "partyPrediction.eastForest", "partyPrediction.westForest")], max),
+#            across(partyPrediction.dryShrubGrass:partyPrediction.westForest, ~.x == partyPrediction)) %>%
+#   select(c("precip_driestMonth_meanAnnAvg_30yr"  ,   "PrecipTempCorr_meanAnnAvg_30yr"      ,
+#            "T_warmestMonth_meanAnnAvg_30yr"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+#            "vp_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr", 
+#            "swe_meanAnnAvg_30yr", "partyPrediction", "partyPrediction_prob")) %>% 
+# ggplot() + 
+#   geom_point(aes(x = precip_driestMonth_meanAnnAvg_30yr, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
+#   theme_minimal() + 
+#   theme() + 
+#   xlab("Precip of the driest month") + 
+#   labs(color = "Ecoregion") + 
+#   ylab("Probability") +
+#   facet_wrap(~partyPrediction) + 
+#   geom_smooth(aes(x = precip_driestMonth_meanAnnAvg_30yr,  y = partyPrediction_prob),color = "black", se = FALSE) )
+# 
+# (partyTree_1_preciTempCorr <-  partyTree_1Preds %>%
+#     mutate(
+#       partyPrediction_prob = pmap_dbl(.[c("partyPrediction.dryShrubGrass", "partyPrediction.eastForest", "partyPrediction.westForest")], max),
+#       across(partyPrediction.dryShrubGrass:partyPrediction.westForest, ~.x == partyPrediction)) %>%
+#     select(c("precip_driestMonth_meanAnnAvg_30yr"  ,   "PrecipTempCorr_meanAnnAvg_30yr"      ,
+#              "T_warmestMonth_meanAnnAvg_30yr"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+#              "vp_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr", 
+#              "swe_meanAnnAvg_30yr", "partyPrediction", "partyPrediction_prob")) %>% 
+#     ggplot() + 
+#     geom_point(aes(x = PrecipTempCorr_meanAnnAvg_30yr, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
+#     theme_minimal() + 
+#     theme() + 
+#     xlab("Precip / Temp. Correlation") + 
+#     labs(color = "Ecoregion") + 
+#     ylab("Probability") +
+#     facet_wrap(~partyPrediction) + 
+#     geom_smooth(aes(x = PrecipTempCorr_meanAnnAvg_30yr,  y = partyPrediction_prob),color = "black", se = FALSE) +
+#     ylim(c(.5, 1)))   
+#  
+# #
+# (partyTree_1_TempWarmestMonth <-  partyTree_1Preds %>%
+#     mutate(
+#       partyPrediction_prob = pmap_dbl(.[c("partyPrediction.dryShrubGrass", "partyPrediction.eastForest", "partyPrediction.westForest")], max),
+#       across(partyPrediction.dryShrubGrass:partyPrediction.westForest, ~.x == partyPrediction)) %>%
+#     select(c("precip_driestMonth_meanAnnAvg_30yr"  ,   "PrecipTempCorr_meanAnnAvg_30yr"      ,
+#              "T_warmestMonth_meanAnnAvg_30yr"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+#              "vp_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr", 
+#              "swe_meanAnnAvg_30yr", "partyPrediction", "partyPrediction_prob")) %>% 
+#     ggplot() + 
+#     geom_point(aes(x = T_warmestMonth_meanAnnAvg_30yr, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
+#     theme_minimal() + 
+#     theme() + 
+#     xlab("Temp of warmest month") + 
+#     labs(color = "Ecoregion") + 
+#     ylab("Probability") +
+#     facet_wrap(~partyPrediction) + 
+#     geom_smooth(aes(x = T_warmestMonth_meanAnnAvg_30yr,  y = partyPrediction_prob),color = "black", se = FALSE) +
+#     ylim(c(.5, 1)))   
+# 
+# (partyTree_1_Carbon <-  partyTree_1Preds %>%
+#     mutate(
+#       partyPrediction_prob = pmap_dbl(.[c("partyPrediction.dryShrubGrass", "partyPrediction.eastForest", "partyPrediction.westForest")], max),
+#       across(partyPrediction.dryShrubGrass:partyPrediction.westForest, ~.x == partyPrediction)) %>%
+#     select(c("precip_driestMonth_meanAnnAvg_30yr"  ,   "PrecipTempCorr_meanAnnAvg_30yr"      ,
+#              "T_warmestMonth_meanAnnAvg_30yr"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+#              "vp_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr", 
+#              "swe_meanAnnAvg_30yr", "partyPrediction", "partyPrediction_prob")) %>% 
+#     ggplot() + 
+#     geom_point(aes(x = avgOrganicCarbonPerc_0_3cm, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
+#     theme_minimal() + 
+#     theme() + 
+#     xlab("Carbon in first 3 cm of soil") + 
+#     labs(color = "Ecoregion") + 
+#     ylab("Probability") +
+#     facet_wrap(~partyPrediction) + 
+#     geom_smooth(aes(x = avgOrganicCarbonPerc_0_3cm,  y = partyPrediction_prob),color = "black", se = FALSE) +
+#     ylim(c(.5, 1)))   
+# 
+# (partyTree_1_vp <-  partyTree_1Preds %>%
+#     mutate(
+#       partyPrediction_prob = pmap_dbl(.[c("partyPrediction.dryShrubGrass", "partyPrediction.eastForest", "partyPrediction.westForest")], max),
+#       across(partyPrediction.dryShrubGrass:partyPrediction.westForest, ~.x == partyPrediction)) %>%
+#     select(c("precip_driestMonth_meanAnnAvg_30yr"  ,   "PrecipTempCorr_meanAnnAvg_30yr"      ,
+#              "T_warmestMonth_meanAnnAvg_30yr"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+#              "vp_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr", 
+#              "swe_meanAnnAvg_30yr", "partyPrediction", "partyPrediction_prob")) %>% 
+#     ggplot() + 
+#     geom_point(aes(x = vp_meanAnnAvg_30yr, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
+#     theme_minimal() + 
+#     theme() + 
+#     xlab("mean annual daily atmospheric vapor pressure") + 
+#     labs(color = "Ecoregion") + 
+#     ylab("Probability") +
+#     facet_wrap(~partyPrediction) + 
+#     geom_smooth(aes(x = vp_meanAnnAvg_30yr,  y = partyPrediction_prob),color = "black", se = FALSE) +
+#     ylim(c(.5, 1)))   
+# 
+# (partyTree_1_MAP <-  partyTree_1Preds %>%
+#     mutate(
+#       partyPrediction_prob = pmap_dbl(.[c("partyPrediction.dryShrubGrass", "partyPrediction.eastForest", "partyPrediction.westForest")], max),
+#       across(partyPrediction.dryShrubGrass:partyPrediction.westForest, ~.x == partyPrediction)) %>%
+#     select(c("precip_driestMonth_meanAnnAvg_30yr"  ,   "PrecipTempCorr_meanAnnAvg_30yr"      ,
+#              "T_warmestMonth_meanAnnAvg_30yr"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+#              "vp_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr", 
+#              "swe_meanAnnAvg_30yr", "partyPrediction", "partyPrediction_prob")) %>% 
+#     ggplot() + 
+#     geom_point(aes(x = prcp_meanAnnTotal_30yr, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
+#     theme_minimal() + 
+#     theme() + 
+#     xlab("mean annual precip") + 
+#     labs(color = "Ecoregion") + 
+#     ylab("Probability") +
+#     facet_wrap(~partyPrediction) + 
+#     geom_smooth(aes(x = prcp_meanAnnTotal_30yr,  y = partyPrediction_prob),color = "black", se = FALSE) +
+#     ylim(c(.5, 1)))   
+# 
+# (partyTree_1_swe <-  partyTree_1Preds %>%
+#     mutate(
+#       partyPrediction_prob = pmap_dbl(.[c("partyPrediction.dryShrubGrass", "partyPrediction.eastForest", "partyPrediction.westForest")], max),
+#       across(partyPrediction.dryShrubGrass:partyPrediction.westForest, ~.x == partyPrediction)) %>%
+#     select(c("precip_driestMonth_meanAnnAvg_30yr"  ,   "PrecipTempCorr_meanAnnAvg_30yr"      ,
+#              "T_warmestMonth_meanAnnAvg_30yr"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+#              "vp_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr", 
+#              "swe_meanAnnAvg_30yr", "partyPrediction", "partyPrediction_prob")) %>% 
+#     ggplot() + 
+#     geom_point(aes(x = swe_meanAnnAvg_30yr, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
+#     theme_minimal() + 
+#     theme() + 
+#     xlab("total annual snowpack SWE") + 
+#     labs(color = "Ecoregion") + 
+#     ylab("Probability") +
+#     facet_wrap(~partyPrediction) + 
+#     geom_smooth(aes(x = swe_meanAnnAvg_30yr,  y = partyPrediction_prob),color = "black", se = FALSE) +
+#     ylim(c(.5, 1)))   
+
 ## arrange all of the figures for this model
 
-ggpubr::annotate_figure(ggarrange(
+ggpubr::annotate_figure(ggarrange(partyTree_1_varImpPlot,
   ggarrange(
     ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("dryShrubGrass" =  data.frame(partyTree_1_confMat)$Freq[1:3], 
                                                        "eastForest" = data.frame(partyTree_1_confMat)$Freq[4:6],
                                                        "westForest" = data.frame(partyTree_1_confMat)$Freq[7:9], 
                                                        row.names = c("dryShrubGrass", "eastForest", "westForest")), 
-                                            rownames_to_stub = TRUE))), 
-    ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("inputs" = c("precip_driestMonth_meanAnnAvg"  ,   "PrecipTempCorr_meanAnnAvg"      ,
-                                                                    "T_warmestMonth_meanAnnAvg"    ,"avgOrganicCarbonPerc_0_3cm" ,    
-                                                                    "vp_meanAnnAvg", "prcp_meanAnnTotal", 
-                                                                    "swe_meanAnnAvg" )
-    ))))
+                                            rownames_to_stub = TRUE)))#, 
+    # ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("inputs" = c("precip_driestMonth_meanAnnAvg"  ,   "PrecipTempCorr_meanAnnAvg"      ,
+    #                                                                 "T_warmestMonth_meanAnnAvg"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+    #                                                                 "vp_meanAnnAvg", "prcp_meanAnnTotal", 
+    #                                                                 "swe_meanAnnAvg" )
+    # ))))
     
   )
   ,
@@ -610,153 +746,169 @@ ggpubr::annotate_figure(ggarrange(
     filename = "./Figures/EcoRegionModelFigures/ModelFigures_depth7_TopSevenPredictors.pdf",
     width = 12, height = 23)
 
-# Conditional Inference Regression Tree with top 6 most important variables ------------
-## at this point, none of the predictors are correlated anyway... 
-# try restricting the tree depth (too long right now)
-partyTree_2 <- partykit::ctree(newRegion ~  precip_driestMonth_meanAnnAvg_CLIM   + PrecipTempCorr_meanAnnAvg_CLIM        +
-                                 T_warmestMonth_meanAnnAvg_CLIM    + avgOrganicCarbonPerc_0_3cm + 
-                                 vp_meanAnnAvg_CLIM                      +  prcp_meanAnnTotal_CLIM ,
-                               ,
-                               data = modDat_fit, control = partykit::ctree_control(maxdepth = 7))
-partyTree_2
-
-# variable importance
-varImp_temp <- data.frame("variable" = names(sort((varimp(partyTree_2)), decreasing = TRUE)),
-                          "importance" = sort((varimp(partyTree_2)), decreasing = TRUE))
-varImp <- varImp_temp  %>%
-  # tibble::rownames_to_column() %>%
-  # dplyr::rename("variable" = rowname) %>%
-  dplyr::arrange(importance) %>%
-  dplyr::mutate(variable = forcats::fct_inorder(variable))
-ggplot(varImp) +
-  geom_segment(aes(x = variable, y = 0, xend = variable, yend = importance),
-               size = 1.5, alpha = 0.7) +
-  geom_point(aes(x = variable, y = importance, col = variable),
-             size = 4, show.legend = F) +
-  coord_flip() +
-  theme_bw()
-
-# predict categories based on this simple model
-partyTree_2Preds <- cbind(predictionDat, "partyPrediction" = partykit::predict.party(partyTree_2, newdata = predictionDat, type = "response")) %>%
-  cbind("partyPrediction" = partykit::predict.party(partyTree_2, newdata = predictionDat, type = "prob")) 
-partyTree_2Preds$goodPred <- partyTree_2Preds$newRegion == partyTree_2Preds$partyPrediction
-# percentage of misclassifications
-sum(!partyTree_2Preds$goodPred)/nrow(partyTree_2Preds) * 100
-
-(partyTree_2PredMAP <- ggplot(partyTree_2Preds) +
-    geom_point(aes(Long, Lat, col = partyPrediction), alpha = .1) +
-    ggtitle("model-predicted ecoregion classification -- Model with all possible climate predictors",
-            subtitle = paste0("black dots indicate misclassification, \n fill color indicates which ecoregion a point was misclassified as; \n  ", round((100-sum(!partyTree_2Preds$goodPred)/nrow(partyTree_2Preds) * 100),1), "% classification accuracy" )) +
-    geom_point(data = partyTree_2Preds[partyTree_2Preds$goodPred == FALSE,], aes(Long, Lat, fill = partyPrediction),
-               col = "black"
-               , shape = 21))
-
-## confusion matrix
-partyMatrix <- partyTree_2Preds[,c("newRegion", "partyPrediction")]
-partyTree_2_confMat <- caret::confusionMatrix(data = partyTree_2Preds$partyPrediction,
-                                              reference = partyTree_2Preds$newRegion)$table
-
-## make ternary plots
-# just good predictions
-(partyTree_2_ternGoodPreds <- partyTree_2Preds %>% 
-    filter(goodPred == TRUE) %>% 
-    ggtern(aes(x=jitter(partyPrediction.dryShrubGrass*100 + 1, 50),
-               y=jitter(partyPrediction.eastForest*100 + 1, 50),
-               z=jitter(partyPrediction.westForest*100 + 1, 50), col = newRegion)) +
-    geom_point(alpha = .2) +
-    Tlab("Eastern Forest") +
-    Llab("Shrub/\nGrass") + 
-    Rlab("Western \nForest") +
-    theme_minimal() + 
-    ggtitle("Accurate Predictions"))
-# just bad predictions
-badDat <- partyTree_2Preds %>% 
-  filter(goodPred == FALSE)
-(partyTree_2_ternBadPreds <- 
-    ggtern( data = badDat, aes(x=jitter(partyPrediction.dryShrubGrass*100 + 1, 50),
-                               y=jitter(partyPrediction.eastForest*100 + 1, 50),
-                               z=jitter(partyPrediction.westForest*100 + 1, 50), col = newRegion)) +
-    geom_point(alpha = .2) +
-    Tlab("Eastern Forest") +
-    Llab("Shrub/\nGrass") + 
-    Rlab("Western \nForest") +
-    theme_minimal() + 
-    ggtitle("Bad Predictions"))
-
-# map of misclassified points 
-partyTree_2Preds$color <- rgb(red = partyTree_2Preds$partyPrediction.dryShrubGrass, 
-                              green = partyTree_2Preds$partyPrediction.eastForest, 
-                              blue = partyTree_2Preds$partyPrediction.westForest)
-
-(partyTree_2Pred_mapBadGrass <- ggplot() +
-    geom_point(data = partyTree_2Preds, aes(Long, Lat, col = newRegion), alpha = .1) +
-    ggtitle("Severity of Grass/Shrub misclassification") +
-    geom_point(data = partyTree_2Preds[partyTree_2Preds$goodPred == FALSE & partyTree_2Preds$partyPrediction == "dryShrubGrass",], 
-               aes(Long, Lat, fill = partyPrediction.dryShrubGrass),
-               col = "black" ,
-               shape = 21) +
-    scale_fill_distiller(type = "seq", palette = "Reds")
-)
-(partyTree_2Pred_mapBadEastForest <- ggplot() +
-    geom_point(data = partyTree_2Preds, aes(Long, Lat, col = newRegion), alpha = .1) +
-    ggtitle("Severity of Eastern Forest misclassification") +
-    geom_point(data = partyTree_2Preds[partyTree_2Preds$goodPred == FALSE & partyTree_2Preds$partyPrediction == "eastForest",], 
-               aes(Long, Lat, fill = partyPrediction.eastForest),
-               col = "black" ,
-               shape = 21) +
-    scale_fill_distiller(type = "seq", palette = "Greens")
-) 
-
-(partyTree_2Pred_mapBadWestForest <- ggplot() +
-    geom_point(data = partyTree_2Preds, aes(Long, Lat, col = newRegion), alpha = .1) +
-    ggtitle("Severity of Western Forest misclassification") +
-    geom_point(data = partyTree_2Preds[partyTree_2Preds$goodPred == FALSE & partyTree_2Preds$partyPrediction == "westForest",], 
-               aes(Long, Lat, fill = partyPrediction.westForest),
-               col = "black" ,
-               shape = 21) +
-    scale_fill_distiller(type = "seq", palette = "Blues")
-) 
-
-## arrange all of the figures for this model
-
-ggpubr::annotate_figure(ggarrange(
-  ggarrange(
-    ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("dryShrubGrass" =  data.frame(partyTree_2_confMat)$Freq[1:3], 
-                                                       "eastForest" = data.frame(partyTree_2_confMat)$Freq[4:6],
-                                                       "westForest" = data.frame(partyTree_2_confMat)$Freq[7:9], 
-                                                       row.names = c("dryShrubGrass", "eastForest", "westForest")), 
-                                            rownames_to_stub = TRUE))), 
-    ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("inputs" = c("precip_driestMonth_meanAnnAvg"  ,   "PrecipTempCorr_meanAnnAvg"      ,
-                                                                    "T_warmestMonth_meanAnnAvg"    ,"avgOrganicCarbonPerc_0_3cm" ,    
-                                                                    "vp_meanAnnAvg", "prcp_meanAnnTotal" )
-    ))))
-    
-  )
-  ,
-  partyTree_2PredMAP, 
-  ggarrange((ggtern::arrangeGrob(partyTree_2_ternGoodPreds)), 
-            (ggtern::arrangeGrob(partyTree_2_ternBadPreds))), 
-  partyTree_2Pred_mapBadGrass, 
-  partyTree_2Pred_mapBadEastForest, 
-  partyTree_2Pred_mapBadWestForest, 
-  nrow = 6
-)#, 
-#top = c("Model with depth = 7 and all climate and soil predictors")
-) %>% 
-  ggexport(
-    filename = "./Figures/EcoRegionModelFigures/ModelFigures_depth7_TopSixPredictors.pdf",
-    width = 12, height = 23)
+# # Conditional Inference Regression Tree with top 6 most important variables ------------
+# ## at this point, none of the predictors are correlated anyway... 
+# # try restricting the tree depth (too long right now)
+# partyTree_2 <- partykit::ctree(newRegion ~  precip_driestMonth_meanAnnAvg_30yr   + PrecipTempCorr_meanAnnAvg_30yr        +
+#                                  T_warmestMonth_meanAnnAvg_30yr    + 
+#                                  prcp_meanAnnTotal_30yr + 
+#                                  annVPD_max_meanAnnAvg_30yr +
+#                                  annVPD_min_meanAnnAvg_30yr 
+#                                ,
+#                                data = modDat_fit, control = partykit::ctree_control(maxdepth = 7))
+# partyTree_2
+# 
+# # variable importance
+# varImp_temp <- data.frame("variable" = names(sort((varimp(partyTree_2)), decreasing = TRUE)),
+#                           "importance" = sort((varimp(partyTree_2)), decreasing = TRUE))
+# varImp <- varImp_temp  %>%
+#   # tibble::rownames_to_column() %>%
+#   # dplyr::rename("variable" = rowname) %>%
+#   dplyr::arrange(importance) %>%
+#   dplyr::mutate(variable = forcats::fct_inorder(variable))
+# partyTree_2_varImpPlot <- ggplot(varImp) +
+#   geom_segment(aes(x = variable, y = 0, xend = variable, yend = importance),
+#                size = 1.5, alpha = 0.7) +
+#   geom_point(aes(x = variable, y = importance, col = variable),
+#              size = 4, show.legend = F) +
+#   coord_flip() +
+#   theme_bw()
+# 
+# # predict categories based on this simple model
+# partyTree_2Preds <- cbind(predictionDat, "partyPrediction" = partykit::predict.party(partyTree_2, newdata = predictionDat, type = "response")) %>%
+#   cbind("partyPrediction" = partykit::predict.party(partyTree_2, newdata = predictionDat, type = "prob")) 
+# partyTree_2Preds$goodPred <- partyTree_2Preds$newRegion == partyTree_2Preds$partyPrediction
+# # percentage of misclassifications
+# sum(!partyTree_2Preds$goodPred)/nrow(partyTree_2Preds) * 100
+# 
+# (partyTree_2PredMAP <- ggplot(partyTree_2Preds) +
+#     geom_point(aes(Long, Lat, col = partyPrediction), alpha = .1) +
+#     ggtitle("model-predicted ecoregion classification -- Model with all possible climate predictors",
+#             subtitle = paste0("black dots indicate misclassification, \n fill color indicates which ecoregion a point was misclassified as; \n  ", round((100-sum(!partyTree_2Preds$goodPred)/nrow(partyTree_2Preds) * 100),1), "% classification accuracy" )) +
+#     geom_point(data = partyTree_2Preds[partyTree_2Preds$goodPred == FALSE,], aes(Long, Lat, fill = partyPrediction),
+#                col = "black"
+#                , shape = 21))
+# 
+# ## confusion matrix
+# partyMatrix <- partyTree_2Preds[,c("newRegion", "partyPrediction")]
+# partyTree_2_confMat <- caret::confusionMatrix(data = partyTree_2Preds$partyPrediction,
+#                                               reference = partyTree_2Preds$newRegion)$table
+# 
+# ## make ternary plots
+# # just good predictions
+# (partyTree_2_ternGoodPreds <- partyTree_2Preds %>% 
+#     filter(goodPred == TRUE) %>% 
+#     ggtern(aes(x=jitter(partyPrediction.dryShrubGrass*100 + 1, 50),
+#                y=jitter(partyPrediction.eastForest*100 + 1, 50),
+#                z=jitter(partyPrediction.westForest*100 + 1, 50), col = newRegion)) +
+#     geom_point(alpha = .2) +
+#     Tlab("Eastern Forest") +
+#     Llab("Shrub/\nGrass") + 
+#     Rlab("Western \nForest") +
+#     theme_minimal() + 
+#     ggtitle("Accurate Predictions"))
+# # just bad predictions
+# badDat <- partyTree_2Preds %>% 
+#   filter(goodPred == FALSE)
+# (partyTree_2_ternBadPreds <- 
+#     ggtern( data = badDat, aes(x=jitter(partyPrediction.dryShrubGrass*100 + 1, 50),
+#                                y=jitter(partyPrediction.eastForest*100 + 1, 50),
+#                                z=jitter(partyPrediction.westForest*100 + 1, 50), col = newRegion)) +
+#     geom_point(alpha = .2) +
+#     Tlab("Eastern Forest") +
+#     Llab("Shrub/\nGrass") + 
+#     Rlab("Western \nForest") +
+#     theme_minimal() + 
+#     ggtitle("Bad Predictions"))
+# 
+# # map of misclassified points 
+# partyTree_2Preds$color <- rgb(red = partyTree_2Preds$partyPrediction.dryShrubGrass, 
+#                               green = partyTree_2Preds$partyPrediction.eastForest, 
+#                               blue = partyTree_2Preds$partyPrediction.westForest)
+# 
+# (partyTree_2Pred_mapBadGrass <- ggplot() +
+#     geom_point(data = partyTree_2Preds, aes(Long, Lat, col = newRegion), alpha = .1) +
+#     ggtitle("Severity of Grass/Shrub misclassification") +
+#     geom_point(data = partyTree_2Preds[partyTree_2Preds$goodPred == FALSE & partyTree_2Preds$partyPrediction == "dryShrubGrass",], 
+#                aes(Long, Lat, fill = partyPrediction.dryShrubGrass),
+#                col = "black" ,
+#                shape = 21) +
+#     scale_fill_distiller(type = "seq", palette = "Reds")
+# )
+# (partyTree_2Pred_mapBadEastForest <- ggplot() +
+#     geom_point(data = partyTree_2Preds, aes(Long, Lat, col = newRegion), alpha = .1) +
+#     ggtitle("Severity of Eastern Forest misclassification") +
+#     geom_point(data = partyTree_2Preds[partyTree_2Preds$goodPred == FALSE & partyTree_2Preds$partyPrediction == "eastForest",], 
+#                aes(Long, Lat, fill = partyPrediction.eastForest),
+#                col = "black" ,
+#                shape = 21) +
+#     scale_fill_distiller(type = "seq", palette = "Greens")
+# ) 
+# 
+# (partyTree_2Pred_mapBadWestForest <- ggplot() +
+#     geom_point(data = partyTree_2Preds, aes(Long, Lat, col = newRegion), alpha = .1) +
+#     ggtitle("Severity of Western Forest misclassification") +
+#     geom_point(data = partyTree_2Preds[partyTree_2Preds$goodPred == FALSE & partyTree_2Preds$partyPrediction == "westForest",], 
+#                aes(Long, Lat, fill = partyPrediction.westForest),
+#                col = "black" ,
+#                shape = 21) +
+#     scale_fill_distiller(type = "seq", palette = "Blues")
+# ) 
+# 
+# ## arrange all of the figures for this model
+# 
+# ggpubr::annotate_figure(
+#   partyTree_2_varImpPlot,
+#   ggarrange(
+#   ggarrange(
+#     ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("dryShrubGrass" =  data.frame(partyTree_2_confMat)$Freq[1:3], 
+#                                                        "eastForest" = data.frame(partyTree_2_confMat)$Freq[4:6],
+#                                                        "westForest" = data.frame(partyTree_2_confMat)$Freq[7:9], 
+#                                                        row.names = c("dryShrubGrass", "eastForest", "westForest")), 
+#                                             rownames_to_stub = TRUE)))#, 
+#     # ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("inputs" = c("precip_driestMonth_meanAnnAvg"  ,   "PrecipTempCorr_meanAnnAvg"      ,
+#     #                                                                 "T_warmestMonth_meanAnnAvg"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+#     #                                                                 "vp_meanAnnAvg", "prcp_meanAnnTotal" )
+#     # ))))
+#     # 
+#   )
+#   ,
+#   partyTree_2PredMAP, 
+#   ggarrange((ggtern::arrangeGrob(partyTree_2_ternGoodPreds)), 
+#             (ggtern::arrangeGrob(partyTree_2_ternBadPreds))), 
+#   partyTree_2Pred_mapBadGrass, 
+#   partyTree_2Pred_mapBadEastForest, 
+#   partyTree_2Pred_mapBadWestForest, 
+#   nrow = 6
+# )#, 
+# #top = c("Model with depth = 7 and all climate and soil predictors")
+# ) %>% 
+#   ggexport(
+#     filename = "./Figures/EcoRegionModelFigures/ModelFigures_depth7_TopSixPredictors.pdf",
+#     width = 12, height = 23)
 
 # Conditional Inference Regression Tree with top 5 most important variables ------------
 ## at this point, none of the predictors are correlated anyway... 
 ## removed vp instead of prcp (which was technically the least important), since I don't think we'll use vp in the cover models
 # try restricting the tree depth (too long right now)
-partyTree_3 <- partykit::ctree(newRegion ~  precip_driestMonth_meanAnnAvg_CLIM   + PrecipTempCorr_meanAnnAvg_CLIM        +
-                                 T_warmestMonth_meanAnnAvg_CLIM    + avgOrganicCarbonPerc_0_3cm + 
-                                 +  prcp_meanAnnTotal_CLIM ,
+partyTree_3 <- partykit::ctree(newRegion ~  precip_driestMonth_meanAnnAvg_30yr   + PrecipTempCorr_meanAnnAvg_30yr        +
+                                 avgOrganicCarbonPerc_0_3cm + 
+                                 annVPD_max_meanAnnAvg_30yr + 
+                                 prcp_meanAnnTotal_30yr 
                                ,
                                data = modDat_fit, control = partykit::ctree_control(maxdepth = 7))
 partyTree_3
+
+# look at correlation btwn predictors
+(partyTree_3_corrPlot <- 
+    modDat_fit %>% 
+    select(precip_driestMonth_meanAnnAvg_30yr   , PrecipTempCorr_meanAnnAvg_30yr        ,
+             avgOrganicCarbonPerc_0_3cm , 
+             annVPD_max_meanAnnAvg_30yr , 
+             prcp_meanAnnTotal_30yr) %>% 
+      slice_sample(n = 5e4) %>% 
+    #select(-matches("_")) %>% 
+    ggpairs( upper = list(continuous = my_fn), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), progress = FALSE))
 
 # variable importance
 varImp_temp <- data.frame("variable" = names(sort((varimp(partyTree_3)), decreasing = TRUE)),
@@ -766,13 +918,13 @@ varImp <- varImp_temp  %>%
   # dplyr::rename("variable" = rowname) %>%
   dplyr::arrange(importance) %>%
   dplyr::mutate(variable = forcats::fct_inorder(variable))
-ggplot(varImp) +
+(partyTree_3_varImpPlot <- ggplot(varImp) +
   geom_segment(aes(x = variable, y = 0, xend = variable, yend = importance),
                size = 1.5, alpha = 0.7) +
   geom_point(aes(x = variable, y = importance, col = variable),
              size = 4, show.legend = F) +
   coord_flip() +
-  theme_bw()
+  theme_bw())
 
 # predict categories based on this simple model
 partyTree_3Preds <- cbind(predictionDat, "partyPrediction" = partykit::predict.party(partyTree_3, newdata = predictionDat, type = "response")) %>%
@@ -857,17 +1009,19 @@ partyTree_3Preds$color <- rgb(red = partyTree_3Preds$partyPrediction.dryShrubGra
 
 ## arrange all of the figures for this model
 
-ggpubr::annotate_figure(ggarrange(
+ggpubr::annotate_figure(
+                        ggarrange(
+                          partyTree_3_varImpPlot,
   ggarrange(
     ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("dryShrubGrass" =  data.frame(partyTree_3_confMat)$Freq[1:3], 
                                                        "eastForest" = data.frame(partyTree_3_confMat)$Freq[4:6],
                                                        "westForest" = data.frame(partyTree_3_confMat)$Freq[7:9], 
                                                        row.names = c("dryShrubGrass", "eastForest", "westForest")), 
-                                            rownames_to_stub = TRUE))), 
-    ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("inputs" = c("precip_driestMonth_meanAnnAvg"  ,   "PrecipTempCorr_meanAnnAvg"      ,
-                                                                    "T_warmestMonth_meanAnnAvg"    ,"avgOrganicCarbonPerc_0_3cm" ,    
-                                                                    "prcp_meanAnnTotal" )
-    ))))
+                                            rownames_to_stub = TRUE)))#, 
+    # ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("inputs" = c("precip_driestMonth_meanAnnAvg"  ,   "PrecipTempCorr_meanAnnAvg"      ,
+    #                                                                 "T_warmestMonth_meanAnnAvg"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+    #                                                                 "prcp_meanAnnTotal" )
+    # ))))
     
   )
   ,
@@ -883,17 +1037,17 @@ ggpubr::annotate_figure(ggarrange(
 ) %>% 
   ggexport(
     filename = "./Figures/EcoRegionModelFigures/ModelFigures_depth7_TopFivePredictors.pdf",
-    width = 12, height = 23)
+    width = 12, height = 25)
 
-# Conditional Inference Regression Tree Depth = 6, with top 5 most important variables ------------
+# Conditional Inference Regression Tree Depth = 7, with top 4 most important variables ------------
 ## at this point, none of the predictors are correlated anyway... 
 ## removed vp instead of prcp (which was technically the least important), since I don't think we'll use vp in the cover models
 # try restricting the tree depth (too long right now)
-partyTree_4 <- partykit::ctree(newRegion ~  precip_driestMonth_meanAnnAvg_CLIM   + PrecipTempCorr_meanAnnAvg_CLIM        +
-                                 T_warmestMonth_meanAnnAvg_CLIM    + avgOrganicCarbonPerc_0_3cm + 
-                                 +  prcp_meanAnnTotal_CLIM ,
-                               ,
-                               data = modDat_fit, control = partykit::ctree_control(maxdepth = 6))
+partyTree_4 <- partykit::ctree(newRegion ~   precip_driestMonth_meanAnnAvg_30yr   + PrecipTempCorr_meanAnnAvg_30yr        +
+                                 avgOrganicCarbonPerc_0_3cm + 
+                                 annVPD_max_meanAnnAvg_30yr   ,
+                               
+                               data = modDat_fit, control = partykit::ctree_control(maxdepth = 7))
 partyTree_4
 
 # variable importance
@@ -904,7 +1058,7 @@ varImp <- varImp_temp  %>%
   # dplyr::rename("variable" = rowname) %>%
   dplyr::arrange(importance) %>%
   dplyr::mutate(variable = forcats::fct_inorder(variable))
-ggplot(varImp) +
+partyTree_4_varImpPlot <- ggplot(varImp) +
   geom_segment(aes(x = variable, y = 0, xend = variable, yend = importance),
                size = 1.5, alpha = 0.7) +
   geom_point(aes(x = variable, y = importance, col = variable),
@@ -995,17 +1149,18 @@ partyTree_4Preds$color <- rgb(red = partyTree_4Preds$partyPrediction.dryShrubGra
 
 ## arrange all of the figures for this model
 
-ggpubr::annotate_figure(ggarrange(
+ggpubr::annotate_figure(
+  ggarrange(partyTree_4_varImpPlot,
   ggarrange(
     ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("dryShrubGrass" =  data.frame(partyTree_4_confMat)$Freq[1:3], 
                                                        "eastForest" = data.frame(partyTree_4_confMat)$Freq[4:6],
                                                        "westForest" = data.frame(partyTree_4_confMat)$Freq[7:9], 
                                                        row.names = c("dryShrubGrass", "eastForest", "westForest")), 
-                                            rownames_to_stub = TRUE))), 
-    ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("inputs" = c("precip_driestMonth_meanAnnAvg"  ,   "PrecipTempCorr_meanAnnAvg"      ,
-                                                                    "T_warmestMonth_meanAnnAvg"    ,"avgOrganicCarbonPerc_0_3cm" ,    
-                                                                    "prcp_meanAnnTotal" )
-    ))))
+                                            rownames_to_stub = TRUE)))#, 
+    # ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("inputs" = c("precip_driestMonth_meanAnnAvg"  ,   "PrecipTempCorr_meanAnnAvg"      ,
+    #                                                                 "T_warmestMonth_meanAnnAvg"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+    #                                                                 "prcp_meanAnnTotal" )
+    # ))))
     
   )
   ,
@@ -1020,20 +1175,21 @@ ggpubr::annotate_figure(ggarrange(
 #top = c("Model with depth = 7 and all climate and soil predictors")
 ) %>% 
   ggexport(
-    filename = "./Figures/EcoRegionModelFigures/ModelFigures_depth6_TopFivePredictors.pdf",
+    filename = "./Figures/EcoRegionModelFigures/ModelFigures_depth7_TopFourPredictors.pdf",
     width = 12, height = 23)
 
-# Conditional Inference Regression Tree Depth = 5, with top 5 most important variables ------------
+# MODEL CURRENTLY USING AS BEST MODEL: Conditional Inference Regression Tree Depth = 6, with top 4 most important variables ------------
 ## at this point, none of the predictors are correlated anyway... 
 ## removed vp instead of prcp (which was technically the least important), since I don't think we'll use vp in the cover models
 # try restricting the tree depth (too long right now)
-partyTree_5 <- partykit::ctree(newRegion ~  precip_driestMonth_meanAnnAvg_CLIM   + PrecipTempCorr_meanAnnAvg_CLIM        +
-                                 T_warmestMonth_meanAnnAvg_CLIM    + avgOrganicCarbonPerc_0_3cm + 
-                                 +  prcp_meanAnnTotal_CLIM ,
-                               ,
-                               data = modDat_fit, control = partykit::ctree_control(maxdepth = 5))
+partyTree_5 <- partykit::ctree(newRegion ~   precip_driestMonth_meanAnnAvg_30yr   + PrecipTempCorr_meanAnnAvg_30yr        +
+                                 avgOrganicCarbonPerc_0_3cm + 
+                                 annVPD_max_meanAnnAvg_30yr  ,
+                               data = modDat_fit, control = partykit::ctree_control(maxdepth = 6))
 partyTree_5
 
+# save partyTree_5 model as an rds object to load into sensitivity analysis 
+saveRDS(partyTree_5, "./Data_processed/EcoregionModelForTesting.rds")
 # variable importance
 varImp_temp <- data.frame("variable" = names(sort((varimp(partyTree_5)), decreasing = TRUE)),
                           "importance" = sort((varimp(partyTree_5)), decreasing = TRUE))
@@ -1042,7 +1198,7 @@ varImp <- varImp_temp  %>%
   # dplyr::rename("variable" = rowname) %>%
   dplyr::arrange(importance) %>%
   dplyr::mutate(variable = forcats::fct_inorder(variable))
-ggplot(varImp) +
+partyTree_5_varImpPlot <- ggplot(varImp) +
   geom_segment(aes(x = variable, y = 0, xend = variable, yend = importance),
                size = 1.5, alpha = 0.7) +
   geom_point(aes(x = variable, y = importance, col = variable),
@@ -1133,17 +1289,17 @@ partyTree_5Preds$color <- rgb(red = partyTree_5Preds$partyPrediction.dryShrubGra
 
 ## arrange all of the figures for this model
 
-ggpubr::annotate_figure(ggarrange(
+ggpubr::annotate_figure(ggarrange(partyTree_5_varImpPlot, 
   ggarrange(
     ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("dryShrubGrass" =  data.frame(partyTree_5_confMat)$Freq[1:3], 
                                                        "eastForest" = data.frame(partyTree_5_confMat)$Freq[4:6],
                                                        "westForest" = data.frame(partyTree_5_confMat)$Freq[7:9], 
                                                        row.names = c("dryShrubGrass", "eastForest", "westForest")), 
-                                            rownames_to_stub = TRUE))), 
-    ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("inputs" = c("precip_driestMonth_meanAnnAvg"  ,   "PrecipTempCorr_meanAnnAvg"      ,
-                                                                    "T_warmestMonth_meanAnnAvg"    ,"avgOrganicCarbonPerc_0_3cm" ,    
-                                                                    "prcp_meanAnnTotal" )
-    ))))
+                                            rownames_to_stub = TRUE)))#, 
+    # ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("inputs" = c("precip_driestMonth_meanAnnAvg"  ,   "PrecipTempCorr_meanAnnAvg"      ,
+    #                                                                 "T_warmestMonth_meanAnnAvg"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+    #                                                                 "prcp_meanAnnTotal" )
+    # ))))
     
   )
   ,
@@ -1158,18 +1314,17 @@ ggpubr::annotate_figure(ggarrange(
 #top = c("Model with depth = 7 and all climate and soil predictors")
 ) %>% 
   ggexport(
-    filename = "./Figures/EcoRegionModelFigures/ModelFigures_depth5_TopFivePredictors.pdf",
+    filename = "./Figures/EcoRegionModelFigures/ModelFigures_depth6_TopFourPredictors.pdf",
     width = 12, height = 23)
 
-
-# Conditional Inference Regression Tree with tree Depth = 6 and top 7 most important variables ------------
+# Conditional Inference Regression Tree Depth = 5, with top 4 most important variables ------------
+## at this point, none of the predictors are correlated anyway... 
+## removed vp instead of prcp (which was technically the least important), since I don't think we'll use vp in the cover models
 # try restricting the tree depth (too long right now)
-partyTree_6 <- partykit::ctree(newRegion ~  precip_driestMonth_meanAnnAvg_CLIM   + PrecipTempCorr_meanAnnAvg_CLIM        +
-                                 T_warmestMonth_meanAnnAvg_CLIM    + avgOrganicCarbonPerc_0_3cm + 
-                                 vp_meanAnnAvg_CLIM                      +  prcp_meanAnnTotal_CLIM                 +
-                                 swe_meanAnnAvg_CLIM,
-                               ,
-                               data = modDat_fit, control = partykit::ctree_control(maxdepth = 6))
+partyTree_6 <- partykit::ctree(newRegion ~   precip_driestMonth_meanAnnAvg_30yr   + PrecipTempCorr_meanAnnAvg_30yr        +
+                                 avgOrganicCarbonPerc_0_3cm + 
+                                 annVPD_max_meanAnnAvg_30yr  ,
+                               data = modDat_fit, control = partykit::ctree_control(maxdepth = 5))
 partyTree_6
 
 # variable importance
@@ -1180,7 +1335,7 @@ varImp <- varImp_temp  %>%
   # dplyr::rename("variable" = rowname) %>%
   dplyr::arrange(importance) %>%
   dplyr::mutate(variable = forcats::fct_inorder(variable))
-ggplot(varImp) +
+partyTree_6_varImpPlot <- ggplot(varImp) +
   geom_segment(aes(x = variable, y = 0, xend = variable, yend = importance),
                size = 1.5, alpha = 0.7) +
   geom_point(aes(x = variable, y = importance, col = variable),
@@ -1271,34 +1426,308 @@ partyTree_6Preds$color <- rgb(red = partyTree_6Preds$partyPrediction.dryShrubGra
 
 ## arrange all of the figures for this model
 
-ggpubr::annotate_figure(ggarrange(
-  ggarrange(
-    ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("dryShrubGrass" =  data.frame(partyTree_6_confMat)$Freq[1:3], 
-                                                       "eastForest" = data.frame(partyTree_6_confMat)$Freq[4:6],
-                                                       "westForest" = data.frame(partyTree_6_confMat)$Freq[7:9], 
-                                                       row.names = c("dryShrubGrass", "eastForest", "westForest")), 
-                                            rownames_to_stub = TRUE))), 
-    ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("inputs" = c("precip_driestMonth_meanAnnAvg"  ,   "PrecipTempCorr_meanAnnAvg"      ,
-                                                                    "T_warmestMonth_meanAnnAvg"    ,"avgOrganicCarbonPerc_0_3cm" ,    
-                                                                    "vp_meanAnnAvg", "prcp_meanAnnTotal", 
-                                                                    "swe_meanAnnAvg" )
-    ))))
-    
-  )
-  ,
-  partyTree_6PredMAP, 
-  ggarrange((ggtern::arrangeGrob(partyTree_6_ternGoodPreds)), 
-            (ggtern::arrangeGrob(partyTree_6_ternBadPreds))), 
-  partyTree_6Pred_mapBadGrass, 
-  partyTree_6Pred_mapBadEastForest, 
-  partyTree_6Pred_mapBadWestForest, 
-  nrow = 6
+ggpubr::annotate_figure(ggarrange(partyTree_6_varImpPlot, 
+                                  ggarrange(
+                                    ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("dryShrubGrass" =  data.frame(partyTree_6_confMat)$Freq[1:3], 
+                                                                                       "eastForest" = data.frame(partyTree_6_confMat)$Freq[4:6],
+                                                                                       "westForest" = data.frame(partyTree_6_confMat)$Freq[7:9], 
+                                                                                       row.names = c("dryShrubGrass", "eastForest", "westForest")), 
+                                                                            rownames_to_stub = TRUE)))#, 
+                                    # ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("inputs" = c("precip_driestMonth_meanAnnAvg"  ,   "PrecipTempCorr_meanAnnAvg"      ,
+                                    #                                                                 "T_warmestMonth_meanAnnAvg"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+                                    #                                                                 "prcp_meanAnnTotal" )
+                                    # ))))
+                                    
+                                  )
+                                  ,
+                                  partyTree_6PredMAP, 
+                                  ggarrange((ggtern::arrangeGrob(partyTree_6_ternGoodPreds)), 
+                                            (ggtern::arrangeGrob(partyTree_6_ternBadPreds))), 
+                                  partyTree_6Pred_mapBadGrass, 
+                                  partyTree_6Pred_mapBadEastForest, 
+                                  partyTree_6Pred_mapBadWestForest, 
+                                  nrow = 6
 )#, 
 #top = c("Model with depth = 7 and all climate and soil predictors")
 ) %>% 
   ggexport(
-    filename = "./Figures/EcoRegionModelFigures/ModelFigures_depth6_TopSevenPredictors.pdf",
+    filename = "./Figures/EcoRegionModelFigures/ModelFigures_depth5_TopFourPredictors.pdf",
     width = 12, height = 23)
+
+# Conditional Inference Regression Tree Depth = 5, with top 3 most important variables ------------
+## at this point, none of the predictors are correlated anyway... 
+## removed vp instead of prcp (which was technically the least important), since I don't think we'll use vp in the cover models
+# try restricting the tree depth (too long right now)
+partyTree_7 <- partykit::ctree(newRegion ~  precip_driestMonth_meanAnnAvg_30yr   + PrecipTempCorr_meanAnnAvg_30yr        +
+                                 T_warmestMonth_meanAnnAvg_30yr ,
+                               data = modDat_fit, control = partykit::ctree_control(maxdepth = 5))
+partyTree_7
+
+# variable importance
+varImp_temp <- data.frame("variable" = names(sort((varimp(partyTree_7)), decreasing = TRUE)),
+                          "importance" = sort((varimp(partyTree_7)), decreasing = TRUE))
+varImp <- varImp_temp  %>%
+  # tibble::rownames_to_column() %>%
+  # dplyr::rename("variable" = rowname) %>%
+  dplyr::arrange(importance) %>%
+  dplyr::mutate(variable = forcats::fct_inorder(variable))
+partyTree_7_varImpPlot <- ggplot(varImp) +
+  geom_segment(aes(x = variable, y = 0, xend = variable, yend = importance),
+               size = 1.5, alpha = 0.7) +
+  geom_point(aes(x = variable, y = importance, col = variable),
+             size = 4, show.legend = F) +
+  coord_flip() +
+  theme_bw()
+
+# predict categories based on this simple model
+partyTree_7Preds <- cbind(predictionDat, "partyPrediction" = partykit::predict.party(partyTree_7, newdata = predictionDat, type = "response")) %>%
+  cbind("partyPrediction" = partykit::predict.party(partyTree_7, newdata = predictionDat, type = "prob")) 
+partyTree_7Preds$goodPred <- partyTree_7Preds$newRegion == partyTree_7Preds$partyPrediction
+# percentage of misclassifications
+sum(!partyTree_7Preds$goodPred)/nrow(partyTree_7Preds) * 100
+
+(partyTree_7PredMAP <- ggplot(partyTree_7Preds) +
+    geom_point(aes(Long, Lat, col = partyPrediction), alpha = .1) +
+    ggtitle("model-predicted ecoregion classification -- Model with all possible climate predictors",
+            subtitle = paste0("black dots indicate misclassification, \n fill color indicates which ecoregion a point was misclassified as; \n  ", round((100-sum(!partyTree_7Preds$goodPred)/nrow(partyTree_7Preds) * 100),1), "% classification accuracy" )) +
+    geom_point(data = partyTree_7Preds[partyTree_7Preds$goodPred == FALSE,], aes(Long, Lat, fill = partyPrediction),
+               col = "black"
+               , shape = 21))
+
+## confusion matrix
+partyMatrix <- partyTree_7Preds[,c("newRegion", "partyPrediction")]
+partyTree_7_confMat <- caret::confusionMatrix(data = partyTree_7Preds$partyPrediction,
+                                              reference = partyTree_7Preds$newRegion)$table
+
+## make ternary plots
+# just good predictions
+(partyTree_7_ternGoodPreds <- partyTree_7Preds %>% 
+    filter(goodPred == TRUE) %>% 
+    ggtern(aes(x=jitter(partyPrediction.dryShrubGrass*100 + 1, 50),
+               y=jitter(partyPrediction.eastForest*100 + 1, 50),
+               z=jitter(partyPrediction.westForest*100 + 1, 50), col = newRegion)) +
+    geom_point(alpha = .2) +
+    Tlab("Eastern Forest") +
+    Llab("Shrub/\nGrass") + 
+    Rlab("Western \nForest") +
+    theme_minimal() + 
+    ggtitle("Accurate Predictions"))
+# just bad predictions
+badDat <- partyTree_7Preds %>% 
+  filter(goodPred == FALSE)
+(partyTree_7_ternBadPreds <- 
+    ggtern( data = badDat, aes(x=jitter(partyPrediction.dryShrubGrass*100 + 1, 50),
+                               y=jitter(partyPrediction.eastForest*100 + 1, 50),
+                               z=jitter(partyPrediction.westForest*100 + 1, 50), col = newRegion)) +
+    geom_point(alpha = .2) +
+    Tlab("Eastern Forest") +
+    Llab("Shrub/\nGrass") + 
+    Rlab("Western \nForest") +
+    theme_minimal() + 
+    ggtitle("Bad Predictions"))
+
+# map of misclassified points 
+partyTree_7Preds$color <- rgb(red = partyTree_7Preds$partyPrediction.dryShrubGrass, 
+                              green = partyTree_7Preds$partyPrediction.eastForest, 
+                              blue = partyTree_7Preds$partyPrediction.westForest)
+
+(partyTree_7Pred_mapBadGrass <- ggplot() +
+    geom_point(data = partyTree_7Preds, aes(Long, Lat, col = newRegion), alpha = .1) +
+    ggtitle("Severity of Grass/Shrub misclassification") +
+    geom_point(data = partyTree_7Preds[partyTree_7Preds$goodPred == FALSE & partyTree_7Preds$partyPrediction == "dryShrubGrass",], 
+               aes(Long, Lat, fill = partyPrediction.dryShrubGrass),
+               col = "black" ,
+               shape = 21) +
+    scale_fill_distiller(type = "seq", palette = "Reds")
+)
+(partyTree_7Pred_mapBadEastForest <- ggplot() +
+    geom_point(data = partyTree_7Preds, aes(Long, Lat, col = newRegion), alpha = .1) +
+    ggtitle("Severity of Eastern Forest misclassification") +
+    geom_point(data = partyTree_7Preds[partyTree_7Preds$goodPred == FALSE & partyTree_7Preds$partyPrediction == "eastForest",], 
+               aes(Long, Lat, fill = partyPrediction.eastForest),
+               col = "black" ,
+               shape = 21) +
+    scale_fill_distiller(type = "seq", palette = "Greens")
+) 
+
+(partyTree_7Pred_mapBadWestForest <- ggplot() +
+    geom_point(data = partyTree_7Preds, aes(Long, Lat, col = newRegion), alpha = .1) +
+    ggtitle("Severity of Western Forest misclassification") +
+    geom_point(data = partyTree_7Preds[partyTree_7Preds$goodPred == FALSE & partyTree_7Preds$partyPrediction == "westForest",], 
+               aes(Long, Lat, fill = partyPrediction.westForest),
+               col = "black" ,
+               shape = 21) +
+    scale_fill_distiller(type = "seq", palette = "Blues")
+) 
+
+## arrange all of the figures for this model
+
+ggpubr::annotate_figure(ggarrange(partyTree_7_varImpPlot, 
+                                  ggarrange(
+                                    ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("dryShrubGrass" =  data.frame(partyTree_7_confMat)$Freq[1:3], 
+                                                                                       "eastForest" = data.frame(partyTree_7_confMat)$Freq[4:6],
+                                                                                       "westForest" = data.frame(partyTree_7_confMat)$Freq[7:9], 
+                                                                                       row.names = c("dryShrubGrass", "eastForest", "westForest")), 
+                                                                            rownames_to_stub = TRUE)))#, 
+                                    # ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("inputs" = c("precip_driestMonth_meanAnnAvg"  ,   "PrecipTempCorr_meanAnnAvg"      ,
+                                    #                                                                 "T_warmestMonth_meanAnnAvg"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+                                    #                                                                 "prcp_meanAnnTotal" )
+                                    # ))))
+                                    
+                                  )
+                                  ,
+                                  partyTree_7PredMAP, 
+                                  ggarrange((ggtern::arrangeGrob(partyTree_7_ternGoodPreds)), 
+                                            (ggtern::arrangeGrob(partyTree_7_ternBadPreds))), 
+                                  partyTree_7Pred_mapBadGrass, 
+                                  partyTree_7Pred_mapBadEastForest, 
+                                  partyTree_7Pred_mapBadWestForest, 
+                                  nrow = 6
+)#, 
+#top = c("Model with depth = 7 and all climate and soil predictors")
+) %>% 
+  ggexport(
+    filename = "./Figures/EcoRegionModelFigures/ModelFigures_depth5_TopThreePredictors.pdf",
+    width = 12, height = 23)
+
+
+# # Conditional Inference Regression Tree with tree Depth = 6 and top 7 most important variables ------------
+# # try restricting the tree depth (too long right now)
+# partyTree_7 <- partykit::ctree(newRegion ~  precip_driestMonth_meanAnnAvg_30yr   + PrecipTempCorr_meanAnnAvg_30yr        +
+#                                  T_warmestMonth_meanAnnAvg_30yr    + avgOrganicCarbonPerc_0_3cm + 
+#                                  vp_meanAnnAvg_30yr                      +  prcp_meanAnnTotal_30yr                 +
+#                                  swe_meanAnnAvg_30yr,
+#                                ,
+#                                data = modDat_fit, control = partykit::ctree_control(maxdepth = 6))
+# partyTree_7
+# 
+# # variable importance
+# varImp_temp <- data.frame("variable" = names(sort((varimp(partyTree_7)), decreasing = TRUE)),
+#                           "importance" = sort((varimp(partyTree_7)), decreasing = TRUE))
+# varImp <- varImp_temp  %>%
+#   # tibble::rownames_to_column() %>%
+#   # dplyr::rename("variable" = rowname) %>%
+#   dplyr::arrange(importance) %>%
+#   dplyr::mutate(variable = forcats::fct_inorder(variable))
+# ggplot(varImp) +
+#   geom_segment(aes(x = variable, y = 0, xend = variable, yend = importance),
+#                size = 1.5, alpha = 0.7) +
+#   geom_point(aes(x = variable, y = importance, col = variable),
+#              size = 4, show.legend = F) +
+#   coord_flip() +
+#   theme_bw()
+# 
+# # predict categories based on this simple model
+# partyTree_6Preds <- cbind(predictionDat, "partyPrediction" = partykit::predict.party(partyTree_6, newdata = predictionDat, type = "response")) %>%
+#   cbind("partyPrediction" = partykit::predict.party(partyTree_6, newdata = predictionDat, type = "prob")) 
+# partyTree_6Preds$goodPred <- partyTree_6Preds$newRegion == partyTree_6Preds$partyPrediction
+# # percentage of misclassifications
+# sum(!partyTree_6Preds$goodPred)/nrow(partyTree_6Preds) * 100
+# 
+# (partyTree_6PredMAP <- ggplot(partyTree_6Preds) +
+#     geom_point(aes(Long, Lat, col = partyPrediction), alpha = .1) +
+#     ggtitle("model-predicted ecoregion classification -- Model with all possible climate predictors",
+#             subtitle = paste0("black dots indicate misclassification, \n fill color indicates which ecoregion a point was misclassified as; \n  ", round((100-sum(!partyTree_6Preds$goodPred)/nrow(partyTree_6Preds) * 100),1), "% classification accuracy" )) +
+#     geom_point(data = partyTree_6Preds[partyTree_6Preds$goodPred == FALSE,], aes(Long, Lat, fill = partyPrediction),
+#                col = "black"
+#                , shape = 21))
+# 
+# ## confusion matrix
+# partyMatrix <- partyTree_6Preds[,c("newRegion", "partyPrediction")]
+# partyTree_6_confMat <- caret::confusionMatrix(data = partyTree_6Preds$partyPrediction,
+#                                               reference = partyTree_6Preds$newRegion)$table
+# 
+# ## make ternary plots
+# # just good predictions
+# (partyTree_6_ternGoodPreds <- partyTree_6Preds %>% 
+#     filter(goodPred == TRUE) %>% 
+#     ggtern(aes(x=jitter(partyPrediction.dryShrubGrass*100 + 1, 50),
+#                y=jitter(partyPrediction.eastForest*100 + 1, 50),
+#                z=jitter(partyPrediction.westForest*100 + 1, 50), col = newRegion)) +
+#     geom_point(alpha = .2) +
+#     Tlab("Eastern Forest") +
+#     Llab("Shrub/\nGrass") + 
+#     Rlab("Western \nForest") +
+#     theme_minimal() + 
+#     ggtitle("Accurate Predictions"))
+# # just bad predictions
+# badDat <- partyTree_6Preds %>% 
+#   filter(goodPred == FALSE)
+# (partyTree_6_ternBadPreds <- 
+#     ggtern( data = badDat, aes(x=jitter(partyPrediction.dryShrubGrass*100 + 1, 50),
+#                                y=jitter(partyPrediction.eastForest*100 + 1, 50),
+#                                z=jitter(partyPrediction.westForest*100 + 1, 50), col = newRegion)) +
+#     geom_point(alpha = .2) +
+#     Tlab("Eastern Forest") +
+#     Llab("Shrub/\nGrass") + 
+#     Rlab("Western \nForest") +
+#     theme_minimal() + 
+#     ggtitle("Bad Predictions"))
+# 
+# # map of misclassified points 
+# partyTree_6Preds$color <- rgb(red = partyTree_6Preds$partyPrediction.dryShrubGrass, 
+#                               green = partyTree_6Preds$partyPrediction.eastForest, 
+#                               blue = partyTree_6Preds$partyPrediction.westForest)
+# 
+# (partyTree_6Pred_mapBadGrass <- ggplot() +
+#     geom_point(data = partyTree_6Preds, aes(Long, Lat, col = newRegion), alpha = .1) +
+#     ggtitle("Severity of Grass/Shrub misclassification") +
+#     geom_point(data = partyTree_6Preds[partyTree_6Preds$goodPred == FALSE & partyTree_6Preds$partyPrediction == "dryShrubGrass",], 
+#                aes(Long, Lat, fill = partyPrediction.dryShrubGrass),
+#                col = "black" ,
+#                shape = 21) +
+#     scale_fill_distiller(type = "seq", palette = "Reds")
+# )
+# (partyTree_6Pred_mapBadEastForest <- ggplot() +
+#     geom_point(data = partyTree_6Preds, aes(Long, Lat, col = newRegion), alpha = .1) +
+#     ggtitle("Severity of Eastern Forest misclassification") +
+#     geom_point(data = partyTree_6Preds[partyTree_6Preds$goodPred == FALSE & partyTree_6Preds$partyPrediction == "eastForest",], 
+#                aes(Long, Lat, fill = partyPrediction.eastForest),
+#                col = "black" ,
+#                shape = 21) +
+#     scale_fill_distiller(type = "seq", palette = "Greens")
+# ) 
+# 
+# (partyTree_6Pred_mapBadWestForest <- ggplot() +
+#     geom_point(data = partyTree_6Preds, aes(Long, Lat, col = newRegion), alpha = .1) +
+#     ggtitle("Severity of Western Forest misclassification") +
+#     geom_point(data = partyTree_6Preds[partyTree_6Preds$goodPred == FALSE & partyTree_6Preds$partyPrediction == "westForest",], 
+#                aes(Long, Lat, fill = partyPrediction.westForest),
+#                col = "black" ,
+#                shape = 21) +
+#     scale_fill_distiller(type = "seq", palette = "Blues")
+# ) 
+# 
+# ## arrange all of the figures for this model
+# 
+# ggpubr::annotate_figure(ggarrange(
+#   ggarrange(
+#     ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("dryShrubGrass" =  data.frame(partyTree_6_confMat)$Freq[1:3], 
+#                                                        "eastForest" = data.frame(partyTree_6_confMat)$Freq[4:6],
+#                                                        "westForest" = data.frame(partyTree_6_confMat)$Freq[7:9], 
+#                                                        row.names = c("dryShrubGrass", "eastForest", "westForest")), 
+#                                             rownames_to_stub = TRUE))), 
+#     ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("inputs" = c("precip_driestMonth_meanAnnAvg"  ,   "PrecipTempCorr_meanAnnAvg"      ,
+#                                                                     "T_warmestMonth_meanAnnAvg"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+#                                                                     "vp_meanAnnAvg", "prcp_meanAnnTotal", 
+#                                                                     "swe_meanAnnAvg" )
+#     ))))
+#     
+#   )
+#   ,
+#   partyTree_6PredMAP, 
+#   ggarrange((ggtern::arrangeGrob(partyTree_6_ternGoodPreds)), 
+#             (ggtern::arrangeGrob(partyTree_6_ternBadPreds))), 
+#   partyTree_6Pred_mapBadGrass, 
+#   partyTree_6Pred_mapBadEastForest, 
+#   partyTree_6Pred_mapBadWestForest, 
+#   nrow = 6
+# )#, 
+# #top = c("Model with depth = 7 and all climate and soil predictors")
+# ) %>% 
+#   ggexport(
+#     filename = "./Figures/EcoRegionModelFigures/ModelFigures_depth6_TopSevenPredictors.pdf",
+#     width = 12, height = 23)
 
 # # Conditional Inference Tree w/ swe, awdd, and soil depth removed --------------
 # # try restricting the tree depth (too long right now)
