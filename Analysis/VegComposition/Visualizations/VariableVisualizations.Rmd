@@ -44,7 +44,7 @@ modDat <- readRDS("../../../Data_processed/CoverData/DataForModels_spatiallyAver
 Here are the climate variables (30-year lag) we could potentially use in the models -- however I think we should remove the 5th and 95th percentile variables here, since we're interested in long-term averages rather than extremes 
 ```{r, echo = FALSE}
 kable(modDat %>% 
-        select(swe_meanAnnAvg_30yr:durationFrostFreeDays_meanAnnAvg_30yr) %>% 
+        select(swe_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM) %>% 
         names()
 )
 ```
@@ -70,9 +70,12 @@ This is using a subset of the data (50,000 rows), just for runtime purposes
 
 Below is the correlation between only climate predictors that are averaged across 30 years
 
+1. Initially dropped: 
  * excluded 95th and 5th percentile variables 
+ * excluded SWE, since it's calculated from a snowpack model rather than meteorological data 
  * Dropped tmin, tmax, t_warmest month, and t_coldest month and replaced w/ MAT
- * Dropped month above freezing (highly correlated with frost-free days in all ecoregions)
+2. Then, dropped month above freezing (highly correlated with frost-free days in all ecoregions)
+3. Dropped precipitation of the wettest month (correlated w/ precip) and VPD mean (correlated w/ other VPD variables as well as precip)
 
 <!--  * Drop prcp wettest month - use MAP only -->
 <!--  * dropped precip of driest month--was highly correlated w/ precip and precip seasonality -->
@@ -108,19 +111,22 @@ Below is the correlation between only climate predictors that are averaged acros
               
  }
 
-(corrPlot_30yrMean <- 
+(corrPlot_CLIMMean <- 
    modDat %>% 
-   select(c(swe_meanAnnAvg_30yr, tmean_meanAnnAvg_30yr:prcp_meanAnnTotal_30yr,
-            precip_wettestMonth_meanAnnAvg_30yr:PrecipTempCorr_meanAnnAvg_30yr, 
-            isothermality_meanAnnAvg_30yr:annVPD_min_meanAnnAvg_30yr, 
-            durationFrostFreeDays_meanAnnAvg_30yr)) %>% 
-  rename("swe" = swe_meanAnnAvg_30yr,  "tmean" = tmean_meanAnnAvg_30yr,
-         "vp" = vp_meanAnnAvg_30yr, "prcp" = prcp_meanAnnTotal_30yr, 
-         "prcp \n Wettest" = precip_wettestMonth_meanAnnAvg_30yr, "prcpDriest" = precip_driestMonth_meanAnnAvg_30yr, 
-         "prcp \n Seasonality" = precip_Seasonality_meanAnnAvg_30yr, "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_30yr,  "isothermality" = isothermality_meanAnnAvg_30yr,
-         "Wat \n Deficit" = annWaterDeficit_meanAnnAvg_30yr, "Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr, 
-         "VPD \n mean" = annVPD_mean_meanAnnAvg_30yr, "VPD \n max" = annVPD_max_meanAnnAvg_30yr, "VPD \n min" = annVPD_min_meanAnnAvg_30yr,
-         "frost \n FreeDays" = durationFrostFreeDays_meanAnnAvg_30yr) %>% 
+   select(c(tmean_meanAnnAvg_CLIM       ,          vp_meanAnnAvg_CLIM    ,               
+   prcp_meanAnnTotal_CLIM             ,   
+   precip_driestMonth_meanAnnAvg_CLIM ,   precip_Seasonality_meanAnnAvg_CLIM ,  
+   PrecipTempCorr_meanAnnAvg_CLIM     ,   isothermality_meanAnnAvg_CLIM      ,  
+   annWaterDeficit_meanAnnAvg_CLIM    ,   annWetDegDays_meanAnnAvg_CLIM      ,  
+   annVPD_max_meanAnnAvg_CLIM         ,  
+   annVPD_min_meanAnnAvg_CLIM         ,   durationFrostFreeDays_meanAnnAvg_CLIM)) %>% 
+  rename("tmean" = tmean_meanAnnAvg_CLIM,
+         "vp" = vp_meanAnnAvg_CLIM, "prcp" = prcp_meanAnnTotal_CLIM, 
+         "prcpDriest" = precip_driestMonth_meanAnnAvg_CLIM, 
+         "prcp \n Seasonality" = precip_Seasonality_meanAnnAvg_CLIM, "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  "isothermality" = isothermality_meanAnnAvg_CLIM,
+         "Wat \n Deficit" = annWaterDeficit_meanAnnAvg_CLIM, "Wet \n DegDays" = annWetDegDays_meanAnnAvg_CLIM, 
+          "VPD \n max" = annVPD_max_meanAnnAvg_CLIM, "VPD \n min" = annVPD_min_meanAnnAvg_CLIM,
+         "frost \n FreeDays" = durationFrostFreeDays_meanAnnAvg_CLIM) %>% 
   slice_sample(n = 5e4) %>% 
   #select(-matches("_")) %>% 
 ggpairs( upper = list(continuous = my_fn), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), progress = FALSE))
@@ -192,23 +198,23 @@ ggplot(data = ecoReg) +
    modDat %>% 
    filter(newRegion == "dryShrubGrass") %>% 
    #st_drop_geometry() %>% 
-  select(c(swe_meanAnnAvg_30yr, tmean_meanAnnAvg_30yr,                     
-           vp_meanAnnAvg_30yr,prcp_meanAnnTotal_30yr, precip_driestMonth_meanAnnAvg_30yr,        
-           precip_Seasonality_meanAnnAvg_30yr,  PrecipTempCorr_meanAnnAvg_30yr, 
-           isothermality_meanAnnAvg_30yr, annWaterDeficit_meanAnnAvg_30yr,  annWetDegDays_meanAnnAvg_30yr,             
-           #annVPD_mean_meanAnnAvg_30yr, 
-           #annVPD_max_meanAnnAvg_30yr,                
-           #annVPD_min_meanAnnAvg_30yr,  
-           durationFrostFreeDays_meanAnnAvg_30yr)) %>% 
-  rename("swe" = swe_meanAnnAvg_30yr,  "tmean" = tmean_meanAnnAvg_30yr,
-         "vp" = vp_meanAnnAvg_30yr, "prcp" = prcp_meanAnnTotal_30yr, 
-         "prcpDriest" = precip_driestMonth_meanAnnAvg_30yr, 
-         "prcp \n Seasonality" = precip_Seasonality_meanAnnAvg_30yr, "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_30yr,  "isothermality" = isothermality_meanAnnAvg_30yr,
-         "Wat \n Deficit" = annWaterDeficit_meanAnnAvg_30yr, "Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr, 
-         #"VPD \n mean" = annVPD_mean_meanAnnAvg_30yr, 
-         #"VPD \n max" = annVPD_max_meanAnnAvg_30yr, 
-         #"VPD \n min" = annVPD_min_meanAnnAvg_30yr,
-         "frost \n FreeDays" = durationFrostFreeDays_meanAnnAvg_30yr) %>% 
+  select(c(swe_meanAnnAvg_CLIM, tmean_meanAnnAvg_CLIM,                     
+           vp_meanAnnAvg_CLIM,prcp_meanAnnTotal_CLIM, precip_driestMonth_meanAnnAvg_CLIM,        
+           precip_Seasonality_meanAnnAvg_CLIM,  PrecipTempCorr_meanAnnAvg_CLIM, 
+           isothermality_meanAnnAvg_CLIM, annWaterDeficit_meanAnnAvg_CLIM,  annWetDegDays_meanAnnAvg_CLIM,             
+           #annVPD_mean_meanAnnAvg_CLIM, 
+           #annVPD_max_meanAnnAvg_CLIM,                
+           #annVPD_min_meanAnnAvg_CLIM,  
+           durationFrostFreeDays_meanAnnAvg_CLIM)) %>% 
+  rename("swe" = swe_meanAnnAvg_CLIM,  "tmean" = tmean_meanAnnAvg_CLIM,
+         "vp" = vp_meanAnnAvg_CLIM, "prcp" = prcp_meanAnnTotal_CLIM, 
+         "prcpDriest" = precip_driestMonth_meanAnnAvg_CLIM, 
+         "prcp \n Seasonality" = precip_Seasonality_meanAnnAvg_CLIM, "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  "isothermality" = isothermality_meanAnnAvg_CLIM,
+         "Wat \n Deficit" = annWaterDeficit_meanAnnAvg_CLIM, "Wet \n DegDays" = annWetDegDays_meanAnnAvg_CLIM, 
+         #"VPD \n mean" = annVPD_mean_meanAnnAvg_CLIM, 
+         #"VPD \n max" = annVPD_max_meanAnnAvg_CLIM, 
+         #"VPD \n min" = annVPD_min_meanAnnAvg_CLIM,
+         "frost \n FreeDays" = durationFrostFreeDays_meanAnnAvg_CLIM) %>% 
      drop_na(swe, tmean, prcp,  "prcp \n TempCorr", isothermality, "Wat \n Deficit", 
        "Wet \n DegDays", #"VPD \n max" 
        ) %>% 
@@ -236,20 +242,20 @@ print(p1)
    modDat %>% 
    filter(newRegion == "eastForest") %>% 
    #st_drop_geometry() %>% 
-  select(c(swe_meanAnnAvg_30yr, tmean_meanAnnAvg_30yr,                     
-           vp_meanAnnAvg_30yr,prcp_meanAnnTotal_30yr, precip_driestMonth_meanAnnAvg_30yr,        
-           precip_Seasonality_meanAnnAvg_30yr,  PrecipTempCorr_meanAnnAvg_30yr, 
-           isothermality_meanAnnAvg_30yr, annWaterDeficit_meanAnnAvg_30yr,  annWetDegDays_meanAnnAvg_30yr,             
-           #annVPD_mean_meanAnnAvg_30yr, annVPD_max_meanAnnAvg_30yr,                
-           #annVPD_min_meanAnnAvg_30yr,  
-           durationFrostFreeDays_meanAnnAvg_30yr)) %>% 
-  rename("swe" = swe_meanAnnAvg_30yr,  "tmean" = tmean_meanAnnAvg_30yr,
-         "vp" = vp_meanAnnAvg_30yr, "prcp" = prcp_meanAnnTotal_30yr, 
-          "prcpDriest" = precip_driestMonth_meanAnnAvg_30yr, 
-         "prcp \n Seasonality" = precip_Seasonality_meanAnnAvg_30yr, "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_30yr,  "isothermality" = isothermality_meanAnnAvg_30yr,
-         "Wat \n Deficit" = annWaterDeficit_meanAnnAvg_30yr, "Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr, 
-         #"VPD \n mean" = annVPD_mean_meanAnnAvg_30yr, "VPD \n max" = annVPD_max_meanAnnAvg_30yr, "VPD \n min" = annVPD_min_meanAnnAvg_30yr,
-         "frost \n FreeDays" = durationFrostFreeDays_meanAnnAvg_30yr) %>% 
+  select(c(swe_meanAnnAvg_CLIM, tmean_meanAnnAvg_CLIM,                     
+           vp_meanAnnAvg_CLIM,prcp_meanAnnTotal_CLIM, precip_driestMonth_meanAnnAvg_CLIM,        
+           precip_Seasonality_meanAnnAvg_CLIM,  PrecipTempCorr_meanAnnAvg_CLIM, 
+           isothermality_meanAnnAvg_CLIM, annWaterDeficit_meanAnnAvg_CLIM,  annWetDegDays_meanAnnAvg_CLIM,             
+           #annVPD_mean_meanAnnAvg_CLIM, annVPD_max_meanAnnAvg_CLIM,                
+           #annVPD_min_meanAnnAvg_CLIM,  
+           durationFrostFreeDays_meanAnnAvg_CLIM)) %>% 
+  rename("swe" = swe_meanAnnAvg_CLIM,  "tmean" = tmean_meanAnnAvg_CLIM,
+         "vp" = vp_meanAnnAvg_CLIM, "prcp" = prcp_meanAnnTotal_CLIM, 
+          "prcpDriest" = precip_driestMonth_meanAnnAvg_CLIM, 
+         "prcp \n Seasonality" = precip_Seasonality_meanAnnAvg_CLIM, "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  "isothermality" = isothermality_meanAnnAvg_CLIM,
+         "Wat \n Deficit" = annWaterDeficit_meanAnnAvg_CLIM, "Wet \n DegDays" = annWetDegDays_meanAnnAvg_CLIM, 
+         #"VPD \n mean" = annVPD_mean_meanAnnAvg_CLIM, "VPD \n max" = annVPD_max_meanAnnAvg_CLIM, "VPD \n min" = annVPD_min_meanAnnAvg_CLIM,
+         "frost \n FreeDays" = durationFrostFreeDays_meanAnnAvg_CLIM) %>% 
      drop_na(swe, tmean, prcp,  "prcp \n TempCorr", isothermality, "Wat \n Deficit", 
        "Wet \n DegDays"#, "VPD \n max" 
        ) %>% 
@@ -278,20 +284,20 @@ print(p1)
    modDat %>% 
    filter(newRegion == "westForest") %>% 
    #st_drop_geometry() %>% 
-   select(c(swe_meanAnnAvg_30yr, tmean_meanAnnAvg_30yr,                     
-           vp_meanAnnAvg_30yr,prcp_meanAnnTotal_30yr, precip_driestMonth_meanAnnAvg_30yr,        
-           precip_Seasonality_meanAnnAvg_30yr,  PrecipTempCorr_meanAnnAvg_30yr, 
-           isothermality_meanAnnAvg_30yr, annWaterDeficit_meanAnnAvg_30yr,  annWetDegDays_meanAnnAvg_30yr,             
-           #annVPD_mean_meanAnnAvg_30yr, annVPD_max_meanAnnAvg_30yr,                
-           #annVPD_min_meanAnnAvg_30yr,  
-           durationFrostFreeDays_meanAnnAvg_30yr)) %>% 
-  rename("swe" = swe_meanAnnAvg_30yr,  "tmean" = tmean_meanAnnAvg_30yr,
-         "vp" = vp_meanAnnAvg_30yr, "prcp" = prcp_meanAnnTotal_30yr, 
-          "prcpDriest" = precip_driestMonth_meanAnnAvg_30yr, 
-         "prcp \n Seasonality" = precip_Seasonality_meanAnnAvg_30yr, "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_30yr,  "isothermality" = isothermality_meanAnnAvg_30yr,
-         "Wat \n Deficit" = annWaterDeficit_meanAnnAvg_30yr, "Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr, 
-         #"VPD \n mean" = annVPD_mean_meanAnnAvg_30yr, "VPD \n max" = annVPD_max_meanAnnAvg_30yr, "VPD \n min" = annVPD_min_meanAnnAvg_30yr,
-         "frost \n FreeDays" = durationFrostFreeDays_meanAnnAvg_30yr) %>% 
+   select(c(swe_meanAnnAvg_CLIM, tmean_meanAnnAvg_CLIM,                     
+           vp_meanAnnAvg_CLIM,prcp_meanAnnTotal_CLIM, precip_driestMonth_meanAnnAvg_CLIM,        
+           precip_Seasonality_meanAnnAvg_CLIM,  PrecipTempCorr_meanAnnAvg_CLIM, 
+           isothermality_meanAnnAvg_CLIM, annWaterDeficit_meanAnnAvg_CLIM,  annWetDegDays_meanAnnAvg_CLIM,             
+           #annVPD_mean_meanAnnAvg_CLIM, annVPD_max_meanAnnAvg_CLIM,                
+           #annVPD_min_meanAnnAvg_CLIM,  
+           durationFrostFreeDays_meanAnnAvg_CLIM)) %>% 
+  rename("swe" = swe_meanAnnAvg_CLIM,  "tmean" = tmean_meanAnnAvg_CLIM,
+         "vp" = vp_meanAnnAvg_CLIM, "prcp" = prcp_meanAnnTotal_CLIM, 
+          "prcpDriest" = precip_driestMonth_meanAnnAvg_CLIM, 
+         "prcp \n Seasonality" = precip_Seasonality_meanAnnAvg_CLIM, "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  "isothermality" = isothermality_meanAnnAvg_CLIM,
+         "Wat \n Deficit" = annWaterDeficit_meanAnnAvg_CLIM, "Wet \n DegDays" = annWetDegDays_meanAnnAvg_CLIM, 
+         #"VPD \n mean" = annVPD_mean_meanAnnAvg_CLIM, "VPD \n max" = annVPD_max_meanAnnAvg_CLIM, "VPD \n min" = annVPD_min_meanAnnAvg_CLIM,
+         "frost \n FreeDays" = durationFrostFreeDays_meanAnnAvg_CLIM) %>% 
      drop_na(swe, tmean, prcp,  "prcp \n TempCorr", isothermality, "Wat \n Deficit", 
        "Wet \n DegDays"#, "VPD \n max" 
        ) %>% 
@@ -313,12 +319,12 @@ print(p1)
 
 <!-- # rasterize data -->
 <!-- plotRast_annVPD <- modDat %>%  -->
-<!--          drop_na(annVPD_max_meanAnnAvg_30yr) %>%  -->
+<!--          drop_na(annVPD_max_meanAnnAvg_CLIM) %>%  -->
 <!--   #slice_sample(n = 5e4) %>% -->
 <!--   terra::vect(geom = c("Lon", "Lat")) %>%  -->
 <!--   terra::set.crs(crs(test_rast)) %>%  -->
 <!--   terra::rasterize(y = test_rast,  -->
-<!--                    field = "annVPD_max_meanAnnAvg_30yr",  -->
+<!--                    field = "annVPD_max_meanAnnAvg_CLIM",  -->
 <!--                    fun = mean) %>%  -->
 <!--   terra::crop(ext(-2000000, 2500000, -2000000, 1200000)) -->
 <!-- terra::plot(plotRast_annVPD, main = "VPD Max (30 yr avg.) at 16km2 scale", clip = TRUE,  -->
@@ -330,12 +336,12 @@ print(p1)
 <!-- ```{r} -->
 <!-- # rasterize data -->
 <!-- plotRast_wetDD <- modDat %>%  -->
-<!--          drop_na(annWetDegDays_meanAnnAvg_30yr) %>%  -->
+<!--          drop_na(annWetDegDays_meanAnnAvg_CLIM) %>%  -->
 <!--   #slice_sample(n = 5e4) %>% -->
 <!--   terra::vect(geom = c("Lon", "Lat")) %>%  -->
 <!--   terra::set.crs(crs(test_rast)) %>%  -->
 <!--   terra::rasterize(y = test_rast,  -->
-<!--                    field = "annWetDegDays_meanAnnAvg_30yr",  -->
+<!--                    field = "annWetDegDays_meanAnnAvg_CLIM",  -->
 <!--                    fun = mean) %>%  -->
 <!--   terra::crop(ext(-2000000, 2500000, -2000000, 1200000)) -->
 <!-- terra::plot(plotRast_wetDD, main = "Wet Deg. Days (30 yr avg.) at 16km2 scale", clip = TRUE,  -->
@@ -347,12 +353,12 @@ print(p1)
 <!-- ```{r} -->
 <!-- # rasterize data -->
 <!-- plotRast_watDef <- modDat %>%  -->
-<!--          drop_na(annWaterDeficit_meanAnnAvg_30yr) %>%  -->
+<!--          drop_na(annWaterDeficit_meanAnnAvg_CLIM) %>%  -->
 <!--   #slice_sample(n = 5e4) %>% -->
 <!--   terra::vect(geom = c("Lon", "Lat")) %>%  -->
 <!--   terra::set.crs(crs(test_rast)) %>%  -->
 <!--   terra::rasterize(y = test_rast,  -->
-<!--                    field = "annWaterDeficit_meanAnnAvg_30yr",  -->
+<!--                    field = "annWaterDeficit_meanAnnAvg_CLIM",  -->
 <!--                    fun = mean) %>%  -->
 <!--   terra::crop(ext(-2000000, 2500000, -2000000, 1200000)) -->
 <!-- terra::plot(plotRast_watDef, main = "Water Deficit (30 yr avg.) at 16km2 scale", clip = TRUE,  -->

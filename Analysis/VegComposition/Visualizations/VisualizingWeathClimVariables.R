@@ -427,5 +427,3 @@ ggarrange(prcp_totalAnn30yr_plotAll, swe_CLIM_plotAll, tmin_CLIM_plotAll,
     filename = "./Figures/climateVariableFigures.pdf", 
     width = 9, height = 25)
 
-#AES
-# findCorrelation function from caret package can flag correlated variables
