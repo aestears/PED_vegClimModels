@@ -17,18 +17,18 @@ library(sf)
 source("./Analysis/VegComposition/ModelFitting/01_EcoregionClassification.R")
 #list all files in folder # arbitrarily chose end-century, highest ssp
 #(ssp_585)
-# from ACCESS-CM2 model (could do another, this was just first on the list)
+# from GISS-E2-1-G model (could do another, this was just first on the list)
 # these are monthly values averaged over a 20 year period from 2081 to 2100
 # these data are at a 10 minute spatial resolution; each layer is a monthly value 
 # https://www.worldclim.org/data/cmip6/cmip6_clim10m.html
 ## read in bioClim variables 
-bioClim <- rast("./Data_raw/worldClim_climateVars/futureClimate_endCentury_ssp585/ACCESS-CM2/wc2.1_10m_bioc_ACCESS-CM2_ssp585_2081-2100.tif")
+bioClim <- rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/GISS-E2-1-G/wc2.1_10m_bioc_GISS-E2-1-G_ssp585_2021-2040.tif")
 
-tmin <- rast("./Data_raw/worldClim_climateVars/futureClimate_endCentury_ssp585/ACCESS-CM2/wc2.1_10m_tmin_ACCESS-CM2_ssp585_2081-2100.tif")
+tmin <- rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/GISS-E2-1-G/wc2.1_10m_tmin_GISS-E2-1-G_ssp585_2021-2040.tif")
 
-tmax <- rast("./Data_raw/worldClim_climateVars/futureClimate_endCentury_ssp585/ACCESS-CM2/wc2.1_10m_tmax_ACCESS-CM2_ssp585_2081-2100.tif")
+tmax <- rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/GISS-E2-1-G/wc2.1_10m_tmax_GISS-E2-1-G_ssp585_2021-2040.tif")
 
-precip <-rast("./Data_raw/worldClim_climateVars/futureClimate_endCentury_ssp585/ACCESS-CM2/wc2.1_10m_prec_ACCESS-CM2_ssp585_2081-2100.tif")
+precip <-rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/GISS-E2-1-G/wc2.1_10m_prec_GISS-E2-1-G_ssp585_2021-2040.tif")
 
 # crop to CONUS extent
 # get CONUS data
@@ -137,7 +137,8 @@ tempPrecip$correlation <- test
 tempPrecipCorr_points <- tempPrecip %>% 
   select(x, y, correlation)
 
-
+ggplot(tempPrecipCorr_points) + 
+  geom_point(aes(x, y, colour = correlation))
 
 # get mean annual precip --------------------------------------------------
 precip_points <- precip %>% 
@@ -206,8 +207,8 @@ sensDat %>%
     geom_density(data = modDat_use, aes(annVPD_max_meanAnnAvg_30yr), col = "blue") + 
     ggtitle("VPD max", subtitle = "red = end of century, blue = current"))
 
-predFigures <- annotate_figure(ggarrange(comparePrecipDriest, comparePrecipTempCorr, compareVPD), 
-                top = "End-century climate values (2081-2100) from ACCESS-CM2 model, ssp 585")
+(predFigures <- annotate_figure(ggarrange(comparePrecipDriest, comparePrecipTempCorr, compareVPD), 
+                top = "Mid-century climate values (2021-2040) from GISS-E2-1-G model, ssp 585"))
    
 
 # read in model  ----------------------------------------------------------
@@ -222,7 +223,7 @@ partyTree_5Preds <- cbind(sensDat, "partyPrediction" = partykit::predict.party(p
 
 (partyTree_5PredMAP <- ggplot(partyTree_5Preds) +
     geom_point(aes(Long, Lat, col = partyPrediction), alpha = .5) +
-    ggtitle("model-predicted ecoregion classification -- fit to data from 2081-2100 \nfrom ACCESS-CM2 model, ssp 585 ",
+    ggtitle("model-predicted ecoregion classification -- fit to data from 2021-2040 \nfrom GISS-E2-1-G model, ssp 585 ",
             subtitle = paste0("model: ecoregion ~ precip of driest month + precip/temp correlation + \norg. carbon + VPD max; depth = 6" )) #+
     #geom_point(data = partyTree_5Preds[partyTree_5Preds$goodPred == FALSE,], aes(Long, Lat, fill = partyPrediction),
                # col = "black"
@@ -243,7 +244,7 @@ partyTree_4Preds <- cbind(sensDat, "partyPrediction" = partykit::predict.party(p
 
 (partyTree_4PredMAP <- ggplot(partyTree_4Preds) +
     geom_point(aes(Long, Lat, col = partyPrediction), alpha = .5) +
-    ggtitle("model-predicted ecoregion classification -- fit to data from 2081-2100 \nfrom ACCESS-CM2 model, ssp 585 ",
+    ggtitle("model-predicted ecoregion classification -- fit to data from 2021-2040 \nfrom GISS-E2-1-G model, ssp 585 ",
             subtitle = paste0("model: ecoregion ~ precip of driest month + precip/temp correlation + \norg. carbon + VPD max; depth = 7" )) #+
   #geom_point(data = partyTree_4Preds[partyTree_4Preds$goodPred == FALSE,], aes(Long, Lat, fill = partyPrediction),
   # col = "black"
@@ -272,7 +273,7 @@ partyTree_deepPreds <- cbind(sensDat, "partyPrediction" = partykit::predict.part
 
 (partyTree_deepPredMAP <- ggplot(partyTree_deepPreds) +
     geom_point(aes(Long, Lat, col = partyPrediction), alpha = .5) +
-    ggtitle("model-predicted ecoregion classification -- fit to data from 2081-2100 \nfrom ACCESS-CM2 model, ssp 585 ",
+    ggtitle("model-predicted ecoregion classification -- fit to data from 2021-2040 \nfrom GISS-E2-1-G model, ssp 585 ",
             subtitle = paste0("model: ecoregion ~ precip of driest month + precip/temp correlation + \norg. carbon + VPD max; unrestricted tree depth" )) #+
   #geom_point(data = partyTree_deepPreds[partyTree_deepPreds$goodPred == FALSE,], aes(Long, Lat, fill = partyPrediction),
   # col = "black"
@@ -286,13 +287,13 @@ partyTree_deepPreds <- cbind(sensDat, "partyPrediction" = partykit::predict.part
 # partyTree_4 <- readRDS("./Data_processed/EcoregionModelForTesting.rds")
 
 # predict categories based on this simple model
-partyTree_3 <- cbind(sensDat, "partyPrediction" = partykit::predict.party(partyTree_3, newdata = sensDat, type = "response")) %>%
+partyTree_3Preds <- cbind(sensDat, "partyPrediction" = partykit::predict.party(partyTree_3, newdata = sensDat, type = "response")) %>%
   cbind("partyPrediction" = partykit::predict.party(partyTree_3, newdata = sensDat, type = "prob"))
 
 
-(partyTree_3PredMAP <- ggplot(partyTree_3) +
+(partyTree_3PredMAP <- ggplot(partyTree_3Preds) +
     geom_point(aes(Long, Lat, col = partyPrediction), alpha = .5) +
-    ggtitle("model-predicted ecoregion classification -- fit to data from 2081-2100 \nfrom ACCESS-CM2 model, ssp 585 ",
+    ggtitle("model-predicted ecoregion classification -- fit to data from 2021-2040 \nfrom GISS-E2-1-G model, ssp 585 ",
             subtitle = paste0("model: ecoregion ~ precip of driest month + precip/temp correlation + \norg. carbon + VPD max + MAP ; depth = 7" )) #+
   #geom_point(data = partyTree_3[partyTree_3$goodPred == FALSE,], aes(Long, Lat, fill = partyPrediction),
   # col = "black"
@@ -307,5 +308,5 @@ ggarrange(predFigures, partyTree_5PredMAP,
           partyTree_3PredMAP,
           ncol = 1)  %>% 
   ggexport(
-    filename = "./Figures/EcoRegionModelFigures/Sensitivity_endCenturyACESS_CM2data.pdf",
+    filename = "./Figures/EcoRegionModelFigures/Sensitivity_midCenturyGISS_E2_1_Gdata.pdf",
     width = 12, height = 23)
