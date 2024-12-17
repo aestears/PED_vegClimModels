@@ -161,6 +161,7 @@ vegSoils_new <-
            "horizonThickness_cm_176cm")], sum, na.rm = TRUE),
     #Surface clay (influences how much moisture can get into the profile)
     surfaceClay_perc = clayPerc_2cm) %>% 
+  mutate(soilDepth = replace(soilDepth, is.na(horizonThickness_cm_2cm), values = NA)) %>% 
   mutate( 
     # Sand average across depths (avg. weighted by width of layer)
     avgSandPerc_acrossDepth = pmap_dbl(.[c("horizonThickness_cm_2cm" , "horizonThickness_cm_7cm" , "horizonThickness_cm_15cm" , 

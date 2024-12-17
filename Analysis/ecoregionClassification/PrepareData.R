@@ -71,7 +71,7 @@ newDat <- climDat_3 %>%
 
 newDat_df <- soilRast %>% 
   terra::extract(y = newDat, xy = TRUE, bind = TRUE) %>% 
-  as.data.frame()
+  as.data.frame() 
 
 vegSoils_new <- 
   newDat_df %>% 
@@ -83,6 +83,7 @@ vegSoils_new <-
                              "horizonThickness_cm_176cm")], sum, na.rm = TRUE),
     #Surface clay (influences how much moisture can get into the profile)
     surfaceClay_perc = clayPerc_2cm) %>% 
+  mutate(soilDepth = replace(soilDepth, is.na(horizonThickness_cm_2cm), values = NA)) %>% 
   mutate( 
     # Sand average across depths (avg. weighted by width of layer)
     avgSandPerc_acrossDepth = pmap_dbl(.[c("horizonThickness_cm_2cm" , "horizonThickness_cm_7cm" , "horizonThickness_cm_15cm" , 
@@ -142,34 +143,10 @@ vegSoils_new <-
     ), 
     # soil organic carbon average across depths (avg. weighted by width of layer)
     avgOrganicCarbonPerc_0_3cm = organicCarbonPerc_2cm
-    #   pmap_dbl(.[c("horizonThickness_cm_2cm" , "horizonThickness_cm_7cm" , "horizonThickness_cm_15cm" , 
-    #                                          "horizonThickness_cm_25cm" , "horizonThickness_cm_35cm" , "horizonThickness_cm_50cm" , 
-    #                                          "horizonThickness_cm_70cm" , "horizonThickness_cm_90cm" , "horizonThickness_cm_125cm" , 
-    #                                          "horizonThickness_cm_176cm", "organicCarbonPerc_2cm", "organicCarbonPerc_7cm" , "organicCarbonPerc_15cm",
-    #                                          "organicCarbonPerc_25cm" , "organicCarbonPerc_35cm", "organicCarbonPerc_50cm" , "organicCarbonPerc_70cm", "organicCarbonPerc_90cm" ,
-    #                                          "organicCarbonPerc_125cm","organicCarbonPerc_176cm", "soilDepth")], 
-    #                                      function(horizonThickness_cm_2cm , horizonThickness_cm_7cm , horizonThickness_cm_15cm , 
-    #                                               horizonThickness_cm_25cm , horizonThickness_cm_35cm , horizonThickness_cm_50cm , 
-    #                                               horizonThickness_cm_70cm , horizonThickness_cm_90cm , horizonThickness_cm_125cm , 
-    #                                               horizonThickness_cm_176cm, organicCarbonPerc_2cm, organicCarbonPerc_7cm , organicCarbonPerc_15cm,
-    #                                               organicCarbonPerc_25cm , organicCarbonPerc_35cm, organicCarbonPerc_50cm , organicCarbonPerc_70cm, organicCarbonPerc_90cm ,
-    #                                               organicCarbonPerc_125cm,organicCarbonPerc_176cm, soilDepth) {
-    #                                        y <- sum(c(organicCarbonPerc_2cm *  horizonThickness_cm_2cm/soilDepth, 
-    #                                                   organicCarbonPerc_7cm *    horizonThickness_cm_7cm/soilDepth, 
-    #                                                   organicCarbonPerc_15cm *   horizonThickness_cm_15cm/soilDepth, 
-    #                                                   organicCarbonPerc_25cm *   horizonThickness_cm_25cm/soilDepth, 
-    #                                                   organicCarbonPerc_35cm *   horizonThickness_cm_35cm/soilDepth, 
-    #                                                   organicCarbonPerc_50cm *   horizonThickness_cm_50cm/soilDepth, 
-    #                                                   organicCarbonPerc_70cm *   horizonThickness_cm_70cm/soilDepth, 
-    #                                                   organicCarbonPerc_90cm *   horizonThickness_cm_90cm/soilDepth, 
-    #                                                   organicCarbonPerc_125cm *  horizonThickness_cm_125cm/soilDepth, 
-    #                                                   organicCarbonPerc_176cm *  horizonThickness_cm_176cm/soilDepth), 
-    #                                                 na.rm = TRUE)/1 
-    #                                        # following weighted average formula here: weighted average = sum(x * weight)/sum(weights)
-    #                                        return(y)
-    #                                      }
-    # )                     
+                
   )
+
+
 
 
 # # total profile available water-holding capacity
@@ -303,10 +280,7 @@ vegSoils_new$totalAvailableWaterHoldingCapacity <- unlist(vegSoil_awc)
 
 # remove unnecessary soils variables 
 vegSoils_final <- vegSoils_new %>% 
-  select(-c(clayPerc_2cm:organicCarbonPerc_176cm)) %>% 
-  rename("Long" = "x",
-         "Lat" = "y")
-  
+  select(-c(clayPerc_2cm:organicCarbonPerc_176cm)) 
 
 
 # Save Data for further analysis ------------------------------------------
