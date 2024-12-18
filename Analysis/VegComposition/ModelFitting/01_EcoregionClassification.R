@@ -30,6 +30,7 @@ set.seed(12011993)
 #   geom_point(aes(x = Long, y = Lat))
 
 modDat_use <- modDat %>% 
+  rename("Long" = x_soils, "Lat" = y_soils) %>% 
   dplyr::select(c(newRegion, #swe_meanAnnAvg_30yr:
                   tmin_meanAnnAvg_30yr:durationFrostFreeDays_meanAnnAvg_30yr,
                                          soilDepth                  , surfaceClay_perc          ,                
@@ -37,7 +38,8 @@ modDat_use <- modDat %>%
                                          avgOrganicCarbonPerc_0_3cm ,  totalAvailableWaterHoldingCapacity,
                                          Long, Lat)) %>% 
   mutate(newRegion = as.factor(newRegion)) %>% 
-  drop_na()
+  drop_na() %>% 
+  mutate(isothermality_meanAnnAvg_30yr = -1 * isothermality_meanAnnAvg_30yr)
   
 default_idx <-  createDataPartition(modDat$newRegion, p = 0.8, list = FALSE)
 modDat_fit <- modDat_use[default_idx, ] %>% 
@@ -115,15 +117,16 @@ my_fn <- function(data, mapping, method="p", use="pairwise", ...){
     cor() ) %>% 
   caret::findCorrelation(cutoff = .7, verbose = TRUE, names = TRUE)
 # the findCorrelation() function says we should remove these variables: 
-# "tmean_meanAnnAvg_30yr"                  "tmin_meanAnnAvg_30yr"                  
-# "annVPD_mean_meanAnnAvg_30yr" 
-# "durationFrostFreeDays_meanAnnAvg_30yr"  "aboveFreezing_month_meanAnnAvg_30yr"   
-# "durationFrostFreeDays_5percentile_30yr"  "tmax_meanAnnAvg_30yr"                  
-# "T_coldestMonth_meanAnnAvg_30yr"       "annVPD_min_meanAnnAvg_30yr"            
-# "annVPD_max_meanAnnAvg_30yr"             "T_warmestMonth_meanAnnAvg_30yr"        
-# "Wet \n DegDays"                     ///      "annWaterDeficit_95percentile_30yr"     
-#  "annWetDegDays_5percentile_30yr"         "prcp"                                  
-#  "totalAvailableWaterHoldingCapacity"     "surfaceClay_perc"  
+# "tmean_meanAnnAvg_30yr"             ,     "tmin_meanAnnAvg_30yr"               ,   
+# "annVPD_mean_meanAnnAvg_30yr"           , "aboveFreezing_month_meanAnnAvg_30yr"   ,
+# "durationFrostFreeDays_meanAnnAvg_30yr" , "durationFrostFreeDays_5percentile_30yr",
+# "tmax_meanAnnAvg_30yr"                  , "annVPD_min_meanAnnAvg_30yr"            ,
+# "T_coldestMonth_meanAnnAvg_30yr"        , "annVPD_max_meanAnnAvg_30yr"            ,
+#  "T_warmestMonth_meanAnnAvg_30yr"       ,  "Wet \n DegDays"                        ,
+#  "annWaterDeficit_95percentile_30yr"    ,  "annWaterDeficit_meanAnnAvg_30yr"       ,
+#  "annWetDegDays_5percentile_30yr"       ,  "prcp"                                  ,
+#  "precip_Seasonality_meanAnnAvg_30yr"   ,  "totalAvailableWaterHoldingCapacity"    ,
+#  "avgSandPerc_acrossDepth"    
 
 (corrPlot2 <- 
   modDat_fit %>% 
@@ -131,18 +134,18 @@ my_fn <- function(data, mapping, method="p", use="pairwise", ...){
     #"tmin_meanAnnAvg_30yr"                  ,
     #"tmax_meanAnnAvg_30yr"                  , #"tmean_meanAnnAvg_30yr"                 ,
     #"prcp_meanAnnTotal_30yr"                , #"T_warmestMonth_meanAnnAvg_30yr"       , 
-    #"T_coldestMonth_meanAnnAvg_30yr"        
+    #"T_coldestMonth_meanAnnAvg_30yr",        
     "precip_wettestMonth_meanAnnAvg_30yr"  , 
     "precip_driestMonth_meanAnnAvg_30yr"    , #"precip_Seasonality_meanAnnAvg_30yr"   , 
     "PrecipTempCorr_meanAnnAvg_30yr"       , #"aboveFreezing_month_meanAnnAvg_30yr"   ,
-    "isothermality_meanAnnAvg_30yr"        ,  "annWaterDeficit_meanAnnAvg_30yr"       ,
+    "isothermality_meanAnnAvg_30yr"        ,  #"annWaterDeficit_meanAnnAvg_30yr"       ,
     #"annWetDegDays_meanAnnAvg_30yr"        ,  #"annVPD_mean_meanAnnAvg_30yr"           ,
     #"annVPD_max_meanAnnAvg_30yr"           ,  #"annVPD_min_meanAnnAvg_30yr"            ,
     "annVPD_max_95percentile_30yr"         ,  #"annWaterDeficit_95percentile_30yr"     ,
     #"annWetDegDays_5percentile_30yr"       ,  #"durationFrostFreeDays_5percentile_30yr",
     #"durationFrostFreeDays_meanAnnAvg_30yr",  
     "soilDepth"                             ,
-    #"surfaceClay_perc"                     ,  "avgSandPerc_acrossDepth"               ,
+    "surfaceClay_perc"                     ,  #"avgSandPerc_acrossDepth"               ,
     "avgCoarsePerc_acrossDepth"            ,  "avgOrganicCarbonPerc_0_3cm"            ,
     #"totalAvailableWaterHoldingCapacity" 
   ) %>% 
@@ -150,31 +153,34 @@ my_fn <- function(data, mapping, method="p", use="pairwise", ...){
     #"T_warmest \nmonth" = T_warmestMonth_meanAnnAvg_30yr, #"T_coldest \nmonth" = T_coldestMonth_meanAnnAvg_30yr,
     "precip_wettest" = precip_wettestMonth_meanAnnAvg_30yr, "precip_driest" = precip_driestMonth_meanAnnAvg_30yr, 
     "P/T corr" = PrecipTempCorr_meanAnnAvg_30yr, "isothermality" = isothermality_meanAnnAvg_30yr,
-    "watDef" = annWaterDeficit_meanAnnAvg_30yr, #"Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr,  
-    #"VPD_max" = annVPD_max_meanAnnAvg_30yr,# "VPD_min" = annVPD_min_meanAnnAvg_30yr, 
+   # "watDef" = annWaterDeficit_meanAnnAvg_30yr, 
+   #"Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr,  
+   # "VPD_max" = annVPD_max_meanAnnAvg_30yr, 
+   #"VPD_min" = annVPD_min_meanAnnAvg_30yr, 
     "VPD_max_95" = annVPD_max_95percentile_30yr, #"watDef_95" = annWaterDeficit_95percentile_30yr,
     #"wetDegDays_5" = annWetDegDays_5percentile_30yr, 
-    #"surfClay" = surfaceClay_perc, 
+    "surfClay" = surfaceClay_perc, 
     #"sand" = avgSandPerc_acrossDepth, 
     "coarse" = avgCoarsePerc_acrossDepth, 
-    "carbon" = avgOrganicCarbonPerc_0_3cm, #"waterCap." = totalAvailableWaterHoldingCapacity
+    "carbon" = avgOrganicCarbonPerc_0_3cm #, "waterCap." = totalAvailableWaterHoldingCapacity
     ) %>% 
     slice_sample(n = 5e4) %>% 
     ggpairs( upper = list(continuous = my_fn), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), progress = FALSE))
 
 
 # Fit a simple regression (multinomial log-normal regression) ----------------
-# I think the classification algorithm would be more straightforward to implement??
+# the predicted response of this model type is the odds-ratio for each category
 # following this example:
 # https://stats.oarc.ucla.edu/r/dae/multinomial-logistic-regression/
 modDat_fit$newRegionFact <- relevel(modDat_fit$newRegion, ref = "dryShrubGrass")
-testMod <- nnet::multinom(newRegionFact ~ precip_wettestMonth_meanAnnAvg_30yr  + 
-                          precip_driestMonth_meanAnnAvg_30yr    + 
-                          PrecipTempCorr_meanAnnAvg_30yr       + 
-                          isothermality_meanAnnAvg_30yr        +  annWaterDeficit_meanAnnAvg_30yr       +
-                          annVPD_max_95percentile_30yr         +   
+testMod <- nnet::multinom(newRegionFact ~     precip_wettestMonth_meanAnnAvg_30yr  + 
+                          precip_driestMonth_meanAnnAvg_30yr    +
+                          PrecipTempCorr_meanAnnAvg_30yr       +
+                         #isothermality_meanAnnAvg_30yr        +
+                          annVPD_max_95percentile_30yr         +  
                           soilDepth                             +
-                          avgCoarsePerc_acrossDepth            +  avgOrganicCarbonPerc_0_3cm ,
+                          surfaceClay_perc                     + 
+                          avgCoarsePerc_acrossDepth            +  avgOrganicCarbonPerc_0_3cm,
                     data = modDat_fit
                   )
 
@@ -190,7 +196,9 @@ z
 p <- (1 - pnorm(abs(z), 0, 1)) * 2
 p
 
-# test the predictions of the model
+
+AIC(testMod) #AIC: 245990.7 
+# tetestMod# test the predictions of the model
 predictionDat <- modDat_test
 predictionDatTemp <- cbind(predictionDat, predict(testMod, newdata = predictionDat, "probs"))
 
@@ -337,6 +345,9 @@ ggpubr::annotate_figure(ggarrange(
     filename = "./Figures/EcoRegionModelFigures/ModelFigures_RegressionModelResults.pdf",
     width = 12, height = 23)
 
+
+
+## arrange all of the figures for this model
 
 # Fit single classification tree  ----------------------------------------------
 ## first, try using rpart R package
