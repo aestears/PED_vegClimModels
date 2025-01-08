@@ -17,6 +17,7 @@ library(ggpubr)
 library(gt)
 library(glm.predict)
 library(tidyterra)
+library(MASS)
 
 # Load Data ---------------------------------------------------------------
 # data ready for modeling 
@@ -97,253 +98,11 @@ my_fn <- function(data, mapping, method="p", use="pairwise", ...){
   
 }
 
-
-# w/out VPD: drop correlated variables ------------------------------------
-
-(corrPlot <- 
-    modDat_fit %>% 
-    select(
-       "tmin_meanAnnAvg_30yr"                  ,
-       "tmax_meanAnnAvg_30yr"                  , "tmean_meanAnnAvg_30yr"                 ,
-       "prcp_meanAnnTotal_30yr"                , "T_warmestMonth_meanAnnAvg_30yr"       , 
-       "T_coldestMonth_meanAnnAvg_30yr"        , "precip_wettestMonth_meanAnnAvg_30yr"  , 
-       "precip_driestMonth_meanAnnAvg_30yr"    , "precip_Seasonality_meanAnnAvg_30yr"   , 
-       "PrecipTempCorr_meanAnnAvg_30yr"       ,  "aboveFreezing_month_meanAnnAvg_30yr"   ,
-       "isothermality_meanAnnAvg_30yr"        ,  "annWaterDeficit_meanAnnAvg_30yr"       ,
-       "annWetDegDays_meanAnnAvg_30yr"        ,  #"annVPD_mean_meanAnnAvg_30yr"           ,
-       #"annVPD_max_meanAnnAvg_30yr"           ,  "annVPD_min_meanAnnAvg_30yr"            ,
-       #"annVPD_max_95percentile_30yr"         ,  
-       "annWaterDeficit_95percentile_30yr"     ,
-       "annWetDegDays_5percentile_30yr"       ,  "durationFrostFreeDays_5percentile_30yr",
-       "durationFrostFreeDays_meanAnnAvg_30yr",  "soilDepth"                             ,
-       "surfaceClay_perc"                     ,  "avgSandPerc_acrossDepth"               ,
-       "avgCoarsePerc_acrossDepth"            ,  "avgOrganicCarbonPerc_0_3cm"            ,
-       "totalAvailableWaterHoldingCapacity" 
-    ) %>% 
-     rename(
-            "prcp" = prcp_meanAnnTotal_30yr,
-           "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_30yr,  "isothermality" = isothermality_meanAnnAvg_30yr,
-           "Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr) %>%
-    cor()  %>% 
-  caret::findCorrelation(cutoff = .7, verbose = TRUE, names = TRUE, exact = TRUE))
-# the findCorrelation() function says we should remove these variables: 
-# "tmin_meanAnnAvg_30yr"  
-#  "durationFrostFreeDays_meanAnnAvg_30yr" 
-# "tmean_meanAnnAvg_30yr"   
-# "aboveFreezing_month_meanAnnAvg_30yr"  
-#, "durationFrostFreeDays_5percentile_30yr",
-# "tmax_meanAnnAvg_30yr"
-# "Wet \n DegDays" 
-# "annWaterDeficit_95percentile_30yr"
-# "annWetDegDays_5percentile_30yr
-# "annWaterDeficit_meanAnnAvg_30yr"
-# "prcp" 
-# "precip_Seasonality_meanAnnAvg_30yr" 
-# "totalAvailableWaterHoldingCapacity"
-# "surfaceClay_perc
-  
-## also remove wet degree days, since it's correlated w/ 
-(corrPlot2 <- 
-  modDat_fit %>% 
-  select(#"tmin_meanAnnAvg_30yr"              ,
-    #"tmax_meanAnnAvg_30yr" ,                 
-    #"tmean_meanAnnAvg_30yr"                  ,
-    #"prcp_meanAnnTotal_30yr"                 ,
-    "T_warmestMonth_meanAnnAvg_30yr"       , 
-    "T_coldestMonth_meanAnnAvg_30yr"         ,"precip_wettestMonth_meanAnnAvg_30yr"    ,
-    "precip_driestMonth_meanAnnAvg_30yr"   , 
-     #"precip_Seasonality_meanAnnAvg_30yr"     ,
-    "PrecipTempCorr_meanAnnAvg_30yr"        , #"aboveFreezing_month_meanAnnAvg_30yr" ,  
-     "isothermality_meanAnnAvg_30yr"          ,#"annWaterDeficit_meanAnnAvg_30yr"       , #"annWetDegDays_meanAnnAvg_30yr"       ,  
-     #"annVPD_mean_meanAnnAvg_30yr"            ,"annVPD_max_meanAnnAvg_30yr"            , "annVPD_min_meanAnnAvg_30yr"          ,  
-     #"annVPD_max_95percentile_30yr"           ,#"annWaterDeficit_95percentile_30yr"     , 
-    #"annWetDegDays_5percentile_30yr"      ,  
-     #"durationFrostFreeDays_5percentile_30yr" ,#"durationFrostFreeDays_meanAnnAvg_30yr" , 
-    "soilDepth"                           ,  
-    # "surfaceClay_perc"                       ,
-    "avgSandPerc_acrossDepth"               , "avgCoarsePerc_acrossDepth"           ,  
-     "avgOrganicCarbonPerc_0_3cm"            #, #"totalAvailableWaterHoldingCapacity"
-  ) %>% 
-  rename(#"MAP" =  prcp_meanAnnTotal_30yr,
-    "T_warmest \nmonth" = T_warmestMonth_meanAnnAvg_30yr, "T_coldest \nmonth" = T_coldestMonth_meanAnnAvg_30yr,
-    "precip_wettest" = precip_wettestMonth_meanAnnAvg_30yr, "precip_driest" = precip_driestMonth_meanAnnAvg_30yr,
-    "P/T corr" = PrecipTempCorr_meanAnnAvg_30yr, "isothermality" = isothermality_meanAnnAvg_30yr,
-    #"watDef" = annWaterDeficit_meanAnnAvg_30yr,
-   #"Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr,
-    #"VPD_max" = annVPD_max_meanAnnAvg_30yr,
-   #"VPD_min" = annVPD_min_meanAnnAvg_30yr,
-    #"VPD_max_95" = annVPD_max_95percentile_30yr, 
-   #"watDef_95" = annWaterDeficit_95percentile_30yr,
-    #"wetDegDays_5" = annWetDegDays_5percentile_30yr,
-    #"surfClay" = surfaceClay_perc,
-    "sand" = avgSandPerc_acrossDepth,
-    "coarse" = avgCoarsePerc_acrossDepth,
-    "carbon" = avgOrganicCarbonPerc_0_3cm #, "waterCap." = totalAvailableWaterHoldingCapacity
-    ) %>%
-    #cor() %>% 
-   # findCorrelation(cutoff = .7, verbose = TRUE, names = TRUE, exact = TRUE) 
-    slice_sample(n = 5e4) %>% 
-    ggpairs( upper = list(continuous = my_fn), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), progress = FALSE))
-
-# w/out VPD: Fit a simple regression w/ two ecoregions ----------------
-
-modDat_fitNew <- modDat_fit %>% 
-  mutate(newRegion = str_replace(newRegion, "eastForest", "forest"),
-         newRegion = str_replace(newRegion, "westForest", "forest")) %>% 
-  mutate(newRegionFact = as.factor(newRegion))
-  
-modDat_testNew <- modDat_test %>% 
-  mutate(newRegion = str_replace(newRegion, "eastForest", "forest"),
-         newRegion = str_replace(newRegion, "westForest", "forest")) %>% 
-  mutate(newRegionFact = as.factor(newRegion))
-
-testMod_2 <- glm(newRegionFact ~ T_warmestMonth_meanAnnAvg_30yr       + 
-                 T_coldestMonth_meanAnnAvg_30yr         +
-                 precip_wettestMonth_meanAnnAvg_30yr    +
-                 precip_driestMonth_meanAnnAvg_30yr   + 
-                 PrecipTempCorr_meanAnnAvg_30yr        +   
-                 isothermality_meanAnnAvg_30yr          +
-                 soilDepth                           +  
-                 avgSandPerc_acrossDepth               + avgCoarsePerc_acrossDepth           +  
-                 avgOrganicCarbonPerc_0_3cm,
-                          data = modDat_fitNew, 
-                 family = "binomial"
-)
-
-summary(testMod_2)
-
-head(pp <- fitted(testMod_2))
-
-AIC(testMod_2) #AIC: 241225.9
-# tetestMod_2# test the predictions of the model
-predictionDat <- modDat_testNew
-predictionDatTemp <- cbind(predictionDat,"newRegion_pred" = predict(testMod_2, newdata = predictionDat, "response"))
-
-# for each observation, determine which category has the highest predicted probability
-(temp <- predictionDatTemp %>%
-    rowwise() %>% 
-    mutate(newRegion_predClass = newRegion_pred) %>% 
-    mutate(newRegion_predClass = replace(newRegion_predClass, newRegion_pred<.5, "dryShrubGrass"), 
-           newRegion_predClass = replace(newRegion_predClass, newRegion_pred>.5, "forest")) 
- )
-
-temp$newRegion_predClass <- relevel(as.factor(temp$newRegion_predClass), ref = "dryShrubGrass")
-
-# are these predictions the same as the actual classifications
-temp$goodPred <- temp$newRegionFact == temp$newRegion_predClass
-sum(!temp$goodPred)/nrow(temp) * 100
-
-## make predictions rasterized 
-temp2 <- temp %>% 
-terra::vect(geom = c("Long", "Lat"), crs = crs(soilRast)
-              ) %>% 
-  terra::rasterize(y = 
-                     terra::aggregate(soilRast, fact = 9, fun = mean, na.rm= TRUE)
-                   , field = "newRegion_pred")
-(regMod_2_PredMAP <- ggplot(temp) +
-    geom_spatraster(data = temp2) +
-    # geom_point(aes(#Long, Lat, 
-    #   col = newRegion_pred)) + 
-    scale_fill_distiller(type = "div", palette = 1, direction = 1) +
-    #geom_sf(data = ecoregionsSF2, color = "black", fill = NA) + 
-    #lims(x = c(-130, -65), y = c(24, 50))
-    
-    
-    #geom_point(aes(Long, Lat, col = newRegion_pred), alpha = .1) +
-    ggtitle("model-predicted ecoregion classification -- 2 ecoregions; no VPD",
-            subtitle = paste0("ecoregion ~ temp_warmestMonth + temp_coldestMonth + precip_wettestMonth +
-            precip_driestMonth + precipTempCorr + isothermality + soilDepth + % sand + % coarse + soil carbon
-           \n black dots indicate misclassification; \n  ", 
-                              round((100-sum(!temp$goodPred)/nrow(temp) * 100),1), 
-                              "% classification accuracy" )) +
-    geom_point(data = temp[temp$goodPred == FALSE,], aes(Long, Lat#, fill = as.factor(newRegion_predClass)
-                                                         ),
-               col = "black"
-               , shape = 21) #+ 
-    #scale_fill_discrete(type = c("#bf812d","#35978f"))
-    )
-
-## confusion matrix
-regMod_2_confMat <- caret::confusionMatrix(data = temp$newRegion_predClass,
-                                         reference = temp$newRegionFact)$table
-
-## make plots of good and bad probability
-# just good predictions
-(regMod_2_ternGoodPreds <- temp %>% 
-    filter(goodPred == TRUE) %>% 
-    ggplot() +
-    geom_density(aes(x = newRegion_pred, col = newRegionFact), trim = "FALSE") +
-    theme_minimal() + 
-    labs(color = "true ecoregion") +
-    ggtitle("Accurate Predictions") +
-    xlab("Model-Predicted Ecoregion")+
-    scale_x_continuous(breaks = c(0, .25, .5, .75, 1), 
-                       labels = c("shrub/grass", 0.25, 0.50, 0.75, "forest")) + 
-    scale_color_discrete(type = c("#bf812d","#35978f"))) 
-# just bad predictions
-badDat <- temp %>% 
-  filter(goodPred == FALSE)
-(regMod_2_ternBadPreds <- 
-    ggplot(badDat) +
-    geom_density(aes(x = newRegion_pred, col = newRegionFact
-                     ), trim = "FALSE") +
-    theme_minimal() + 
-    labs(color = "true ecoregion") +
-    ggtitle("Inaccurate Predictions")+
-    xlab("Model-Predicted Ecoregion") +
-    scale_x_continuous(breaks = c(0, .25, .5, .75, 1), 
-                       labels = c("shrub/grass", 0.25, 0.50, 0.75, "forest")) + 
-    scale_color_discrete(type = c("#bf812d","#35978f")))
-
-(regMod_2Pred_mapBadGrass <- ggplot() +
-    geom_point(data = temp, aes(Long, Lat, col = newRegion), alpha = .3) +
-    ggtitle("Severity of Grass/Shrub misclassification") +
-    geom_point(data = temp[temp$goodPred == FALSE & temp$newRegion_predClass == "dryShrubGrass",], 
-               aes(Long, Lat, fill = newRegion_pred),
-               col = "black" ,
-               shape = 21) +
-    scale_fill_gradient(high = "#f5f5f5", low = "#543005") +
-    scale_color_discrete(type = c("#bf812d","#35978f")) +
-    theme_minimal()
-)
-
-(regMod_2Pred_mapForest <- ggplot() +
-    geom_point(data = temp, aes(Long, Lat, col = newRegion), alpha = .1) +
-    ggtitle("Severity of Forest misclassification") +
-    geom_point(data = temp[temp$goodPred == FALSE & temp$newRegion_predClass == "forest",], 
-               aes(Long, Lat, fill = newRegion_pred),
-               col = "black" ,
-               shape = 21) +
-    scale_fill_gradient(high = "#003c30", low = "#f5f5f5") +
-    scale_color_discrete(type = c("#bf812d","#35978f")) +
-    theme_minimal()
-) 
-
-## arrange all of the figures for this model
-ggpubr::annotate_figure(ggarrange(
-  # regMod_2_varImpPlot,
-  ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("dryShrubGrass" =  data.frame(regMod_2_confMat)$Freq[1:2], 
-                                                     "Forest" = data.frame(regMod_2_confMat)$Freq[3:4],
-                                                     row.names = c("dryShrubGrass", "Forest")), 
-                                          rownames_to_stub = TRUE))), 
-  regMod_2_PredMAP, 
-regMod_2_ternGoodPreds,
-regMod_2_ternBadPreds,
-  regMod_2Pred_mapBadGrass, 
-  regMod_2Pred_mapForest, 
-  nrow = 6
-)#, 
-#top = c("Model with depth = 7 and all climate and soil predictors")
-) %>% 
-  ggexport(
-    filename = "./Figures/EcoRegionModelFigures/ModelFigures_WithOUTVPD_TwoEcoregionsRegressionModelResults.pdf",
-    width = 12, height = 23)
-
 # WITH VPD: drop correlated variables ------------------------------------
 
 (corrPlot2 <- 
    modDat_fit %>% 
-   select(
+   dplyr::select(
      "tmin_meanAnnAvg_30yr"                  ,
      "tmax_meanAnnAvg_30yr"                  , "tmean_meanAnnAvg_30yr"                 ,
      "prcp_meanAnnTotal_30yr"                , "T_warmestMonth_meanAnnAvg_30yr"       , 
@@ -379,7 +138,7 @@ regMod_2_ternBadPreds,
 ## also remove wet degree days, since it's correlated w/ 
 (corrPlot2 <- 
     modDat_fit %>% 
-    select(#"tmin_meanAnnAvg_30yr"              ,
+    dplyr::select(#"tmin_meanAnnAvg_30yr"              ,
       #"tmax_meanAnnAvg_30yr" ,                 
       #"tmean_meanAnnAvg_30yr"                  ,
      #"prcp_meanAnnTotal_30yr"                 ,
@@ -507,6 +266,21 @@ temp_b2 <- temp_b %>%
 regMod_3_confMat <- caret::confusionMatrix(data = temp_b$newRegion_predClass,
                                            reference = temp_b$newRegionFact)$table
 
+## plot effect sizes
+beta.table_3 <- data.frame(summary(testMod_3)$coef)
+beta.table_3$variable <- row.names(beta.table_3)
+beta.table_3 <- mutate(beta.table_3, estimate = Estimate, 
+                       se = Std..Error, 
+                       low = Estimate - 2*se, 
+                       high = Estimate + 2*se,
+                       p = Pr...z..)  
+effSizeFig_3 <- ggplot(beta.table_3, aes(y=estimate, x=variable, ymin=low, ymax=high, color = (p < 0.05))) + 
+  #guides(color = guide_legend(NULL))+
+  geom_pointrange() +  
+  geom_hline(yintercept = 0, col="darkgrey", lty = 3, lwd=2) +
+  coord_flip() + theme_minimal() + ggtitle("Effect Sizes")
+
+
 ## make plots of good and bad probability
 # just good predictions
 (regMod_3_ternGoodPreds <- temp_b %>% 
@@ -566,6 +340,7 @@ ggpubr::annotate_figure(ggarrange(
                                                      "Forest" = data.frame(regMod_3_confMat)$Freq[3:4],
                                                      row.names = c("dryShrubGrass", "Forest")), 
                                           rownames_to_stub = TRUE))), 
+  effSizeFig_3,
   regMod_3_PredMAP, 
   regMod_3_ternGoodPreds,
   regMod_3_ternBadPreds,
@@ -577,7 +352,423 @@ ggpubr::annotate_figure(ggarrange(
 ) %>% 
   ggexport(
     filename = "./Figures/EcoRegionModelFigures/ModelFigures_WithVPD_TwoEcoregionsRegressionModelResults.pdf",
-    width = 12, height = 23)
+    width = 15, height = 40)
+
+
+# w/out VPD: drop correlated variables ------------------------------------
+
+(corrPlot <- 
+   modDat_fit %>% 
+   dplyr::select(
+     "tmin_meanAnnAvg_30yr"                  ,
+     "tmax_meanAnnAvg_30yr"                  , "tmean_meanAnnAvg_30yr"                 ,
+     "prcp_meanAnnTotal_30yr"                , "T_warmestMonth_meanAnnAvg_30yr"       , 
+     "T_coldestMonth_meanAnnAvg_30yr"        , "precip_wettestMonth_meanAnnAvg_30yr"  , 
+     "precip_driestMonth_meanAnnAvg_30yr"    , "precip_Seasonality_meanAnnAvg_30yr"   , 
+     "PrecipTempCorr_meanAnnAvg_30yr"       ,  "aboveFreezing_month_meanAnnAvg_30yr"   ,
+     "isothermality_meanAnnAvg_30yr"        ,  "annWaterDeficit_meanAnnAvg_30yr"       ,
+     "annWetDegDays_meanAnnAvg_30yr"        ,  #"annVPD_mean_meanAnnAvg_30yr"           ,
+     #"annVPD_max_meanAnnAvg_30yr"           ,  "annVPD_min_meanAnnAvg_30yr"            ,
+     #"annVPD_max_95percentile_30yr"         ,  
+     "annWaterDeficit_95percentile_30yr"     ,
+     "annWetDegDays_5percentile_30yr"       ,  "durationFrostFreeDays_5percentile_30yr",
+     "durationFrostFreeDays_meanAnnAvg_30yr",  "soilDepth"                             ,
+     "surfaceClay_perc"                     ,  "avgSandPerc_acrossDepth"               ,
+     "avgCoarsePerc_acrossDepth"            ,  "avgOrganicCarbonPerc_0_3cm"            ,
+     "totalAvailableWaterHoldingCapacity" 
+   ) %>% 
+   rename(
+     "prcp" = prcp_meanAnnTotal_30yr,
+     "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_30yr,  "isothermality" = isothermality_meanAnnAvg_30yr,
+     "Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr) %>%
+   cor()  %>% 
+   caret::findCorrelation(cutoff = .7, verbose = TRUE, names = TRUE, exact = TRUE))
+# the findCorrelation() function says we should remove these variables: 
+# "tmin_meanAnnAvg_30yr"  
+#  "durationFrostFreeDays_meanAnnAvg_30yr" 
+# "tmean_meanAnnAvg_30yr"   
+# "aboveFreezing_month_meanAnnAvg_30yr"  
+#, "durationFrostFreeDays_5percentile_30yr",
+# "tmax_meanAnnAvg_30yr"
+# "Wet \n DegDays" 
+# "annWaterDeficit_95percentile_30yr"
+# "annWetDegDays_5percentile_30yr
+# "annWaterDeficit_meanAnnAvg_30yr"
+# "prcp" 
+# "precip_Seasonality_meanAnnAvg_30yr" 
+# "totalAvailableWaterHoldingCapacity"
+# "surfaceClay_perc
+
+## also remove wet degree days, since it's correlated w/ 
+(corrPlot2 <- 
+    modDat_fit %>% 
+    dplyr::select(#"tmin_meanAnnAvg_30yr"              ,
+      #"tmax_meanAnnAvg_30yr" ,                 
+      #"tmean_meanAnnAvg_30yr"                  ,
+      #"prcp_meanAnnTotal_30yr"                 ,
+      "T_warmestMonth_meanAnnAvg_30yr"       , 
+      "T_coldestMonth_meanAnnAvg_30yr"         ,"precip_wettestMonth_meanAnnAvg_30yr"    ,
+      "precip_driestMonth_meanAnnAvg_30yr"   , 
+      #"precip_Seasonality_meanAnnAvg_30yr"     ,
+      "PrecipTempCorr_meanAnnAvg_30yr"        , #"aboveFreezing_month_meanAnnAvg_30yr" ,  
+      "isothermality_meanAnnAvg_30yr"          ,#"annWaterDeficit_meanAnnAvg_30yr"       , #"annWetDegDays_meanAnnAvg_30yr"       ,  
+      #"annVPD_mean_meanAnnAvg_30yr"            ,"annVPD_max_meanAnnAvg_30yr"            , "annVPD_min_meanAnnAvg_30yr"          ,  
+      #"annVPD_max_95percentile_30yr"           ,#"annWaterDeficit_95percentile_30yr"     , 
+      #"annWetDegDays_5percentile_30yr"      ,  
+      #"durationFrostFreeDays_5percentile_30yr" ,#"durationFrostFreeDays_meanAnnAvg_30yr" , 
+      "soilDepth"                           ,  
+      # "surfaceClay_perc"                       ,
+      "avgSandPerc_acrossDepth"               , "avgCoarsePerc_acrossDepth"           ,  
+      "avgOrganicCarbonPerc_0_3cm"            #, #"totalAvailableWaterHoldingCapacity"
+    ) %>% 
+    rename(#"MAP" =  prcp_meanAnnTotal_30yr,
+      "T_warmest \nmonth" = T_warmestMonth_meanAnnAvg_30yr, "T_coldest \nmonth" = T_coldestMonth_meanAnnAvg_30yr,
+      "precip_wettest" = precip_wettestMonth_meanAnnAvg_30yr, "precip_driest" = precip_driestMonth_meanAnnAvg_30yr,
+      "P/T corr" = PrecipTempCorr_meanAnnAvg_30yr, "isothermality" = isothermality_meanAnnAvg_30yr,
+      #"watDef" = annWaterDeficit_meanAnnAvg_30yr,
+      #"Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr,
+      #"VPD_max" = annVPD_max_meanAnnAvg_30yr,
+      #"VPD_min" = annVPD_min_meanAnnAvg_30yr,
+      #"VPD_max_95" = annVPD_max_95percentile_30yr, 
+      #"watDef_95" = annWaterDeficit_95percentile_30yr,
+      #"wetDegDays_5" = annWetDegDays_5percentile_30yr,
+      #"surfClay" = surfaceClay_perc,
+      "sand" = avgSandPerc_acrossDepth,
+      "coarse" = avgCoarsePerc_acrossDepth,
+      "carbon" = avgOrganicCarbonPerc_0_3cm #, "waterCap." = totalAvailableWaterHoldingCapacity
+    ) %>%
+    #cor() %>% 
+    # findCorrelation(cutoff = .7, verbose = TRUE, names = TRUE, exact = TRUE) 
+    slice_sample(n = 5e4) %>% 
+    ggpairs( upper = list(continuous = my_fn), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), progress = FALSE))
+
+# w/out VPD: Fit a simple regression w/ two ecoregions ----------------
+
+modDat_fitNew <- modDat_fit %>% 
+  mutate(newRegion = str_replace(newRegion, "eastForest", "forest"),
+         newRegion = str_replace(newRegion, "westForest", "forest")) %>% 
+  mutate(newRegionFact = as.factor(newRegion)) 
+
+modDat_testNew <- modDat_test %>% 
+  mutate(newRegion = str_replace(newRegion, "eastForest", "forest"),
+         newRegion = str_replace(newRegion, "westForest", "forest")) %>% 
+  mutate(newRegionFact = as.factor(newRegion))
+
+testMod_2 <- glm(newRegionFact ~ T_warmestMonth_meanAnnAvg_30yr       + 
+                   T_coldestMonth_meanAnnAvg_30yr         +
+                   precip_wettestMonth_meanAnnAvg_30yr    +
+                   precip_driestMonth_meanAnnAvg_30yr   + 
+                   PrecipTempCorr_meanAnnAvg_30yr        +   
+                   isothermality_meanAnnAvg_30yr          +
+                   soilDepth                           +  
+                   avgSandPerc_acrossDepth               + avgCoarsePerc_acrossDepth           +  
+                   avgOrganicCarbonPerc_0_3cm,
+                 data = modDat_fitNew, 
+                 family = "binomial", 
+                 na.action = na.fail
+)
+
+summary(testMod_2)
+
+head(pp <- fitted(testMod_2))
+
+AIC(testMod_2) #AIC: 241225.9
+# tetestMod_2# test the predictions of the model
+predictionDat <- modDat_testNew
+predictionDatTemp <- cbind(predictionDat,"newRegion_pred" = predict(testMod_2, newdata = predictionDat, "response"))
+
+# for each observation, determine which category has the highest predicted probability
+(temp <- predictionDatTemp %>%
+    rowwise() %>% 
+    mutate(newRegion_predClass = newRegion_pred) %>% 
+    mutate(newRegion_predClass = replace(newRegion_predClass, newRegion_pred<.5, "dryShrubGrass"), 
+           newRegion_predClass = replace(newRegion_predClass, newRegion_pred>.5, "forest")) 
+)
+
+temp$newRegion_predClass <- relevel(as.factor(temp$newRegion_predClass), ref = "dryShrubGrass")
+
+# are these predictions the same as the actual classifications
+temp$goodPred <- temp$newRegionFact == temp$newRegion_predClass
+sum(!temp$goodPred)/nrow(temp) * 100
+
+## make predictions rasterized 
+temp2 <- temp %>% 
+  terra::vect(geom = c("Long", "Lat"), crs = crs(soilRast)
+  ) %>% 
+  terra::rasterize(y = 
+                     terra::aggregate(soilRast, fact = 9, fun = mean, na.rm= TRUE)
+                   , field = "newRegion_pred")
+(regMod_2_PredMAP <- ggplot(temp) +
+    geom_spatraster(data = temp2) +
+    # geom_point(aes(#Long, Lat, 
+    #   col = newRegion_pred)) + 
+    scale_fill_distiller(type = "div", palette = 1, direction = 1) +
+    #geom_sf(data = ecoregionsSF2, color = "black", fill = NA) + 
+    #lims(x = c(-130, -65), y = c(24, 50))
+    
+    
+    #geom_point(aes(Long, Lat, col = newRegion_pred), alpha = .1) +
+    ggtitle("model-predicted ecoregion classification -- 2 ecoregions; no VPD",
+            subtitle = paste0("ecoregion ~ temp_warmestMonth + temp_coldestMonth + precip_wettestMonth +
+            precip_driestMonth + precipTempCorr + isothermality + soilDepth + % sand + % coarse + soil carbon
+           \n black dots indicate misclassification; \n  ", 
+                              round((100-sum(!temp$goodPred)/nrow(temp) * 100),1), 
+                              "% classification accuracy" )) +
+    geom_point(data = temp[temp$goodPred == FALSE,], aes(Long, Lat#, fill = as.factor(newRegion_predClass)
+    ),
+    col = "black"
+    , shape = 21) #+ 
+  #scale_fill_discrete(type = c("#bf812d","#35978f"))
+)
+
+## confusion matrix
+regMod_2_confMat <- caret::confusionMatrix(data = temp$newRegion_predClass,
+                                           reference = temp$newRegionFact)$table
+
+## make plots of good and bad probability
+# just good predictions
+(regMod_2_ternGoodPreds <- temp %>% 
+    filter(goodPred == TRUE) %>% 
+    ggplot() +
+    geom_density(aes(x = newRegion_pred, col = newRegionFact), trim = "FALSE") +
+    theme_minimal() + 
+    labs(color = "true ecoregion") +
+    ggtitle("Accurate Predictions") +
+    xlab("Model-Predicted Ecoregion")+
+    scale_x_continuous(breaks = c(0, .25, .5, .75, 1), 
+                       labels = c("shrub/grass", 0.25, 0.50, 0.75, "forest")) + 
+    scale_color_discrete(type = c("#bf812d","#35978f"))) 
+# just bad predictions
+badDat <- temp %>% 
+  filter(goodPred == FALSE)
+(regMod_2_ternBadPreds <- 
+    ggplot(badDat) +
+    geom_density(aes(x = newRegion_pred, col = newRegionFact
+    ), trim = "FALSE") +
+    theme_minimal() + 
+    labs(color = "true ecoregion") +
+    ggtitle("Inaccurate Predictions")+
+    xlab("Model-Predicted Ecoregion") +
+    scale_x_continuous(breaks = c(0, .25, .5, .75, 1), 
+                       labels = c("shrub/grass", 0.25, 0.50, 0.75, "forest")) + 
+    scale_color_discrete(type = c("#bf812d","#35978f")))
+
+(regMod_2Pred_mapBadGrass <- ggplot() +
+    geom_point(data = temp, aes(Long, Lat, col = newRegion), alpha = .3) +
+    ggtitle("Severity of Grass/Shrub misclassification") +
+    geom_point(data = temp[temp$goodPred == FALSE & temp$newRegion_predClass == "dryShrubGrass",], 
+               aes(Long, Lat, fill = newRegion_pred),
+               col = "black" ,
+               shape = 21) +
+    scale_fill_gradient(high = "#f5f5f5", low = "#543005") +
+    scale_color_discrete(type = c("#bf812d","#35978f")) +
+    theme_minimal()
+)
+
+(regMod_2Pred_mapForest <- ggplot() +
+    geom_point(data = temp, aes(Long, Lat, col = newRegion), alpha = .1) +
+    ggtitle("Severity of Forest misclassification") +
+    geom_point(data = temp[temp$goodPred == FALSE & temp$newRegion_predClass == "forest",], 
+               aes(Long, Lat, fill = newRegion_pred),
+               col = "black" ,
+               shape = 21) +
+    scale_fill_gradient(high = "#003c30", low = "#f5f5f5") +
+    scale_color_discrete(type = c("#bf812d","#35978f")) +
+    theme_minimal()
+) 
+
+
+## make variable importance figures
+beta.table_2 <- data.frame(summary(testMod_2)$coef)
+beta.table_2$variable <- row.names(beta.table_2)
+beta.table_2 <- mutate(beta.table_2, estimate = Estimate, 
+                       se = Std..Error, 
+                       low = Estimate - 2*se, 
+                       high = Estimate + 2*se,
+                       p = Pr...z..)  
+
+effSizeFig_2 <- ggplot(beta.table_2, aes(y=estimate, x=variable, ymin=low, ymax=high, color = (p < 0.05))) + 
+  #guides(color = guide_legend(NULL))+
+  geom_pointrange() +  
+  geom_hline(yintercept = 0, col="darkgrey", lty = 3, lwd=2) +
+  coord_flip() + theme_minimal() + ggtitle("Effect Sizes")
+
+## arrange all of the figures for this model
+ggpubr::annotate_figure(ggarrange(
+  # regMod_2_varImpPlot,
+  ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("dryShrubGrass" =  data.frame(regMod_2_confMat)$Freq[1:2], 
+                                                     "Forest" = data.frame(regMod_2_confMat)$Freq[3:4],
+                                                     row.names = c("dryShrubGrass", "Forest")), 
+                                          rownames_to_stub = TRUE))), 
+  effSizeFig_2,
+  regMod_2_PredMAP, 
+  regMod_2_ternGoodPreds,
+  regMod_2_ternBadPreds,
+  regMod_2Pred_mapBadGrass, 
+  regMod_2Pred_mapForest, 
+  nrow = 6
+)#, 
+#top = c("Model with depth = 7 and all climate and soil predictors")
+) %>% 
+  ggexport(
+    filename = "./Figures/EcoRegionModelFigures/ModelFigures_WithOUTVPD_TwoEcoregionsRegressionModelResults.pdf",
+    width = 15, height = 40)
+
+
+# w/out VPD; w/ stepwise model selection: Fit a simple regression w/ two ecoregions ----------------
+# make null model  (use testMod_2 as the full model )
+testMod.null <- glm(formula = newRegionFact ~ 1, family = "binomial", 
+                    data = modDat_fitNew)
+
+testMod_4 <- stepAIC(testMod_2,scope = list(upper=testMod_4, lower = testMod.null), direction="both",test="Chisq", trace = T)
+summary(e1.step.model.AIC)
+
+testMod_4 <- stepAIC(testMod_2, direction = "backward", trace = TRUE)
+testMod_4b <- MuMIn::dredge(testMod_2, beta = "none", evaluate = TRUE)
+summary(testMod_2)
+
+# tetestMod_2# test the predictions of the model
+predictionDat <- modDat_testNew
+predictionDatTemp <- cbind(predictionDat,"newRegion_pred" = predict(testMod_2, newdata = predictionDat, "response"))
+
+# for each observation, determine which category has the highest predicted probability
+(temp <- predictionDatTemp %>%
+    rowwise() %>% 
+    mutate(newRegion_predClass = newRegion_pred) %>% 
+    mutate(newRegion_predClass = replace(newRegion_predClass, newRegion_pred<.5, "dryShrubGrass"), 
+           newRegion_predClass = replace(newRegion_predClass, newRegion_pred>.5, "forest")) 
+)
+
+temp$newRegion_predClass <- relevel(as.factor(temp$newRegion_predClass), ref = "dryShrubGrass")
+
+# are these predictions the same as the actual classifications
+temp$goodPred <- temp$newRegionFact == temp$newRegion_predClass
+sum(!temp$goodPred)/nrow(temp) * 100
+
+## make predictions rasterized 
+temp2 <- temp %>% 
+  terra::vect(geom = c("Long", "Lat"), crs = crs(soilRast)
+  ) %>% 
+  terra::rasterize(y = 
+                     terra::aggregate(soilRast, fact = 9, fun = mean, na.rm= TRUE)
+                   , field = "newRegion_pred")
+(regMod_2_PredMAP <- ggplot(temp) +
+    geom_spatraster(data = temp2) +
+    # geom_point(aes(#Long, Lat, 
+    #   col = newRegion_pred)) + 
+    scale_fill_distiller(type = "div", palette = 1, direction = 1) +
+    #geom_sf(data = ecoregionsSF2, color = "black", fill = NA) + 
+    #lims(x = c(-130, -65), y = c(24, 50))
+    
+    
+    #geom_point(aes(Long, Lat, col = newRegion_pred), alpha = .1) +
+    ggtitle("model-predicted ecoregion classification -- 2 ecoregions; no VPD",
+            subtitle = paste0("ecoregion ~ temp_warmestMonth + temp_coldestMonth + precip_wettestMonth +
+            precip_driestMonth + precipTempCorr + isothermality + soilDepth + % sand + % coarse + soil carbon
+           \n black dots indicate misclassification; \n  ", 
+                              round((100-sum(!temp$goodPred)/nrow(temp) * 100),1), 
+                              "% classification accuracy" )) +
+    geom_point(data = temp[temp$goodPred == FALSE,], aes(Long, Lat#, fill = as.factor(newRegion_predClass)
+    ),
+    col = "black"
+    , shape = 21) #+ 
+  #scale_fill_discrete(type = c("#bf812d","#35978f"))
+)
+
+## confusion matrix
+regMod_2_confMat <- caret::confusionMatrix(data = temp$newRegion_predClass,
+                                           reference = temp$newRegionFact)$table
+
+## make plots of good and bad probability
+# just good predictions
+(regMod_2_ternGoodPreds <- temp %>% 
+    filter(goodPred == TRUE) %>% 
+    ggplot() +
+    geom_density(aes(x = newRegion_pred, col = newRegionFact), trim = "FALSE") +
+    theme_minimal() + 
+    labs(color = "true ecoregion") +
+    ggtitle("Accurate Predictions") +
+    xlab("Model-Predicted Ecoregion")+
+    scale_x_continuous(breaks = c(0, .25, .5, .75, 1), 
+                       labels = c("shrub/grass", 0.25, 0.50, 0.75, "forest")) + 
+    scale_color_discrete(type = c("#bf812d","#35978f"))) 
+# just bad predictions
+badDat <- temp %>% 
+  filter(goodPred == FALSE)
+(regMod_2_ternBadPreds <- 
+    ggplot(badDat) +
+    geom_density(aes(x = newRegion_pred, col = newRegionFact
+    ), trim = "FALSE") +
+    theme_minimal() + 
+    labs(color = "true ecoregion") +
+    ggtitle("Inaccurate Predictions")+
+    xlab("Model-Predicted Ecoregion") +
+    scale_x_continuous(breaks = c(0, .25, .5, .75, 1), 
+                       labels = c("shrub/grass", 0.25, 0.50, 0.75, "forest")) + 
+    scale_color_discrete(type = c("#bf812d","#35978f")))
+
+(regMod_2Pred_mapBadGrass <- ggplot() +
+    geom_point(data = temp, aes(Long, Lat, col = newRegion), alpha = .3) +
+    ggtitle("Severity of Grass/Shrub misclassification") +
+    geom_point(data = temp[temp$goodPred == FALSE & temp$newRegion_predClass == "dryShrubGrass",], 
+               aes(Long, Lat, fill = newRegion_pred),
+               col = "black" ,
+               shape = 21) +
+    scale_fill_gradient(high = "#f5f5f5", low = "#543005") +
+    scale_color_discrete(type = c("#bf812d","#35978f")) +
+    theme_minimal()
+)
+
+(regMod_2Pred_mapForest <- ggplot() +
+    geom_point(data = temp, aes(Long, Lat, col = newRegion), alpha = .1) +
+    ggtitle("Severity of Forest misclassification") +
+    geom_point(data = temp[temp$goodPred == FALSE & temp$newRegion_predClass == "forest",], 
+               aes(Long, Lat, fill = newRegion_pred),
+               col = "black" ,
+               shape = 21) +
+    scale_fill_gradient(high = "#003c30", low = "#f5f5f5") +
+    scale_color_discrete(type = c("#bf812d","#35978f")) +
+    theme_minimal()
+) 
+
+
+## make variable importance figures
+beta.table_2 <- data.frame(summary(testMod_2)$coef)
+beta.table_2$variable <- row.names(beta.table_2)
+beta.table_2 <- mutate(beta.table_2, estimate = Estimate, 
+                       se = Std..Error, 
+                       low = Estimate - 2*se, 
+                       high = Estimate + 2*se,
+                       p = Pr...z..)  
+
+effSizeFig_2 <- ggplot(beta.table_2, aes(y=estimate, x=variable, ymin=low, ymax=high, color = (p < 0.05))) + 
+  #guides(color = guide_legend(NULL))+
+  geom_pointrange() +  
+  geom_hline(yintercept = 0, col="darkgrey", lty = 3, lwd=2) +
+  coord_flip() + theme_minimal() + ggtitle("Effect Sizes")
+
+## arrange all of the figures for this model
+ggpubr::annotate_figure(ggarrange(
+  # regMod_2_varImpPlot,
+  ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("dryShrubGrass" =  data.frame(regMod_2_confMat)$Freq[1:2], 
+                                                     "Forest" = data.frame(regMod_2_confMat)$Freq[3:4],
+                                                     row.names = c("dryShrubGrass", "Forest")), 
+                                          rownames_to_stub = TRUE))), 
+  effSizeFig_2,
+  regMod_2_PredMAP, 
+  regMod_2_ternGoodPreds,
+  regMod_2_ternBadPreds,
+  regMod_2Pred_mapBadGrass, 
+  regMod_2Pred_mapForest, 
+  nrow = 6
+)#, 
+#top = c("Model with depth = 7 and all climate and soil predictors")
+) %>% 
+  ggexport(
+    filename = "./Figures/EcoRegionModelFigures/ModelFigures_WithOUTVPD_TwoEcoregionsRegressionModelResults.pdf",
+    width = 15, height = 40)
+
+
 # # Fit a simple regression (multinomial log-normal regression) 
 # # the predicted response of this model type is the odds-ratio for each category
 # # following this example:
