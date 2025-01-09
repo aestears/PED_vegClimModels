@@ -579,6 +579,8 @@ badDat <- temp %>%
 
 
 ## make variable importance figures
+caret::getModelInfo()
+varImp(testMod_2)
 beta.table_2 <- data.frame(summary(testMod_2)$coef)
 beta.table_2$variable <- row.names(beta.table_2)
 beta.table_2 <- mutate(beta.table_2, estimate = Estimate, 
