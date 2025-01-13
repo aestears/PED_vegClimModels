@@ -18,13 +18,15 @@ library(gt)
 library(glm.predict)
 library(tidyterra)
 library(MASS)
+library(terra)
 
 # Load Data ---------------------------------------------------------------
 # data ready for modeling 
 modDat <- readRDS("./Data_processed/EcoRegion_climSoilData.rds")
 
 # get the soil raster, which we'll use for rasterizing the imagery
-soilRast <- readRDS("./Data_processed/SoilsRaster.rds") #%>% 
+soilRastTemp <- readRDS("./Data_processed/SoilsRaster.rds") %>% 
+terra::unwrap()
 #   terra::project("GEOGCRS[\"WGS 84\",\n    ENSEMBLE[\"World Geodetic System 1984 ensemble\",\n        MEMBER[\"World Geodetic System 1984 (Transit)\"],\n        MEMBER[\"World Geodetic System 1984 (G730)\"],\n        MEMBER[\"World Geodetic System 1984 (G873)\"],\n        MEMBER[\"World Geodetic System 1984 (G1150)\"],\n        MEMBER[\"World Geodetic System 1984 (G1674)\"],\n        MEMBER[\"World Geodetic System 1984 (G1762)\"],\n        MEMBER[\"World Geodetic System 1984 (G2139)\"],\n        ELLIPSOID[\"WGS 84\",6378137,298.257223563,\n            LENGTHUNIT[\"metre\",1]],\n        ENSEMBLEACCURACY[2.0]],\n    PRIMEM[\"Greenwich\",0,\n        ANGLEUNIT[\"degree\",0.0174532925199433]],\n    CS[ellipsoidal,2],\n        AXIS[\"geodetic latitude (Lat)\",north,\n            ORDER[1],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n        AXIS[\"geodetic longitude (Lon)\",east,\n            ORDER[2],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n    USAGE[\n        SCOPE[\"Horizontal component of 3D system.\"],\n        AREA[\"World.\"],\n        BBOX[-90,-180,90,180]],\n    ID[\"EPSG\",4326]]"
 #                  )
 # Prepare data for model-fitting  ----------------------------------------------
@@ -213,7 +215,7 @@ summary(testMod_3)
 
 head(pp <- fitted(testMod_3))
 
-AIC(testMod_3) #AIC: 241225.9
+AIC(testMod_3) #AIC: 232623.3
 # tetestMod_2# test the predictions of the model
 predictionDat <- modDat_testNew
 predictionDatTemp <- cbind(predictionDat,"newRegion_pred" = predict(testMod_3, newdata = predictionDat, "response"))
@@ -234,12 +236,12 @@ sum(!temp_b$goodPred)/nrow(temp_b) * 100
 
 ## make predictions rasterized 
 temp_b2 <- temp_b %>% 
-  terra::vect(geom = c("Long", "Lat"), crs = crs(soilRast)
+  terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)
   ) %>% 
   terra::rasterize(y = 
-                     terra::aggregate(soilRast, fact = 9, fun = mean, na.rm= TRUE)
+                     terra::aggregate(soilRastTemp, fact = 2, fun = mean, na.rm= TRUE)
                    , field = "newRegion_pred")
-(regMod_3_PredMAP <- ggplot(temp_b) +
+(regMod_3_PredMAP <- ggplot(temp_b2) +
     geom_spatraster(data = temp_b2) +
     # geom_point(aes(#Long, Lat, 
     #   col = newRegion_pred)) + 
@@ -261,6 +263,90 @@ temp_b2 <- temp_b %>%
     , shape = 21) #+ 
   #scale_fill_discrete(type = c("#bf812d","#35978f"))
 )
+
+
+## zoom in on the great basin to check out mis-classification
+(regMod_3_PredMAP_GB <- ggplot(temp_b) +
+    geom_spatraster(data = temp_b2) +
+    # geom_point(aes(#Long, Lat, 
+    #   col = newRegion_pred)) + 
+    scale_fill_distiller(type = "div", palette = 1, direction = 1) +
+    #geom_sf(data = ecoregionsSF2, color = "black", fill = NA) + 
+    #lims(x = c(-130, -65), y = c(24, 50))
+    
+    
+    #geom_point(aes(Long, Lat, col = newRegion_pred), alpha = .1) +
+    ggtitle("model-predicted ecoregion classification -- 2 ecoregions; with VPD",
+            subtitle = paste0("Zoom-In on Great Basin Area
+           \n dots indicate misclassification; color indicates true classification; \n  ", 
+                              round((100-sum(!temp_b$goodPred)/nrow(temp_b) * 100),1), 
+                              "% classification accuracy" )) +
+    geom_point(data = temp_b[temp_b$goodPred == FALSE,], aes(Long, Lat#, fill = as.factor(newRegion_predClass)
+    ),
+    col = "black"
+    , shape = 21) +
+    xlim(c(-1911149,-999000)) + 
+    ylim(c(-600105, 0))
+  #scale_fill_discrete(type = c("#bf812d","#35978f"))
+)
+
+## zoom in on the AZ high elevation area to check out mis-classification
+(regMod_3_PredMAP_PIPO <- ggplot(temp_b2) +
+    geom_spatraster(data = temp_b2) +
+    # geom_point(aes(#Long, Lat, 
+    #   col = newRegion_pred)) + 
+    scale_fill_distiller(type = "div", palette = 1, direction = 1) +
+    #geom_sf(data = ecoregionsSF2, color = "black", fill = NA) + 
+    #lims(x = c(-130, -65), y = c(24, 50))
+    
+    
+    #geom_point(aes(Long, Lat, col = newRegion_pred), alpha = .1) +
+    ggtitle("model-predicted ecoregion classification -- 2 ecoregions; with VPD",
+            subtitle = paste0("Zoom-In on high elevation area in the SW;
+           \n dots indicate misclassification; color indicates true classification \n  ", 
+                              round((100-sum(!temp_b$goodPred)/nrow(temp_b) * 100),1), 
+                              "% classification accuracy" )) +
+    geom_point(data = temp_b[temp_b$goodPred == FALSE,], aes(Long, Lat#, fill = as.factor(newRegion_predClass)
+    ),
+    col = "black"
+    , shape = 21) +
+    xlim(c(-1211149,-559000)) + 
+    ylim(c(-1050105, -550000))
+  #scale_fill_discrete(type = c("#bf812d","#35978f"))
+)
+
+## Look at the relationship between misclassification and elevation
+# get elevation information for each raster cell 
+temp_TEMP <- temp_b %>% 
+  st_as_sf(coords = c("Long", "Lat"), crs = crs(soilRastTemp))
+
+temp_elev <- elevatr::get_elev_point(temp2, src = "aws")
+
+temp_TEMP <- temp_TEMP %>% st_join(temp_elev, left = TRUE, join = st_nearest_feature)
+
+# within each band of elevation (100 m), what is the frequency of bad predictions
+(badClass_elev <- temp_TEMP %>% 
+    mutate(elevRound = plyr::round_any(elevation, 100)) %>% 
+    st_drop_geometry() %>% 
+    group_by(elevRound, newRegion) %>% 
+    dplyr::summarize(goodPredNumber = sum(goodPred),
+                     badPredNumber = sum(!goodPred),
+                     totalPredNumber = n()) %>% 
+    mutate(badPredRate = badPredNumber/totalPredNumber)
+)
+
+(badPredElevation_mapA <- ggplot(badClass_elev,aes(x = elevRound, y = badPredRate, col = newRegion)) + 
+    geom_point(data = badClass_elev[badClass_elev$totalPredNumber<100,],
+               aes(x = elevRound, y = badPredRate), col = "black", pch = 8, size = 4) +
+    geom_point() +
+    geom_line() +
+    labs(title = "Misclassification",
+         x = "elevation - m", 
+         y = "Average rate of misclassification", 
+         subtitle = "asterisks indicates elevation bands where there are <100 observations") +
+    theme_minimal() +
+    scale_color_discrete(type = c("#bf812d","#35978f")))
+
 
 ## confusion matrix
 regMod_3_confMat <- caret::confusionMatrix(data = temp_b$newRegion_predClass,
@@ -342,6 +428,9 @@ ggpubr::annotate_figure(ggarrange(
                                           rownames_to_stub = TRUE))), 
   effSizeFig_3,
   regMod_3_PredMAP, 
+  regMod_3_PredMAP_GB, 
+  regMod_3_PredMAP_PIPO,
+  badPredElevation_mapA,
   regMod_3_ternGoodPreds,
   regMod_3_ternBadPreds,
   regMod_3Pred_mapBadGrass, 
@@ -352,7 +441,7 @@ ggpubr::annotate_figure(ggarrange(
 ) %>% 
   ggexport(
     filename = "./Figures/EcoRegionModelFigures/ModelFigures_WithVPD_TwoEcoregionsRegressionModelResults.pdf",
-    width = 15, height = 40)
+    width = 15, height = 45)
 
 
 # w/out VPD: drop correlated variables ------------------------------------
@@ -447,7 +536,17 @@ ggpubr::annotate_figure(ggarrange(
 modDat_fitNew <- modDat_fit %>% 
   mutate(newRegion = str_replace(newRegion, "eastForest", "forest"),
          newRegion = str_replace(newRegion, "westForest", "forest")) %>% 
-  mutate(newRegionFact = as.factor(newRegion)) 
+  mutate(newRegionFact = as.factor(newRegion)) %>% 
+  mutate(T_warmestMonth_S = scale(T_warmestMonth_meanAnnAvg_30yr),
+         T_coldestMonth_S = scale(T_coldestMonth_meanAnnAvg_30yr),
+         precip_wettestMonth_S = scale(precip_wettestMonth_meanAnnAvg_30yr),
+         precip_driestMonth_S = scale(precip_driestMonth_meanAnnAvg_30yr),
+         PrecipTempCorr_S = scale(PrecipTempCorr_meanAnnAvg_30yr),
+         isothermality_S = scale(isothermality_meanAnnAvg_30yr),
+         soilDepth_S = scale(soilDepth),
+         avgSandPerc_S = scale(avgSandPerc_acrossDepth),
+         avgCoarsePerc_S = scale(avgCoarsePerc_acrossDepth),
+         avgOrganicCarbon_S = scale(avgOrganicCarbonPerc_0_3cm))
 
 modDat_testNew <- modDat_test %>% 
   mutate(newRegion = str_replace(newRegion, "eastForest", "forest"),
@@ -491,13 +590,16 @@ temp$newRegion_predClass <- relevel(as.factor(temp$newRegion_predClass), ref = "
 temp$goodPred <- temp$newRegionFact == temp$newRegion_predClass
 sum(!temp$goodPred)/nrow(temp) * 100
 
+
 ## make predictions rasterized 
+
 temp2 <- temp %>% 
-  terra::vect(geom = c("Long", "Lat"), crs = crs(soilRast)
+  terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)
   ) %>% 
   terra::rasterize(y = 
-                     terra::aggregate(soilRast, fact = 9, fun = mean, na.rm= TRUE)
+                     terra::aggregate(soilRastTemp, fact = 2, fun = mean, na.rm= TRUE)
                    , field = "newRegion_pred")
+
 (regMod_2_PredMAP <- ggplot(temp) +
     geom_spatraster(data = temp2) +
     # geom_point(aes(#Long, Lat, 
@@ -521,6 +623,100 @@ temp2 <- temp %>%
   #scale_fill_discrete(type = c("#bf812d","#35978f"))
 )
 
+## zoom in on the great basin to check out mis-classification
+(regMod_2_PredMAP_GB <- ggplot(temp) +
+    geom_spatraster(data = temp2) +
+    # geom_point(aes(#Long, Lat, 
+    #   col = newRegion_pred)) + 
+    scale_fill_distiller(type = "div", palette = 1, direction = 1) +
+    #geom_sf(data = ecoregionsSF2, color = "black", fill = NA) + 
+    #lims(x = c(-130, -65), y = c(24, 50))
+    
+    
+    #geom_point(aes(Long, Lat, col = newRegion_pred), alpha = .1) +
+    ggtitle("model-predicted ecoregion classification -- 2 ecoregions; no VPD",
+            subtitle = paste0("Zoom-In on Great Basin Area
+           \n dots indicate misclassification; color indicates true classification; \n  ", 
+                              round((100-sum(!temp$goodPred)/nrow(temp) * 100),1), 
+                              "% classification accuracy" )) +
+    geom_point(data = temp[temp$goodPred == FALSE,], aes(Long, Lat#, fill = as.factor(newRegion_predClass)
+    ),
+    col = "black"
+    , shape = 21) +
+    xlim(c(-1911149,-999000)) + 
+    ylim(c(-600105, 0))
+  #scale_fill_discrete(type = c("#bf812d","#35978f"))
+)
+
+## zoom in on the AZ high elevation area to check out mis-classification
+(regMod_2_PredMAP_PIPO <- ggplot(temp) +
+    geom_spatraster(data = temp2) +
+    # geom_point(aes(#Long, Lat, 
+    #   col = newRegion_pred)) + 
+    scale_fill_distiller(type = "div", palette = 1, direction = 1) +
+    #geom_sf(data = ecoregionsSF2, color = "black", fill = NA) + 
+    #lims(x = c(-130, -65), y = c(24, 50))
+    
+    
+    #geom_point(aes(Long, Lat, col = newRegion_pred), alpha = .1) +
+    ggtitle("model-predicted ecoregion classification -- 2 ecoregions; no VPD",
+            subtitle = paste0("Zoom-In on high elevation area in the SW;
+           \n dots indicate misclassification; color indicates true classification \n  ", 
+                              round((100-sum(!temp$goodPred)/nrow(temp) * 100),1), 
+                              "% classification accuracy" )) +
+    geom_point(data = temp[temp$goodPred == FALSE,], aes(Long, Lat#, fill = as.factor(newRegion_predClass)
+    ),
+    col = "black"
+    , shape = 21) +
+    xlim(c(-1211149,-559000)) + 
+    ylim(c(-1050105, -550000))
+  #scale_fill_discrete(type = c("#bf812d","#35978f"))
+)
+
+## Look at the relationship between misclassification and elevation
+# get elevation information for each raster cell 
+temp_TEMP <- temp %>% 
+  st_as_sf(coords = c("Long", "Lat"), crs = crs(soilRastTemp))
+
+temp_elev <- elevatr::get_elev_point(temp2, src = "aws")
+
+temp_TEMP <- temp_TEMP %>% st_join(temp_elev, left = TRUE, join = st_nearest_feature)
+
+# within each band of elevation (100 m), what is the frequency of bad predictions
+(badClass_elev <- temp_TEMP %>% 
+  mutate(elevRound = plyr::round_any(elevation, 100)) %>% 
+  st_drop_geometry() %>% 
+  group_by(elevRound, newRegion) %>% 
+  dplyr::summarize(goodPredNumber = sum(goodPred),
+                   badPredNumber = sum(!goodPred),
+            totalPredNumber = n()) %>% 
+  mutate(badPredRate = badPredNumber/totalPredNumber)
+)
+
+(badPredElevation_mapA <- ggplot(badClass_elev,aes(x = elevRound, y = badPredRate, col = newRegion)) + 
+    geom_point(data = badClass_elev[badClass_elev$totalPredNumber<100,],
+               aes(x = elevRound, y = badPredRate), col = "black", pch = 8, size = 4) +
+  geom_point() +
+  geom_line() +
+    labs(title = "Misclassification",
+         x = "elevation - m", 
+         y = "Average rate of misclassification", 
+         subtitle = "asterisks indicates elevation bands where there are <100 observations") +
+  theme_minimal() +
+  scale_color_discrete(type = c("#bf812d","#35978f")))
+
+  # badPredElevation_mapB <- ggplot(badClass_elev,aes(x = elevRound, y = totalPredNumber, col = newRegion)) + 
+  # geom_point() +
+  # geom_line() +
+  #   theme_minimal() +
+  # labs(title = "Misclassification",
+  #      x = "elevation - m", 
+  #      y = "Average rate of misclassification", 
+  #      subtitle = "asterisk indicates elevation bands where there are <100 observations")+
+  # 
+  # scale_color_discrete(type = c("#bf812d","#35978f")) + 
+  # ylim(c(0,100)) 
+
 ## confusion matrix
 regMod_2_confMat <- caret::confusionMatrix(data = temp$newRegion_predClass,
                                            reference = temp$newRegionFact)$table
@@ -537,7 +733,8 @@ regMod_2_confMat <- caret::confusionMatrix(data = temp$newRegion_predClass,
     xlab("Model-Predicted Ecoregion")+
     scale_x_continuous(breaks = c(0, .25, .5, .75, 1), 
                        labels = c("shrub/grass", 0.25, 0.50, 0.75, "forest")) + 
-    scale_color_discrete(type = c("#bf812d","#35978f"))) 
+    scale_color_discrete(type = c("#bf812d","#35978f"))
+)
 # just bad predictions
 badDat <- temp %>% 
   filter(goodPred == FALSE)
@@ -604,6 +801,9 @@ ggpubr::annotate_figure(ggarrange(
                                           rownames_to_stub = TRUE))), 
   effSizeFig_2,
   regMod_2_PredMAP, 
+  regMod_2_PredMAP_GB, 
+  regMod_2_PredMAP_PIPO,
+  #badPredElevation_mapA,
   regMod_2_ternGoodPreds,
   regMod_2_ternBadPreds,
   regMod_2Pred_mapBadGrass, 
@@ -614,16 +814,317 @@ ggpubr::annotate_figure(ggarrange(
 ) %>% 
   ggexport(
     filename = "./Figures/EcoRegionModelFigures/ModelFigures_WithOUTVPD_TwoEcoregionsRegressionModelResults.pdf",
-    width = 15, height = 40)
+    width = 15, height = 45)
 
 
-# w/out VPD; w/ stepwise model selection: Fit a simple regression w/ two ecoregions ----------------
+# w/out VPD: Fit a simple regression w/ two ecoregions SCALED input variables ----------------
+
+modDat_fitNew <- modDat_fit %>% 
+  mutate(newRegion = str_replace(newRegion, "eastForest", "forest"),
+         newRegion = str_replace(newRegion, "westForest", "forest")) %>% 
+  mutate(newRegionFact = as.factor(newRegion)) %>% 
+  mutate(T_warmestMonth_S = scale(T_warmestMonth_meanAnnAvg_30yr),
+         T_coldestMonth_S = scale(T_coldestMonth_meanAnnAvg_30yr),
+         precip_wettestMonth_S = scale(precip_wettestMonth_meanAnnAvg_30yr),
+         precip_driestMonth_S = scale(precip_driestMonth_meanAnnAvg_30yr),
+         PrecipTempCorr_S = scale(PrecipTempCorr_meanAnnAvg_30yr),
+         isothermality_S = scale(isothermality_meanAnnAvg_30yr),
+         soilDepth_S = scale(soilDepth),
+         avgSandPerc_S = scale(avgSandPerc_acrossDepth),
+         avgCoarsePerc_S = scale(avgCoarsePerc_acrossDepth),
+         avgOrganicCarbon_S = scale(avgOrganicCarbonPerc_0_3cm))
+
+modDat_testNew <- modDat_test %>% 
+  mutate(newRegion = str_replace(newRegion, "eastForest", "forest"),
+         newRegion = str_replace(newRegion, "westForest", "forest")) %>% 
+  mutate(newRegionFact = as.factor(newRegion)) %>% 
+  mutate(T_warmestMonth_S = scale(T_warmestMonth_meanAnnAvg_30yr),
+         T_coldestMonth_S = scale(T_coldestMonth_meanAnnAvg_30yr),
+         precip_wettestMonth_S = scale(precip_wettestMonth_meanAnnAvg_30yr),
+         precip_driestMonth_S = scale(precip_driestMonth_meanAnnAvg_30yr),
+         PrecipTempCorr_S = scale(PrecipTempCorr_meanAnnAvg_30yr),
+         isothermality_S = scale(isothermality_meanAnnAvg_30yr),
+         soilDepth_S = scale(soilDepth),
+         avgSandPerc_S = scale(avgSandPerc_acrossDepth),
+         avgCoarsePerc_S = scale(avgCoarsePerc_acrossDepth),
+         avgOrganicCarbon_S = scale(avgOrganicCarbonPerc_0_3cm))
+
+testMod_2b <- glm(newRegionFact ~ T_warmestMonth_S       + 
+                    T_coldestMonth_S         +
+                    precip_wettestMonth_S    +
+                   precip_driestMonth_S   + 
+                   PrecipTempCorr_S        +   
+                   isothermality_S          +
+                   soilDepth_S                           +  
+                    avgSandPerc_S               + avgCoarsePerc_S           +  
+                    avgOrganicCarbon_S,
+                 data = modDat_fitNew, 
+                 family = "binomial", 
+                 na.action = na.fail
+)
+
+summary(testMod_2b)
+
+head(pp <- fitted(testMod_2b))
+
+AIC(testMod_2b) #AIC: 241225.9
+# tetestMod_2b# test the predictions of the model
+predictionDat <- modDat_testNew
+predictionDatTemp <- cbind(predictionDat,"newRegion_pred" = predict(testMod_2b, newdata = predictionDat, "response"))
+
+# for each observation, determine which category has the highest predicted probability
+(temp <- predictionDatTemp %>%
+    rowwise() %>% 
+    mutate(newRegion_predClass = newRegion_pred) %>% 
+    mutate(newRegion_predClass = replace(newRegion_predClass, newRegion_pred<.5, "dryShrubGrass"), 
+           newRegion_predClass = replace(newRegion_predClass, newRegion_pred>.5, "forest")) 
+)
+
+temp$newRegion_predClass <- relevel(as.factor(temp$newRegion_predClass), ref = "dryShrubGrass")
+
+# are these predictions the same as the actual classifications
+temp$goodPred <- temp$newRegionFact == temp$newRegion_predClass
+sum(!temp$goodPred)/nrow(temp) * 100
+
+
+## make predictions rasterized 
+
+temp2b <- temp %>% 
+  terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)
+  ) %>% 
+  terra::rasterize(y = 
+                     terra::aggregate(soilRastTemp, fact = 2, fun = mean, na.rm= TRUE)
+                   , field = "newRegion_pred")
+
+(regMod_2b_PredMAP <- ggplot(temp) +
+    geom_spatraster(data = temp2b) +
+    # geom_point(aes(#Long, Lat, 
+    #   col = newRegion_pred)) + 
+    scale_fill_distiller(type = "div", palette = 1, direction = 1) +
+    #geom_sf(data = ecoregionsSF2, color = "black", fill = NA) + 
+    #lims(x = c(-130, -65), y = c(24, 50))
+    
+    
+    #geom_point(aes(Long, Lat, col = newRegion_pred), alpha = .1) +
+    ggtitle("model-predicted ecoregion classification -- 2 ecoregions; no VPD",
+            subtitle = paste0("ecoregion ~ temp_warmestMonth + temp_coldestMonth + precip_wettestMonth +
+            precip_driestMonth + precipTempCorr + isothermality + soilDepth + % sand + % coarse + soil carbon
+           \n black dots indicate misclassification; \n  ", 
+                              round((100-sum(!temp$goodPred)/nrow(temp) * 100),1), 
+                              "% classification accuracy" )) +
+    geom_point(data = temp[temp$goodPred == FALSE,], aes(Long, Lat#, fill = as.factor(newRegion_predClass)
+    ),
+    col = "black"
+    , shape = 21) #+ 
+  #scale_fill_discrete(type = c("#bf812d","#35978f"))
+)
+
+## zoom in on the great basin to check out mis-classification
+(regMod_2b_PredMAP_GB <- ggplot(temp) +
+    geom_spatraster(data = temp2b) +
+    # geom_point(aes(#Long, Lat, 
+    #   col = newRegion_pred)) + 
+    scale_fill_distiller(type = "div", palette = 1, direction = 1) +
+    #geom_sf(data = ecoregionsSF2, color = "black", fill = NA) + 
+    #lims(x = c(-130, -65), y = c(24, 50))
+    
+    
+    #geom_point(aes(Long, Lat, col = newRegion_pred), alpha = .1) +
+    ggtitle("model-predicted ecoregion classification -- 2 ecoregions; no VPD",
+            subtitle = paste0("Zoom-In on Great Basin Area
+           \n dots indicate misclassification; color indicates true classification; \n  ", 
+                              round((100-sum(!temp$goodPred)/nrow(temp) * 100),1), 
+                              "% classification accuracy" )) +
+    geom_point(data = temp[temp$goodPred == FALSE,], aes(Long, Lat#, fill = as.factor(newRegion_predClass)
+    ),
+    col = "black"
+    , shape = 21) +
+    xlim(c(-1911149,-999000)) + 
+    ylim(c(-600105, 0))
+  #scale_fill_discrete(type = c("#bf812d","#35978f"))
+)
+
+## zoom in on the AZ high elevation area to check out mis-classification
+(regMod_2b_PredMAP_PIPO <- ggplot(temp) +
+    geom_spatraster(data = temp2b) +
+    # geom_point(aes(#Long, Lat, 
+    #   col = newRegion_pred)) + 
+    scale_fill_distiller(type = "div", palette = 1, direction = 1) +
+    #geom_sf(data = ecoregionsSF2, color = "black", fill = NA) + 
+    #lims(x = c(-130, -65), y = c(24, 50))
+    
+    
+    #geom_point(aes(Long, Lat, col = newRegion_pred), alpha = .1) +
+    ggtitle("model-predicted ecoregion classification -- 2 ecoregions; no VPD",
+            subtitle = paste0("Zoom-In on high elevation area in the SW;
+           \n dots indicate misclassification; color indicates true classification \n  ", 
+                              round((100-sum(!temp$goodPred)/nrow(temp) * 100),1), 
+                              "% classification accuracy" )) +
+    geom_point(data = temp[temp$goodPred == FALSE,], aes(Long, Lat#, fill = as.factor(newRegion_predClass)
+    ),
+    col = "black"
+    , shape = 21) +
+    xlim(c(-1211149,-559000)) + 
+    ylim(c(-1050105, -550000))
+  #scale_fill_discrete(type = c("#bf812d","#35978f"))
+)
+
+## Look at the relationship between misclassification and elevation
+# get elevation information for each raster cell 
+temp_TEMP <- temp %>% 
+  st_as_sf(coords = c("Long", "Lat"), crs = crs(soilRastTemp))
+
+temp_elev <- elevatr::get_elev_point(temp2, src = "aws")
+
+temp_TEMP <- temp_TEMP %>% st_join(temp_elev, left = TRUE, join = st_nearest_feature)
+
+# within each band of elevation (100 m), what is the frequency of bad predictions
+(badClass_elev <- temp_TEMP %>% 
+    mutate(elevRound = plyr::round_any(elevation, 100)) %>% 
+    st_drop_geometry() %>% 
+    group_by(elevRound, newRegion) %>% 
+    dplyr::summarize(goodPredNumber = sum(goodPred),
+                     badPredNumber = sum(!goodPred),
+                     totalPredNumber = n()) %>% 
+    mutate(badPredRate = badPredNumber/totalPredNumber)
+)
+
+(badPredElevation_mapA <- ggplot(badClass_elev,aes(x = elevRound, y = badPredRate, col = newRegion)) + 
+    geom_point(data = badClass_elev[badClass_elev$totalPredNumber<100,],
+               aes(x = elevRound, y = badPredRate), col = "black", pch = 8, size = 4) +
+    geom_point() +
+    geom_line() +
+    labs(title = "Misclassification",
+         x = "elevation - m", 
+         y = "Average rate of misclassification", 
+         subtitle = "asterisks indicates elevation bands where there are <100 observations") +
+    theme_minimal() +
+    scale_color_discrete(type = c("#bf812d","#35978f")))
+
+
+
+## confusion matrix
+regMod_2b_confMat <- caret::confusionMatrix(data = temp$newRegion_predClass,
+                                           reference = temp$newRegionFact)$table
+
+## make plots of good and bad probability
+# just good predictions
+(regMod_2b_ternGoodPreds <- temp %>% 
+    filter(goodPred == TRUE) %>% 
+    ggplot() +
+    geom_density(aes(x = newRegion_pred, col = newRegionFact), trim = "FALSE") +
+    theme_minimal() + 
+    labs(color = "true ecoregion") +
+    ggtitle("Accurate Predictions") +
+    xlab("Model-Predicted Ecoregion")+
+    scale_x_continuous(breaks = c(0, .25, .5, .75, 1), 
+                       labels = c("shrub/grass", 0.25, 0.50, 0.75, "forest")) + 
+    scale_color_discrete(type = c("#bf812d","#35978f"))
+)
+# just bad predictions
+badDat <- temp %>% 
+  filter(goodPred == FALSE)
+(regMod_2b_ternBadPreds <- 
+    ggplot(badDat) +
+    geom_density(aes(x = newRegion_pred, col = newRegionFact
+    ), trim = "FALSE") +
+    theme_minimal() + 
+    labs(color = "true ecoregion") +
+    ggtitle("Inaccurate Predictions")+
+    xlab("Model-Predicted Ecoregion") +
+    scale_x_continuous(breaks = c(0, .25, .5, .75, 1), 
+                       labels = c("shrub/grass", 0.25, 0.50, 0.75, "forest")) + 
+    scale_color_discrete(type = c("#bf812d","#35978f")))
+
+(regMod_2bPred_mapBadGrass <- ggplot() +
+    geom_point(data = temp, aes(Long, Lat, col = newRegion), alpha = .3) +
+    ggtitle("Severity of Grass/Shrub misclassification") +
+    geom_point(data = temp[temp$goodPred == FALSE & temp$newRegion_predClass == "dryShrubGrass",], 
+               aes(Long, Lat, fill = newRegion_pred),
+               col = "black" ,
+               shape = 21) +
+    scale_fill_gradient(high = "#f5f5f5", low = "#543005") +
+    scale_color_discrete(type = c("#bf812d","#35978f")) +
+    theme_minimal()
+)
+
+(regMod_2bPred_mapForest <- ggplot() +
+    geom_point(data = temp, aes(Long, Lat, col = newRegion), alpha = .1) +
+    ggtitle("Severity of Forest misclassification") +
+    geom_point(data = temp[temp$goodPred == FALSE & temp$newRegion_predClass == "forest",], 
+               aes(Long, Lat, fill = newRegion_pred),
+               col = "black" ,
+               shape = 21) +
+    scale_fill_gradient(high = "#003c30", low = "#f5f5f5") +
+    scale_color_discrete(type = c("#bf812d","#35978f")) +
+    theme_minimal()
+) 
+
+
+## make variable importance figures
+caret::getModelInfo()
+varImp(testMod_2b)
+beta.table_2b <- data.frame(summary(testMod_2b)$coef)
+beta.table_2b$variable <- row.names(beta.table_2b)
+beta.table_2b <- mutate(beta.table_2, estimate = Estimate, 
+                       se = Std..Error, 
+                       low = Estimate - 2*se, 
+                       high = Estimate + 2*se,
+                       p = Pr...z..)  
+
+effSizeFig_2b <- ggplot(beta.table_2, aes(y=estimate, x=variable, ymin=low, ymax=high, color = (p < 0.05))) + 
+  #guides(color = guide_legend(NULL))+
+  geom_pointrange() +  
+  geom_hline(yintercept = 0, col="darkgrey", lty = 3, lwd=2) +
+  coord_flip() + theme_minimal() + ggtitle("Effect Sizes")
+
+## arrange all of the figures for this model
+ggpubr::annotate_figure(ggarrange(
+  # regMod_2_varImpPlot,
+  ggplotify::as.grob(gt::as_gtable(gt::gt(data.frame("dryShrubGrass" =  data.frame(regMod_2b_confMat)$Freq[1:2], 
+                                                     "Forest" = data.frame(regMod_2b_confMat)$Freq[3:4],
+                                                     row.names = c("dryShrubGrass", "Forest")), 
+                                          rownames_to_stub = TRUE))), 
+  effSizeFig_2b,
+  regMod_2b_PredMAP, 
+  regMod_2b_PredMAP_GB, 
+  regMod_2b_PredMAP_PIPO,
+  #badPredElevation_mapA,
+  regMod_2b_ternGoodPreds,
+  regMod_2b_ternBadPreds,
+  regMod_2bPred_mapBadGrass, 
+  regMod_2bPred_mapForest, 
+  nrow = 6
+)#, 
+#top = c("Model with depth = 7 and all climate and soil predictors")
+) %>% 
+  ggexport(
+    filename = "./Figures/EcoRegionModelFigures/ModelFigures_WithOUTVPD_TwoEcoregionsSCALEDRegressionModelResults.pdf",
+    width = 15, height = 45)
+
+
+
+# w/out VPD; w/ stepwise model selection: Fit a simple regression w/ two ecoregions w/ interactions ----------------
+
+init_mod <- lm(y ~ ., data = dat)
+step(init_mod, scope = . ~ .^2, direction = 'forward')
+
 # make null model  (use testMod_2 as the full model )
 testMod.null <- glm(formula = newRegionFact ~ 1, family = "binomial", 
                     data = modDat_fitNew)
+testMod.full <- 
+  glm(data =  modDat_fitNew %>% 
+        dplyr::select(newRegionFact, T_warmestMonth_meanAnnAvg_30yr, T_coldestMonth_meanAnnAvg_30yr , precip_wettestMonth_meanAnnAvg_30yr , 
+                      precip_driestMonth_meanAnnAvg_30yr , PrecipTempCorr_meanAnnAvg_30yr , 
+                      isothermality_meanAnnAvg_30yr , soilDepth , avgSandPerc_acrossDepth , 
+                      avgCoarsePerc_acrossDepth , avgOrganicCarbonPerc_0_3cm )
+      , formula = newRegionFact ~ . , family = "binomial", 
+                     na.action = na.fail)
+
+stepwiseResults <- stepAIC(testMod.full, scope = list(lower = testMod.null, upper = ~ .^2)
+                           , direction="both",test="Chisq", trace = T)
 
 testMod_4 <- stepAIC(testMod_2,scope = list(upper=testMod_4, lower = testMod.null), direction="both",test="Chisq", trace = T)
-summary(e1.step.model.AIC)
 
 testMod_4 <- stepAIC(testMod_2, direction = "backward", trace = TRUE)
 testMod_4b <- MuMIn::dredge(testMod_2, beta = "none", evaluate = TRUE)
@@ -649,10 +1150,10 @@ sum(!temp$goodPred)/nrow(temp) * 100
 
 ## make predictions rasterized 
 temp2 <- temp %>% 
-  terra::vect(geom = c("Long", "Lat"), crs = crs(soilRast)
+  terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)
   ) %>% 
   terra::rasterize(y = 
-                     terra::aggregate(soilRast, fact = 9, fun = mean, na.rm= TRUE)
+                     terra::aggregate(soilRastTemp, fact = 9, fun = mean, na.rm= TRUE)
                    , field = "newRegion_pred")
 (regMod_2_PredMAP <- ggplot(temp) +
     geom_spatraster(data = temp2) +
