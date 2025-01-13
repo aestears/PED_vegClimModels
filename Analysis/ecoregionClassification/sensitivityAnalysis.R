@@ -391,7 +391,8 @@ plotDatTemp <- predsTemp - contempTemp
 (comparePrecipDriest_2 <- ggplot() +
   geom_spatraster(data = plotDatTemp) + 
   guides(fill = guide_legend("Forecast - \n Contemporary")) + 
-  ggtitle("Precip of the Driest Month"))
+  ggtitle("Precip of the Driest Month")+ 
+    scale_fill_gradient2(low = 'darkgreen', mid = 'white', high = 'orchid', midpoint =0))
 
 ## precip of wettest month 
 (comparePrecipWettest <- ggplot() + 
@@ -412,7 +413,8 @@ plotDatTemp <- predsTemp - contempTemp
 (comparePrecipWettest_2 <- ggplot() +
     geom_spatraster(data = plotDatTemp) + 
     guides(fill = guide_legend("Forecast - \n Contemporary")) + 
-    ggtitle("Precip of the Wettest Month"))
+    ggtitle("Precip of the Wettest Month") + 
+    scale_fill_gradient2(low = 'darkgreen', mid = 'white', high = 'orchid', midpoint =0))
 
 ## temp of warmest month 
 (compareTempWarmest <- ggplot() +
@@ -433,7 +435,8 @@ plotDatTemp <- predsTemp - contempTemp
 (compareTempWarmest_2 <- ggplot() +
     geom_spatraster(data = plotDatTemp) + 
     guides(fill = guide_legend("Forecast - \n Contemporary")) + 
-    ggtitle("Temp of the Warmest Month"))
+    ggtitle("Temp of the Warmest Month")+ 
+    scale_fill_gradient2(low = 'darkgreen', mid = 'white', high = 'orchid', midpoint =0))
 
 ## temp of coldest month 
 (compareTempColdest <- ggplot() +
@@ -454,7 +457,8 @@ plotDatTemp <- predsTemp - contempTemp
 (compareTempColdest_2 <- ggplot() +
     geom_spatraster(data = plotDatTemp) + 
     guides(fill = guide_legend("Forecast - \n Contemporary")) + 
-    ggtitle("Temp of the Coldest Month"))
+    ggtitle("Temp of the Coldest Month")+ 
+    scale_fill_gradient2(low = 'darkgreen', mid = 'white', high = 'orchid', midpoint =0))
 
 ## isothermality
 (compareIsothermality <- ggplot() + 
@@ -475,7 +479,8 @@ plotDatTemp <- predsTemp - contempTemp
 (compareIsothermality_2 <- ggplot() +
     geom_spatraster(data = plotDatTemp) + 
     guides(fill = guide_legend("Forecast - \n Contemporary")) + 
-    ggtitle("Isothermality"))
+    ggtitle("Isothermality")+ 
+    scale_fill_gradient2(low = 'darkgreen', mid = 'white', high = 'orchid', midpoint =0))
 
 bitmap(file = "./Figures/EcoRegionModelFigures/RegressionModel_2EcoregionsNoVPD_PredContempComparison.bmp", 
        width = 16, height = 20, res = 200)
@@ -660,7 +665,7 @@ perturbFun_2 <- function(predictor,
   #predictor <- predictors[1]
   #predictData <- modDat_testNew
   #perturbVal <- c(-.2, -.1, .1, .2)
-  #model <- testMod_2
+  #model <- model
   predsOut <- vector(mode = "list", length(perturbVal))
   # for each value of perturbVal 
   if (predictor == "PrecipTempCorr_meanAnnAvg_30yr") {
@@ -674,7 +679,7 @@ perturbFun_2 <- function(predictor,
       predictDat_i[ predictDat_i[,predictor] > 1 ,predictor] <- 1
       # predict 
       regModPreds_i <- predictDat_i %>%
-        cbind("newRegion_pred" = predict(testMod_2, newdata = predictDat_i, "response")) %>%  
+        cbind("newRegion_pred" = predict(model, newdata = predictDat_i, "response")) %>%  
         rowwise() %>% 
         mutate(newRegion_group = newRegion_pred) %>% 
         mutate(newRegion_group = replace(newRegion_group, newRegion_pred<.5, "dryShrubGrass"), 
@@ -696,7 +701,7 @@ perturbFun_2 <- function(predictor,
       predictDat_i[ predictDat_i[,predictor] > 100 ,predictor] <- 100
       # predict 
       regModPreds_i <- predictDat_i %>%
-        cbind("newRegion_pred" = predict(testMod_2, newdata = predictDat_i, "response")) %>%  
+        cbind("newRegion_pred" = predict(model, newdata = predictDat_i, "response")) %>%  
         rowwise() %>% 
         mutate(newRegion_group = newRegion_pred) %>% 
         mutate(newRegion_group = replace(newRegion_group, newRegion_pred<.5, "dryShrubGrass"), 
@@ -714,7 +719,7 @@ perturbFun_2 <- function(predictor,
       predictDat_i[,predictor] <-  predictDat_i[,predictor] + predictDat_i[,predictor]*perturbVal[i] 
       # predict 
       regModPreds_i <- predictDat_i %>%
-        cbind("newRegion_pred" = predict(testMod_2, newdata = predictDat_i, "response")) %>%  
+        cbind("newRegion_pred" = predict(model, newdata = predictDat_i, "response")) %>%  
         rowwise() %>% 
         mutate(newRegion_group = newRegion_pred) %>% 
         mutate(newRegion_group = replace(newRegion_group, newRegion_pred<.5, "dryShrubGrass"), 
@@ -734,81 +739,93 @@ perturbFun_2 <- function(predictor,
 preds_tempWarmestMonth_2 <- 
   perturbFun_2(predictor = predictors[1],
                predictData = modDat_testNew, 
-               perturbVal = c(-.4, -.25, -.1, .1, .25, .4),
-               model = testMod)
+               perturbVal = c(-.4, -.25, -.1, .1, .25, .5),
+               model = testMod_2)
 
 # predictions for temp of coldest month 
 preds_tempColdestMonth_2 <- 
   perturbFun_2(predictor = predictors[2],
              predictData = modDat_testNew, 
-             perturbVal = c(-.4, -.25, -.1, .1, .25, .4),
-             model = testMod)
+             perturbVal = c(-.4, -.25, -.1, .1, .25, .5),
+             model = testMod_2)
 
 # predictions for precip of wettest month
 preds_precipWettestMonth_2 <- 
   perturbFun_2(predictor = predictors[3],
                predictData = modDat_testNew, 
-               perturbVal =  c(-.4, -.25, -.1, .1, .25, .4),
-               model = testMod) 
+               perturbVal =  c(-.4, -.25, -.1, .1, .25, .5),
+               model = testMod_2) 
 
 # predictions for precip of driest month
 preds_precipDriestMonth_2 <- 
   perturbFun_2(predictor = predictors[4],
              predictData = modDat_testNew, 
-             perturbVal =  c(-.4, -.25, -.1, .1, .25, .4),
-             model = testMod)
+             perturbVal =  c(-.4, -.25, -.1, .1, .25, .5),
+             model = testMod_2)
 
 # predictions for precipTemp correlation
 preds_precipTempCorr_2 <- 
   perturbFun_2(predictor = predictors[5],
              predictData = modDat_testNew, 
-             perturbVal =  c(-.4, -.25, -.1, .1, .25, .4),
-             model = testMod)
+             perturbVal =  c(-.4, -.25, -.1, .1, .25, .5),
+             model = testMod_2)
 
 # predictions for isothermality
 preds_isotherm_2 <- 
   perturbFun_2(predictor = predictors[6],
              predictData = modDat_testNew, 
-             perturbVal =  c(-.4, -.25, -.1, .1, .25, .4),
-             model = testMod)
+             perturbVal =  c(-.4, -.25, -.1, .1, .25, .5),
+             model = testMod_2)
 
 # # predictions for VPD max 95th percentile
 # preds_VPDmax_95_2 <- 
 #   perturbFun_2(predictor = predictors[5],
 #              predictData = modDat_testNew, 
-#              perturbVal =  c(-.4, -.25, -.1, .1, .25, .4),
+#              perturbVal =  c(-.4, -.25, -.1, .1, .25, .5),
 #              model = testMod)
 
 # predictions for soil depth
 preds_soilDepth_2 <- 
   perturbFun_2(predictor = predictors[7],
              predictData = modDat_testNew, 
-             perturbVal =  c(-.4, -.25, -.1, .1, .25, .4),
-             model = testMod)
+             perturbVal =  c(-.4, -.25, -.1, .1, .25, .5),
+             model = testMod_2)
 
 # predictions for % clay in soil surface
 preds_sand_2 <- 
   perturbFun_2(predictor = predictors[8],
              predictData = modDat_testNew, 
-             perturbVal =  c(-.4, -.25, -.1, .1, .25, .4),
-             model = testMod)
+             perturbVal =  c(-.4, -.25, -.1, .1, .25, .5),
+             model = testMod_2)
 
 # predictions for % coarse soil parts across depth
 preds_coarse_2 <- 
   perturbFun_2(predictor = predictors[9],
              predictData = modDat_testNew, 
-             perturbVal =  c(-.4, -.25, -.1, .1, .25, .4),
-             model = testMod)
+             perturbVal =  c(-.4, -.25, -.1, .1, .25, .5),
+             model = testMod_2)
 
 # predictions for % surface organic matter in the soil 
 preds_carbon_2 <- 
   perturbFun_2(predictor = predictors[10],
              predictData = modDat_testNew, 
-             perturbVal =  c(-.4, -.25, -.1, .1, .25, .4),
-             model = testMod)
+             perturbVal =  c(-.4, -.25, -.1, .1, .25, .5),
+             model = testMod_2)
 
 
 # make figures showing predictions ----------------------------------------
+# get model predictions w/ no perturbations 
+predictionDat <- modDat_testNew
+predictionDatTemp <- cbind(predictionDat,"newRegion_pred" = predict(testMod_2, newdata = predictionDat, "response"))
+# for each observation, determine which category has the highest predicted probability
+(predData_noPerturb <- predictionDatTemp %>%
+    rowwise() %>% 
+    mutate(newRegion_group = newRegion_pred) %>% 
+    mutate(newRegion_group = replace(newRegion_group, newRegion_pred<.5, "dryShrubGrass"), 
+           newRegion_group = replace(newRegion_group, newRegion_pred>.5, "forest")) 
+)
+
+# make figures
 makeFigures_sens_2 <- function(modPreds, 
                              modPreds_noPerturb) {
   ## add predictions together while keeping track of the perturbation 
@@ -830,35 +847,58 @@ makeFigures_sens_2 <- function(modPreds,
   )
   
   # transform probabilities for shrubGrass to be from .5 to .1
-  predsOut_final[predsOut_final$newRegion_group == "dryShrubGrass","newRegion_pred"] <- 1-
-    predsOut_final[predsOut_final$newRegion_group == "dryShrubGrass","newRegion_pred"] 
+  # predsOut_final[predsOut_final$newRegion_group == "dryShrubGrass","newRegion_pred"] <- 1-
+  #   predsOut_final[predsOut_final$newRegion_group == "dryShrubGrass","newRegion_pred"] 
   
   names(predsOut_final)[1] <- "predictor"
+  
+  # calculate the mean response prediction for each 'bin' of the predictor value
+  quantiles <- stats::quantile(predsOut_final[[1]], c(0, .09,.1,.19, .2, .29, .3, .39, .4, .49, 
+                                         .5, .59, .6, .69, .7, .79, .8, .89, .9, 1))
+  predsOut_final$quantile <- NA
+  predsOut_final[predsOut_final$predictor > quantiles[1] & predsOut_final$predictor <= quantiles[2],"quantile"] <- quantiles[2]  
+  predsOut_final[predsOut_final$predictor > quantiles[3] & predsOut_final$predictor <= quantiles[4],"quantile"] <- quantiles[4]  
+  predsOut_final[predsOut_final$predictor > quantiles[5] & predsOut_final$predictor <= quantiles[6],"quantile"] <- quantiles[6]  
+  predsOut_final[predsOut_final$predictor > quantiles[7] & predsOut_final$predictor <= quantiles[8],"quantile"] <- quantiles[8]  
+  predsOut_final[predsOut_final$predictor > quantiles[9] & predsOut_final$predictor <= quantiles[10],"quantile"] <- quantiles[10]  
+  predsOut_final[predsOut_final$predictor > quantiles[11] & predsOut_final$predictor <= quantiles[12],"quantile"] <- quantiles[12] 
+  predsOut_final[predsOut_final$predictor > quantiles[13] & predsOut_final$predictor <= quantiles[14],"quantile"] <- quantiles[14]   
+  predsOut_final[predsOut_final$predictor > quantiles[15] & predsOut_final$predictor <= quantiles[16],"quantile"] <- quantiles[16]
+  predsOut_final[predsOut_final$predictor > quantiles[17] & predsOut_final$predictor <= quantiles[18],"quantile"] <- quantiles[18] 
+  predsOut_final[predsOut_final$predictor > quantiles[19] & predsOut_final$predictor <= quantiles[20],"quantile"] <- quantiles[20] 
+  
+  figDat <- predsOut_final %>% 
+    group_by(quantile, perturbVal) %>% 
+    summarize(meanPredictedNewRegionProb = mean(newRegion_pred))
+  
   # make a figure showing change in response predictions across levels of perturbation
-  shrubGrassPred_line<- ggplot(data = predsOut_final) + 
+  shrubGrassPred_line <- ggplot(data = figDat) + 
     # geom_point(aes(x =  predictor, y = dryShrubGrass_prob, col = as.factor(perturbVal))) +
-    geom_smooth(aes(x = predictor, y = newRegion_pred, col = as.factor(perturbVal)), se = FALSE) +
-    facet_wrap(~newRegion_group) +
+    # geom_smooth(aes(x = predictor, y = newRegion_pred, col = as.factor(perturbVal)), #method = "glm", 
+    #             se = FALSE) +
+    geom_hline(aes(yintercept = .5), col = "grey50", lty = 2) +
+      geom_line(aes(x = quantile, y = meanPredictedNewRegionProb, col = as.factor(perturbVal))) +
+    #facet_wrap(~newRegion_group) +
     theme_minimal() +
-    ggtitle("Sensitivity of Ecoregion predicted probability") +
-    ylab("P(Ecoregion Assignment)")+
+    ggtitle(paste0("Impact of Perturbations in ",predictor_i," on Ecoregion predicted probability")) +
+    ylab("Mean prediction P(Forest)")+
     xlab(predictor_i) +
     labs(color = "perturb. value")
 
-  shrubGrassPred_point <- ggplot(data = predsOut_final) + 
-    geom_point(aes(x =  predictor, y = newRegion_pred, col = as.factor(perturbVal))) +
-    facet_wrap(~newRegion_group) +
-    theme_minimal() +
-    ggtitle("Sensitivity of Ecoregion predicted probability") +
-    ylab("P(Ecoregion Assignment)")+
-    xlab(predictor_i) +
-    labs(color = "perturb. value")
+  # shrubGrassPred_point <- ggplot(data = predsOut_final) + 
+  #   geom_point(aes(x =  predictor, y = newRegion_pred, col = as.factor(perturbVal))) +
+  #   facet_wrap(~newRegion_group) +
+  #   theme_minimal() +
+  #   ggtitle("Sensitivity of Ecoregion predicted probability") +
+  #   ylab("P(Ecoregion Assignment)")+
+  #   xlab(predictor_i) +
+  #   labs(color = "perturb. value")
   
   ## combine into one figure
-  predMod <- ggarrange(shrubGrassPred_point,
-                       shrubGrassPred_line,
-                       common.legend = TRUE, nrow = 2, ncol = 1) %>% 
-    annotate_figure(paste0("Impact of purturbations in ", predictor_i," on model predictions"))
+  predMod <- #ggarrange(shrubGrassPred_point,
+                       shrubGrassPred_line
+  #,common.legend = TRUE, nrow = 2, ncol = 1) %>% 
+    #annotate_figure(paste0("Impact of purturbations in ", predictor_i," on model predictions"))
   
   return(predMod)
 }
@@ -868,45 +908,45 @@ makeFigures_sens_2 <- function(modPreds,
 
 ## make figures
 # predictions for temp of warmest month 
-(predsFits_2_tempWarmestMonth <- makeFigures_sens_2(modPreds = preds_tempWarmestMonth_2, modPreds_noPerturb = regModPreds_2_df)
+(predsFits_2_tempWarmestMonth <- makeFigures_sens_2(modPreds = preds_tempWarmestMonth_2, modPreds_noPerturb = predData_noPerturb)
 )
 
 # predictions for temp of coldest month
-(predsFits_2_tempColdestMonth <- makeFigures_sens_2(modPreds = preds_tempColdestMonth_2, modPreds_noPerturb = regModPreds_2_df)
+(predsFits_2_tempColdestMonth <- makeFigures_sens_2(modPreds = preds_tempColdestMonth_2, modPreds_noPerturb = predData_noPerturb)
 )
 
 
 # predictions for precip of wettest month
-(predsFits_2_precipWettestMonth <- makeFigures_sens_2(modPreds = preds_precipWettestMonth_2, modPreds_noPerturb = regModPreds_2_df)
+(predsFits_2_precipWettestMonth <- makeFigures_sens_2(modPreds = preds_precipWettestMonth_2, modPreds_noPerturb = predData_noPerturb)
 )
 
 # predictions for precip of driest month
-(predsFits_2_precipDriestMonth <- makeFigures_sens_2(modPreds = preds_precipDriestMonth_2, modPreds_noPerturb = regModPreds_2_df)
+(predsFits_2_precipDriestMonth <- makeFigures_sens_2(modPreds = preds_precipDriestMonth_2, modPreds_noPerturb = predData_noPerturb)
 )
 
 # predictions for precip of wettest month 
-(predsFits_2_precipTempCorr <- makeFigures_sens_2(modPreds = preds_precipTempCorr_2, modPreds_noPerturb = regModPreds_2_df)
+(predsFits_2_precipTempCorr <- makeFigures_sens_2(modPreds = preds_precipTempCorr_2, modPreds_noPerturb = predData_noPerturb)
 )
 # predictions for isothermality
-(predsFits_2_isotherm <- makeFigures_sens_2(modPreds = preds_isotherm_2, modPreds_noPerturb = regModPreds_2_df)
+(predsFits_2_isotherm <- makeFigures_sens_2(modPreds = preds_isotherm_2, modPreds_noPerturb = predData_noPerturb)
 )
 # # predictions for VPD max 95th percentile
-# predsFits_2_VPDmax_95 <- makeFigures_sens_2(modPreds = preds_VPDmax_95_2, modPreds_noPerturb = regModPreds_2_df)
+# predsFits_2_VPDmax_95 <- makeFigures_sens_2(modPreds = preds_VPDmax_95_2, modPreds_noPerturb = predData_noPerturb)
 
 # predictions for soil depth
-(predsFits_2_soilDepth <- makeFigures_sens_2(modPreds = preds_soilDepth_2, modPreds_noPerturb = regModPreds_2_df)
+(predsFits_2_soilDepth <- makeFigures_sens_2(modPreds = preds_soilDepth_2, modPreds_noPerturb = predData_noPerturb)
 )
 # # predictions for % clay in soil surface
-# predsFits_2_clay <- makeFigures_sens_2(modPreds = preds_clay_2, modPreds_noPerturb = regModPreds_2_df)
+# predsFits_2_clay <- makeFigures_sens_2(modPreds = preds_clay_2, modPreds_noPerturb = predData_noPerturb)
 
 # predictions for % sand across depth
-(predsFits_2_sand <- makeFigures_sens_2(modPreds = preds_sand_2, modPreds_noPerturb = regModPreds_2_df)
+(predsFits_2_sand <- makeFigures_sens_2(modPreds = preds_sand_2, modPreds_noPerturb = predData_noPerturb)
 )
 # predictions for % coarse soil parts across depth
-(predsFits_2_coarse <- makeFigures_sens_2(modPreds = preds_coarse_2, modPreds_noPerturb = regModPreds_2_df)
+(predsFits_2_coarse <- makeFigures_sens_2(modPreds = preds_coarse_2, modPreds_noPerturb = predData_noPerturb)
 )
 # predictions for % surface organic matter in the soil 
-(predsFits_2_carbon <- makeFigures_sens_2(modPreds = preds_carbon_2, modPreds_noPerturb = regModPreds_2_df)
+(predsFits_2_carbon <- makeFigures_sens_2(modPreds = preds_carbon_2, modPreds_noPerturb = predData_noPerturb)
 )
 
 
@@ -1004,7 +1044,7 @@ precipDriestMonthPerturbRast <- preds_precipDriestMonth_2[[6]]$preds %>%
     # geom_point(aes(#Long, Lat, 
     #   col = newRegion_pred)) +
     ggtitle("model-predicted ecoregion classification -- fit to contemporary data w/ 
-            40% *increase* in precip of driest month") +
+            20% *increase* in precip of driest month") +
     #scale_fill_discrete(type = c("#bf812d","#35978f")) +
     scale_fill_distiller(type = "div", palette = 1, direction = 1) +
     geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) )
@@ -1026,7 +1066,7 @@ precipDriestMonthPerturbRast <- preds_precipDriestMonth_2[[1]]$preds %>%
     # geom_point(aes(#Long, Lat, 
     #   col = newRegion_pred)) +
     ggtitle("model-predicted ecoregion classification -- fit to contemporary data 
-            40% *decrease* in precip of driest month") +
+            20% *decrease* in precip of driest month") +
   #scale_fill_discrete(type = c("#bf812d","#35978f")) +
   scale_fill_distiller(type = "div", palette = 1, direction = 1) +
   geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) )
@@ -1049,7 +1089,7 @@ precipWettestMonthPerturbRast <- preds_precipWettestMonth_2[[6]]$preds %>%
     # geom_point(aes(#Long, Lat, 
     #   col = newRegion_pred)) +
     ggtitle("model-predicted ecoregion classification -- fit to contemporary data w/ 
-            40% *increase* in precip of wettest month") +
+            20% *increase* in precip of wettest month") +
     #scale_fill_discrete(type = c("#bf812d","#35978f")) +
     scale_fill_distiller(type = "div", palette = 1, direction = 1) +
     geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) )
@@ -1071,7 +1111,7 @@ precipWettestMonthPerturbRast <- preds_precipWettestMonth_2[[1]]$preds %>%
     # geom_point(aes(#Long, Lat, 
     #   col = newRegion_pred)) +
     ggtitle("model-predicted ecoregion classification -- fit to contemporary data w/ 
-            40% *decrease* in precip of wettest month") +
+            20% *decrease* in precip of wettest month") +
     #scale_fill_discrete(type = c("#bf812d","#35978f")) +
     scale_fill_distiller(type = "div", palette = 1, direction = 1) +
     geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) )
@@ -1093,7 +1133,7 @@ tempWarmestMonthPerturbRast <- preds_tempWarmestMonth_2[[6]]$preds %>%
     # geom_point(aes(#Long, Lat, 
     #   col = newRegion_pred)) +
     ggtitle("model-predicted ecoregion classification -- fit to contemporary data w/ 
-            40% *increase* in temp of warmest month") +
+            20% *increase* in temp of warmest month") +
     #scale_fill_discrete(type = c("#bf812d","#35978f")) +
     scale_fill_distiller(type = "div", palette = 1, direction = 1) +
     geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) )
@@ -1115,7 +1155,7 @@ tempWarmestMonthPerturbRast <- preds_tempWarmestMonth_2[[1]]$preds %>%
     # geom_point(aes(#Long, Lat, 
     #   col = newRegion_pred)) +
     ggtitle("model-predicted ecoregion classification -- fit to contemporary data w/ 
-            40% *decrease* in temp of warmest month") +
+            20% *decrease* in temp of warmest month") +
     #scale_fill_discrete(type = c("#bf812d","#35978f")) +
     scale_fill_distiller(type = "div", palette = 1, direction = 1) +
     geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) )
@@ -1137,7 +1177,7 @@ tempColdestMonthPerturbRast <- preds_tempColdestMonth_2[[6]]$preds %>%
     # geom_point(aes(#Long, Lat, 
     #   col = newRegion_pred)) +
     ggtitle("model-predicted ecoregion classification -- fit to contemporary data w/ 
-            40% *increase* in temp of coldest month") +
+            20% *increase* in temp of coldest month") +
     #scale_fill_discrete(type = c("#bf812d","#35978f")) +
     scale_fill_distiller(type = "div", palette = 1, direction = 1) +
     geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) )
@@ -1159,7 +1199,7 @@ tempColdestMonthPerturbRast <- preds_tempColdestMonth_2[[1]]$preds %>%
     # geom_point(aes(#Long, Lat, 
     #   col = newRegion_pred)) +
     ggtitle("model-predicted ecoregion classification -- fit to contemporary data w/ 
-            40% *decrease* in temp of coldest month") +
+            20% *decrease* in temp of coldest month") +
     #scale_fill_discrete(type = c("#bf812d","#35978f")) +
     scale_fill_distiller(type = "div", palette = 1, direction = 1) +
     geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) )
@@ -1181,7 +1221,7 @@ precipTempCorrPerturbRast <- preds_precipTempCorr_2[[6]]$preds %>%
     # geom_point(aes(#Long, Lat, 
     #   col = newRegion_pred)) +
     ggtitle("model-predicted ecoregion classification -- fit to contemporary data w/ 
-            40% *increase* in correlation of precip. and temp.") +
+            20% *increase* in correlation of precip. and temp.") +
     #scale_fill_discrete(type = c("#bf812d","#35978f")) +
     scale_fill_distiller(type = "div", palette = 1, direction = 1) +
     geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) )
@@ -1202,7 +1242,7 @@ precipTempCorrPerturbRast <- preds_precipTempCorr_2[[1]]$preds %>%
     # geom_point(aes(#Long, Lat, 
     #   col = newRegion_pred)) +
     ggtitle("model-predicted ecoregion classification -- fit to contemporary data w/ 
-            40% *decrease* in correlation of precip. and temp.") +
+            20% *decrease* in correlation of precip. and temp.") +
     #scale_fill_discrete(type = c("#bf812d","#35978f")) +
     scale_fill_distiller(type = "div", palette = 1, direction = 1) +
     geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) )
@@ -1224,7 +1264,7 @@ isothermPerturbRast <- preds_isotherm_2[[6]]$preds %>%
     # geom_point(aes(#Long, Lat, 
     #   col = newRegion_pred)) +
     ggtitle("model-predicted ecoregion classification -- fit to contemporary data w/ 
-            40% *increase* in isothermality") +
+            20% *increase* in isothermality") +
     #scale_fill_discrete(type = c("#bf812d","#35978f")) +
     scale_fill_distiller(type = "div", palette = 1, direction = 1) +
     geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) )
@@ -1245,7 +1285,7 @@ isothermPerturbRast <- preds_isotherm_2[[1]]$preds %>%
     # geom_point(aes(#Long, Lat, 
     #   col = newRegion_pred)) +
     ggtitle("model-predicted ecoregion classification -- fit to contemporary data w/ 
-            40% *decrease* in isothermality") +
+            20% *decrease* in isothermality") +
     #scale_fill_discrete(type = c("#bf812d","#35978f")) +
     scale_fill_distiller(type = "div", palette = 1, direction = 1) +
     geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) )
@@ -1268,7 +1308,7 @@ carbonPerturbRast <- preds_carbon_2[[6]]$preds %>%
     # geom_point(aes(#Long, Lat, 
     #   col = newRegion_pred)) +
     ggtitle("model-predicted ecoregion classification -- fit to contemporary data w/ 
-            40% *increase* in soil carbon") +
+            20% *increase* in soil carbon") +
     #scale_fill_discrete(type = c("#bf812d","#35978f")) +
     scale_fill_distiller(type = "div", palette = 1, direction = 1) +
     geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) )
@@ -1290,24 +1330,250 @@ carbonPerturbRast <- preds_carbon_2[[1]]$preds %>%
     # geom_point(aes(#Long, Lat, 
     #   col = newRegion_pred)) +
     ggtitle("model-predicted ecoregion classification -- fit to contemporary data 
-            40% *decrease* in soil carbon") +
+            20% *decrease* in soil carbon") +
     #scale_fill_discrete(type = c("#bf812d","#35978f")) +
     scale_fill_distiller(type = "div", palette = 1, direction = 1) +
     geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) )
+
+
+# make maps of contemporary data + one forecasted value ------------------------
+
+## forecast T_warmest month + contemporary everything else 
+# predicted values 
+predsTemp <- (sensDat %>% 
+                terra::vect(geom = c("Long", "Lat"), crs = crs(ecoregionsSF2)) %>% 
+                terra::rasterize(y = bioClim
+                                 , field = "T_warmestMonth_meanAnnAvg_30yr"))
+names(predsTemp) <- "T_warmestMonth_meanAnnAvg_30yr"
+# contemporary values
+contempTemp <- (modDat_testNew %>% 
+                  terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)) %>% 
+                  terra::project(crs(ptCorrRast)) %>% 
+                  terra::rasterize(y = bioClim, field = c("T_coldestMonth_meanAnnAvg_30yr", "precip_wettestMonth_meanAnnAvg_30yr",
+                                                          "precip_driestMonth_meanAnnAvg_30yr", "PrecipTempCorr_meanAnnAvg_30yr", "isothermality_meanAnnAvg_30yr", 
+                                                          "soilDepth", "avgSandPerc_acrossDepth", "avgCoarsePerc_acrossDepth", "avgOrganicCarbonPerc_0_3cm")))
+
+plotDatTemp <- c(predsTemp, contempTemp)
+centroids <- crds(plotDatTemp) %>%  data.frame()# %>% terra::vect(crs = crs(soilRastTemp))
+plotDatPoints <- terra::extract(x = plotDatTemp, 
+                                y = centroids, method = "bilinear", 
+                                xy = TRUE)
+# predict the model output
+predictionDat <- plotDatPoints
+predictionDatTemp <- cbind(predictionDat,"newRegion_pred" = predict(testMod_2, newdata = predictionDat, "response"))
+# rasterize the predictions
+
+T_warmestForecastRast <- predictionDatTemp %>%
+  mutate(newRegion_group = newRegion_pred) %>% 
+  mutate(newRegion_group = replace(newRegion_group, newRegion_pred<.5, "dryShrubGrass"), 
+         newRegion_group = replace(newRegion_group, newRegion_pred>.5, "forest")) %>% 
+  terra::vect(geom = c("x", "y"), crs = crs(plotDatTemp)) %>% 
+  terra::rasterize(y = 
+                     terra::aggregate(plotDatTemp, fact = 2, fun = mean)
+                   , field = "newRegion_pred")
+
+#//
+(T_warmestForecast_MAP <- ggplot() +
+    geom_spatraster(data = T_warmestForecastRast) +
+    # geom_point(aes(#Long, Lat, 
+    #   col = newRegion_pred)) +
+    ggtitle("model-predicted ecoregion classification -- fit to contemporary data + forecasted T_warmest Month Data") +
+    #scale_fill_discrete(type = c("#bf812d","#35978f")) +
+    scale_fill_distiller(type = "div", palette = 1, direction = 1) +
+    geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) 
+  )
+
+
+## T_coldest Month
+# predicted values 
+predsTemp <- (sensDat %>% 
+                terra::vect(geom = c("Long", "Lat"), crs = crs(ecoregionsSF2)) %>% 
+                terra::rasterize(y = bioClim
+                                 , field = "T_coldestMonth_meanAnnAvg_30yr"))
+names(predsTemp) <- "T_coldestMonth_meanAnnAvg_30yr"
+# contemporary values
+contempTemp <- (modDat_testNew %>% 
+                  terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)) %>% 
+                  terra::project(crs(ptCorrRast)) %>% 
+                  terra::rasterize(y = bioClim, field = c("T_warmestMonth_meanAnnAvg_30yr", "precip_wettestMonth_meanAnnAvg_30yr",
+                                                          "precip_driestMonth_meanAnnAvg_30yr", "PrecipTempCorr_meanAnnAvg_30yr", "isothermality_meanAnnAvg_30yr", 
+                                                          "soilDepth", "avgSandPerc_acrossDepth", "avgCoarsePerc_acrossDepth", "avgOrganicCarbonPerc_0_3cm")))
+
+plotDatTemp <- c(predsTemp, contempTemp)
+centroids <- crds(plotDatTemp) %>%  data.frame()# %>% terra::vect(crs = crs(soilRastTemp))
+plotDatPoints <- terra::extract(x = plotDatTemp, 
+                                y = centroids, method = "bilinear", 
+                                xy = TRUE)
+# predict the model output
+predictionDat <- plotDatPoints
+predictionDatTemp <- cbind(predictionDat,"newRegion_pred" = predict(testMod_2, newdata = predictionDat, "response"))
+# rasterize the predictions
+T_coldestForecastRast <- predictionDatTemp %>%
+  mutate(newRegion_group = newRegion_pred) %>% 
+  mutate(newRegion_group = replace(newRegion_group, newRegion_pred<.5, "dryShrubGrass"), 
+         newRegion_group = replace(newRegion_group, newRegion_pred>.5, "forest")) %>% 
+  terra::vect(geom = c("x", "y"), crs = crs(plotDatTemp)) %>% 
+  terra::rasterize(y = 
+                     terra::aggregate(plotDatTemp, fact = 2, fun = mean)
+                   , field = "newRegion_pred")
+
+# plot
+(T_coldestForecast_MAP <- ggplot() +
+    geom_spatraster(data = T_coldestForecastRast) +
+    # geom_point(aes(#Long, Lat, 
+    #   col = newRegion_pred)) +
+    ggtitle("model-predicted ecoregion classification -- fit to contemporary data + forecasted T_coldest Month Data") +
+    #scale_fill_discrete(type = c("#bf812d","#35978f")) +
+    scale_fill_distiller(type = "div", palette = 1, direction = 1) +
+    geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) 
+)
+
+## Precip wettest month
+# predicted values 
+predsTemp <- (sensDat %>% 
+                terra::vect(geom = c("Long", "Lat"), crs = crs(ecoregionsSF2)) %>% 
+                terra::rasterize(y = bioClim
+                                 , field = "precip_wettestMonth_meanAnnAvg_30yr"))
+names(predsTemp) <- "precip_wettestMonth_meanAnnAvg_30yr"
+# contemporary values
+contempTemp <- (modDat_testNew %>% 
+                  terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)) %>% 
+                  terra::project(crs(ptCorrRast)) %>% 
+                  terra::rasterize(y = bioClim, field = c("T_warmestMonth_meanAnnAvg_30yr", "T_coldestMonth_meanAnnAvg_30yr",
+                                                          "precip_driestMonth_meanAnnAvg_30yr", "PrecipTempCorr_meanAnnAvg_30yr", "isothermality_meanAnnAvg_30yr", 
+                                                          "soilDepth", "avgSandPerc_acrossDepth", "avgCoarsePerc_acrossDepth", "avgOrganicCarbonPerc_0_3cm")))
+
+plotDatTemp <- c(predsTemp, contempTemp)
+centroids <- crds(plotDatTemp) %>%  data.frame()# %>% terra::vect(crs = crs(soilRastTemp))
+plotDatPoints <- terra::extract(x = plotDatTemp, 
+                                y = centroids, method = "bilinear", 
+                                xy = TRUE)
+# predict the model output
+predictionDat <- plotDatPoints
+predictionDatTemp <- cbind(predictionDat,"newRegion_pred" = predict(testMod_2, newdata = predictionDat, "response"))
+# rasterize the predictions
+PrecipWettestMonthForecast_Rast <- predictionDatTemp %>%
+  mutate(newRegion_group = newRegion_pred) %>% 
+  mutate(newRegion_group = replace(newRegion_group, newRegion_pred<.5, "dryShrubGrass"), 
+         newRegion_group = replace(newRegion_group, newRegion_pred>.5, "forest")) %>% 
+  terra::vect(geom = c("x", "y"), crs = crs(plotDatTemp)) %>% 
+  terra::rasterize(y = 
+                     terra::aggregate(plotDatTemp, fact = 2, fun = mean)
+                   , field = "newRegion_pred")
+
+# plot
+(PrecipWettestMonthForecast_MAP <- ggplot() +
+    geom_spatraster(data = PrecipWettestMonthForecast_Rast) +
+    # geom_point(aes(#Long, Lat, 
+    #   col = newRegion_pred)) +
+    ggtitle("model-predicted ecoregion classification -- fit to contemporary data + forecasted Precip of Wettest Month Data") +
+    #scale_fill_discrete(type = c("#bf812d","#35978f")) +
+    scale_fill_distiller(type = "div", palette = 1, direction = 1) +
+    geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) 
+)
+
+## Precip driest month
+# predicted values 
+predsTemp <- (sensDat %>% 
+                terra::vect(geom = c("Long", "Lat"), crs = crs(ecoregionsSF2)) %>% 
+                terra::rasterize(y = bioClim
+                                 , field = "precip_driestMonth_meanAnnAvg_30yr"))
+names(predsTemp) <- "precip_driestMonth_meanAnnAvg_30yr"
+# contemporary values
+contempTemp <- (modDat_testNew %>% 
+                  terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)) %>% 
+                  terra::project(crs(ptCorrRast)) %>% 
+                  terra::rasterize(y = bioClim, field = c("T_warmestMonth_meanAnnAvg_30yr", "T_coldestMonth_meanAnnAvg_30yr", "precip_wettestMonth_meanAnnAvg_30yr",
+                                                           "PrecipTempCorr_meanAnnAvg_30yr", "isothermality_meanAnnAvg_30yr", 
+                                                          "soilDepth", "avgSandPerc_acrossDepth", "avgCoarsePerc_acrossDepth", "avgOrganicCarbonPerc_0_3cm")))
+
+plotDatTemp <- c(predsTemp, contempTemp)
+centroids <- crds(plotDatTemp) %>%  data.frame()# %>% terra::vect(crs = crs(soilRastTemp))
+plotDatPoints <- terra::extract(x = plotDatTemp, 
+                                y = centroids, method = "bilinear", 
+                                xy = TRUE)
+# predict the model output
+predictionDat <- plotDatPoints
+predictionDatTemp <- cbind(predictionDat,"newRegion_pred" = predict(testMod_2, newdata = predictionDat, "response"))
+# rasterize the predictions
+PrecipDriestMonthForecast_Rast <- predictionDatTemp %>%
+  mutate(newRegion_group = newRegion_pred) %>% 
+  mutate(newRegion_group = replace(newRegion_group, newRegion_pred<.5, "dryShrubGrass"), 
+         newRegion_group = replace(newRegion_group, newRegion_pred>.5, "forest")) %>% 
+  terra::vect(geom = c("x", "y"), crs = crs(plotDatTemp)) %>% 
+  terra::rasterize(y = 
+                     terra::aggregate(plotDatTemp, fact = 2, fun = mean)
+                   , field = "newRegion_pred")
+
+# plot
+(PrecipDriestMonthForecast_MAP <- ggplot() +
+    geom_spatraster(data = PrecipDriestMonthForecast_Rast) +
+    # geom_point(aes(#Long, Lat, 
+    #   col = newRegion_pred)) +
+    ggtitle("model-predicted ecoregion classification -- fit to contemporary data + forecasted Precip of Driest Month Data") +
+    #scale_fill_discrete(type = c("#bf812d","#35978f")) +
+    scale_fill_distiller(type = "div", palette = 1, direction = 1) +
+    geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) 
+)
+
+## Isothermality
+# predicted values 
+predsTemp <- (sensDat %>% 
+                terra::vect(geom = c("Long", "Lat"), crs = crs(ecoregionsSF2)) %>% 
+                terra::rasterize(y = bioClim
+                                 , field = "isothermality_meanAnnAvg_30yr"))
+names(predsTemp) <- "isothermality_meanAnnAvg_30yr"
+# contemporary values
+contempTemp <- (modDat_testNew %>% 
+                  terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)) %>% 
+                  terra::project(crs(ptCorrRast)) %>% 
+                  terra::rasterize(y = bioClim, field = c("T_warmestMonth_meanAnnAvg_30yr", "T_coldestMonth_meanAnnAvg_30yr", "precip_wettestMonth_meanAnnAvg_30yr",
+                                                          "PrecipTempCorr_meanAnnAvg_30yr", "precip_driestMonth_meanAnnAvg_30yr", 
+                                                          "soilDepth", "avgSandPerc_acrossDepth", "avgCoarsePerc_acrossDepth", "avgOrganicCarbonPerc_0_3cm")))
+
+plotDatTemp <- c(predsTemp, contempTemp)
+centroids <- crds(plotDatTemp) %>%  data.frame()# %>% terra::vect(crs = crs(soilRastTemp))
+plotDatPoints <- terra::extract(x = plotDatTemp, 
+                                y = centroids, method = "bilinear", 
+                                xy = TRUE)
+# predict the model output
+predictionDat <- plotDatPoints
+predictionDatTemp <- cbind(predictionDat,"newRegion_pred" = predict(testMod_2, newdata = predictionDat, "response"))
+# rasterize the predictions
+IsothermForecast_Rast <- predictionDatTemp %>%
+  mutate(newRegion_group = newRegion_pred) %>% 
+  mutate(newRegion_group = replace(newRegion_group, newRegion_pred<.5, "dryShrubGrass"), 
+         newRegion_group = replace(newRegion_group, newRegion_pred>.5, "forest")) %>% 
+  terra::vect(geom = c("x", "y"), crs = crs(plotDatTemp)) %>% 
+  terra::rasterize(y = 
+                     terra::aggregate(plotDatTemp, fact = 2, fun = mean)
+                   , field = "newRegion_pred")
+
+# plot
+(IsothermForecast_MAP <- ggplot() +
+    geom_spatraster(data = IsothermForecast_Rast) +
+    # geom_point(aes(#Long, Lat, 
+    #   col = newRegion_pred)) +
+    ggtitle("model-predicted ecoregion classification -- fit to contemporary data + forecasted Isothermality data") +
+    #scale_fill_discrete(type = c("#bf812d","#35978f")) +
+    scale_fill_distiller(type = "div", palette = 1, direction = 1) +
+    geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) 
+)
 
 # make figures to save ----------------------------------------------------
 
 plots <- ggarrange(regMod2_PredMAP, regMod2b_PredMAP, regMod2c_PredMAP, 
                   # partialDepPlots_2,
-                   predsFits_2_tempWarmestMonth, predsFits_2_tempColdestMonth, 
+                   ggarrange(predsFits_2_tempWarmestMonth, predsFits_2_tempColdestMonth, 
                    predsFits_2_precipWettestMonth,predsFits_2_precipDriestMonth, predsFits_2_precipTempCorr, 
                    predsFits_2_isotherm,predsFits_2_soilDepth, 
-                   predsFits_2_sand, predsFits_2_coarse, predsFits_2_carbon, ncol = 1) 
+                   predsFits_2_sand, predsFits_2_coarse, predsFits_2_carbon, ncol = 2, nrow = 5)
+                  , ncol = 1) 
 
 
 
 bitmap(file = "./Figures/EcoRegionModelFigures/RegressionModel_2Ecoregions_Sensitivity.bmp", 
-       width = 16, height = 140, res = 120)
+       width = 20, height = 55, res = 250)
 plots
 dev.off()
  
@@ -1323,6 +1589,17 @@ dev.off()
 bitmap(file = "./Figures/EcoRegionModelFigures/RegressionModel_2EcoregionsNoVPD_PerturbationMaps.bmp", 
        width = 15, height = 30, res = 250)
 predictionPlots
+dev.off()
+
+## plots of contemporary + forecast for one variable
+(predictionPlots_Mixed <- ggarrange(T_warmestForecast_MAP, T_coldestForecast_MAP,
+                                     PrecipDriestMonthForecast_MAP, PrecipWettestMonthForecast_MAP, 
+                                    IsothermForecast_MAP, ncol = 1, nrow = 5)
+)
+
+bitmap(file = "./Figures/EcoRegionModelFigures/RegressionModel_2EcoregionsNoVPD_SingleVarForecastMaps.bmp", 
+       width = 15, height = 30, res = 250)
+predictionPlots_Mixed
 dev.off()
 
 # # read in model  
