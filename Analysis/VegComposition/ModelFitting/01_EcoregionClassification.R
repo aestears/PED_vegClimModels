@@ -1118,21 +1118,21 @@ testMod.full <-
                       precip_driestMonth_meanAnnAvg_30yr , PrecipTempCorr_meanAnnAvg_30yr , 
                       isothermality_meanAnnAvg_30yr , soilDepth , avgSandPerc_acrossDepth , 
                       avgCoarsePerc_acrossDepth , avgOrganicCarbonPerc_0_3cm )
-      , formula = newRegionFact ~ . , family = "binomial", 
+      , formula = newRegionFact ~ . + .^2 , family = "binomial", 
                      na.action = na.fail)
 
 stepwiseResults <- stepAIC(testMod.full, scope = list(lower = testMod.null, upper = ~ .^2)
                            , direction="both",test="Chisq", trace = T)
 
-testMod_4 <- stepAIC(testMod_2,scope = list(upper=testMod_4, lower = testMod.null), direction="both",test="Chisq", trace = T)
+stepwiseResults_back <- stepAIC(testMod.full, scope = list(lower = testMod.null, upper =  testMod.full)
+                           , direction="backward",test="Chisq", trace = T)
 
-testMod_4 <- stepAIC(testMod_2, direction = "backward", trace = TRUE)
-testMod_4b <- MuMIn::dredge(testMod_2, beta = "none", evaluate = TRUE)
-summary(testMod_2)
+## the brute-force method includes 44 interactions! which seems unreasonable... but will proceed to see what happens for now
+summary(stepwiseResults_back)
 
-# tetestMod_2# test the predictions of the model
+# testepwiseResults_back# test the predictions of the model
 predictionDat <- modDat_testNew
-predictionDatTemp <- cbind(predictionDat,"newRegion_pred" = predict(testMod_2, newdata = predictionDat, "response"))
+predictionDatTemp <- cbind(predictionDat,"newRegion_pred" = predict(stepwiseResults_back, newdata = predictionDat, "response"))
 
 # for each observation, determine which category has the highest predicted probability
 (temp <- predictionDatTemp %>%
@@ -1167,7 +1167,8 @@ temp2 <- temp %>%
     #geom_point(aes(Long, Lat, col = newRegion_pred), alpha = .1) +
     ggtitle("model-predicted ecoregion classification -- 2 ecoregions; no VPD",
             subtitle = paste0("ecoregion ~ temp_warmestMonth + temp_coldestMonth + precip_wettestMonth +
-            precip_driestMonth + precipTempCorr + isothermality + soilDepth + % sand + % coarse + soil carbon
+            precip_driestMonth + precipTempCorr + isothermality + soilDepth + % sand + % coarse + soil carbon 
+            + 44 interactions...
            \n black dots indicate misclassification; \n  ", 
                               round((100-sum(!temp$goodPred)/nrow(temp) * 100),1), 
                               "% classification accuracy" )) +
@@ -1236,7 +1237,7 @@ badDat <- temp %>%
 
 
 ## make variable importance figures
-beta.table_2 <- data.frame(summary(testMod_2)$coef)
+beta.table_2 <- data.frame(summary(stepwiseResults_back)$coef)
 beta.table_2$variable <- row.names(beta.table_2)
 beta.table_2 <- mutate(beta.table_2, estimate = Estimate, 
                        se = Std..Error, 
@@ -1268,7 +1269,7 @@ ggpubr::annotate_figure(ggarrange(
 #top = c("Model with depth = 7 and all climate and soil predictors")
 ) %>% 
   ggexport(
-    filename = "./Figures/EcoRegionModelFigures/ModelFigures_WithOUTVPD_TwoEcoregionsRegressionModelResults.pdf",
+    filename = "./Figures/EcoRegionModelFigures/ModelFigures_WithOUTVPD_WithALLInteractions_TwoEcoregionsRegressionModelResults.pdf",
     width = 15, height = 40)
 
 
