@@ -280,7 +280,7 @@ vegSoils_new$totalAvailableWaterHoldingCapacity <- unlist(vegSoil_awc)
 
 # remove unnecessary soils variables 
 vegSoils_final <- vegSoils_new %>% 
-  select(-c(clayPerc_2cm:organicCarbonPerc_176cm)) 
+  dplyr::select(-c(clayPerc_2cm:organicCarbonPerc_176cm)) 
 
 
 # Save Data for further analysis ------------------------------------------

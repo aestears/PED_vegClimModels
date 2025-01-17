@@ -16,10 +16,10 @@ library(terra)
 
 ## get veg data to get locations (are some duplicated locates b/c plots have data from multiple years)
 #vegDat <- read.csv("./Data_processed/CoverData/DataForAnalysis.csv") #%>%
-#   select(Lat, Lon) %>%
+#   dplyr::select(Lat, Lon) %>%
 #   unique()
 # points <- vegDat %>%
-#   select(UniqueID, Lat, Lon) %>%
+#   dplyr::select(UniqueID, Lat, Lon) %>%
 #   unique()
 # write.csv(points, "./data/dayMet/dayMetPoints.csv", row.names = FALSE)
 #years <- unique(vegDat$Year)
@@ -46,175 +46,120 @@ points_sf <- test %>%
 rastNames <- list.files("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/")
 
 
-# load monthly total precip values and make into a raster stack
-for (i in 1:32#length(rastNames[str_detect(string = rastNames,
-                                        #pattern = "prcp_monttl_na_.....tif$")])
-     ){
-
-  name_i <- rastNames[str_detect(string = rastNames,
-                                 pattern = "prcp_monttl_na_.....tif$")][i]
-  temp_rast <- rast(paste0("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/", name_i))
-
-  # get the data for the locations we want
-  temp_points <-
-    temp_rast %>%
-    terra::extract(points_sf)
-
-  # make column for year and change column names to month value only
-  temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
-  names(temp_points)[2:13] <- c("prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April",
-                                "prcp_May", "prcp_June", "prcp_July", "prcp_Aug",
-                                "prcp_Sept", "prcp_Oct", "prcp_Nov", "prcp_Dec")
-  temp_points <- temp_points %>%
-    select(year, prcp_Jan:prcp_Dec) %>%
-    cbind(terra::crds(points_sf)) %>%
-    rename(Long = x, Lat = y)
-
-  if (i == 1 ){
-    prcpPoints <- temp_points
-  } else {
-    prcpPoints <- rbind(prcpPoints, temp_points)
+# load values if they aren't already loaded 
+if(sum(list.files("./Data_raw/dayMet/") == "ECOREGIONsampledDataForAnalysis.csv") <1) {
+  # load monthly total precip values and make into a raster stack
+  for (i in 1:32#length(rastNames[str_detect(string = rastNames,
+       #pattern = "prcp_monttl_na_.....tif$")])
+  ){
+    
+    name_i <- rastNames[str_detect(string = rastNames,
+                                   pattern = "prcp_monttl_na_.....tif$")][i]
+    temp_rast <- rast(paste0("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/", name_i))
+    
+    # get the data for the locations we want
+    temp_points <-
+      temp_rast %>%
+      terra::extract(points_sf)
+    
+    # make column for year and change column names to month value only
+    temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
+    names(temp_points)[2:13] <- c("prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April",
+                                  "prcp_May", "prcp_June", "prcp_July", "prcp_Aug",
+                                  "prcp_Sept", "prcp_Oct", "prcp_Nov", "prcp_Dec")
+    temp_points <- temp_points %>%
+      dplyr::select(year, prcp_Jan:prcp_Dec) %>%
+      cbind(terra::crds(points_sf)) %>%
+      rename(Long = x, Lat = y)
+    
+    if (i == 1 ){
+      prcpPoints <- temp_points
+    } else {
+      prcpPoints <- rbind(prcpPoints, temp_points)
+    }
   }
-}
-
-# # load monthly average sweMax values and make into a raster stack
-# for (i in 1:32#length(rastNames[str_detect(string = rastNames,pattern = "swe_monavg_na_.....tif$")])
-#      ){
-# 
-#   name_i <- rastNames[str_detect(string = rastNames,
-#                                  pattern = "swe_monavg_na_.....tif$")][i]
-#   temp_rast <- rast(paste0("./data/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/", name_i))
-# 
-#   # get the data for the locations we want
-#   temp_points <-
-#     temp_rast %>%
-#     terra::extract(points_sf)
-# 
-#   # make column for year and change column names to month value only
-#   temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
-#   names(temp_points)[2:13] <- c("swe_Jan", "swe_Feb", "swe_March", "swe_April",
-#                                 "swe_May", "swe_June", "swe_July", "swe_Aug",
-#                                 "swe_Sept", "swe_Oct", "swe_Nov", "swe_Dec")
-#   temp_points <- temp_points %>%
-#     select(year, prcp_Jan:prcp_Dec) %>%
-#     cbind(terra::crds(points_sf)) %>%
-#     rename(Long = x, Lat = y)
-# 
-#   if (i == 1 ){
-#     swePoints <- temp_points
-#   } else {
-#     swePoints <- rbind(swePoints, temp_points)
-#   }
-# }
-
-# load monthly average tmax values and make into a raster stack
-for (i in 1:32#length(rastNames[str_detect(string = rastNames, pattern = "tmax_monavg_na_.....tif$")])
-     ){
-
-  name_i <- rastNames[str_detect(string = rastNames,
-                                 pattern = "tmax_monavg_na_.....tif$")][i]
-  temp_rast <- rast(paste0("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/", name_i))
-  # get the data for the locations we want
-  temp_points <-
-    temp_rast %>%
-    terra::extract(points_sf)
-
-  # make column for year and change column names to month value only
-  temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
-  names(temp_points)[2:13] <- c("tmax_Jan", "tmax_Feb", "tmax_March", "tmax_April",
-                                "tmax_May", "tmax_June", "tmax_July", "tmax_Aug",
-                                "tmax_Sept", "tmax_Oct", "tmax_Nov", "tmax_Dec")
-  temp_points <- temp_points %>%
-    select(year, tmax_Jan:tmax_Dec) %>%
-    cbind(terra::crds(points_sf)) %>%
-    rename(Long = x, Lat = y)
-
-  if (i == 1 ){
-    tmaxPoints <- temp_points
-  } else {
-    tmaxPoints <- rbind(tmaxPoints, temp_points)
+  
+  # load monthly average tmax values and make into a raster stack
+  for (i in 1:32#length(rastNames[str_detect(string = rastNames, pattern = "tmax_monavg_na_.....tif$")])
+  ){
+    
+    name_i <- rastNames[str_detect(string = rastNames,
+                                   pattern = "tmax_monavg_na_.....tif$")][i]
+    temp_rast <- rast(paste0("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/", name_i))
+    # get the data for the locations we want
+    temp_points <-
+      temp_rast %>%
+      terra::extract(points_sf)
+    
+    # make column for year and change column names to month value only
+    temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
+    names(temp_points)[2:13] <- c("tmax_Jan", "tmax_Feb", "tmax_March", "tmax_April",
+                                  "tmax_May", "tmax_June", "tmax_July", "tmax_Aug",
+                                  "tmax_Sept", "tmax_Oct", "tmax_Nov", "tmax_Dec")
+    temp_points <- temp_points %>%
+      dplyr::select(year, tmax_Jan:tmax_Dec) %>%
+      cbind(terra::crds(points_sf)) %>%
+      rename(Long = x, Lat = y)
+    
+    if (i == 1 ){
+      tmaxPoints <- temp_points
+    } else {
+      tmaxPoints <- rbind(tmaxPoints, temp_points)
+    }
   }
-}
-
-# load monthly average tmin values and make into a raster stack
-for (i in 1:32#length(rastNames[str_detect(string = rastNames, pattern = "tmin_monavg_na_.....tif$")])
-     ){
-
-  name_i <- rastNames[str_detect(string = rastNames,
-                                 pattern = "tmin_monavg_na_.....tif$")][i]
-  temp_rast <- rast(paste0("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/", name_i))
-  # get the data for the locations we want
-  temp_points <-
-    temp_rast %>%
-    terra::extract(points_sf)
-
-  # make column for year and change column names to month value only
-  temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
-  names(temp_points)[2:13] <- c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April",
-                                "tmin_May", "tmin_June", "tmin_July", "tmin_Aug",
-                                "tmin_Sept", "tmin_Oct", "tmin_Nov", "tmin_Dec")
-  temp_points <- temp_points %>%
-    select(year, tmin_Jan:tmin_Dec) %>%
-    cbind(terra::crds(points_sf)) %>%
-    rename(Long = x, Lat = y)
-
-  if (i == 1 ){
-    tminPoints <- temp_points
-  } else {
-    tminPoints <- rbind(tminPoints, temp_points)
+  
+  # load monthly average tmin values and make into a raster stack
+  for (i in 1:32#length(rastNames[str_detect(string = rastNames, pattern = "tmin_monavg_na_.....tif$")])
+  ){
+    
+    name_i <- rastNames[str_detect(string = rastNames,
+                                   pattern = "tmin_monavg_na_.....tif$")][i]
+    temp_rast <- rast(paste0("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/", name_i))
+    # get the data for the locations we want
+    temp_points <-
+      temp_rast %>%
+      terra::extract(points_sf)
+    
+    # make column for year and change column names to month value only
+    temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
+    names(temp_points)[2:13] <- c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April",
+                                  "tmin_May", "tmin_June", "tmin_July", "tmin_Aug",
+                                  "tmin_Sept", "tmin_Oct", "tmin_Nov", "tmin_Dec")
+    temp_points <- temp_points %>%
+      dplyr::select(year, tmin_Jan:tmin_Dec) %>%
+      cbind(terra::crds(points_sf)) %>%
+      rename(Long = x, Lat = y)
+    
+    if (i == 1 ){
+      tminPoints <- temp_points
+    } else {
+      tminPoints <- rbind(tminPoints, temp_points)
+    }
   }
-}
-
-# # load monthly average vapor pressure (?) values and make into a raster stack
-# for (i in 1:32#length(rastNames[str_detect(string = rastNames, pattern = "vp_monavg_na_.....tif$")])
-#      ){
+  
+  ## add all variables together
+  allMetDat <- tmaxPoints %>%
+    left_join(tminPoints) %>%
+    left_join(prcpPoints)
+  
+  # save data
+  #write.csv(allMetDat, file = "./data/dayMet/sampledDataForAnalysis.csv", row.names = FALSE)
+  saveRDS(allMetDat, "./Data_raw/dayMet/ECOREGIONsampledDataForAnalysis.csv")
+  
+} else (
+  allMetDat <- readRDS("./Data_raw/dayMet/ECOREGIONsampledDataForAnalysis.csv")
+)
 # 
-#   name_i <- rastNames[str_detect(string = rastNames,
-#                                  pattern = "vp_monavg_na_.....tif$")][i]
-#   temp_rast <- rast(paste0("./data/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/", name_i))
-#   # get the data for the locations we want
-#   temp_points <-
-#     temp_rast %>%
-#     terra::extract(points_sf)
 # 
-#   # make column for year and change column names to month value only
-#   temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
-#   names(temp_points)[2:13] <- c("vp_Jan", "vp_Feb", "vp_March", "vp_April", "vp_May",
-#                                 "vp_June", "vp_July", "vp_Aug", "vp_Sept", "vp_Oct", "vp_Nov", "vp_Dec")
-#   temp_points <- temp_points %>%
-#     select(year, prcp_Jan:prcp_Dec) %>%
-#     cbind(terra::crds(points_sf)) %>%
-#     rename(Long = x, Lat = y)
-# 
-#   if (i == 1 ){
-#     vpPoints <- temp_points
-#   } else {
-#     vpPoints <- rbind(vpPoints, temp_points)
-#   }
-# }
-
-
-## add all variables together
-allMetDat <- tmaxPoints %>%
-  left_join(tminPoints) %>%
-  #left_join(swePoints) %>%
-  #left_join(vpPoints) %>%
-  left_join(prcpPoints)
-
-# save data
-#write.csv(allMetDat, file = "./data/dayMet/sampledDataForAnalysis.csv", row.names = FALSE)
-saveRDS(allMetDat, "./Data_raw/dayMet/ECOREGIONsampledDataForAnalysis.csv")
-allMetDat <- readRDS("./Data_raw/dayMet/ECOREGIONsampledDataForAnalysis.csv")
-
-ggplot(allMetDat %>% slice_sample(n = 500000)) + 
-  geom_point(aes(x = Long, y = Lat))
+# ggplot(allMetDat %>% slice_sample(n = 500000)) + 
+#   geom_point(aes(x = Long, y = Lat))
 # get annual climate data -------------------------------------------------
 
 # get annual data downloaded from online
 #test <- terra::rast("./data/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif")
 rastNames2 <- list.files("./Data_raw/dayMet/yearly/")
 
-# load annual total precip values and make into a raster stack
+ if (sum(list.files("./Data_raw/dayMet/") == "ECOREGIONsampledDataForAnalysis_Annual.rds") <1 ) {# load annual total precip values and make into a raster stack
 for (i in 1:32#length(rastNames2[str_detect(string = rastNames2, pattern = "prcp_annttl_na_.....tif$")])
      ){
 
@@ -231,7 +176,7 @@ for (i in 1:32#length(rastNames2[str_detect(string = rastNames2, pattern = "prcp
   temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
   names(temp_points)[2] <- c("prcp_annTotal")
   temp_points <- temp_points %>%
-    select(year, prcp_annTotal) %>%
+    dplyr::select(year, prcp_annTotal) %>%
     cbind(terra::crds(points_sf)) %>%
     rename(Long = x, Lat = y)
 
@@ -259,7 +204,7 @@ for (i in 1:32#length(rastNames2[str_detect(string = rastNames2, pattern = "tmax
   temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
   names(temp_points)[2] <- c("tmax_annAvg")
   temp_points <- temp_points %>%
-    select(year, tmax_annAvg) %>%
+    dplyr::select(year, tmax_annAvg) %>%
     cbind(terra::crds(points_sf)) %>%
     rename(Long = x, Lat = y)
 
@@ -287,7 +232,7 @@ for (i in 1:32#length(rastNames2[str_detect(string = rastNames2,  pattern = "tmi
   temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
   names(temp_points)[2] <- c("tmin_annAvg")
   temp_points <- temp_points %>%
-    select(year, tmin_annAvg) %>%
+    dplyr::select(year, tmin_annAvg) %>%
     cbind(terra::crds(points_sf)) %>%
     rename(Long = x, Lat = y)
 
@@ -307,7 +252,9 @@ annMetDat <- prcpPoints_ann %>%
 
 # save data
 saveRDS(annMetDat, file = "./Data_raw/dayMet/ECOREGIONsampledDataForAnalysis_Annual.rds")
-annMetDat <- readRDS("./Data_raw/dayMet/ECOREGIONsampledDataForAnalysis_Annual.rds")
+ } else {
+   annMetDat <- readRDS("./Data_raw/dayMet/ECOREGIONsampledDataForAnalysis_Annual.rds")
+}
 
 # add annual data to the monthly data (will use later in processing)
 allMetDat2 <- allMetDat %>% 
@@ -315,6 +262,7 @@ allMetDat2 <- allMetDat %>%
 
 # calculating climate variables for models -------------------------------
 climVar <- allMetDat2 %>% 
+  #slice_sample(n = 10) %>% 
   mutate(totalAnnPrecip = rowSums(.[c("prcp_Jan", "prcp_Feb", "prcp_March", 
                                       "prcp_April", "prcp_May", "prcp_June", 
                                       "prcp_July", "prcp_Aug", "prcp_Sept", 
@@ -346,7 +294,7 @@ climVar <- allMetDat2 %>%
                                            "prcp_Oct" ,"prcp_Nov", "prcp_Dec")],   # coefficient of variation (sd/mean) of precipitation
                                        .f = function(prcp_Jan, prcp_Feb, prcp_March, prcp_April, prcp_May, prcp_June, prcp_July, prcp_Aug, prcp_Sept, prcp_Oct ,prcp_Nov, prcp_Dec, ...) 
                                        {temp <- c(prcp_Jan, prcp_Feb, prcp_March, prcp_April, prcp_May, prcp_June, prcp_July, prcp_Aug, prcp_Sept, prcp_Oct ,prcp_Nov, prcp_Dec)
-                                       sd(temp)/mean(temp)
+                                      ( sd(temp)/mean(temp))*100
                                        }
          ),
          PrecipTempCorr = pmap_dbl(.[c(c("tmax_Jan" , "tmax_Feb",  "tmax_March","tmax_April", "tmax_May",     
@@ -412,6 +360,11 @@ climVar <- allMetDat2 %>%
       lubridate::yday(as.Date(paste0("0",aboveFreezing_month, "/01/2024"), 
                               format = "%m/%d/%Y"))
   )
+
+# # multiply the precip seasonality by 100 (b/c I guess I calculated it wrong)
+# climVar <- climVar %>% 
+#   mutate(precip_Seasonality = precip_Seasonality/100)
+
 
 # constants for SVP calculation 
 #calculate SVP according to Williams et al NatCC 2012 supplementary material -  units haPa
@@ -522,6 +475,7 @@ climVar2 <- allMetDat2%>%
     # annual minimum vapor pressure deficit (in milibars) 
     annVPD_min = pmap_dbl(.[c("VPD_Jan", "VPD_Feb", "VPD_March","VPD_April" ,"VPD_May","VPD_June", "VPD_July","VPD_Aug","VPD_Sept","VPD_Oct","VPD_Nov","VPD_Dec")], min)
   )
+
 
 # 
 #   
@@ -637,7 +591,7 @@ annMeans_30yr <- readRDS("./Data_processed/CoverData/dayMet_intermediate/ECOREGI
 
 ## add lagged data to the main climate value data.frame
 test <- climVar %>% 
-  select(-c(tmax_Jan:tmax_Dec, tmin_Jan:prcp_Dec)) %>% 
+  dplyr::select(-c(tmax_Jan:tmax_Dec, tmin_Jan:prcp_Dec)) %>% 
   #filter(year == 2020) %>% 
   #slice(1:100) %>% 
   left_join(annMeans_30yr, by = c("year" = "End_30yr", 
