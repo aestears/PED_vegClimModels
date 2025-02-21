@@ -15,20 +15,60 @@ library(pdp)
 #source("./Analysis/VegComposition/ModelFitting/01_EcoregionClassification.R")
 #list all files in folder # arbitrarily chose end-century, highest ssp
 #(ssp_585)
-# from CMCC-ESM2 model (could do another, this was just first on the list)
-# these are monthly values averaged over a 20 year period from 2081 to 2100
-# these data are at a 10 minute spatial resolution; each layer is a monthly value 
+
+# # from CMCC-ESM2 model (could do another, this was just first on the list)
+# # these are monthly values averaged over a 20 year period from 2081 to 2100
+# # these data are at a 10 minute spatial resolution; each layer is a monthly value 
+# # https://www.worldclim.org/data/cmip6/cmip6_clim10m.html
+# ## read in bioClim variables
+# bioClim <- rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/CMCC-ESM2/wc2.1_10m_bioc_CMCC-ESM2_ssp585_2041-2060.tif")
+# 
+# # degrees C
+# tmin <- rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/CMCC-ESM2/wc2.1_10m_tmin_CMCC-ESM2_ssp585_2041-2060.tif")
+# 
+# # degrees C
+# tmax <- rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/CMCC-ESM2/wc2.1_10m_tmax_CMCC-ESM2_ssp585_2041-2060.tif")
+# 
+# # in mm
+# precip <-rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/CMCC-ESM2/wc2.1_10m_prec_CMCC-ESM2_ssp585_2041-2060.tif")
+
+# ## try a different climate model 
+# # from EC-Earth3-Veg model
+# # these are monthly values averaged over a 20 year period from 2041 to 2060
+# # these data are at a 10 minute spatial resolution; each layer is a monthly value
+# # https://www.worldclim.org/data/cmip6/cmip6_clim10m.html
+# ## read in bioClim variables
+# bioClim <- rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/EC-Earth3-Veg/wc2.1_10m_bioc_EC-Earth3-Veg_ssp585_2041-2060.tif")
+# 
+# # degrees C
+# tmin <- rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/EC-Earth3-Veg/wc2.1_10m_tmin_EC-Earth3-Veg_ssp585_2041-2060.tif")
+# 
+# # degrees C
+# tmax <- rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/EC-Earth3-Veg/wc2.1_10m_tmax_EC-Earth3-Veg_ssp585_2041-2060.tif")
+# 
+# # in mm
+# precip <-rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/EC-Earth3-Veg/wc2.1_10m_prec_EC-Earth3-Veg_ssp585_2041-2060.tif")
+# 
+
+## try a different climate model
+# from GISS-E2-1-G model
+# these are monthly values averaged over a 20 year period from 2041 to 2060
+# these data are at a 10 minute spatial resolution; each layer is a monthly value
 # https://www.worldclim.org/data/cmip6/cmip6_clim10m.html
-## read in bioClim variables 
-bioClim <- rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/CMCC-ESM2/wc2.1_10m_bioc_CMCC-ESM2_ssp585_2041-2060.tif")
+## read in bioClim variables
+bioClim <- rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/GISS-E2-1-G/wc2.1_10m_bioc_GISS-E2-1-G_ssp585_2021-2040.tif")
 
-tmin <- rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/CMCC-ESM2/wc2.1_10m_tmin_CMCC-ESM2_ssp585_2041-2060.tif")
+# degrees C
+tmin <- rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/GISS-E2-1-G/wc2.1_10m_tmin_GISS-E2-1-G_ssp585_2021-2040.tif")
 
-tmax <- rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/CMCC-ESM2/wc2.1_10m_tmax_CMCC-ESM2_ssp585_2041-2060.tif")
+# degrees C
+tmax <- rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/GISS-E2-1-G/wc2.1_10m_tmax_GISS-E2-1-G_ssp585_2021-2040.tif")
 
-precip <-rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/CMCC-ESM2/wc2.1_10m_prec_CMCC-ESM2_ssp585_2041-2060.tif")
+# in mm
+precip <-rast("./Data_raw/worldClim_climateVars/futureClimate_midCentury_ssp585/GISS-E2-1-G/wc2.1_10m_prec_GISS-E2-1-G_ssp585_2021-2040.tif")
 
-# crop to CONUS extent
+
+# # crop to CONUS extent
 # get CONUS data
 CONUS <- st_read("./Data_raw/CONUS_extent/", layer = "CONUS_boundary")
 # change the crs of conus boundary shapefile
@@ -186,32 +226,16 @@ isotherm_points <- isotherm %>%
 precipSeasonality <- bioClim$bio15
 plot(precipSeasonality)
 
-## why are the units so different from ours? -- forecast is between 6.6 and 111.0. while ours is between 0 and just over 2...
-testSeasonality <- terra::rast("~/Downloads/wc2.1_10m_bio/wc2.1_10m_bio_15.tif") %>% 
-  terra::project(y = crs(CONUS)) %>% 
-  terra::crop(CONUS) %>% 
-  terra::mask(CONUS) 
-plot(testSeasonality)
+# ## why are the units so different from ours? -- forecast is between 6.6 and 111.0. while ours is between 0 and just over 2...
+# testSeasonality <- terra::rast("~/Downloads/wc2.1_10m_bio/wc2.1_10m_bio_15.tif") %>% 
+#   terra::project(y = crs(CONUS)) %>% 
+#   terra::crop(CONUS) %>% 
+#   terra::mask(CONUS) 
+# plot(testSeasonality)
 
 ## get isothermality as points
-isotherm_points <- isotherm %>% 
+precipSeasonality_points <- precipSeasonality %>% 
   terra::extract(sampPoints, xy = TRUE)
-
-# correlation of monthly temp and precip ----------------------------------
-
-# get data averaged over contemporary 30 year period
-ptCorrRast <- modDat_use %>% 
-  dplyr::select(PrecipTempCorr_meanAnnAvg_30yr, Long, Lat) %>% 
-  terra::vect(geom = c("Long", "Lat"), crs =     crs("PROJCRS[\"unnamed\",\n BASEGEOGCRS[\"unknown\",\n DATUM[\"unknown\",\nELLIPSOID[\"Spheroid\",6378137,298.257223563,\n LENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]]],\n PRIMEM[\"Greenwich\",0,\n ANGLEUNIT[\"degree\",0.0174532925199433,\n ID[\"EPSG\",9122]]]],\n CONVERSION[\"Lambert Conic Conformal (2SP)\",\n METHOD[\"Lambert Conic Conformal (2SP)\",\n ID[\"EPSG\",9802]],\nPARAMETER[\"Latitude of false origin\",42.5,\nANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8821]],\n PARAMETER[\"Longitude of false origin\",-100,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8822]],\n PARAMETER[\"Latitude of 1st standard parallel\",25,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8823]],\n PARAMETER[\"Latitude of 2nd standard parallel\",60,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8824]],\n PARAMETER[\"Easting at false origin\",0,\n LENGTHUNIT[\"metre\",1],\n ID[\"EPSG\",8826]],\n PARAMETER[\"Northing at false origin\",0,\n LENGTHUNIT[\"metre\",1],\n ID[\"EPSG\",8827]]],\n CS[Cartesian,2],\nAXIS[\"easting\",east,\n ORDER[1],\nLENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]],\n AXIS[\"northing\",north,\nORDER[2],\nLENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]]]")) %>% 
-  terra::rasterize(y = ( soilRast %>% terra::project("PROJCRS[\"unnamed\",\n BASEGEOGCRS[\"unknown\",\n DATUM[\"unknown\",\nELLIPSOID[\"Spheroid\",6378137,298.257223563,\n LENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]]],\n PRIMEM[\"Greenwich\",0,\n ANGLEUNIT[\"degree\",0.0174532925199433,\n ID[\"EPSG\",9122]]]],\n CONVERSION[\"Lambert Conic Conformal (2SP)\",\n METHOD[\"Lambert Conic Conformal (2SP)\",\n ID[\"EPSG\",9802]],\nPARAMETER[\"Latitude of false origin\",42.5,\nANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8821]],\n PARAMETER[\"Longitude of false origin\",-100,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8822]],\n PARAMETER[\"Latitude of 1st standard parallel\",25,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8823]],\n PARAMETER[\"Latitude of 2nd standard parallel\",60,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8824]],\n PARAMETER[\"Easting at false origin\",0,\n LENGTHUNIT[\"metre\",1],\n ID[\"EPSG\",8826]],\n PARAMETER[\"Northing at false origin\",0,\n LENGTHUNIT[\"metre\",1],\n ID[\"EPSG\",8827]]],\n CS[Cartesian,2],\nAXIS[\"easting\",east,\n ORDER[1],\nLENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]],\n AXIS[\"northing\",north,\nORDER[2],\nLENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]]]")), 
-                   field =  "PrecipTempCorr_meanAnnAvg_30yr", fun = mean, na.rm = TRUE) %>% 
-  terra::project(crs(bioClim))
-
-ptCorr_points <- ptCorrRast %>% 
-  terra::extract(sampPoints, xy = TRUE)
-
-ggplot(ptCorr_points) + 
-  geom_point(aes(x, y, color = mean))
 
 
 # get mean annual precip --------------------------------------------------
@@ -222,6 +246,42 @@ precip_points <- precip %>%
 
 ggplot(precip_points) + 
   geom_point(aes(x, y, col = MAP))
+
+# annual water deficit ----------------------------------
+# calculate tmean points
+tmean_rast <- (tmax + tmin)/2
+plot(tmean_rast)
+names(tmean_rast) <- paste0("tmean_",1:12)
+# tmean_points <- tmean_rast %>% 
+#   terra::extract(sampPoints, xy = TRUE)
+
+# calculate first step of water deficit
+monthlyWatDeficit_TEMP <- tmean_rast*2 - precip
+# when values are less than 0, replace with an NA
+monthlyWatDeficit_rast <- classify(x = monthlyWatDeficit_TEMP, rcl = matrix(c(-100000,0,0), ncol = 3))
+# extract to points 
+annWatDeficit_rast <- sum(monthlyWatDeficit_rast)
+plot(annWatDeficit_rast)
+
+annWatDeficit_points <- annWatDeficit_rast %>% 
+  terra::extract(sampPoints, xy = TRUE)
+  
+# mutate(
+#   # monthly water deficit 
+#   awd_Jan = tmean_Jan*2 - prcp_Jan,
+#   awd_Feb = tmean_Feb*2 - prcp_Feb,
+#   awd_March = tmean_March*2 - prcp_March,
+#   awd_April = tmean_April*2 - prcp_April,
+#   awd_May = tmean_May*2 - prcp_May,
+#   awd_June = tmean_June*2 - prcp_June, 
+#   awd_July = tmean_July*2 - prcp_July,
+#   awd_Aug = tmean_Aug*2 - prcp_Aug, 
+#   awd_Sept = tmean_Sept*2 - prcp_Sept, 
+#   awd_Oct = tmean_Oct*2 - prcp_Oct,   
+#   awd_Nov = tmean_Nov*2 - prcp_Nov,   
+#   awd_Dec = tmean_Dec*2 - prcp_Dec
+
+
 
 #  get Organic carbon for the appropriate points from soils data ------------
 # otherwise, read in the file
@@ -378,7 +438,8 @@ sensDat <- (precip_driestMonth_points %>% dplyr::select(bio14))  %>%
   cbind(precip_wettestMonth_points %>% dplyr::select(bio13) %>% rename(precip_wettestMonth_meanAnnAvg_30yr = bio13)) %>% 
   cbind(temp_warmestMonth_points %>% dplyr::select(bio05) %>% rename(T_warmestMonth_meanAnnAvg_30yr = bio05)) %>% 
   cbind(temp_coldestMonth_points %>% dplyr::select(bio06) %>% rename(T_coldestMonth_meanAnnAvg_30yr = bio06)) %>% 
-  cbind(precipSeasonality %>% dplyr::select(bio15) %>% rename(precip_Seasonality_meanAnnAvg_30yr = bio15)) %>% 
+  cbind(precipSeasonality_points %>% dplyr::select(bio15) %>% rename(precip_Seasonality_meanAnnAvg_30yr = bio15)) %>% 
+  cbind(annWatDeficit_points %>% dplyr::select(sum) %>% rename(annWaterDeficit_meanAnnAvg_30yr = sum)) %>% 
   cbind(sampPoints) %>% 
   dplyr::rename(avgOrganicCarbonPerc_0_3cm = organicCarbonPerc_2cm,
          precip_driestMonth_meanAnnAvg_30yr = bio14,
@@ -387,6 +448,31 @@ sensDat <- (precip_driestMonth_points %>% dplyr::select(bio14))  %>%
          Lat = y
          ) %>% 
   drop_na()
+
+## precip water deficit
+(compareAnnWatDef <- ggplot() +
+    geom_density(data = sensDat, aes(x = annWaterDeficit_meanAnnAvg_30yr), col = "red") +
+    geom_density(data = modDat_use, aes(annWaterDeficit_meanAnnAvg_30yr), col = "blue") +
+    ggtitle("Annual Water Deficit", subtitle = "red = end of century, blue = current"))
+
+# predicted values
+predsTemp <- (sensDat %>%
+                terra::vect(geom = c("Long", "Lat"), crs = crs(ecoregionsSF2)) %>%
+                terra::rasterize(y = bioClim
+                                 , field = "annWaterDeficit_meanAnnAvg_30yr"))
+# contemporary values
+contempTemp <- (modDat_use %>%
+                  terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)) %>%
+                  terra::project(crs(ptCorrRast)) %>%
+                  terra::rasterize(y = bioClim, field = "annWaterDeficit_meanAnnAvg_30yr"))
+plotDatTemp <- predsTemp - contempTemp
+
+(compareAnnWaterDef_2 <- ggplot() +
+    geom_spatraster(data = plotDatTemp) +
+    guides(fill = guide_legend("Forecast - \n Contemporary")) +
+    ggtitle("Annual Water Deficit")+
+    scale_fill_gradient2(low = 'darkgreen', mid = 'white', high = 'orchid', midpoint =0))
+
 
 ## precip seasonality 
 (comparePrecipSeasonality <- ggplot() +
@@ -502,8 +588,8 @@ plotDatTemp <- predsTemp - contempTemp
 
 
 # read in No VPD model w/ 2 ecoregions ------------------------------------------------
-modUse <- testMod_4 
-outputFile <- "Model_REPLACESPrecipDriestMonth"
+modUse <- testMod_5 
+outputFile <- "CompareModelForecastsWithDifferentClimMods"#"Model_REPLACESPrecipDriestMonth_withAnnWatDef"
 
 
 # compare predictions to contemporary data --------------------------------
@@ -513,7 +599,8 @@ bitmap(file = paste0("./Figures/EcoRegionModelFigures/",outputFile, "/ComparingC
 
 patchwork::plot_layout(#(comparePrecipDriest+
   #comparePrecipDriest_2)/
-  (comparePrecipSeasonality + comparePrecipSeasonality_2)/
+  #(comparePrecipSeasonality + comparePrecipSeasonality_2)/
+  (compareAnnWatDef + compareAnnWaterDef_2)/
   (comparePrecipWettest+ 
      comparePrecipWettest_2)/
     (compareIsothermality+
@@ -559,7 +646,7 @@ regModPreds_2 <- regModPreds_2_df %>%
     #   col = newRegion_pred)) +
     ggtitle("model-predicted ecoregion classification -- fit to a combination of contemporary data and data from 2041-2060 \nfrom CMCC-ESM2 model, ssp 585 ",
             subtitle = paste0("model: ecoregion ~", str_flatten(names(coefficients(modUse))[2:4], collapse = " + ") , " + \n",
-            str_flatten(names(coefficients(modUse))[5:length(coefficients(modUse))]))) +
+            str_flatten(names(coefficients(modUse))[5:length(coefficients(modUse))], collapse = " + "))) +
     #scale_fill_discrete(type = c("#bf812d","#35978f")) +
     scale_fill_distiller(type = "div", palette = 1, direction = 1) +
     geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) + 
@@ -607,7 +694,7 @@ regModPreds_2b <- sensDat_2b %>%
     #   col = newRegion_pred)) +
     ggtitle("model-predicted ecoregion classification -- fit to a combination of contemporary data *(increased by 10%)* and data from 2041-2060 \nfrom CMCC-ESM2 model, ssp 585 ",
             subtitle = paste0("model: ecoregion ~", str_flatten(names(coefficients(modUse))[2:4], collapse = " + ") , " + \n",
-                              str_flatten(names(coefficients(modUse))[5:length(coefficients(modUse))]))) +
+                              str_flatten(names(coefficients(modUse))[5:length(coefficients(modUse))]), collapse = " + ")) +
     #scale_fill_discrete(type = c("#bf812d","#35978f")) +
     scale_fill_distiller(type = "div", palette = 1, direction = 1) +
     geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) + 
@@ -652,7 +739,7 @@ regModPreds_2c <- sensDat_2c %>%
     #   col = newRegion_pred)) +
     ggtitle("model-predicted ecoregion classification -- fit to a combination of contemporary data *(decreased by 10%)* and data from 2041-2060 \nfrom CMCC-ESM2 model, ssp 585 ",
             subtitle = paste0("model: ecoregion ~", str_flatten(names(coefficients(modUse))[2:4], collapse = " + ") , " + \n",
-                              str_flatten(names(coefficients(modUse))[5:length(coefficients(modUse))]))) +
+                              str_flatten(names(coefficients(modUse))[5:length(coefficients(modUse))]), collapse = " + ")) +
     #scale_fill_discrete(type = c("#bf812d","#35978f")) +
     scale_fill_distiller(type = "div", palette = 1, direction = 1) +
     geom_sf(data = ecoregionsSF2, color = "black", fill = NA, lwd = 1.25) + 
@@ -671,7 +758,7 @@ regModPreds_2c <- sensDat_2c %>%
 # isothermality_meanAnnAvg_30yr                            soilDepth              avgSandPerc_acrossDepth  
 # avgCoarsePerc_acrossDepth           avgOrganicCarbonPerc_0_3cm 
 
-predictors <- names(coefficients(modUse))[-1] 
+predictors <- names(coefficients(modUse))[-1][1:10] 
 # perturbation function 
 perturbFun_2 <- function(predictor, 
                        predictData, 
@@ -881,7 +968,7 @@ print(get(paste0("pdp_",predictors[6])), split = c(2,2,4,3), more = TRUE)
 print(get(paste0("pdp_",predictors[7])), split = c(3,2,4,3), more = TRUE)
 print(get(paste0("pdp_",predictors[8])), split = c(4,2,4,3), more = TRUE)
 print(get(paste0("pdp_",predictors[9])), split = c(1,3,4,3), more = TRUE)
-#print(get(paste0("pdp_",predictors[10])), split = c(2,3,4,3), more = FALSE)
+print(get(paste0("pdp_",predictors[10])), split = c(2,3,4,3), more = FALSE)
 dev.off()
 
 
@@ -998,7 +1085,7 @@ plots <- ggarrange(regMod2_PredMAP, regMod2b_PredMAP, regMod2c_PredMAP,
                      get(paste0("predsFits_",predictors[7])),
                      get(paste0("predsFits_",predictors[8])),
                      get(paste0("predsFits_",predictors[9])),
-                     #get(paste0("predsFits_",predictors[10])),
+                     get(paste0("predsFits_",predictors[10])),
                      ncol = 2, nrow = 5)
                   , ncol = 1) %>% 
   ggpubr::annotate_figure(top = str_wrap(
@@ -1025,8 +1112,8 @@ dev.off()
   get(paste0(predictors[7],"_PerturbMAP_low")), get(paste0(predictors[7],"_PerturbMAP_high")),
   get(paste0(predictors[8],"_PerturbMAP_low")), get(paste0(predictors[8],"_PerturbMAP_high")),
   get(paste0(predictors[9],"_PerturbMAP_low")), get(paste0(predictors[9],"_PerturbMAP_high")),
-  #get(paste0(predictors[10],"_PerturbMAP_low")), get(paste0(predictors[10],"_PerturbMAP_high")),
-  ncol = 2, nrow = 9) %>% 
+  get(paste0(predictors[10],"_PerturbMAP_low")), get(paste0(predictors[10],"_PerturbMAP_high")),
+  ncol = 2, nrow = length(predictors)) %>% 
     ggpubr::annotate_figure(top = str_wrap(
     paste0("Model: ecoregion ~ ", modUse$formula[3]), 
     width = 80
@@ -1051,11 +1138,12 @@ forecastPreds <- predictors[!(str_detect(predictors, "PrecipTempCorr") +
   get(paste0(forecastPreds[2],"_Forecast_MAP")),
   get(paste0(forecastPreds[3],"_Forecast_MAP")),
   get(paste0(forecastPreds[4],"_Forecast_MAP")),
-  get(paste0(forecastPreds[5],"_Forecast_MAP")), ncol = 1, nrow = length(forecastPreds)) %>% 
-    ggpubr::annotate_figure(top = str_wrap(
+  get(paste0(forecastPreds[5],"_Forecast_MAP")),
+  get(paste0(forecastPreds[6],"_Forecast_MAP")), ncol = 1, nrow = length(forecastPreds)) %>% 
+    ggpubr::annotate_figure(top = str_trunc(str_wrap(
       paste0("Model: ecoregion ~ ", modUse$formula[3]), 
       width = 80
-      )
+    ), width = 320)
     )
 )
 
@@ -1063,3 +1151,4 @@ bitmap(file = paste0("./Figures/EcoRegionModelFigures/", outputFile, "/ModelPred
        width = 15, height = 30, res = 250)
 predictionPlots_Mixed
 dev.off()
+
