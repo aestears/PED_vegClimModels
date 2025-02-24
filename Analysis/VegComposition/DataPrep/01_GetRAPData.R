@@ -13,14 +13,14 @@ library(terra)
 
 # generate random points to sample RAP data with --------------------------
 ## first, get a shapefile of CONUS
-CONUS <- st_read(dsn = "./data/CONUS_extent/", layer = "CONUS_boundary") %>% 
+CONUS <- st_read(dsn = "./Data_raw/CONUS_extent/", layer = "CONUS_boundary") %>% 
   st_make_valid()%>% 
   st_transform("EPSG:4269") %>% 
   st_set_crs("EPSG:4269") %>% 
   filter(ID == "main")
 
 # subdivide into EPA Level I ecoregions
-ecoregions <- st_read(dsn = "./data/Level1Ecoregions/", layer = "NA_CEC_Eco_Level1") %>% 
+ecoregions <- st_read(dsn = "./Data_raw/Level1Ecoregions/", layer = "NA_CEC_Eco_Level1") %>% 
   st_transform("EPSG:4269") %>%  # reproject to match CONUS
   st_set_crs("EPSG:4269") %>% 
   st_make_valid() %>% 
@@ -28,19 +28,22 @@ ecoregions <- st_read(dsn = "./data/Level1Ecoregions/", layer = "NA_CEC_Eco_Leve
 # turn of spherical geometery, since it's causing problems
 sf_use_s2(FALSE)
 # trim the ecoregions to CONUS extent
-ecoregions_new <- CONUS %>% 
-  st_intersection(ecoregions)
+ecoregions_new <- CONUS %>%
+  st_make_valid() %>% 
+  st_intersection(ecoregions%>%
+                    st_make_valid())
+# 
+# # get the test area
+# testArea <- st_read(
+#   dsn = "../shortTermDroughtForescaster/gridSTDF/projects/07_TestOutputForFRESC/FRESC_testBox/", 
+#   layer = "GriddedDroughtSubset") 
 
-# get the test area
-testArea <- st_read(
-  dsn = "../shortTermDroughtForescaster/gridSTDF/projects/07_TestOutputForFRESC/FRESC_testBox/", 
-  layer = "GriddedDroughtSubset") 
 ## use a mask to remove agricultural or developed area get the masks from land
 #use data from LCMAP (used data from 2021, since it's likely the most
 #exclusive...?) from: https://eros.usgs.gov/lcmap/apps/data-downloads. LCMAP
 #uses LANDSAT analysis-ready data, just like RAP, so should be on the same grid,
 #right??
-LCMAP <- terra::rast("./data/LCMAP/LCMAP_CU_2021_V13_LCPRI.tif") #%>% 
+LCMAP <- terra::rast("./Data_raw/LCMAP/LCMAP_CU_2021_V13_LCPRI.tif") #%>% 
  #terra::project(y = "EPSG:4269")
 # reproject the ecoregions data according to LCMAP projection
 ecoregions_new <- 
@@ -55,7 +58,7 @@ LCMAP_use <- LCMAP_use %>%
 
 # save reclassified data
 #saveRDS(LCMAP_use, file = "./data/LCMAP/LCMAP_reclassifiedToUse.rds")
-LCMAP_use <- readRDS("./data/LCMAP/LCMAP_reclassifiedToUse.rds")
+# LCMAP_use <- readRDS("./Data_raw/LCMAP/LCMAP_reclassifiedToUse.rds")
 terra::plot(LCMAP_use)
 # function to sample spatial points
 ecoSample <- function(x, sampSize) {
@@ -66,7 +69,7 @@ ecoSample <- function(x, sampSize) {
   return(x_new)
 }
 
-LCMAP_samplePoints <- ecoSample(LCMAP_use, sampSize = 100000)
+LCMAP_samplePoints <- ecoSample(LCMAP_use, sampSize = 7900)
 
 ## save the sample point data
 sf::st_write(LCMAP_samplePoints, dsn = "data/RAP_samplePoints/", layer = "randomPoints_100Thousand", 
@@ -177,19 +180,29 @@ RAPdat$LAT <-
 )
 
 RAPdat_2 <- st_as_sf(RAPdat, coords = c("LON", "LAT"))
-# get data just for one year 
+# get the correct year information
 RAPdat_2$Year <- str_sub(RAPdat_2$system.index, start = 1, end = 4)
 
+## we want to sample from each year of data from 1986-2024, and want ~300,000 observations total
+## to do this, we'll sample 8000 points, and then get those for each year. 
+
+# find 8000 random points 
+set.seed(12011993)
+# get the RAP x and y data points 
+RAPdat_2$LON <- round(sf::st_coordinates(RAPdat_2)[,1],5)
+RAPdat_2$LAT <- round(sf::st_coordinates(RAPdat_2)[,2],5)
+
 ## randomly select three years (will equal ~300,000 data points, a few less than in the field-collected data)
-unique(RAPdat_2$Year)
+randPoints <- unique(RAPdat_2[,c("LON", "LAT")]) %>% 
+  st_drop_geometry() %>% 
+  sample_n(8000)
+
+RAPdat_3 <- RAPdat_2[RAPdat_2$LON %in% randPoints$LON & 
+                       RAPdat_2$LAT %in% randPoints$LAT,]
 
 #indices <- round(runif(n = 3, min = 1, max = length(unique(RAPdat_2$Year))))
-indices <- c(14, 7, 29)
-randYears <- unique(RAPdat_2$Year)[indices]
-RAPdat_3 <- RAPdat_2[RAPdat_2$Year %in% c(randYears), ]
 plot(RAPdat_3$geometry)
-RAPdat_3$LAT <- st_coordinates(RAPdat_3)[,"Y"]
-RAPdat_3$LON <- st_coordinates(RAPdat_3)[,"X"]
+
 ## looks good! Fewer points in places we filtered out for ag. and developed land uses
 ## change cover value column titles to be meaningful 
 RAPdat_4 <- RAPdat_3 %>% 
@@ -227,6 +240,5 @@ RAPdat_4 <- RAPdat_3 %>%
          Source = "RAP"
          )
 
-plot(RAPdat_4$Lon, RAPdat_4$Lat)
 ## save for further analysis! 
-write.csv(st_drop_geometry(RAPdat_4), "./data/RAP_samplePoints/RAPdata_use.csv", row.names = FALSE)
+write.csv(st_drop_geometry(RAPdat_4), "./Data_raw/RAP_samplePoints/RAPdata_use.csv", row.names = FALSE)
