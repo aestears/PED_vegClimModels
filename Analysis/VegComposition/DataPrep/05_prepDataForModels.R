@@ -23,11 +23,11 @@ library(sf)
 vegDat <- readRDS("./Data_processed/CoverData/dataForAnalysis_fireRemoved.rds") 
 # load meteorological data
 dayMet <- readRDS("./Data_processed/CoverData/dayMetClimateValuesForAnalysis_final.rds")
-# remove monthly values 
-dayMet2 <- dayMet %>% 
-  select(-names(dayMet)[c(4:22)])
+# # remove monthly values 
+# dayMet2 <- dayMet %>% 
+#   select(-names(dayMet)[c(4:22)])
 # make dayMet spatial 
-dayMet3 <- dayMet2 %>% 
+dayMet3 <- dayMet %>% 
   st_as_sf(coords = c("Long", "Lat"))
 
 # add met data to veg data ------------------------------------------------

@@ -1,0 +1,257 @@
+---
+title: "Selecting Climate and Weather variables"
+subtitle: "These variables will serve as predictors in models of vegetation functional composition"
+author: "Alice Stears"
+date: "`r lubridate::today()`"
+params: 
+  test_run: FALSE
+save_figs: FALSE
+response: "TotalGramCover_dec" 
+hmod: FALSE
+s: "TotalGramCover"
+#inter: !r c('afgAGB:MAP' = "afgAGB:MAP")
+sample_group: 1
+byRegion: TRUE
+output:
+  html_document:
+  toc: true
+toc_float:
+  collapsed: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE,
+                      message = FALSE)
+library(here)
+library(tidyverse)
+library(kableExtra)
+library(GGally) 
+```
+
+```{r read in Data, include = FALSE}
+here::i_am("Analysis/VegComposition/ModelFitting/01_PredictorVarSelection.Rmd")
+dat <- readRDS( here("Data_processed", "CoverData", "DataForModels_spatiallyAveraged_withSoils_noSf.rds"))
+```
+
+## Background
+
+The **weather** and **climate** variables used in this analysis are calculated from DayMet. Information about vegetation functional composition from FIA, AIM, and the LANDFIRE reference database is averaged to the same spatial scale as dayMet, so the dataset we use contains climate and weather information for every dayMet cell that has vegetation functional composition information in each year when that vegetation data were collected. 
+
+For each dayMet grid cell in each year when vegetation data was collected, we calculated the following set of climate variables (average values over the previous years (as few as 5 and as many as 30 years)) and weather variable anomalies (the average of values over the previous 3 years relative to the climate average). Note that the we indicate the method of summarizing a climate variable across the climate or weather anomaly years, as well as the units and the method that the recent weather anomaly relative to the climate variable was calculated.  
+
+```{r, echo = FALSE, results = 'asis'}
+
+knitr::kable(format = "html", data.frame("Variable" = 
+                          c("Average annual minimum daily temperature - Mean across years" ,                     
+                            "Average annual maximum daily temperature - Mean across years", 
+                            "Average annual mean daily temperature - Mean across years",             
+                            "Total annual daily precipitation - Mean across years" ,     
+                            "Temperature of the warmest month - Mean across years"        , 
+                            "Temperature of the coldest month - Mean across years"       ,     
+                            "Precipitation of wettest month - Mean across years"   , 
+                            "Precipitation of driest month - Mean across years"   ,     
+                            "Precipitation seasonality - Mean across years"    , 
+                            "Correlation of monthly precipitation and temperature - Mean across years"       ,     
+                            "Month when temperature first is above freezing - Mean across years"   , 
+                            "Isothermality - Mean across years"        ,     
+                            "Annual Water Deficit - Mean across years"       , 
+                            "Annual wet degree days - Mean across years"        ,     
+                            "Anual mean vapor pressure deficit - Mean across years", 
+                            "Annual maximum vapor pressure deficit- Mean across years" ,     
+                            "Annual minimum vapor pressure deficit- Mean across years" , 
+                            "Number of of frost-free days - Mean across years",
+                            "Annual maximum vapor pressure deficit - 95th percentile across years" ,     
+                            "Annual water deficit - 95th percentile across years" , 
+                            "Annual wet degree days - 5th percentile across years"       ,     
+                            "Number of of frost-free days - 5th percentile across years"),
+             "Units" = 
+               c("Degrees Celsius", 
+                 "Degrees Celsius",
+                 "Degrees Celsius", 
+                 "mm",
+                 "Degrees Celsius",
+                 "Degrees Celsius",
+                 "mm",
+                 "mm",
+                 "mm",
+                 "correlation", 
+                 "numerical month",
+                 "isothermal ratio",
+                 "mm of water/degrees celsius",
+                 "Degree days",
+                 "milibars",
+                 "milibars", 
+                 "milibars", 
+                 "days", 
+                 "milibars", 
+                 "mm of water/degrees celsius", 
+                 "Degree days", 
+                 "days"
+                 ), 
+             "Anomaly_Format" = 
+               c("absolute difference", 
+                 "absolute difference", 
+                 "absolute difference", 
+                 "% difference", 
+                 "absolute difference", 
+                 "absolute difference",
+                 "% difference", 
+                 "% difference", 
+                 "% difference", 
+                 "absolute difference",
+                 "absolute difference",
+                 "% difference", 
+                 "% difference", 
+                 "% difference", 
+                 "absolute difference",
+                 "absolute difference",
+                 "absolute difference",
+                 "absolute difference",
+                 "absolute difference",
+                 "% difference",
+                 "% difference",
+                 "absolute difference")
+)) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+For each grid cell, we also include **soil** information, which is extrapolated from the SOLUS100 dataset. This information is fixed across time in our dataset. 
+```{r, echo = FALSE, results = 'asis'}
+
+knitr::kable(format = "html", data.frame("Variable" = 
+                          c("soil depth" ,                     
+                            "percentage of clay in the soil surface (0-3 cm)",
+                            "average percentage of sand across the soil profile",
+                            "average percentage of coarse fragments across the soil profile",
+                            "percentage of organic matter in the soil surface (0-3 cm)",
+                            "total available water holding capacity"
+))) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+## Identify un-correlated climate and soils predictors
+
+First, we want to identify a set of possible climate and soils predictors that are not correlated to then use as predictors in models that estimate vegetation composition. 
+
+```{r}
+my_fn <- function(data, mapping, method="p", use="pairwise", ...){
+  
+  # grab data
+  x <- eval_data_col(data, mapping$x)
+  y <- eval_data_col(data, mapping$y)
+  
+  # calculate correlation
+  corr <- cor(x, y, method=method, use=use)
+  
+  # calculate colour based on correlation value
+  # Here I have set a correlation of minus one to blue, 
+  # zero to white, and one to red 
+  # Change this to suit: possibly extend to add as an argument of `my_fn`
+  colFn <- colorRampPalette(c("red", "white", "blue"), interpolate ='spline')
+  fill <- colFn(100)[findInterval(corr, seq(-1, 1, length=100))]
+  
+  ggally_cor(data = data, mapping = mapping, stars = FALSE, 
+             digits = 2, colour = I("black"),...) + 
+    theme_void() +
+    theme(panel.background = element_rect(fill=fill))
+  
+}
+
+
+(corrPlot <- 
+   dat %>% 
+   dplyr::select(
+     "tmin_meanAnnAvg_CLIM" ,                    
+ "tmax_meanAnnAvg_CLIM"                   , "tmean_meanAnnAvg_CLIM"                     ,
+ "prcp_meanAnnTotal_CLIM"                    ,
+ "T_warmestMonth_meanAnnAvg_CLIM"         , "T_coldestMonth_meanAnnAvg_CLIM"            ,
+ "precip_wettestMonth_meanAnnAvg_CLIM"    , "precip_driestMonth_meanAnnAvg_CLIM"        ,
+ "precip_Seasonality_meanAnnAvg_CLIM"     , "PrecipTempCorr_meanAnnAvg_CLIM"            ,
+ "aboveFreezing_month_meanAnnAvg_CLIM"    , "isothermality_meanAnnAvg_CLIM"             ,
+ "annWaterDeficit_meanAnnAvg_CLIM"        , "annWetDegDays_meanAnnAvg_CLIM"             ,
+ "annVPD_mean_meanAnnAvg_CLIM"            , "annVPD_max_meanAnnAvg_CLIM"                ,
+ "annVPD_min_meanAnnAvg_CLIM"             , "annVPD_max_95percentile_CLIM"              ,
+ "annWaterDeficit_95percentile_CLIM"      , "annWetDegDays_5percentile_CLIM"            ,
+ "durationFrostFreeDays_5percentile_CLIM" , "durationFrostFreeDays_meanAnnAvg_CLIM", "soilDepth"  ,
+     "surfaceClay_perc"                     ,  "avgSandPerc_acrossDepth"               ,
+     "avgCoarsePerc_acrossDepth"            ,  "avgOrganicCarbonPerc_0_3cm"            ,
+     "totalAvailableWaterHoldingCapacity" 
+   ) %>% 
+   rename(
+     "tmin" = tmin_meanAnnAvg_CLIM, "tmax" = tmax_meanAnnAvg_CLIM, "tmean" = tmean_meanAnnAvg_CLIM,
+     "prcp" = prcp_meanAnnTotal_CLIM, "t_warm" = T_warmestMonth_meanAnnAvg_CLIM,
+     "t_cold" = T_coldestMonth_meanAnnAvg_CLIM, "prcp_wet" = precip_wettestMonth_meanAnnAvg_CLIM,
+     "prcp_dry" = precip_driestMonth_meanAnnAvg_CLIM, "prcp_seasonality" = precip_Seasonality_meanAnnAvg_CLIM, 
+     "prcpTempCorr" = PrecipTempCorr_meanAnnAvg_CLIM, "abvFreezingMonth" = aboveFreezing_month_meanAnnAvg_CLIM, 
+     "isothermality" = isothermality_meanAnnAvg_CLIM, "annWatDef" = annWaterDeficit_meanAnnAvg_CLIM, 
+     "annWetDegDays" = annWetDegDays_meanAnnAvg_CLIM, "VPD_mean" = annVPD_mean_meanAnnAvg_CLIM, 
+     "VPD_max" = annVPD_max_meanAnnAvg_CLIM, "VPD_min" = annVPD_min_meanAnnAvg_CLIM, 
+     "VPD_max_95" = annVPD_max_95percentile_CLIM, "annWatDef_95" = annWaterDeficit_95percentile_CLIM,
+     "annWetDegDays_5" = annWetDegDays_5percentile_CLIM, "frostFreeDays_5" = durationFrostFreeDays_5percentile_CLIM, 
+     "frostFreeDays" = durationFrostFreeDays_meanAnnAvg_CLIM, "clay" = surfaceClay_perc, 
+     "sand" = avgSandPerc_acrossDepth, "coarse" = avgCoarsePerc_acrossDepth, "carbon" = avgOrganicCarbonPerc_0_3cm, 
+     "AWHC" = totalAvailableWaterHoldingCapacity
+     ) %>%
+   #cor()  %>% 
+   #caret::findCorrelation(cutoff = .7, verbose = TRUE, names = TRUE, exact = TRUE)) %>% 
+  ggpairs( upper = list(continuous = my_fn), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), progress = FALSE))
+# the findCorrelation() function says we should remove these variables: 
+# "tmean_meanAnnAvg_30yr"                  "tmin_meanAnnAvg_30yr"                   "annVPD_mean_meanAnnAvg_30yr"           
+# "aboveFreezing_month_meanAnnAvg_30yr"    "durationFrostFreeDays_meanAnnAvg_30yr"  "durationFrostFreeDays_5percentile_30yr"
+# "tmax_meanAnnAvg_30yr"                   "annVPD_min_meanAnnAvg_30yr"             "T_coldestMonth_meanAnnAvg_30yr"        
+#  "annVPD_max_meanAnnAvg_30yr"             "T_warmestMonth_meanAnnAvg_30yr"         "Wet \n DegDays"                        
+#  "annWaterDeficit_95percentile_30yr"      "annWaterDeficit_meanAnnAvg_30yr"        "annWetDegDays_5percentile_30yr"        
+#  "prcp"                                   "precip_Seasonality_meanAnnAvg_30yr"     "totalAvailableWaterHoldingCapacity"    
+#  "avgSandPerc_acrossDepth"      
+# 
+# ## also remove wet degree days, since it's correlated w/ 
+# (corrPlot2 <- 
+#     modDat_fit %>% 
+#     dplyr::select(#"tmin_meanAnnAvg_30yr"              ,
+#       #"tmax_meanAnnAvg_30yr" ,                 
+#       #"tmean_meanAnnAvg_30yr"                  ,
+#      #"prcp_meanAnnTotal_30yr"                 ,
+#       #"T_warmestMonth_meanAnnAvg_30yr"       , 
+#       #"T_coldestMonth_meanAnnAvg_30yr"         ,
+#       "precip_wettestMonth_meanAnnAvg_30yr"    ,
+#       "precip_driestMonth_meanAnnAvg_30yr"   , 
+#       #"precip_Seasonality_meanAnnAvg_30yr"     ,
+#       "PrecipTempCorr_meanAnnAvg_30yr"        , #"aboveFreezing_month_meanAnnAvg_30yr" ,  
+#       "isothermality_meanAnnAvg_30yr"          ,#"annWaterDeficit_meanAnnAvg_30yr"       , #"annWetDegDays_meanAnnAvg_30yr"       ,  
+#       #"annVPD_mean_meanAnnAvg_30yr"            ,
+#       #"annVPD_max_meanAnnAvg_30yr"            , #"annVPD_min_meanAnnAvg_30yr"          ,  
+#       "annVPD_max_95percentile_30yr"           ,#"annWaterDeficit_95percentile_30yr"     , 
+#       #"annWetDegDays_5percentile_30yr"      ,  
+#       #"durationFrostFreeDays_5percentile_30yr" ,#"durationFrostFreeDays_meanAnnAvg_30yr" , 
+#       "soilDepth"                           ,  
+#        "surfaceClay_perc"                       ,
+#       #"avgSandPerc_acrossDepth"               , 
+#       "avgCoarsePerc_acrossDepth"           ,  
+#       "avgOrganicCarbonPerc_0_3cm"            #, #"totalAvailableWaterHoldingCapacity"
+#     ) %>% 
+#     rename(#"MAP" =  prcp_meanAnnTotal_30yr,
+#       #"T_warmest \nmonth" = T_warmestMonth_meanAnnAvg_30yr, 
+#       #"T_coldest \nmonth" = T_coldestMonth_meanAnnAvg_30yr,
+#       "precip_wettest" = precip_wettestMonth_meanAnnAvg_30yr, 
+#       "precip_driest" = precip_driestMonth_meanAnnAvg_30yr,
+#       "P/T corr" = PrecipTempCorr_meanAnnAvg_30yr,
+#       "isothermality" = isothermality_meanAnnAvg_30yr,
+#       #"watDef" = annWaterDeficit_meanAnnAvg_30yr,
+#       #"Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr,
+#       #"VPD_max" = annVPD_max_meanAnnAvg_30yr,
+#       #"VPD_min" = annVPD_min_meanAnnAvg_30yr,
+#       "VPD_max_95" = annVPD_max_95percentile_30yr, 
+#       #"watDef_95" = annWaterDeficit_95percentile_30yr,
+#       #"wetDegDays_5" = annWetDegDays_5percentile_30yr,
+#       "surfClay" = surfaceClay_perc,
+#       #"sand" = avgSandPerc_acrossDepth,
+#       "coarse" = avgCoarsePerc_acrossDepth,
+#       "carbon" = avgOrganicCarbonPerc_0_3cm #, "waterCap." = totalAvailableWaterHoldingCapacity
+#     ) %>%
+#     slice_sample(n = 5e4) %>% 
+#     #cor() %>% 
+#      #findCorrelation(cutoff = .7, verbose = TRUE, names = TRUE, exact = TRUE) 
+#     ggpairs( upper = list(continuous = my_fn), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), progress = FALSE))
+```
+
+
