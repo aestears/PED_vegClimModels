@@ -643,8 +643,8 @@ annMeans_5 <- apply(as.matrix(endDats[12:13]), MARGIN = 1, FUN = function(x)
                   , start = as.numeric(x-30), end = as.numeric(x))
 )
 
-## for years prior to 2011 and as early as 1985, calculate the average over any previous years (which will be less than 30, but is ok...)
-endDats2 <- as.matrix(c(1985:2010))
+## for years prior to 2011 and as early as 2000, calculate the average over any previous years (which will be less than 30, as few as 20, but is ok...)
+endDats2 <- as.matrix(c(2000:2010))
 
 annMeans_6 <- apply(as.matrix(endDats2[1:3]), MARGIN = 1, FUN = function(x)
   slidingMetMeans(inDat = climVar
@@ -661,41 +661,17 @@ annMeans_8 <- apply(as.matrix(endDats2[7:9]), MARGIN = 1, FUN = function(x)
                   , start = 1980, end = as.numeric(x))
 )
 
-annMeans_9 <- apply(as.matrix(endDats2[10:12]), MARGIN = 1, FUN = function(x)
+annMeans_9 <- apply(as.matrix(endDats2[10:11]), MARGIN = 1, FUN = function(x)
   slidingMetMeans(inDat = climVar
                   , start = 1980, end = as.numeric(x))
 )
 
-annMeans_10 <- apply(as.matrix(endDats2[13:15]), MARGIN = 1, FUN = function(x)
-  slidingMetMeans(inDat = climVar
-                  , start = 1980, end = as.numeric(x))
-)
-
-annMeans_11 <- apply(as.matrix(endDats2[15:17]), MARGIN = 1, FUN = function(x)
-  slidingMetMeans(inDat = climVar
-                  , start = 1980, end = as.numeric(x))
-)
-
-annMeans_12 <- apply(as.matrix(endDats2[18:20]), MARGIN = 1, FUN = function(x)
-  slidingMetMeans(inDat = climVar
-                  , start = 1980, end = as.numeric(x))
-)
-
-annMeans_13 <- apply(as.matrix(endDats2[21:23]), MARGIN = 1, FUN = function(x)
-  slidingMetMeans(inDat = climVar
-                  , start = 1980, end = as.numeric(x))
-)
-
-annMeans_14 <- apply(as.matrix(endDats2[24:26]), MARGIN = 1, FUN = function(x)
-  slidingMetMeans(inDat = climVar
-                  , start = 1980, end = as.numeric(x))
-)
 
 # put together into one list
 annMeans_all <- c(annMeans, annMeans_2, annMeans_3, annMeans_4, annMeans_5, annMeans_6, annMeans_7, annMeans_8,
-                  annMeans_9, annMeans_10, annMeans_11, annMeans_12, annMeans_13, annMeans_14)
+                  annMeans_9)
 
-names(annMeans_all) <- c(2011:2023, 1985:2010)
+names(annMeans_all) <- c(2011:2023, 2000:2010)
 annMeans_30yr_temp1 <- lapply(endDats, function(x) {
   temp <- cbind(annMeans_all[[as.character(x)]], x)
   temp$Start <- x-30
@@ -712,7 +688,7 @@ annMeans_30yr_temp2 <- lapply(endDats2, function(x) {
 
 annMeans_30yr <- data.table::rbindlist(c(annMeans_30yr_temp1, annMeans_30yr_temp2))
 
-names(annMeans_30yr)[3:28] <- paste0(names(annMeans_30yr)[3:28], "_30yr")
+names(annMeans_30yr)[3:26] <- paste0(names(annMeans_30yr)[3:26], "_30yr")
 saveRDS(annMeans_30yr, "./Data_processed/CoverData/dayMet_intermediate/annMeans_30yrs.rds")
 annMeans_30yr <- readRDS("./Data_processed/CoverData/dayMet_intermediate/annMeans_30yrs.rds")
 
@@ -799,20 +775,21 @@ annMeans_30yr <- readRDS("./Data_processed/CoverData/dayMet_intermediate/annMean
 # annMeans_10yr <- readRDS("./Data_processed/CoverData/dayMet_intermediate/annMeans_10yrs.rds")
 
 # for last 3-year window
-endDats <- as.matrix(c(1983:2023))
+# start in 2000, since we only have climate data starting then anyway
+endDats <- as.matrix(c(2000:2023))
 annMeans <- apply(endDats, MARGIN = 1, FUN = function(x)
-  slidingMetMeans(inDat = climVar, start = as.numeric(x-5), end = as.numeric(x))
+  slidingMetMeans(inDat = climVar, start = as.numeric(x-3), end = as.numeric(x))
 )
-names(annMeans) <- c(1983:2023)
+names(annMeans) <- c(2000:2023)
 annMeans_3yr <- lapply(endDats, function(x) {
   temp <- cbind(annMeans[[as.character(x)]], x)
-  temp$Start <- x-5
+  temp$Start <- x-3
   names(temp) <- c(names(annMeans[[1]]), "End", "Start")
   return(temp)
 })
 
 annMeans_3yr <- data.table::rbindlist(annMeans_3yr)
-names(annMeans_3yr)[3:28] <- paste0(names(annMeans_3yr)[3:28], "_3yr")
+names(annMeans_3yr)[3:26] <- paste0(names(annMeans_3yr)[3:26], "_3yr")
 saveRDS(annMeans_3yr, "./Data_processed/CoverData/dayMet_intermediate/annMeans_3yrs.rds")
 annMeans_3yr <- readRDS("./Data_processed/CoverData/dayMet_intermediate/annMeans_3yrs.rds")
 

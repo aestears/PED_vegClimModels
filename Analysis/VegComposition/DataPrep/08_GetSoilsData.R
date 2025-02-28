@@ -388,6 +388,11 @@ temp <- vegSoils_new %>%
   vegSoils_final <- vegSoils_new %>% 
     select(-c(clayPerc_2cm:y))
   
+  
+  ## drop data points for which there are no climate variables (prior to 2000)
+  vegSoils_final <- vegSoils_final %>% 
+    filter(!is.na(durationFrostFreeDays_meanAnnAvg_3yrAnom))
+  
   saveRDS(vegSoils_final, 
           "./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
   #vegSoils_final <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")

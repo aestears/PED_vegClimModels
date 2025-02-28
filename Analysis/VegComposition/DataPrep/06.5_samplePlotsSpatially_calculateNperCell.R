@@ -156,8 +156,7 @@ names(test3) <- layerNames[1:5]
 saveRDS(test3, "./Data_processed/CoverData/spatiallyAverageData_n_plotsPerGridCell.rds")
 #test3 <- readRDS("./Data_processed/CoverData/spatiallyAverageData_n_plotsPerGridCell.rds")
 
-# put together into a data.frame 
-test4 <- lapply(layerNames[c(1:4,10)], function(x) {
+ test4 <- lapply(layerNames[c(1:5)], function(x) {
   temp <- test3[[x]] %>% 
     dplyr::select(-ID) 
   names(temp)[1] <- x

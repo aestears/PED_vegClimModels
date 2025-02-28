@@ -32,9 +32,9 @@ library(GGally)
 here::i_am("Analysis/VegComposition/ModelFitting/01_PredictorVarSelection.Rmd")
 dat <- readRDS( here("Data_processed", "CoverData", "DataForModels_spatiallyAveraged_withSoils_noSf.rds"))
 ## there are some values of the annual wet degree days 5th percentile that have -Inf?? change to lowest value for now? 
-dat[is.infinite(dat$annWetDegDays_5percentile_5yrAnom), "annWetDegDays_5percentile_5yrAnom"] <- -47.8
-## same, but for annual water deficit 95th percentile
-dat[is.infinite(dat$annWaterDeficit_95percentile_5yrAnom), "annWaterDeficit_95percentile_5yrAnom"] <- -600
+dat[is.infinite(dat$annWetDegDays_5percentile_3yrAnom), "annWetDegDays_5percentile_3yrAnom"] <- -47.8
+## same, but for annual water deficit 95th percentile 
+dat[is.infinite(dat$annWaterDeficit_95percentile_3yrAnom), "annWaterDeficit_95percentile_3yrAnom"] <- -600
 ```
 
 ## Background
@@ -144,11 +144,63 @@ We do this independently for each of two ecoregions (shrub/grassland and forest)
 First, get data just for grassland/shrubland sites (and drop NAs )
 ```{r }
 ## drop observations so we don't have any NAs
-datGrassShrub<- dat %>% 
-  select(tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM, swe_meanAnn_5yrAnom:durationFrostFreeDays_meanAnnAvg_5yrAnom, 
+datGrassShrub <- dat %>% 
+   select(tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM, tmean_meanAnnAvg_3yrAnom:durationFrostFreeDays_meanAnnAvg_3yrAnom, 
          soilDepth:totalAvailableWaterHoldingCapacity, newRegion) %>% 
   drop_na() %>% 
-  filter(newRegion == "dryShrubGrass")
+  filter(newRegion == "dryShrubGrass") %>%  
+  rename("tmin" = tmin_meanAnnAvg_CLIM, 
+     "tmax" = tmax_meanAnnAvg_CLIM, #1
+     "tmean" = tmean_meanAnnAvg_CLIM, 
+     "prcp" = prcp_meanAnnTotal_CLIM, 
+     "t_warm" = T_warmestMonth_meanAnnAvg_CLIM,
+     "t_cold" = T_coldestMonth_meanAnnAvg_CLIM, 
+     "prcp_wet" = precip_wettestMonth_meanAnnAvg_CLIM,
+     "prcp_dry" = precip_driestMonth_meanAnnAvg_CLIM, 
+     "prcp_seasonality" = precip_Seasonality_meanAnnAvg_CLIM, #2
+     "prcpTempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  #3
+     "abvFreezingMonth" = aboveFreezing_month_meanAnnAvg_CLIM, 
+     "isothermality" = isothermality_meanAnnAvg_CLIM, #4
+     "annWatDef" = annWaterDeficit_meanAnnAvg_CLIM, 
+     "annWetDegDays" = annWetDegDays_meanAnnAvg_CLIM,
+     "VPD_mean" = annVPD_mean_meanAnnAvg_CLIM, 
+     "VPD_max" = annVPD_max_meanAnnAvg_CLIM, #5
+     "VPD_min" = annVPD_min_meanAnnAvg_CLIM, #6
+     "VPD_max_95" = annVPD_max_95percentile_CLIM, 
+     "annWatDef_95" = annWaterDeficit_95percentile_CLIM, 
+     "annWetDegDays_5" = annWetDegDays_5percentile_CLIM, 
+     "frostFreeDays_5" = durationFrostFreeDays_5percentile_CLIM, 
+     "frostFreeDays" = durationFrostFreeDays_meanAnnAvg_CLIM, 
+     #"soilDepth" = soilDepth, #7
+     "clay" = surfaceClay_perc, 
+     "sand" = avgSandPerc_acrossDepth, #8
+     "coarse" = avgCoarsePerc_acrossDepth, #9
+     "carbon" = avgOrganicCarbonPerc_0_3cm, #10
+     "AWHC" = totalAvailableWaterHoldingCapacity,
+     ## anomaly variables
+     tmean_anom = tmean_meanAnnAvg_3yrAnom, #15
+     tmin_anom = tmin_meanAnnAvg_3yrAnom, #16
+     tmax_anom = tmax_meanAnnAvg_3yrAnom, #17
+    prcp_anom = prcp_meanAnnTotal_3yrAnom, #18
+      t_warm_anom = T_warmestMonth_meanAnnAvg_3yrAnom,  #19
+     t_cold_anom = T_coldestMonth_meanAnnAvg_3yrAnom, #20
+      prcp_wet_anom = precip_wettestMonth_meanAnnAvg_3yrAnom, #21
+      precp_dry_anom = precip_driestMonth_meanAnnAvg_3yrAnom,  #22
+    prcp_seasonality_anom = precip_Seasonality_meanAnnAvg_3yrAnom, #23 
+     prcpTempCorr_anom = PrecipTempCorr_meanAnnAvg_3yrAnom, #24
+      aboveFreezingMonth_anom = aboveFreezing_month_meanAnnAvg_3yrAnom, #25  
+    isothermality_anom = isothermality_meanAnnAvg_3yrAnom, #26
+       annWatDef_anom = annWaterDeficit_meanAnnAvg_3yrAnom, #27
+     annWetDegDays_anom = annWetDegDays_meanAnnAvg_3yrAnom,  #28
+      VPD_mean_anom = annVPD_mean_meanAnnAvg_3yrAnom, #29
+      VPD_min_anom = annVPD_min_meanAnnAvg_3yrAnom,  #30
+      VPD_max_anom = annVPD_max_meanAnnAvg_3yrAnom,  #31
+     VPD_max_95_anom = annVPD_max_95percentile_3yrAnom, #32
+      annWatDef_95_anom = annWaterDeficit_95percentile_3yrAnom, #33 
+      annWetDegDays_5_anom = annWetDegDays_5percentile_3yrAnom ,  #34
+    frostFreeDays_5_anom = durationFrostFreeDays_5percentile_3yrAnom, #35 
+      frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_3yrAnom #36
+     ) 
 ```
 
 
@@ -182,73 +234,59 @@ my_fn <- function(data, mapping, method="p", use="pairwise", ...){
 (corrPlot <- 
    datGrassShrub %>% 
    dplyr::select(
-     "tmin_meanAnnAvg_CLIM" ,                    
- "tmax_meanAnnAvg_CLIM"                   , 
-     "tmean_meanAnnAvg_CLIM"                     ,
- "prcp_meanAnnTotal_CLIM"                    ,
- "T_warmestMonth_meanAnnAvg_CLIM"         , "T_coldestMonth_meanAnnAvg_CLIM"            ,
- "precip_wettestMonth_meanAnnAvg_CLIM"    , "precip_driestMonth_meanAnnAvg_CLIM"        ,
- "precip_Seasonality_meanAnnAvg_CLIM"     , "PrecipTempCorr_meanAnnAvg_CLIM"            ,
- "aboveFreezing_month_meanAnnAvg_CLIM"    , "isothermality_meanAnnAvg_CLIM"             ,
- "annWaterDeficit_meanAnnAvg_CLIM"        , "annWetDegDays_meanAnnAvg_CLIM"             ,
- "annVPD_mean_meanAnnAvg_CLIM"            , "annVPD_max_meanAnnAvg_CLIM"                ,
- "annVPD_min_meanAnnAvg_CLIM"             , "annVPD_max_95percentile_CLIM"              ,
- "annWaterDeficit_95percentile_CLIM"      , "annWetDegDays_5percentile_CLIM"            ,
- "durationFrostFreeDays_5percentile_CLIM" , "durationFrostFreeDays_meanAnnAvg_CLIM", "soilDepth"  ,
-     "surfaceClay_perc"                     ,  "avgSandPerc_acrossDepth"               ,
-     "avgCoarsePerc_acrossDepth"            ,  "avgOrganicCarbonPerc_0_3cm"            ,
-     "totalAvailableWaterHoldingCapacity"
-   ) %>% 
-   rename(
-     "tmin" = tmin_meanAnnAvg_CLIM, #1
-     "tmax" = tmax_meanAnnAvg_CLIM, #2
-     "tmean" = tmean_meanAnnAvg_CLIM, #3
-     "prcp" = prcp_meanAnnTotal_CLIM, #4
-     "t_warm" = T_warmestMonth_meanAnnAvg_CLIM, #5
-     "t_cold" = T_coldestMonth_meanAnnAvg_CLIM, #6
-     "prcp_wet" = precip_wettestMonth_meanAnnAvg_CLIM, #7
-     "prcp_dry" = precip_driestMonth_meanAnnAvg_CLIM, #8
-     "prcp_seasonality" = precip_Seasonality_meanAnnAvg_CLIM, #9
-     "prcpTempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  #10
-     "abvFreezingMonth" = aboveFreezing_month_meanAnnAvg_CLIM, #11
-     "isothermality" = isothermality_meanAnnAvg_CLIM, #12 
-     "annWatDef" = annWaterDeficit_meanAnnAvg_CLIM, #13
-     "annWetDegDays" = annWetDegDays_meanAnnAvg_CLIM, #14
-     "VPD_mean" = annVPD_mean_meanAnnAvg_CLIM, #15
-     "VPD_max" = annVPD_max_meanAnnAvg_CLIM, #16
-     "VPD_min" = annVPD_min_meanAnnAvg_CLIM, #17
-     "VPD_max_95" = annVPD_max_95percentile_CLIM, #18
-     "annWatDef_95" = annWaterDeficit_95percentile_CLIM, #19
-     "annWetDegDays_5" = annWetDegDays_5percentile_CLIM, #20
-     "frostFreeDays_5" = durationFrostFreeDays_5percentile_CLIM, #21
-     "frostFreeDays" = durationFrostFreeDays_meanAnnAvg_CLIM, #22
-     #"soilDepth" #23
-     "clay" = surfaceClay_perc, #24
-     "sand" = avgSandPerc_acrossDepth, #25
-     "coarse" = avgCoarsePerc_acrossDepth, #26
-     "carbon" = avgOrganicCarbonPerc_0_3cm, #27
-     "AWHC" = totalAvailableWaterHoldingCapacity #28
-     ) %>%
+      #"tmin", 
+      #"tmax", 
+      #"tmean",
+      #"prcp",
+      "t_warm",
+      #"t_cold",
+      "prcp_wet",
+      #"prcp_dry",
+      #"prcp_seasonality",
+      "prcpTempCorr",
+      #"abvFreezingMonth",
+      "isothermality",
+      #"annWatDef",
+      "annWetDegDays",
+      #"VPD_mean",
+      "VPD_max",
+      "VPD_min",
+      #"VPD_max_95",
+      #"annWatDef_95",
+      #"annWetDegDays_5",#
+      #"frostFreeDays_5",
+      #"frostFreeDays",#
+      "soilDepth",#
+      #"clay",
+      "sand",
+      "coarse",
+      "carbon",
+      #"AWHC"
+   ) %>%
+    
     #slice_sample(n = 5e3) %>% 
    cor()  %>% 
    caret::findCorrelation(cutoff = .7, verbose = TRUE, names = TRUE, exact = TRUE)) #%>% 
 
 ```
 
-- 'prcp' and 'prcp_wettestMonth': cor =  .955; chose 'prcp_wettestMonth'
-- '95th percentile of annual water deficit' and 'annual water deficit': cor = .97; chose 'annual water deficit'
-- 'annual water deficit' and 'VPD_mean': cor = .73; chose 'VPD_mean'
-- 'VPD_mean' and 'tmean': cor = .999; chose 'tmean'
-- 'tmean' and 'VPD_max': cor = .884; chose 'VPD_max'
-- 'VPD_max' and 'VPD_max_95': cor = .95; chose 'VPD_max_95'
-- '5th percentile of frost free days' and 'tmin': cor = .97; chose 'tmin'
-- '5th percentile of annual wet degree days' and 'annual wet degree days': cor = .93; chose 'annual wet degree days'
-- 'tmin' and 'tmean': cor = .92; chose 'tmean' 
-- 'tmax' and 'frost free days': cor = .90; chose 'frost free days' 
-- 'frost free days' and 'above freezing month': cor = .99; chose 'above freezing month' 
-- 'above freezing month' and 'temp of warmest month': cor = .80; chose 'temp of warmest month'
-- '% clay' and '% sand': cor = .79; chose '% sand'
-- 'total available water holding capacity' and 'soil depth': cor = .89; chose 'total available water holding capacity'
+- 'annWatDef' and 'annWatDef_95': cor =  .955; chose 'annWatDef' (opposite of function rec., but annWatDef is simpler to calculate)
+- 'annWatDef' and 'annWetDegDays_5': cor = .86; chose 'annWetDegDays_5' 
+- 'frostFreeDays_5' and 'frostFreeDays': cor = .98; chose 'frostFreeDays'
+- 'tmin' and 'frostFreeDays': cor = .99; chose 'frostFreeDays'
+- 'tmean' and 'VPD_mean': cor = .95; chose 'tmean' (opposite of function rec., but tmean is simpler to calculate)
+- 'prcp' and 'prcp_dry': cor = .73; chose 'prcp' (opposite of function rec., but prcp is more common variable)
+- 'frostFreeDays' and 't_cold': cor = .93; chose 't_cold' 
+- 'prcp' and 'prcp_wet': cor = .91; chose 'prcp_wet'
+- 'frostFreeDays' and 'abvFreezingMonth': cor = .99; chose 'abvFreezingMonth'
+- 'tmean' and 'VPD_min': cor = .85; chose 'VPD_min' 
+- 'annWetDegDays_5' and 'prcp_seasonality': cor = .75; chose 'prcp_seasonality' 
+- 'abvFreezingMonth' and 'tmax': cor = .75; chose 'tmax'
+- 'clay' and 'sand': cor = .91; chose 'sand'
+- 'tmax' and 't_warm': cor = .87; chose 't_warm'
+- 'VPD_max' and 'VPD_max_95': cor = .93; chose 'VPD_max' (opposite of function rec., but VPD_max is more common variable)
+- 'prcp_seasonality' and 'annWetDegDays': cor = .82; chose 'annWetDegDays'
+- 'AWHC' and 'soilDepth': cor = .9; chose 'soilDepth'
 
 The remaining variables that are uncorrelated are shown here: 
 ```{r, echo = FALSE, fig.width=9, fig.height=8}
@@ -258,66 +296,36 @@ The remaining variables that are uncorrelated are shown here:
 
 (corrPlot <- 
    datGrassShrub %>% 
-   dplyr::select(
-     #"tmin_meanAnnAvg_CLIM" ,                    
- #"tmax_meanAnnAvg_CLIM"                   , 
-     #"tmean_meanAnnAvg_CLIM"                     ,
- #"prcp_meanAnnTotal_CLIM"                    ,
- "T_warmestMonth_meanAnnAvg_CLIM"         , 
- "T_coldestMonth_meanAnnAvg_CLIM"            ,
- "precip_wettestMonth_meanAnnAvg_CLIM"    , 
- "precip_driestMonth_meanAnnAvg_CLIM"        ,
- "precip_Seasonality_meanAnnAvg_CLIM"     , 
- "PrecipTempCorr_meanAnnAvg_CLIM"            ,
- #"aboveFreezing_month_meanAnnAvg_CLIM"    , 
- "isothermality_meanAnnAvg_CLIM"             ,
- #"annWaterDeficit_meanAnnAvg_CLIM"        , 
- "annWetDegDays_meanAnnAvg_CLIM"             ,
- #"annVPD_mean_meanAnnAvg_CLIM"            , 
- #"annVPD_max_meanAnnAvg_CLIM"                ,
- "annVPD_min_meanAnnAvg_CLIM"             , 
- "annVPD_max_95percentile_CLIM"              ,
- #"annWaterDeficit_95percentile_CLIM"      , 
- #"annWetDegDays_5percentile_CLIM"            ,
- #"durationFrostFreeDays_5percentile_CLIM" , 
- #"durationFrostFreeDays_meanAnnAvg_CLIM", 
- #"soilDepth"  ,
-     #"surfaceClay_perc"                     ,  
- "avgSandPerc_acrossDepth"               ,
-     "avgCoarsePerc_acrossDepth"            ,  
- "avgOrganicCarbonPerc_0_3cm"            ,
-     "totalAvailableWaterHoldingCapacity"
+      dplyr::select(
+       #"tmin", 
+      #"tmax", 
+      #"tmean",
+      #"prcp",
+      "t_warm",
+      #"t_cold",
+      "prcp_wet",
+      #"prcp_dry",
+      #"prcp_seasonality",
+      "prcpTempCorr",
+      #"abvFreezingMonth",
+      "isothermality",
+      #"annWatDef",
+      "annWetDegDays",
+      #"VPD_mean",
+      "VPD_max",
+      "VPD_min",
+      #"VPD_max_95",
+      #"annWatDef_95",
+      #"annWetDegDays_5",#
+      #"frostFreeDays_5",
+      #"frostFreeDays",#
+      "soilDepth",#
+      #"clay",
+      "sand",
+      "coarse",
+      "carbon",
+      #"AWHC"
    ) %>% 
-   rename(
-     #"tmin" = tmin_meanAnnAvg_CLIM, #1
-     #"tmax" = tmax_meanAnnAvg_CLIM, #2
-    #tmean" = tmean_meanAnnAvg_CLIM, #3
-     #"prcp" = prcp_meanAnnTotal_CLIM, #4
-     "t_warm" = T_warmestMonth_meanAnnAvg_CLIM, #5
-     "t_cold" = T_coldestMonth_meanAnnAvg_CLIM, #6
-     "prcp_wet" = precip_wettestMonth_meanAnnAvg_CLIM, #7
-     "prcp_dry" = precip_driestMonth_meanAnnAvg_CLIM, #8
-     "prcp_\n seasonality" = precip_Seasonality_meanAnnAvg_CLIM, #9
-     "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  #10
-     #"abvFreezingMonth" = aboveFreezing_month_meanAnnAvg_CLIM, #11
-     "isother\n -mality" = isothermality_meanAnnAvg_CLIM, #12 
-     #"annWatDef" = annWaterDeficit_meanAnnAvg_CLIM, #13
-     "annWet\n DegDays" = annWetDegDays_meanAnnAvg_CLIM, #14
-     #"VPD_mean" = annVPD_mean_meanAnnAvg_CLIM, #15
-     #"VPD_max" = annVPD_max_meanAnnAvg_CLIM, #16
-     "VPD_\n min" = annVPD_min_meanAnnAvg_CLIM, #17
-     "VPD_\n max_95" = annVPD_max_95percentile_CLIM, #18
-     #"annWatDef_95" = annWaterDeficit_95percentile_CLIM, #19
-     #"annWetDegDays_5" = annWetDegDays_5percentile_CLIM, #20
-     #"frostFreeDays_5" = durationFrostFreeDays_5percentile_CLIM, #21
-     #"frostFreeDays" = durationFrostFreeDays_meanAnnAvg_CLIM, #22
-     #"soilDepth" #23
-     #"clay" = surfaceClay_perc, #24
-     "sand" = avgSandPerc_acrossDepth, #25
-     "coarse" = avgCoarsePerc_acrossDepth, #26
-     "carbon" = avgOrganicCarbonPerc_0_3cm, #27
-     "AWHC" = totalAvailableWaterHoldingCapacity #28
-     ) %>%
     slice_sample(n = 5e3) %>% 
    #cor()  %>% 
    #caret::findCorrelation(cutoff = .7, verbose = TRUE, names = TRUE, exact = TRUE)) 
@@ -331,13 +339,64 @@ The remaining variables that are uncorrelated are shown here:
 First, get data just for forest sites (and drop NAs )
 ```{r }
 ## drop observations so we don't have any NAs
-datForest<- dat %>% 
-  select(tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM, swe_meanAnn_5yrAnom:durationFrostFreeDays_meanAnnAvg_5yrAnom, 
+datForest <- dat %>% 
+  select(tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM, tmean_meanAnnAvg_3yrAnom:durationFrostFreeDays_meanAnnAvg_3yrAnom, 
          soilDepth:totalAvailableWaterHoldingCapacity, newRegion) %>% 
   drop_na() %>% 
-  filter(newRegion %in% c("eastForest", "westForest"))
+  filter(newRegion %in% c("eastForest", "westForest")) %>%  
+  rename("tmin" = tmin_meanAnnAvg_CLIM, 
+     "tmax" = tmax_meanAnnAvg_CLIM, #1
+     "tmean" = tmean_meanAnnAvg_CLIM, 
+     "prcp" = prcp_meanAnnTotal_CLIM, 
+     "t_warm" = T_warmestMonth_meanAnnAvg_CLIM,
+     "t_cold" = T_coldestMonth_meanAnnAvg_CLIM, 
+     "prcp_wet" = precip_wettestMonth_meanAnnAvg_CLIM,
+     "prcp_dry" = precip_driestMonth_meanAnnAvg_CLIM, 
+     "prcp_seasonality" = precip_Seasonality_meanAnnAvg_CLIM, #2
+     "prcpTempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  #3
+     "abvFreezingMonth" = aboveFreezing_month_meanAnnAvg_CLIM, 
+     "isothermality" = isothermality_meanAnnAvg_CLIM, #4
+     "annWatDef" = annWaterDeficit_meanAnnAvg_CLIM, 
+     "annWetDegDays" = annWetDegDays_meanAnnAvg_CLIM,
+     "VPD_mean" = annVPD_mean_meanAnnAvg_CLIM, 
+     "VPD_max" = annVPD_max_meanAnnAvg_CLIM, #5
+     "VPD_min" = annVPD_min_meanAnnAvg_CLIM, #6
+     "VPD_max_95" = annVPD_max_95percentile_CLIM, 
+     "annWatDef_95" = annWaterDeficit_95percentile_CLIM, 
+     "annWetDegDays_5" = annWetDegDays_5percentile_CLIM, 
+     "frostFreeDays_5" = durationFrostFreeDays_5percentile_CLIM, 
+     "frostFreeDays" = durationFrostFreeDays_meanAnnAvg_CLIM, 
+     #"soilDepth" = soilDepth, #7
+     "clay" = surfaceClay_perc, 
+     "sand" = avgSandPerc_acrossDepth, #8
+     "coarse" = avgCoarsePerc_acrossDepth, #9
+     "carbon" = avgOrganicCarbonPerc_0_3cm, #10
+     "AWHC" = totalAvailableWaterHoldingCapacity,
+     ## anomaly variables
+     tmean_anom = tmean_meanAnnAvg_3yrAnom, #15
+     tmin_anom = tmin_meanAnnAvg_3yrAnom, #16
+     tmax_anom = tmax_meanAnnAvg_3yrAnom, #17
+    prcp_anom = prcp_meanAnnTotal_3yrAnom, #18
+      t_warm_anom = T_warmestMonth_meanAnnAvg_3yrAnom,  #19
+     t_cold_anom = T_coldestMonth_meanAnnAvg_3yrAnom, #20
+      prcp_wet_anom = precip_wettestMonth_meanAnnAvg_3yrAnom, #21
+      precp_dry_anom = precip_driestMonth_meanAnnAvg_3yrAnom,  #22
+    prcp_seasonality_anom = precip_Seasonality_meanAnnAvg_3yrAnom, #23 
+     prcpTempCorr_anom = PrecipTempCorr_meanAnnAvg_3yrAnom, #24
+      aboveFreezingMonth_anom = aboveFreezing_month_meanAnnAvg_3yrAnom, #25  
+    isothermality_anom = isothermality_meanAnnAvg_3yrAnom, #26
+       annWatDef_anom = annWaterDeficit_meanAnnAvg_3yrAnom, #27
+     annWetDegDays_anom = annWetDegDays_meanAnnAvg_3yrAnom,  #28
+      VPD_mean_anom = annVPD_mean_meanAnnAvg_3yrAnom, #29
+      VPD_min_anom = annVPD_min_meanAnnAvg_3yrAnom,  #30
+      VPD_max_anom = annVPD_max_meanAnnAvg_3yrAnom,  #31
+     VPD_max_95_anom = annVPD_max_95percentile_3yrAnom, #32
+      annWatDef_95_anom = annWaterDeficit_95percentile_3yrAnom, #33 
+      annWetDegDays_5_anom = annWetDegDays_5percentile_3yrAnom ,  #34
+    frostFreeDays_5_anom = durationFrostFreeDays_5percentile_3yrAnom, #35 
+      frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_3yrAnom #36
+     ) 
 ```
-
 
 The following variables were removed due to correlation with other variables: 
 
@@ -345,74 +404,56 @@ The following variables were removed due to correlation with other variables:
 (corrPlot <- 
    datForest %>% 
    dplyr::select(
-     "tmin_meanAnnAvg_CLIM" ,                    
- "tmax_meanAnnAvg_CLIM"                   , 
-     "tmean_meanAnnAvg_CLIM"                     ,
- "prcp_meanAnnTotal_CLIM"                    ,
- "T_warmestMonth_meanAnnAvg_CLIM"         , "T_coldestMonth_meanAnnAvg_CLIM"            ,
- "precip_wettestMonth_meanAnnAvg_CLIM"    , "precip_driestMonth_meanAnnAvg_CLIM"        ,
- "precip_Seasonality_meanAnnAvg_CLIM"     , "PrecipTempCorr_meanAnnAvg_CLIM"            ,
- "aboveFreezing_month_meanAnnAvg_CLIM"    , "isothermality_meanAnnAvg_CLIM"             ,
- "annWaterDeficit_meanAnnAvg_CLIM"        , "annWetDegDays_meanAnnAvg_CLIM"             ,
- "annVPD_mean_meanAnnAvg_CLIM"            , "annVPD_max_meanAnnAvg_CLIM"                ,
- "annVPD_min_meanAnnAvg_CLIM"             , "annVPD_max_95percentile_CLIM"              ,
- "annWaterDeficit_95percentile_CLIM"      , "annWetDegDays_5percentile_CLIM"            ,
- "durationFrostFreeDays_5percentile_CLIM" , "durationFrostFreeDays_meanAnnAvg_CLIM", "soilDepth"  ,
-     "surfaceClay_perc"                     ,  "avgSandPerc_acrossDepth"               ,
-     "avgCoarsePerc_acrossDepth"            ,  "avgOrganicCarbonPerc_0_3cm"            ,
-     "totalAvailableWaterHoldingCapacity"
-   ) %>% 
-   rename(
-     "tmin" = tmin_meanAnnAvg_CLIM, #1
-     "tmax" = tmax_meanAnnAvg_CLIM, #2
-     "tmean" = tmean_meanAnnAvg_CLIM, #3
-     "prcp" = prcp_meanAnnTotal_CLIM, #4
-     "t_warm" = T_warmestMonth_meanAnnAvg_CLIM, #5
-     "t_cold" = T_coldestMonth_meanAnnAvg_CLIM, #6
-     "prcp_wet" = precip_wettestMonth_meanAnnAvg_CLIM, #7
-     "prcp_dry" = precip_driestMonth_meanAnnAvg_CLIM, #8
-     "prcp_seasonality" = precip_Seasonality_meanAnnAvg_CLIM, #9
-     "prcpTempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  #10
-     "abvFreezingMonth" = aboveFreezing_month_meanAnnAvg_CLIM, #11
-     "isothermality" = isothermality_meanAnnAvg_CLIM, #12 
-     "annWatDef" = annWaterDeficit_meanAnnAvg_CLIM, #13
-     "annWetDegDays" = annWetDegDays_meanAnnAvg_CLIM, #14
-     "VPD_mean" = annVPD_mean_meanAnnAvg_CLIM, #15
-     "VPD_max" = annVPD_max_meanAnnAvg_CLIM, #16
-     "VPD_min" = annVPD_min_meanAnnAvg_CLIM, #17
-     "VPD_max_95" = annVPD_max_95percentile_CLIM, #18
-     "annWatDef_95" = annWaterDeficit_95percentile_CLIM, #19
-     "annWetDegDays_5" = annWetDegDays_5percentile_CLIM, #20
-     "frostFreeDays_5" = durationFrostFreeDays_5percentile_CLIM, #21
-     "frostFreeDays" = durationFrostFreeDays_meanAnnAvg_CLIM, #22
-     #"soilDepth" #23
-     "clay" = surfaceClay_perc, #24
-     "sand" = avgSandPerc_acrossDepth, #25
-     "coarse" = avgCoarsePerc_acrossDepth, #26
-     "carbon" = avgOrganicCarbonPerc_0_3cm, #27
-     "AWHC" = totalAvailableWaterHoldingCapacity #28
-     ) %>%
+      #"tmin",
+      #"tmax",
+      #"tmean",
+      "prcp",
+      "t_warm",
+      #"t_cold",
+      #"prcp_wet",
+      "prcp_seasonality",
+      "prcpTempCorr",
+      #"abvFreezingMonth", 
+      "isothermality",
+      #"annWatDef",
+      "annWetDegDays", 
+      #"VPD_mean",
+      #"VPD_max",
+      "VPD_min",
+      "VPD_max_95",
+      #"annWatDef_95",
+      #"annWetDegDays_5",
+      #"frostFreeDays_5",
+      #"frostFreeDays",
+      "soilDepth",
+      #"clay",
+      "sand",
+      "coarse",
+      "carbon"#,
+      #"AWHC"
+   ) %>%
     #slice_sample(n = 5e3) %>% 
    cor()  %>% 
    caret::findCorrelation(cutoff = .7, verbose = TRUE, names = TRUE, exact = TRUE)) #%>% 
 
 ```
 
-- 'tmin' and 'frost free days- 5th percentile': cor =  .95; chose 'frost free days - 5th percentile'
-- 'frost free days - 5th percentile' and 'frost free days': cor = .97; chose 'frost free days'
-- 'frost free days' and 'above freezing month': cor = .99; chose 'above freezing month'
-- 'abvFreezingMonth' and 'tmax': cor = .86; chose 'tmax'
+- 'frostFreeDays' and 'abvFreezingMonth': cor =  .99; chose 'abvFreezingMonth'
+- 'tmean' and 'VPD_mean': cor = .99; chose 'VPD_mean' 
+- 'abvFreezingMonth' and 'frostFreeDays_5': cor = .96; chose 'frostFreeDays_5'
+- 'VPD_mean' and 'annWatDef_95': cor = .71; chose 'annWatDef_95' 
+- 'tmin' and 'frostFreeDays_5': cor = .87; chose 'frostFreeDays_5' 
 - 'annWatDef_95' and 'annWatDef': cor = .98; chose 'annWatDef'
-- 'tmax' and 't_cold': cor = .82; chose 't_cold'
-- 'annWatDef' and 'prcp_dry': cor = .97; chose 'prcp_dry'
-- 'prcp_dry' and 'annWetDegDays_5': cor = .93; chose 'annWetDegDays_5'
+- 't_cold' and 'frostFreeDays_5': cor = .97; chose 't_cold' (opposite of function recommendation, but t_cold is easier to calculate)
+- 'annWatDef' and 'VPD_max': cor = .71; chose 'VPD_max'
+- 't_cold' and 'tmax': cor = .77; chose 'tmax'
 - 'VPD_max' and 'VPD_max_95': cor = .92; chose 'VPD_max_95' 
-- 'VPD_max_95' and 'VPD_mean': cor = .74; chose 'VPD_mean' 
-- 'VPD_mean' and 'tmean': cor = .99; chose 'tmean' 
-- 'tmean' and 'VPD_min': cor = .80; chose 'VPD_min'
-- 'totalAvailableWaterHoldingCapacity' and 'soilDepth': cor = .79; chose 'soilDepth'
-- 'prcp' and 'prcp_wet': cor = .94; chose 'prcp'
-- 'annWetDegDays_5' and 'prcp_seasonality': cor = .77; chose 'prcp_seasonality'
+- 'prcp_dry' and 'prcp_seasonality': cor = .73; chose 'prcp_seasonality'
+- 'prcp_wet' and 'prcp': cor = .95; chose 'prcp' 
+- 'totalAvailableWaterHoldingCapacity' and 'soilDepth': cor = .82; chose 'soilDepth'
+- 'tmax' and 't_warm': cor = .87; chose 't_warm'
+- 'annWetDegDays' and 'annWetDegDays_5': cor = .89; chose 'annWetDegDays'(opposite of function recommendation, but annWetDegDays is easier to calculate) 
+- 'sand' and 'clay': cor = .89; chose 'sand'
 
 The remaining variables that are uncorrelated are shown here: 
 ```{r, echo = FALSE, fig.width=9, fig.height=8}
@@ -421,66 +462,34 @@ The remaining variables that are uncorrelated are shown here:
 
 
 (corrPlot <- 
-   datForest %>% 
-   dplyr::select(
-     #"tmin_meanAnnAvg_CLIM" ,                    
- #"tmax_meanAnnAvg_CLIM"                   , 
-     #"tmean_meanAnnAvg_CLIM"                     ,
- "prcp_meanAnnTotal_CLIM"                    ,
- "T_warmestMonth_meanAnnAvg_CLIM"         , 
- "T_coldestMonth_meanAnnAvg_CLIM"            ,
- #"precip_wettestMonth_meanAnnAvg_CLIM"    , 
- #"precip_driestMonth_meanAnnAvg_CLIM"        ,
- "precip_Seasonality_meanAnnAvg_CLIM"     , 
- "PrecipTempCorr_meanAnnAvg_CLIM"            ,
- #"aboveFreezing_month_meanAnnAvg_CLIM"    , 
- "isothermality_meanAnnAvg_CLIM"             ,
- #"annWaterDeficit_meanAnnAvg_CLIM"        , 
- "annWetDegDays_meanAnnAvg_CLIM"             ,
- #"annVPD_mean_meanAnnAvg_CLIM"            , 
- #"annVPD_max_meanAnnAvg_CLIM"                ,
- "annVPD_min_meanAnnAvg_CLIM"             , 
- #"annVPD_max_95percentile_CLIM"              ,
- #"annWaterDeficit_95percentile_CLIM"      , 
- #"annWetDegDays_5percentile_CLIM"            ,
- #"durationFrostFreeDays_5percentile_CLIM" , 
- #"durationFrostFreeDays_meanAnnAvg_CLIM", 
- "soilDepth"  ,
-     "surfaceClay_perc"                     ,  
- "avgSandPerc_acrossDepth"               ,
-     "avgCoarsePerc_acrossDepth"            ,  
- "avgOrganicCarbonPerc_0_3cm"            ,
-     #"totalAvailableWaterHoldingCapacity"
-   ) %>% 
-   rename(
-    #"tmin" = tmin_meanAnnAvg_CLIM, #1
-    #"tmax" = tmax_meanAnnAvg_CLIM, #2
-    #"tmean" = tmean_meanAnnAvg_CLIM, #3
-    "prcp" = prcp_meanAnnTotal_CLIM, #4
-     "t_warm" = T_warmestMonth_meanAnnAvg_CLIM, #5
-     "t_cold" = T_coldestMonth_meanAnnAvg_CLIM, #6
-     #"prcp_wet" = precip_wettestMonth_meanAnnAvg_CLIM, #7
-     #"prcp_dry" = precip_driestMonth_meanAnnAvg_CLIM, #8
-     "prcp_\n seasonality" = precip_Seasonality_meanAnnAvg_CLIM, #9
-     "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  #10
-     #"abvFreezingMonth" = aboveFreezing_month_meanAnnAvg_CLIM, #11
-     "isother\n -mality" = isothermality_meanAnnAvg_CLIM, #12 
-     #"annWatDef" = annWaterDeficit_meanAnnAvg_CLIM, #13
-     "annWet\n DegDays" = annWetDegDays_meanAnnAvg_CLIM, #14
-     #"VPD_mean" = annVPD_mean_meanAnnAvg_CLIM, #15
-     #"VPD_max" = annVPD_max_meanAnnAvg_CLIM, #16
-     "VPD_\n min" = annVPD_min_meanAnnAvg_CLIM, #17
-     #"VPD_\n max_95" = annVPD_max_95percentile_CLIM, #18
-     #"annWatDef_95" = annWaterDeficit_95percentile_CLIM, #19
-     #"annWetDegDays_5" = annWetDegDays_5percentile_CLIM, #20
-     #"frostFreeDays_5" = durationFrostFreeDays_5percentile_CLIM, #21
-     #"frostFreeDays" = durationFrostFreeDays_meanAnnAvg_CLIM, #22
-     #"soilDepth", #23
-     "clay" = surfaceClay_perc, #24
-     "sand" = avgSandPerc_acrossDepth, #25
-     "coarse" = avgCoarsePerc_acrossDepth, #26
-     "carbon" = avgOrganicCarbonPerc_0_3cm, #27
-     #"AWHC" = totalAvailableWaterHoldingCapacity #28
+   datForest %>% select(
+    #"tmin",
+      #"tmax",
+      #"tmean",
+      "prcp",
+      "t_warm",
+      #"t_cold",
+      #"prcp_wet",
+      "prcp_seasonality",
+      "prcpTempCorr",
+      #"abvFreezingMonth", 
+      "isothermality",
+      #"annWatDef",
+      "annWetDegDays", 
+      #"VPD_mean",
+      #"VPD_max",
+      "VPD_min",
+      "VPD_max_95",
+      #"annWatDef_95",
+      #"annWetDegDays_5",
+      #"frostFreeDays_5",
+      #"frostFreeDays",
+      "soilDepth",
+      #"clay",
+      "sand",
+      "coarse",
+      "carbon"#,
+      #"AWHC"
      ) %>%
     slice_sample(n = 5e3) %>% 
    #cor()  %>% 
@@ -501,69 +510,58 @@ The following variables were removed due to correlation with other variables:
 (corrPlot <- 
    datGrassShrub %>% 
    dplyr::select(
- "T_warmestMonth_meanAnnAvg_CLIM"         , 
- "T_coldestMonth_meanAnnAvg_CLIM"            ,
- "precip_wettestMonth_meanAnnAvg_CLIM"    , 
- "precip_driestMonth_meanAnnAvg_CLIM"        ,
- "precip_Seasonality_meanAnnAvg_CLIM"     , 
- "PrecipTempCorr_meanAnnAvg_CLIM"            ,
- "isothermality_meanAnnAvg_CLIM"             ,
- "annWetDegDays_meanAnnAvg_CLIM"             ,
- "annVPD_min_meanAnnAvg_CLIM"             , 
- "annVPD_max_95percentile_CLIM"              ,                 ,  
- "avgSandPerc_acrossDepth"               ,
-     "avgCoarsePerc_acrossDepth"            ,  
- "avgOrganicCarbonPerc_0_3cm"            ,
-     "totalAvailableWaterHoldingCapacity",
+      #"tmin", 
+      #"tmax", 
+      #"tmean",
+      #"prcp",
+      "t_warm",
+      #"t_cold",
+      "prcp_wet",
+      #"prcp_dry",
+      #"prcp_seasonality",
+      "prcpTempCorr",
+      #"abvFreezingMonth",
+      "isothermality",
+      #"annWatDef",
+      "annWetDegDays",
+      #"VPD_mean",
+      "VPD_max",
+      "VPD_min",
+      #"VPD_max_95",
+      #"annWatDef_95",
+      #"annWetDegDays_5",#
+      #"frostFreeDays_5",
+      #"frostFreeDays",#
+      "soilDepth",#
+      #"clay",
+      "sand",
+      "coarse",
+      "carbon",
+      #"AWHC"
  # anomaly variables
- "tmean_meanAnnAvg_5yrAnom"                 , "tmin_meanAnnAvg_5yrAnom"                  , "tmax_meanAnnAvg_5yrAnom"                ,  
- "prcp_meanAnnTotal_5yrAnom"                , "T_warmestMonth_meanAnnAvg_5yrAnom"      ,  
- "T_coldestMonth_meanAnnAvg_5yrAnom"        , "precip_wettestMonth_meanAnnAvg_5yrAnom"   , "precip_driestMonth_meanAnnAvg_5yrAnom"  ,  
- "precip_Seasonality_meanAnnAvg_5yrAnom"    , "PrecipTempCorr_meanAnnAvg_5yrAnom"        , "aboveFreezing_month_meanAnnAvg_5yrAnom" ,  
- "isothermality_meanAnnAvg_5yrAnom"         , "annWaterDeficit_meanAnnAvg_5yrAnom"       , "annWetDegDays_meanAnnAvg_5yrAnom"       ,  
- "annVPD_mean_meanAnnAvg_5yrAnom"           , "annVPD_min_meanAnnAvg_5yrAnom"            , "annVPD_max_meanAnnAvg_5yrAnom"          ,  
- "annVPD_max_95percentile_5yrAnom"          , "annWaterDeficit_95percentile_5yrAnom"     , "annWetDegDays_5percentile_5yrAnom"      ,  
- "durationFrostFreeDays_5percentile_5yrAnom", "durationFrostFreeDays_meanAnnAvg_5yrAnom" 
+    #tmean_anom ,
+     tmin_anom ,
+     tmax_anom ,
+     prcp_anom ,
+   t_warm_anom ,
+   t_cold_anom ,
+      prcp_wet_anom ,
+      precp_dry_anom ,
+    prcp_seasonality_anom ,
+     prcpTempCorr_anom ,
+      aboveFreezingMonth_anom , 
+    isothermality_anom ,
+       annWatDef_anom ,
+     annWetDegDays_anom ,
+      #VPD_mean_anom ,
+      VPD_min_anom ,
+      #VPD_max_anom ,
+     VPD_max_95_anom ,
+      annWatDef_95_anom ,
+      annWetDegDays_5_anom ,
+    frostFreeDays_5_anom ,
+      #frostFreeDays_anom 
    ) %>% 
-   rename(
-     "t_warm" = T_warmestMonth_meanAnnAvg_CLIM, #1
-     "t_cold" = T_coldestMonth_meanAnnAvg_CLIM, #2
-     "prcp_wet" = precip_wettestMonth_meanAnnAvg_CLIM, #3
-     "prcp_dry" = precip_driestMonth_meanAnnAvg_CLIM, #4
-     "prcp_seasonality" = precip_Seasonality_meanAnnAvg_CLIM, #5
-     "prcpTempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  #6
-     "isothermality" = isothermality_meanAnnAvg_CLIM, #7 
-     "VPD_min" = annVPD_min_meanAnnAvg_CLIM, #8
-     "VPD_max_95" = annVPD_max_95percentile_CLIM, #9
-     #"soilDepth" #10
-     "sand" = avgSandPerc_acrossDepth, #11
-     "coarse" = avgCoarsePerc_acrossDepth, #12
-     "carbon" = avgOrganicCarbonPerc_0_3cm, #13
-     "AWHC" = totalAvailableWaterHoldingCapacity, #14
-     ## anomaly variables
-     tmean_anom = tmean_meanAnnAvg_5yrAnom, #15
-     tmin_anom = tmin_meanAnnAvg_5yrAnom, #16
-     tmax_anom = tmax_meanAnnAvg_5yrAnom, #17
-    prcp_anom = prcp_meanAnnTotal_5yrAnom, #18
-      t_warm_anom = T_warmestMonth_meanAnnAvg_5yrAnom,  #19
-     t_cold_anom = T_coldestMonth_meanAnnAvg_5yrAnom, #20
-      prcp_wet_anom = precip_wettestMonth_meanAnnAvg_5yrAnom, #21
-      precp_dry_anom = precip_driestMonth_meanAnnAvg_5yrAnom,  #22
-    prcp_seasonality_anom = precip_Seasonality_meanAnnAvg_5yrAnom, #23 
-     prcpTempCorr_anom = PrecipTempCorr_meanAnnAvg_5yrAnom, #24
-      aboveFreezingMonth_anom = aboveFreezing_month_meanAnnAvg_5yrAnom, #25  
-    isothermality_anom = isothermality_meanAnnAvg_5yrAnom, #26
-       annWatDef_anom = annWaterDeficit_meanAnnAvg_5yrAnom, #27
-     annWetDegDays_anom = annWetDegDays_meanAnnAvg_5yrAnom,  #28
-      VPD_mean_anom = annVPD_mean_meanAnnAvg_5yrAnom, #29
-      VPD_min_anom = annVPD_min_meanAnnAvg_5yrAnom,  #30
-      VPD_max_anom = annVPD_max_meanAnnAvg_5yrAnom,  #31
-     VPD_max_95_anom = annVPD_max_95percentile_5yrAnom, #32
-      annWatDef_95_anom = annWaterDeficit_95percentile_5yrAnom, #33 
-      annWetDegDays_5_anom = annWetDegDays_5percentile_5yrAnom ,  #34
-    frostFreeDays_5_anom = durationFrostFreeDays_5percentile_5yrAnom, #35 
-      frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_5yrAnom #36
-     ) %>%
     #slice_sample(n = 5e3) %>% 
    cor()  %>% 
    caret::findCorrelation(cutoff = .7, verbose = TRUE, names = TRUE, exact = TRUE)) #%>% 
@@ -573,8 +571,8 @@ The following variables were removed due to correlation with other variables:
 - 'tmean_anom' and 'VPD_mean_anom': cor =  .998; chose 'VPD_mean_anom'
 - 'VPD_mean_anom' and 'VPD_max_anom': cor =  .83; chose 'VPD_max_anom'
 - 'VPD_max_anom' and 'VPD_max_95_anom': cor =  .80; chose 'VPD_max_95_anom'
-- 'prcp_anom' and 'prcp_wet_anom': cor =  .80; chose 'prcp_wet_anom'
-- 'frostFreeDays_anom' and 'aboveFreezingMonth_anom': cor =  .82; chose 'aboveFreezingMonth_anom'
+- 'frostFreeDays_anom' and 'aboveFreezingMonth_anom': cor =  .79; chose 'aboveFreezingMonth_anom'
+- 'prcp_anom' and 'prcp_wet_anom': cor =  .73; chose 'prcp_wet_anom'
 
 
 The remaining variables that are uncorrelated are shown here: 
@@ -585,77 +583,63 @@ The remaining variables that are uncorrelated are shown here:
 corrPlot <- 
    datGrassShrub %>% 
    dplyr::select(
- "T_warmestMonth_meanAnnAvg_CLIM"         , 
- "T_coldestMonth_meanAnnAvg_CLIM"            ,
- "precip_wettestMonth_meanAnnAvg_CLIM"    , 
- "precip_driestMonth_meanAnnAvg_CLIM"        ,
- "precip_Seasonality_meanAnnAvg_CLIM"     , 
- "PrecipTempCorr_meanAnnAvg_CLIM"            ,
- "isothermality_meanAnnAvg_CLIM"             ,
- "annWetDegDays_meanAnnAvg_CLIM"             ,
- "annVPD_min_meanAnnAvg_CLIM"             , 
- "annVPD_max_95percentile_CLIM"              ,                 ,  
- "avgSandPerc_acrossDepth"               ,
-     "avgCoarsePerc_acrossDepth"            ,  
- "avgOrganicCarbonPerc_0_3cm"            ,
-     "totalAvailableWaterHoldingCapacity",
+ #"tmin", 
+      #"tmax", 
+      #"tmean",
+      #"prcp",
+      "t_warm",
+      #"t_cold",
+      "prcp_wet",
+      #"prcp_dry",
+      #"prcp_seasonality",
+      "prcpTempCorr",
+      #"abvFreezingMonth",
+      "isothermality",
+      #"annWatDef",
+      "annWetDegDays",
+      #"VPD_mean",
+      "VPD_max",
+      "VPD_min",
+      #"VPD_max_95",
+      #"annWatDef_95",
+      #"annWetDegDays_5",#
+      #"frostFreeDays_5",
+      #"frostFreeDays",#
+      "soilDepth",#
+      #"clay",
+      "sand",
+      "coarse",
+      "carbon",
+      #"AWHC"
  # anomaly variables
- #"tmean_meanAnnAvg_5yrAnom"                 , 
- "tmin_meanAnnAvg_5yrAnom"                  , "tmax_meanAnnAvg_5yrAnom"                ,  
- #"prcp_meanAnnTotal_5yrAnom"                , 
- "T_warmestMonth_meanAnnAvg_5yrAnom"      ,  
- "T_coldestMonth_meanAnnAvg_5yrAnom"        , "precip_wettestMonth_meanAnnAvg_5yrAnom"   , "precip_driestMonth_meanAnnAvg_5yrAnom"  ,  
- "precip_Seasonality_meanAnnAvg_5yrAnom"    , "PrecipTempCorr_meanAnnAvg_5yrAnom"        , "aboveFreezing_month_meanAnnAvg_5yrAnom" ,  
- "isothermality_meanAnnAvg_5yrAnom"         , "annWaterDeficit_meanAnnAvg_5yrAnom"       , "annWetDegDays_meanAnnAvg_5yrAnom"       ,  
- #"annVPD_mean_meanAnnAvg_5yrAnom"           , 
- "annVPD_min_meanAnnAvg_5yrAnom"            , #"annVPD_max_meanAnnAvg_5yrAnom"          ,  
- "annVPD_max_95percentile_5yrAnom"          , "annWaterDeficit_95percentile_5yrAnom"     , "annWetDegDays_5percentile_5yrAnom"      ,  
- "durationFrostFreeDays_5percentile_5yrAnom" #, "durationFrostFreeDays_meanAnnAvg_5yrAnom" 
-   ) %>% 
-   rename(
-     "temp_warmestMonth" = T_warmestMonth_meanAnnAvg_CLIM, #1
-     "temp_coldestMonth" = T_coldestMonth_meanAnnAvg_CLIM, #2
-     "precip_wettestMonth" = precip_wettestMonth_meanAnnAvg_CLIM, #3
-     "precip_driestMonth" = precip_driestMonth_meanAnnAvg_CLIM, #4
-     "precip_seasonality" = precip_Seasonality_meanAnnAvg_CLIM, #5
-     "precipTempCorrelation" = PrecipTempCorr_meanAnnAvg_CLIM,  #6
-     "isothermality" = isothermality_meanAnnAvg_CLIM, #7 
-     "VPD_min" = annVPD_min_meanAnnAvg_CLIM, #8
-     "VPD_max_95thPercentile" = annVPD_max_95percentile_CLIM, #9
-     #"soilDepth" #10
-     "annualWetDegreeDays" = annWetDegDays_meanAnnAvg_CLIM,
-     "sand_AvgPercAcrossDepth" = avgSandPerc_acrossDepth, #11
-     "coarse_AvgPercAcrossDepth" = avgCoarsePerc_acrossDepth, #12
-     "organicMatterInSoilSurface" = avgOrganicCarbonPerc_0_3cm, #13
-     "totalAvailableWaterHoldingCapacity" = totalAvailableWaterHoldingCapacity, #14
-     ## anomaly variables
-     #tmean_anom = tmean_meanAnnAvg_5yrAnom, #15
-     tmin_3yr_anomaly = tmin_meanAnnAvg_5yrAnom, #16
-     tmax_3yr_anom = tmax_meanAnnAvg_5yrAnom, #17
-    #prcp_anom = prcp_meanAnnTotal_5yrAnom, #18
-      temp_warmestMonth_3yr_anom = T_warmestMonth_meanAnnAvg_5yrAnom,  #19
-     temp_coldestMonth_3yr_anom = T_coldestMonth_meanAnnAvg_5yrAnom, #20
-      precip_wettestMonth_3yr_anom = precip_wettestMonth_meanAnnAvg_5yrAnom, #21
-      precip_driestMonth_3yr_anom = precip_driestMonth_meanAnnAvg_5yrAnom,  #22
-    precip_seasonality_3yr_anom = precip_Seasonality_meanAnnAvg_5yrAnom, #23 
-     precipTempCorrelation_3yr_anom = PrecipTempCorr_meanAnnAvg_5yrAnom, #24
-      aboveFreezingMonth_3yr_anom = aboveFreezing_month_meanAnnAvg_5yrAnom, #25  
-    isothermality_3yr_anom = isothermality_meanAnnAvg_5yrAnom, #26
-       annualWaterDeficit_3yr_anom = annWaterDeficit_meanAnnAvg_5yrAnom, #27
-     annualWetDegreeDays_3yr_anom = annWetDegDays_meanAnnAvg_5yrAnom,  #28
-      #VPD_mean_anom = annVPD_mean_meanAnnAvg_5yrAnom, #29
-      VPD_min_3yr_anom = annVPD_min_meanAnnAvg_5yrAnom,  #30
-      #VPD_max_anom = annVPD_max_meanAnnAvg_5yrAnom,  #31
-     VPD_max_95thPercentile_3yr_anom = annVPD_max_95percentile_5yrAnom, #32
-      annualWaterDeficit_95thPercentile_3yr_anom = annWaterDeficit_95percentile_5yrAnom, #33 
-      annualWetDegreeDays_5thPercentile_3yr_anom = annWetDegDays_5percentile_5yrAnom ,  #34
-    frostFreeDays_5thPercentile_3yr_anom = durationFrostFreeDays_5percentile_5yrAnom, #35 
-      #frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_5yrAnom #36
-     ) %>%
+    #tmean_anom ,
+     tmin_anom ,
+     tmax_anom ,
+     prcp_anom ,
+   t_warm_anom ,
+   t_cold_anom ,
+      prcp_wet_anom ,
+      precp_dry_anom ,
+    prcp_seasonality_anom ,
+     prcpTempCorr_anom ,
+      aboveFreezingMonth_anom , 
+    isothermality_anom ,
+       annWatDef_anom ,
+     annWetDegDays_anom ,
+      #VPD_mean_anom ,
+      VPD_min_anom ,
+      #VPD_max_anom ,
+     VPD_max_95_anom ,
+      annWatDef_95_anom ,
+      annWetDegDays_5_anom ,
+    frostFreeDays_5_anom ,
+      #frostFreeDays_anom 
+   ) %>%
     names() 
 
-kable(data.frame("ClimateVariables" = c(corrPlot[1:14],rep_len(NA,length.out = 3)), 
-                 "WeatherAnomalyVariables" = corrPlot[15:31]))
+kable(data.frame("Climate_And_Soils_Variables" = c(corrPlot[1:11],rep_len(NA,length.out = 7)), 
+                 "Weather_Anomaly_Variables" = corrPlot[12:29]), format = 'html') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 
 ```
 
@@ -666,142 +650,133 @@ The following variables were removed due to correlation with other variables:
 (corrPlot <- 
    datForest %>% 
    dplyr::select(
- prcp_meanAnnTotal_CLIM,
-     T_warmestMonth_meanAnnAvg_CLIM, 
-     T_coldestMonth_meanAnnAvg_CLIM,
-     precip_Seasonality_meanAnnAvg_CLIM, 
-     PrecipTempCorr_meanAnnAvg_CLIM,  
-     isothermality_meanAnnAvg_CLIM, 
-     annWetDegDays_meanAnnAvg_CLIM, 
-     annVPD_min_meanAnnAvg_CLIM, 
-    surfaceClay_perc,
-    avgSandPerc_acrossDepth, 
-     avgCoarsePerc_acrossDepth, 
-     avgOrganicCarbonPerc_0_3cm, 
+ #"tmin",
+      #"tmax",
+      #"tmean",
+      "prcp",
+      "t_warm",
+      #"t_cold",
+      #"prcp_wet",
+      #prcp_dry,
+      "prcp_seasonality",
+      "prcpTempCorr",
+      #"abvFreezingMonth", 
+      "isothermality",
+      #"annWatDef",
+      "annWetDegDays", 
+      #"VPD_mean",
+      #"VPD_max",
+      "VPD_min",
+      "VPD_max_95",
+      #"annWatDef_95",
+      #"annWetDegDays_5",
+      #"frostFreeDays_5",
+      #"frostFreeDays",
+      "soilDepth",
+      #"clay",
+      "sand",
+      "coarse",
+      "carbon",
+      #"AWHC"
  # anomaly variables
- "tmean_meanAnnAvg_5yrAnom"                 , "tmin_meanAnnAvg_5yrAnom"                  , "tmax_meanAnnAvg_5yrAnom"                ,  
- "prcp_meanAnnTotal_5yrAnom"                , "T_warmestMonth_meanAnnAvg_5yrAnom"      ,  
- "T_coldestMonth_meanAnnAvg_5yrAnom"        , "precip_wettestMonth_meanAnnAvg_5yrAnom"   , "precip_driestMonth_meanAnnAvg_5yrAnom"  ,  
- "precip_Seasonality_meanAnnAvg_5yrAnom"    , "PrecipTempCorr_meanAnnAvg_5yrAnom"        , "aboveFreezing_month_meanAnnAvg_5yrAnom" ,  
- "isothermality_meanAnnAvg_5yrAnom"         , "annWaterDeficit_meanAnnAvg_5yrAnom"       , "annWetDegDays_meanAnnAvg_5yrAnom"       ,  
- "annVPD_mean_meanAnnAvg_5yrAnom"           , "annVPD_min_meanAnnAvg_5yrAnom"            , "annVPD_max_meanAnnAvg_5yrAnom"          ,  
- "annVPD_max_95percentile_5yrAnom"          , "annWaterDeficit_95percentile_5yrAnom"     , "annWetDegDays_5percentile_5yrAnom"      ,  
- "durationFrostFreeDays_5percentile_5yrAnom", "durationFrostFreeDays_meanAnnAvg_5yrAnom" 
-   ) %>% 
-   rename(
-     "prcp" = prcp_meanAnnTotal_CLIM, #1
-     "t_warm" = T_warmestMonth_meanAnnAvg_CLIM, #2
-     "t_cold" = T_coldestMonth_meanAnnAvg_CLIM, #3
-      "prcp_seasonality" = precip_Seasonality_meanAnnAvg_CLIM, #4
-     "prcpTempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  #5
-     "isothermality" = isothermality_meanAnnAvg_CLIM, #6
-     "annWetDegDays" = annWetDegDays_meanAnnAvg_CLIM, #7
-     "VPD_min" = annVPD_min_meanAnnAvg_CLIM, #8
-     "clay" = surfaceClay_perc, #9
-     "sand" = avgSandPerc_acrossDepth, #10
-     "coarse" = avgCoarsePerc_acrossDepth, #11
-     "carbon" = avgOrganicCarbonPerc_0_3cm, #12
-     ## anomaly variables
-     tmean_anom = tmean_meanAnnAvg_5yrAnom, #13
-     tmin_anom = tmin_meanAnnAvg_5yrAnom, #14
-     tmax_anom = tmax_meanAnnAvg_5yrAnom, #15
-    prcp_anom = prcp_meanAnnTotal_5yrAnom, #16
-      t_warm_anom = T_warmestMonth_meanAnnAvg_5yrAnom,  #17
-     t_cold_anom = T_coldestMonth_meanAnnAvg_5yrAnom, #18
-      prcp_wet_anom = precip_wettestMonth_meanAnnAvg_5yrAnom, #19
-      precp_dry_anom = precip_driestMonth_meanAnnAvg_5yrAnom,  #20
-    prcp_seasonality_anom = precip_Seasonality_meanAnnAvg_5yrAnom, #21
-     prcpTempCorr_anom = PrecipTempCorr_meanAnnAvg_5yrAnom, #22
-      aboveFreezingMonth_anom = aboveFreezing_month_meanAnnAvg_5yrAnom, #23
-    isothermality_anom = isothermality_meanAnnAvg_5yrAnom, #24
-       annWatDef_anom = annWaterDeficit_meanAnnAvg_5yrAnom, #25
-     annWetDegDays_anom = annWetDegDays_meanAnnAvg_5yrAnom,  #26
-      VPD_mean_anom = annVPD_mean_meanAnnAvg_5yrAnom, #27
-      VPD_min_anom = annVPD_min_meanAnnAvg_5yrAnom,  #28
-      VPD_max_anom = annVPD_max_meanAnnAvg_5yrAnom,  #29
-     VPD_max_95_anom = annVPD_max_95percentile_5yrAnom, #30
-      annWatDef_95_anom = annWaterDeficit_95percentile_5yrAnom, #31
-      annWetDegDays_5_anom = annWetDegDays_5percentile_5yrAnom ,  #32
-    frostFreeDays_5_anom = durationFrostFreeDays_5percentile_5yrAnom, #33 
-      frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_5yrAnom #34
-     ) %>%
+    tmean_anom ,
+     tmin_anom ,
+     tmax_anom ,
+     prcp_anom ,
+   t_warm_anom ,
+   t_cold_anom ,
+      prcp_wet_anom ,
+      precp_dry_anom ,
+    prcp_seasonality_anom ,
+     prcpTempCorr_anom ,
+      aboveFreezingMonth_anom , 
+    isothermality_anom ,
+       annWatDef_anom ,
+     annWetDegDays_anom ,
+      VPD_mean_anom ,
+      VPD_min_anom ,
+      VPD_max_anom ,
+     VPD_max_95_anom ,
+      annWatDef_95_anom ,
+      annWetDegDays_5_anom ,
+    frostFreeDays_5_anom ,
+      frostFreeDays_anom 
+   ) %>%
     #slice_sample(n = 5e3) %>% 
    cor()  %>% 
    caret::findCorrelation(cutoff = .7, verbose = TRUE, names = TRUE, exact = TRUE)) #%>% 
 
 ```
-- 'tmin_anom' and 'tmean_anom': cor =  .73; chose 'tmean_anom'
-- 'tmean_anom' and 'VPD_mean_anom': cor =  .83; chose 'VPD_mean_anom'
+
+- 'tmean_anom' and 'VPD_mean_anom': cor =  .99; chose 'VPD_mean_anom'
 - 'VPD_mean_anom' and 'VPD_max_anom': cor =  .80; chose 'VPD_max_anom'
 - 'VPD_max_anom' and 'VPD_max_95_anom': cor =  .80; chose 'VPD_max_95_anom'
-- 'frostFreeDays_anom' and 'frostFreeDays_5_anom': cor =  .82; chose 'frostFreeDays_5_anom'
+- 'frostFreeDays_5_anom' and 'frostFreeDays_anom': cor =  .82; chose 'frostFreeDays_anom'
+- 'frostFreeDays_anom' and 'aboveFreezingMonth_anom': cor =  .82; chose 'aboveFreezingMonth_anom'
 
 The remaining variables that are uncorrelated are shown below 
 ```{r, echo = FALSE}
 
 corrPlot <- 
    datForest %>% 
-   dplyr::select(
- prcp_meanAnnTotal_CLIM,
-     T_warmestMonth_meanAnnAvg_CLIM, 
-     T_coldestMonth_meanAnnAvg_CLIM,
-     precip_Seasonality_meanAnnAvg_CLIM, 
-     PrecipTempCorr_meanAnnAvg_CLIM,  
-     isothermality_meanAnnAvg_CLIM, 
-     annWetDegDays_meanAnnAvg_CLIM, 
-     annVPD_min_meanAnnAvg_CLIM, 
-    surfaceClay_perc,
-    avgSandPerc_acrossDepth, 
-     avgCoarsePerc_acrossDepth, 
-     avgOrganicCarbonPerc_0_3cm, 
+   dplyr::select(#"tmin",
+      #"tmax",
+      #"tmean",
+      "prcp",
+      "t_warm",
+      #"t_cold",
+      #"prcp_wet",
+      #prcp_dry,
+      "prcp_seasonality",
+      "prcpTempCorr",
+      #"abvFreezingMonth", 
+      "isothermality",
+      #"annWatDef",
+      "annWetDegDays", 
+      #"VPD_mean",
+      #"VPD_max",
+      "VPD_min",
+      "VPD_max_95",
+      #"annWatDef_95",
+      #"annWetDegDays_5",
+      #"frostFreeDays_5",
+      #"frostFreeDays",
+      "soilDepth",
+      #"clay",
+      "sand",
+      "coarse",
+      "carbon",
+      #"AWHC"
  # anomaly variables
- #"tmean_meanAnnAvg_5yrAnom"                 , #"tmin_meanAnnAvg_5yrAnom"                  , 
- "tmax_meanAnnAvg_5yrAnom"                ,  
- "prcp_meanAnnTotal_5yrAnom"                , "T_warmestMonth_meanAnnAvg_5yrAnom"      ,  
- "T_coldestMonth_meanAnnAvg_5yrAnom"        , "precip_wettestMonth_meanAnnAvg_5yrAnom"   , "precip_driestMonth_meanAnnAvg_5yrAnom"  ,  
- "precip_Seasonality_meanAnnAvg_5yrAnom"    , "PrecipTempCorr_meanAnnAvg_5yrAnom"        , "aboveFreezing_month_meanAnnAvg_5yrAnom" ,  
- "isothermality_meanAnnAvg_5yrAnom"         , "annWaterDeficit_meanAnnAvg_5yrAnom"       , "annWetDegDays_meanAnnAvg_5yrAnom"       ,  
- #"annVPD_mean_meanAnnAvg_5yrAnom"           , 
- "annVPD_min_meanAnnAvg_5yrAnom"            , #"annVPD_max_meanAnnAvg_5yrAnom"          ,  
- "annVPD_max_95percentile_5yrAnom"          , "annWaterDeficit_95percentile_5yrAnom"     , "annWetDegDays_5percentile_5yrAnom"      ,  
- "durationFrostFreeDays_5percentile_5yrAnom", #"durationFrostFreeDays_meanAnnAvg_5yrAnom" 
-   ) %>% 
-   rename(
-     "precip" = prcp_meanAnnTotal_CLIM,
-    "temp_warmestMonth" = T_warmestMonth_meanAnnAvg_CLIM, #1
-     "temp_coldestMonth" = T_coldestMonth_meanAnnAvg_CLIM, #2
-     "precip_seasonality" = precip_Seasonality_meanAnnAvg_CLIM, #5
-     "precipTempCorrelation" = PrecipTempCorr_meanAnnAvg_CLIM,  #6
-     "isothermality" = isothermality_meanAnnAvg_CLIM, #7 
-     "VPD_min" = annVPD_min_meanAnnAvg_CLIM, #8
-     "annualWetDegreeDays" = annWetDegDays_meanAnnAvg_CLIM,
-    "clay_soilSurface" = surfaceClay_perc,
-     "sand_AvgPercAcrossDepth" = avgSandPerc_acrossDepth, #11
-     "coarse_AvgPercAcrossDepth" = avgCoarsePerc_acrossDepth, #12
-     "organicMatter_soilSurface" = avgOrganicCarbonPerc_0_3cm, #13
-     ## anomaly variables
-     tmax_3yr_anom = tmax_meanAnnAvg_5yrAnom, #17
-    prcp_3yr_anom = prcp_meanAnnTotal_5yrAnom, #18
-      temp_warmestMonth_3yr_anom = T_warmestMonth_meanAnnAvg_5yrAnom,  #19
-     temp_coldestMonth_3yr_anom = T_coldestMonth_meanAnnAvg_5yrAnom, #20
-      precip_wettestMonth_3yr_anom = precip_wettestMonth_meanAnnAvg_5yrAnom, #21
-      precip_driestMonth_3yr_anom = precip_driestMonth_meanAnnAvg_5yrAnom,  #22
-    precip_seasonality_3yr_anom = precip_Seasonality_meanAnnAvg_5yrAnom, #23 
-     precipTempCorrelation_3yr_anom = PrecipTempCorr_meanAnnAvg_5yrAnom, #24
-      aboveFreezingMonth_3yr_anom = aboveFreezing_month_meanAnnAvg_5yrAnom, #25  
-    isothermality_3yr_anom = isothermality_meanAnnAvg_5yrAnom, #26
-       annualWaterDeficit_3yr_anom = annWaterDeficit_meanAnnAvg_5yrAnom, #27
-     annualWetDegreeDays_3yr_anom = annWetDegDays_meanAnnAvg_5yrAnom,  #28
-      VPD_min_3yr_anom = annVPD_min_meanAnnAvg_5yrAnom,  #30
-     VPD_max_95thPercentile_3yr_anom = annVPD_max_95percentile_5yrAnom, #32
-      annualWaterDeficit_95thPercentile_3yr_anom = annWaterDeficit_95percentile_5yrAnom, #33 
-      annualWetDegreeDays_5thPercentile_3yr_anom = annWetDegDays_5percentile_5yrAnom ,  #34
-    frostFreeDays_5thPercentile_3yr_anom = durationFrostFreeDays_5percentile_5yrAnom
-     ) %>%
+    #tmean_anom ,
+     tmin_anom ,
+     tmax_anom ,
+     prcp_anom ,
+   t_warm_anom ,
+   t_cold_anom ,
+      prcp_wet_anom ,
+      precp_dry_anom ,
+    prcp_seasonality_anom ,
+     prcpTempCorr_anom ,
+      aboveFreezingMonth_anom , 
+    isothermality_anom ,
+       annWatDef_anom ,
+     annWetDegDays_anom ,
+      #VPD_mean_anom ,
+      VPD_min_anom ,
+      #VPD_max_anom ,
+     VPD_max_95_anom ,
+      annWatDef_95_anom ,
+      annWetDegDays_5_anom ,
+    #frostFreeDays_5_anom ,
+      #frostFreeDays_anom 
+   ) %>%
    names()
 
-kable(data.frame("ClimateVariables" = c(corrPlot[1:12],rep_len(NA,length.out = 5)), 
-                 "WeatherAnomalyVariables" = corrPlot[13:29]))
+kable(data.frame("Climate_And_Soils_Variables" = c(corrPlot[1:12],rep_len(NA,length.out = 5)), 
+                 "Weather_Anomaly_Variables" = corrPlot[13:29]), format = "html")  %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
 
 ```
 
