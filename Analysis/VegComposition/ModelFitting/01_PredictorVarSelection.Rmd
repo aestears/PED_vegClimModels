@@ -6,12 +6,6 @@ date: "`r lubridate::today()`"
 params: 
   test_run: FALSE
 save_figs: FALSE
-response: "TotalGramCover_dec" 
-hmod: FALSE
-s: "TotalGramCover"
-#inter: !r c('afgAGB:MAP' = "afgAGB:MAP")
-sample_group: 1
-byRegion: TRUE
 output:
   html_document:
   toc: true
@@ -203,10 +197,7 @@ datGrassShrub <- dat %>%
      ) 
 ```
 
-
-The following variables were removed due to correlation with other variables:
-
-```{r, echo = FALSE, include=FALSE}
+```{r, eval = FALSE, include = FALSE}
 my_fn <- function(data, mapping, method="p", use="pairwise", ...){
   
   # grab data
@@ -230,7 +221,51 @@ my_fn <- function(data, mapping, method="p", use="pairwise", ...){
   
 }
 
+#Here is the correlation structure of all of the potential input climate and soils variables
+(corrPlot <- 
+   datGrassShrub %>% 
+      dplyr::select(
+       "tmin", 
+      "tmax", 
+      "tmean",
+      "prcp",
+      "t_warm",
+      "t_cold",
+      "prcp_wet",
+      "prcp_dry",
+      "prcp_seasonality",
+      "prcpTempCorr",
+      "abvFreezingMonth",
+      "isothermality",
+      "annWatDef",
+      "annWetDegDays",
+      "VPD_mean",
+      "VPD_max",
+      "VPD_min",
+      "VPD_max_95",
+      "annWatDef_95",
+      "annWetDegDays_5",
+      "frostFreeDays_5",
+      "frostFreeDays",
+      "soilDepth",
+      "clay",
+      "sand",
+      "coarse",
+      "carbon",
+      "AWHC"
+   ) %>% 
+    slice_sample(n = 5e3) %>% 
+   #cor()  %>% 
+   #caret::findCorrelation(cutoff = .7, verbose = TRUE, names = TRUE, exact = TRUE)) 
+   ggpairs( upper = list(continuous = my_fn, size = .1), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=1)), progress = FALSE) + ggtitle("Correlation of Grass/Shrubland Predictor Variables"))
+bmp( here("Figures", "CoverDatFigures", "GrassShrubClimVarCorrelations.bmp"), width = 2500, height = 2500)
+corrPlot
+dev.off()
+```
 
+The following variables were removed due to correlation with other variables:
+
+```{r, echo = FALSE, include=FALSE}
 (corrPlot <- 
    datGrassShrub %>% 
    dplyr::select(
@@ -396,6 +431,51 @@ datForest <- dat %>%
     frostFreeDays_5_anom = durationFrostFreeDays_5percentile_3yrAnom, #35 
       frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_3yrAnom #36
      ) 
+```
+
+
+```{r, eval = FALSE, include = FALSE}
+#Here is the correlation structure of all of the potential input climate and soils variables
+(corrPlot <- 
+   datForest %>% 
+      dplyr::select(
+       "tmin", 
+      "tmax", 
+      "tmean",
+      "prcp",
+      "t_warm",
+      "t_cold",
+      "prcp_wet",
+      "prcp_dry",
+      "prcp_seasonality",
+      "prcpTempCorr",
+      "abvFreezingMonth",
+      "isothermality",
+      "annWatDef",
+      "annWetDegDays",
+      "VPD_mean",
+      "VPD_max",
+      "VPD_min",
+      "VPD_max_95",
+      "annWatDef_95",
+      "annWetDegDays_5",
+      "frostFreeDays_5",
+      "frostFreeDays",
+      "soilDepth",
+      "clay",
+      "sand",
+      "coarse",
+      "carbon",
+      "AWHC"
+   ) %>% 
+    slice_sample(n = 5e3) %>% 
+   #cor()  %>% 
+   #caret::findCorrelation(cutoff = .7, verbose = TRUE, names = TRUE, exact = TRUE)) 
+   ggpairs( upper = list(continuous = my_fn, size = .1), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=1)), progress = FALSE) + ggtitle("Correlation of Forest Predictor Variables"))
+
+bmp( here("Figures", "CoverDatFigures", "ForestClimVarCorrelations.bmp"), width = 2500, height = 2500)
+corrPlot
+dev.off()
 ```
 
 The following variables were removed due to correlation with other variables: 

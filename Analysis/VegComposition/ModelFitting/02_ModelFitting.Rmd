@@ -78,11 +78,13 @@ theme_set(theme_classic())
 Data compiled in the `prepDataForModels.R` script
 
 ```{r}
-modDat <- readRDS("../../../data/DataForModels_withSubEcoreg.rds")
- ## if it's herbs, remove LDC data right now (has some weirdness that's skewing the data... need to figure that out)
-if (s == "HerbCover") {
-  modDat <- modDat[modDat$Source != "LANDFIRE",]
-}
+here::i_am("Analysis/VegComposition/ModelFitting/01_PredictorVarSelection.Rmd")
+modDat <- readRDS( here("Data_processed", "CoverData", "DataForModels_spatiallyAveraged_withSoils_noSf.rds"))
+## there are some values of the annual wet degree days 5th percentile that have -Inf?? change to lowest value for now? 
+modDat[is.infinite(modDat$annWetDegDays_5percentile_3yrAnom), "annWetDegDays_5percentile_3yrAnom"] <- -47.8
+## same, but for annual water deficit 95th percentile 
+modDat[is.infinite(modDat$annWaterDeficit_95percentile_3yrAnom), "annWaterDeficit_95percentile_3yrAnom"] <- -600
+
 ```
 
 
@@ -90,11 +92,11 @@ if (s == "HerbCover") {
 
 ```{r}
 set.seed(1234)
-modDat_1 <- modDat %>% 
-  mutate(Lon = st_coordinates(.)[,1], 
-         Lat = st_coordinates(.)[,2])  %>% 
-  st_drop_geometry() %>% 
-  filter(!is.na(newRegion))
+modDat_1 <- modDat #%>% 
+  # mutate(Lon = st_coordinates(.)[,1], 
+  #        Lat = st_coordinates(.)[,2])  %>% 
+  # st_drop_geometry() %>% 
+  # filter(!is.na(newRegion))
 
 # small dataset for if testing the data
 if(test_run) {
@@ -103,7 +105,16 @@ if(test_run) {
 ```
 
 
-For now, not doing any resampling
+Fit a null model w/ no predictors 
+
+Repeat the following process x # of times for cross validation [
+1. Subset the data into training and test datasets 
+
+2. Then, use cross-validation within the training dataset to identify the appropriate regularization parameter
+
+3. Then, fit the model to the entire training dataset (including climate vars, soils vars, weather vars, and interactions  )]
+
+
 
 ```{r}
 set.seed(1234)
