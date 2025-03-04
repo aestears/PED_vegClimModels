@@ -55,6 +55,8 @@ Data_processed/
 Data_raw/
 Figures/
 
+*.html
+
 # model output files
 ./Analysis/VegComposition/ModelFitting/models/
 ./Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_C3GramCover_n50000.RDS
