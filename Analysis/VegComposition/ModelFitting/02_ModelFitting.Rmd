@@ -6,9 +6,10 @@ date: "`r lubridate::today()`"
 params: 
   test_run: FALSE
   save_figs: FALSE
-  response: "TotalGramCover_dec" 
+  ecoregion: "shrubGrass" #shrubGrass #forest
+  response: "TotalHerbaceousCover" #"CAMCover", "TotalHerbaceousCover", "BareGroundCover",                           "BroadleavedTreeCover_prop", "NeedleLeavedTreeCover_prop","C4Cover_prop", "C3Cover_prop", "ForbCover_prop", "ShrubCover"
   hmod: FALSE
-  s: "TotalGramCover"
+  s: "TotalHerbaceousCover"
   #inter: !r c('afgAGB:MAP' = "afgAGB:MAP")
   sample_group: 1
   byRegion: TRUE
@@ -71,6 +72,8 @@ library(patchwork) # for figure insets etc.
 library(ggtext)
 library(StepBeta)
 theme_set(theme_classic())
+library(here)
+library(rsample)
 ```
 
 # read in data
@@ -85,6 +88,37 @@ modDat[is.infinite(modDat$annWetDegDays_5percentile_3yrAnom), "annWetDegDays_5pe
 ## same, but for annual water deficit 95th percentile 
 modDat[is.infinite(modDat$annWaterDeficit_95percentile_3yrAnom), "annWaterDeficit_95percentile_3yrAnom"] <- -600
 
+# # Convert total cover variables into proportions (for later use in beta regression models) ... proportions are already scaled from zero to 1
+# modDat <- modDat %>% 
+#   mutate(TotalTreeCover = TotalTreeCover/100,
+#          CAMCover = CAMCover/100,
+#          TotalHerbaceousCover = TotalHerbaceousCover/100,
+#          BareGroundCover = BareGroundCover/100,
+#          ShrubCover = ShrubCover/100
+#          )
+# # For all response variables, make sure there are no 0s add or subtract .0001 from each, since the Gamma model framework can't handle that
+modDat[modDat$TotalTreeCover == 0 & !is.na(modDat$TotalTreeCover), "TotalTreeCover"] <- 0.0001
+modDat[modDat$CAMCover == 0 & !is.na(modDat$CAMCover), "CAMCover"] <- 0.0001
+modDat[modDat$TotalHerbaceousCover == 0  & !is.na(modDat$TotalHerbaceousCover), "TotalHerbaceousCover"] <- 0.0001
+modDat[modDat$BareGroundCover == 0 & !is.na(modDat$BareGroundCover), "BareGroundCover"] <- 0.0001
+modDat[modDat$ShrubCover == 0 & !is.na(modDat$ShrubCover), "ShrubCover"] <- 0.0001
+modDat[modDat$BroadleavedTreeCover_prop == 0 & !is.na(modDat$BroadleavedTreeCover_prop), "BroadleavedTreeCover_prop"] <- 0.0001
+modDat[modDat$NeedleLeavedTreeCover_prop == 0 & !is.na(modDat$NeedleLeavedTreeCover_prop), "NeedleLeavedTreeCover_prop"] <- 0.0001
+modDat[modDat$C4Cover_prop == 0 & !is.na(modDat$C4Cover_prop), "C4Cover_prop"] <- 0.0001
+modDat[modDat$C3Cover_prop == 0 & !is.na(modDat$C3Cover_prop), "C3Cover_prop"] <- 0.0001
+modDat[modDat$ForbCover_prop == 0 & !is.na(modDat$ForbCover_prop), "ForbCover_prop"] <- 0.0001
+# 
+# modDat[modDat$TotalTreeCover ==1& !is.na(modDat$TotalTreeCover), "TotalTreeCover"] <- 0.999
+# modDat[modDat$CAMCover ==1& !is.na(modDat$CAMCover), "CAMCover"] <- 0.999
+# modDat[modDat$TotalHerbaceousCover ==1 & !is.na(modDat$TotalHerbaceousCover), "TotalHerbaceousCover"] <- 0.999
+# modDat[modDat$BareGroundCover ==1& !is.na(modDat$BareGroundCover), "BareGroundCover"] <- 0.999
+# modDat[modDat$ShrubCover ==1& !is.na(modDat$ShrubCover), "ShrubCover"] <- 0.999
+# modDat[modDat$BroadleavedTreeCover_prop ==1& !is.na(modDat$BroadleavedTreeCover_prop), "BroadleavedTreeCover_prop"] <- 0.999
+# modDat[modDat$NeedleLeavedTreeCover_prop ==1& !is.na(modDat$NeedleLeavedTreeCover_prop), "NeedleLeavedTreeCover_prop"] <- 0.999
+# modDat[modDat$C4Cover_prop ==1& !is.na(modDat$C4Cover_prop), "C4Cover_prop"] <- 0.999
+# modDat[modDat$C3Cover_prop ==1& !is.na(modDat$C3Cover_prop), "C3Cover_prop"] <- 0.999
+# modDat[modDat$ForbCover_prop ==1& !is.na(modDat$ForbCover_prop), "ForbCover_prop"] <- 0.999
+
 ```
 
 
@@ -92,11 +126,64 @@ modDat[is.infinite(modDat$annWaterDeficit_95percentile_3yrAnom), "annWaterDefici
 
 ```{r}
 set.seed(1234)
-modDat_1 <- modDat #%>% 
+modDat_1 <- modDat %>% 
+  select(-c(prcp_annTotal:annVPD_min)) %>% 
   # mutate(Lon = st_coordinates(.)[,1], 
   #        Lat = st_coordinates(.)[,2])  %>% 
   # st_drop_geometry() %>% 
   # filter(!is.na(newRegion))
+  rename("tmin" = tmin_meanAnnAvg_CLIM, 
+     "tmax" = tmax_meanAnnAvg_CLIM, #1
+     "tmean" = tmean_meanAnnAvg_CLIM, 
+     "prcp" = prcp_meanAnnTotal_CLIM, 
+     "t_warm" = T_warmestMonth_meanAnnAvg_CLIM,
+     "t_cold" = T_coldestMonth_meanAnnAvg_CLIM, 
+     "prcp_wet" = precip_wettestMonth_meanAnnAvg_CLIM,
+     "prcp_dry" = precip_driestMonth_meanAnnAvg_CLIM, 
+     "prcp_seasonality" = precip_Seasonality_meanAnnAvg_CLIM, #2
+     "prcpTempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  #3
+     "abvFreezingMonth" = aboveFreezing_month_meanAnnAvg_CLIM, 
+     "isothermality" = isothermality_meanAnnAvg_CLIM, #4
+     "annWatDef" = annWaterDeficit_meanAnnAvg_CLIM, 
+     "annWetDegDays" = annWetDegDays_meanAnnAvg_CLIM,
+     "VPD_mean" = annVPD_mean_meanAnnAvg_CLIM, 
+     "VPD_max" = annVPD_max_meanAnnAvg_CLIM, #5
+     "VPD_min" = annVPD_min_meanAnnAvg_CLIM, #6
+     "VPD_max_95" = annVPD_max_95percentile_CLIM, 
+     "annWatDef_95" = annWaterDeficit_95percentile_CLIM, 
+     "annWetDegDays_5" = annWetDegDays_5percentile_CLIM, 
+     "frostFreeDays_5" = durationFrostFreeDays_5percentile_CLIM, 
+     "frostFreeDays" = durationFrostFreeDays_meanAnnAvg_CLIM, 
+     "soilDepth" = soilDepth, #7
+     "clay" = surfaceClay_perc, 
+     "sand" = avgSandPerc_acrossDepth, #8
+     "coarse" = avgCoarsePerc_acrossDepth, #9
+     "carbon" = avgOrganicCarbonPerc_0_3cm, #10
+     "AWHC" = totalAvailableWaterHoldingCapacity,
+     ## anomaly variables
+     tmean_anom = tmean_meanAnnAvg_3yrAnom, #15
+     tmin_anom = tmin_meanAnnAvg_3yrAnom, #16
+     tmax_anom = tmax_meanAnnAvg_3yrAnom, #17
+    prcp_anom = prcp_meanAnnTotal_3yrAnom, #18
+      t_warm_anom = T_warmestMonth_meanAnnAvg_3yrAnom,  #19
+     t_cold_anom = T_coldestMonth_meanAnnAvg_3yrAnom, #20
+      prcp_wet_anom = precip_wettestMonth_meanAnnAvg_3yrAnom, #21
+      precp_dry_anom = precip_driestMonth_meanAnnAvg_3yrAnom,  #22
+    prcp_seasonality_anom = precip_Seasonality_meanAnnAvg_3yrAnom, #23 
+     prcpTempCorr_anom = PrecipTempCorr_meanAnnAvg_3yrAnom, #24
+      aboveFreezingMonth_anom = aboveFreezing_month_meanAnnAvg_3yrAnom, #25  
+    isothermality_anom = isothermality_meanAnnAvg_3yrAnom, #26
+       annWatDef_anom = annWaterDeficit_meanAnnAvg_3yrAnom, #27
+     annWetDegDays_anom = annWetDegDays_meanAnnAvg_3yrAnom,  #28
+      VPD_mean_anom = annVPD_mean_meanAnnAvg_3yrAnom, #29
+      VPD_min_anom = annVPD_min_meanAnnAvg_3yrAnom,  #30
+      VPD_max_anom = annVPD_max_meanAnnAvg_3yrAnom,  #31
+     VPD_max_95_anom = annVPD_max_95percentile_3yrAnom, #32
+      annWatDef_95_anom = annWaterDeficit_95percentile_3yrAnom, #33 
+      annWetDegDays_5_anom = annWetDegDays_5percentile_3yrAnom ,  #34
+    frostFreeDays_5_anom = durationFrostFreeDays_5percentile_3yrAnom, #35 
+      frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_3yrAnom #36
+  )
 
 # small dataset for if testing the data
 if(test_run) {
@@ -104,8 +191,274 @@ if(test_run) {
 }
 ```
 
+Identify the ecoregion and response variable type to use in this model run 
+```{r}
+ecoregion <- params$ecoregion
+response <- params$response
+print(paste0("In this model run, the ecoregion is ", ecoregion," and the response variable is ",response))
+```
 
-Fit a null model w/ no predictors 
+Subset the data to only include data for the ecoregion of interest
+```{r}
+
+if (ecoregion == "shrubGrass") {
+  # select data for the ecoregion of interest
+  modDat_1 <- modDat_1 %>%
+    filter(newRegion == "dryShrubGrass")
+} else if (ecoregion == "forest") {
+  # select data for the ecoregion of interest
+  modDat_1 <- modDat_1 %>% 
+    filter(newRegion %in% c("eastForest", "westForest"))
+}
+
+# remove the rows that have no observations for the response variable of interest
+modDat_1 <- modDat_1[!is.na(modDat_1[,response]),]
+```
+
+## Visualize the response variable 
+```{r}
+hist(modDat_1[,response], main = paste0("Histogram of ",response," transformed to proportion scale"),
+     xlab = paste0(response,"/100"))
+```
+
+
+## Visualize the predictor variables
+
+The following are the candidate predictor variables for this ecoregion: 
+```{r}
+if (ecoregion == "shrubGrass") {
+  # select potential predictor variables for the ecoregion of interest
+        prednames <-
+          c("tmin", "tmean", "prcp", 
+            "prcp_seasonality", "prcpTempCorr", 
+            "sand", "coarse", "AWHC", 
+            "tmin_anom", "tmax_anom", 
+             "t_warm_anom", "t_cold_anom",
+            "prcp_wet_anom", "precp_dry_anom", 
+"prcp_seasonality_anom", "prcpTempCorr_anom", 
+"aboveFreezingMonth_anom", "isothermality_anom", 
+"annWatDef_anom", "annWetDegDays_anom", 
+"VPD_min_anom", "VPD_max_95_anom", 
+"annWatDef_95_anom", "annWetDegDays_5_anom", 
+"frostFreeDays_5_anom")
+  
+} else if (ecoregion == "forest") {
+  # select potential predictor variables for the ecoregion of interest
+  prednames <- 
+    c(
+      "tmin", "prcp", 
+      "t_warm", "prcp_dry", 
+      "prcpTempCorr", "isothermality", 
+      "annWetDegDays", "sand", 
+      "coarse", "carbon", 
+      "AWHC",
+      "tmin_anom", "tmax_anom", 
+            "prcp_anom", "t_warm_anom", 
+      "t_cold_anom", "prcp_wet_anom",
+      "precp_dry_anom", "prcp_seasonality_anom", 
+      "prcpTempCorr_anom", "aboveFreezingMonth_anom", "isothermality_anom",
+"annWatDef_anom", "annWetDegDays_anom", 
+"VPD_min_anom", "VPD_max_95_anom", 
+"annWatDef_95_anom", "annWetDegDays_5_anom", 
+"frostFreeDays_5_anom"
+    )
+}
+
+# subset the data to only include these predictors, and remove any remaining NAs 
+modDat_1 <- modDat_1 %>% 
+  select(prednames, response, newRegion, Year.x, Long, Lat) %>% 
+  drop_na()
+
+names(prednames) <- prednames
+df_pred <- modDat_1[, prednames]
+# 
+# # print the list of predictor variables
+# knitr::kable(format = "html", data.frame("Possible_Predictors" = prednames)
+# ) %>%
+#   kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+
+```{r summary_table}
+create_summary <- function(df) {
+  df %>% 
+    pivot_longer(cols = everything(),
+                 names_to = 'variable') %>% 
+    group_by(variable) %>% 
+    summarise(across(value, .fns = list(mean = ~mean(.x, na.rm = TRUE), min = ~min(.x, na.rm = TRUE), 
+                                        median = ~median(.x, na.rm = TRUE), max = ~max(.x, na.rm = TRUE)))) %>% 
+    mutate(across(where(is.numeric), round, 4))
+}
+
+modDat_1[prednames] %>% 
+  create_summary() %>% 
+  knitr::kable(caption = 'summaries of possible predictor variables') %>%
+kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+
+# response_summary <- modDat_1 %>% 
+#     dplyr::select(#where(is.numeric), -all_of(pred_vars),
+#       matches(response)) %>% 
+#     create_summary()
+# 
+# 
+# kable(response_summary, 
+#       caption = 'summaries of response variables, calculated using paint') %>%
+# kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+```
+
+## Plot predictor vars against each other
+
+```{r pred_v_pred, fig.width=10}
+set.seed(12011993)
+# function for colors
+my_fn <- function(data, mapping, method="p", use="pairwise", ...){
+  
+  # grab data
+  x <- eval_data_col(data, mapping$x)
+  y <- eval_data_col(data, mapping$y)
+  
+  # calculate correlation
+  corr <- cor(x, y, method=method, use=use)
+  
+  # calculate colour based on correlation value
+  # Here I have set a correlation of minus one to blue, 
+  # zero to white, and one to red 
+  # Change this to suit: possibly extend to add as an argument of `my_fn`
+  colFn <- colorRampPalette(c("red", "white", "blue"), interpolate ='spline')
+  fill <- colFn(100)[findInterval(corr, seq(-1, 1, length=100))]
+  
+  ggally_cor(data = data, mapping = mapping, size = 2.5, stars = FALSE, 
+             digits = 2, colour = I("black"),...) + 
+    theme_void() +
+    theme(panel.background = element_rect(fill=fill))
+  
+}
+(corrPlot <- modDat_1 %>% 
+  select(prednames) %>% 
+  slice_sample(n = 5e4) %>% 
+  #select(-matches("_")) %>% 
+ggpairs( upper = list(continuous = my_fn, size = .1), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.1)), progress = FALSE))
+```
+
+## boxplots-- # predictor variables compared to binned response variables
+
+```{r climVar_boxplots, fig.height=9, fig.width=8}
+set.seed(12011993)
+# vector of name of response variables
+vars_response <- response
+
+# longformat dataframes for making boxplots
+df_sample_plots <-  modDat_1  %>% 
+  slice_sample(n = 5e4) %>% 
+   rename(response = all_of(response)) %>% 
+  mutate(response = case_when(
+    response <= .25 ~ ".25", 
+    response > .25 & response <=.5 ~ ".5", 
+    response > .5 & response <=.75 ~ ".75", 
+    response >= .75  ~ "1", 
+  )) %>% 
+  select(c(response, prednames)) %>% 
+  pivot_longer(cols = names(prednames), 
+               names_to = "predictor", 
+               values_to = "value") %>% 
+  filter(!is.na(response) & !is.na(value)) 
+ 
+
+  ggplot(df_sample_plots, aes_string(x= "response", y = 'value')) +
+  geom_boxplot() +
+  facet_wrap(~predictor , scales = 'free_y') + 
+  ylab("Predictor Variable Values") 
+
+```
+
+## Fit a null model w/ no predictors 
+With the full dataset (full response variables) -- using a glm with a Gamma link for now
+```{r}
+nullMod_1 <- glm(data = modDat_1, formula = modDat_1[,response] ~ 1, family = "Gamma"(link = "log"))
+
+summary(nullMod_1)
+#plot(nullMod_1)
+# 
+# test <- (modDat_1[,response]/100-.00000001)
+# nullMod_4 <- betareg(formula = test ~ 1,
+#                               link = c("logit"), link.phi = NULL,
+#                                type = c("ML"))
+```
+
+## Find the outer level of cross-validation
+
+```{r}
+# - + define simulation settings ----
+
+# - ++ hold-out strategy (outer loop) ----
+h_all = c("environmentalblock")#,'lastyears',)
+# - ++ cross-validation strategy (inner loop) ----
+cv_all = c('environmentalblock')
+
+start.time <- Sys.time()
+
+# data to use are modDat_1 
+
+## make data into spatial format
+modDat_1_sf <- modDat_1 %>% 
+  st_as_sf(coords = c("Long", "Lat"), crs = st_crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"))
+# covariate names are stored in prednames
+
+# response name is stored in response
+
+  nfolds = 10 ##AES may need to change, not sure how many 
+  nrepeats = 1
+  
+  
+  
+  for(h_i in 1:length(h_all)){
+    
+    print(paste("Running",h_all[h_i],"hold-outs, starting at",hms::round_hms(Sys.time(), secs = 1, digits = NULL)))
+    
+    outer_split <- hold_out_data_rsample(df = modDat_1, holdout_method = h_all[h_i], n_folds = nfolds, n_repeats = nrepeats, lastnyears = 5)
+    
+    # add a repetition column even if there is only 1 repetition
+    if('Fold01' %in% outer_split$id |  'Resample01' %in% outer_split$id | 'Fold1' %in% outer_split$id |  'Resample1' %in% outer_split$id ){
+      outer_split$id2 = outer_split$id
+      outer_split$id = 'Repeat1'
+    }
+    
+    for(j_i in 1:length(cv_all)){
+      
+      print(paste("Running",h_all[h_i],"hold-outs with",cv_all[j_i],"cross-validation, starting at",hms::round_hms(Sys.time(), secs = 1, digits = NULL)))
+      
+      nested_split <- inner_split_cv(x = data_seedingOutcomes, outer_folds = outer_split, cv_method = cv_all[j_i], n_folds = nfolds, n_repeats = nrepeats)
+      
+      # add a repetition column even if there is only 1 repetition
+      if('Fold01' %in% nested_split$inner_resamples[[1]]$id | 'Resample01' %in% nested_split$inner_resamples[[1]]$id | 'Fold1' %in% nested_split$inner_resamples[[1]]$id |  'Resample1' %in% nested_split$inner_resamples[[1]]$id){
+        for(k in 1:length(nested_split$inner_resamples)){
+          nested_split$inner_resamples[[k]]$id2 = nested_split$inner_resamples[[k]]$id
+          nested_split$inner_resamples[[k]]$id = 'Repeat1'
+        }
+      }
+      
+      outputList[[cumulative.index]]<-replicateRuns(nested_splits = nested_split, hmethod=h_all[h_i], cvmethod=cv_all[j_i])
+      
+      # increment index
+      cumulative.index <- cumulative.index + 1
+      
+    }
+    
+    holdOutList[[h_i]] <- nested_split
+  }
+
+  
+  saveRDS(outputList,here::here("03_outputs","08_nestedCrossValidation",paste0(current.species,"-nestedCv-longtermclimate-",nfolds,"outerFolds-results.RDS")))
+  saveRDS(holdOutList,here::here("03_outputs","06_modelData",paste0(current.species,"-nestedCv-longtermclimate-",nfolds,"outerFolds-data.RDS")))
+  
+end.time <- Sys.time()
+run.time = end.time-start.time
+run.time
+```
+
+
 
 Repeat the following process x # of times for cross validation [
 1. Subset the data into training and test datasets 
@@ -115,44 +468,8 @@ Repeat the following process x # of times for cross validation [
 3. Then, fit the model to the entire training dataset (including climate vars, soils vars, weather vars, and interactions  )]
 
 
-
-```{r}
-set.seed(1234)
-
-pred_vars <- c("swe_meanAnnAvg_30yr", "tmean_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr", "PrecipTempCorr_meanAnnAvg_30yr", "isothermality_meanAnnAvg_30yr", "annWetDegDays_meanAnnAvg_30yr")
-# removed VPD, since it's highly correlated w/ tmean and prcp
-
-names(pred_vars) <- pred_vars
-
-# predictor vars are the same in both dfs
-
-## remove rows for data that have NAs in the predictors (lag starts before range of DayMet data)
-
-modDat_1 <- modDat_1 %>% 
-  drop_na(swe_meanAnnAvg_30yr, tmean_meanAnnAvg_30yr, prcp_meanAnnTotal_30yr, 
-          precip_Seasonality_meanAnnAvg_30yr, PrecipTempCorr_meanAnnAvg_30yr, 
-          isothermality_meanAnnAvg_30yr, all_of(response))
-  
-
-df_pred <- modDat_1[, pred_vars]
-
-```
-
 Break the data into three groups for model fitting based on lumped ecoregions
 
-```{r}
-if (byRegion == TRUE) {
-  modDat_westForest <- modDat_1 %>% 
-  filter(newRegion == "westForest")
-  
-  modDat_eastForest <- modDat_1 %>% 
-  filter(newRegion == "eastForest")
-  
-  modDat_shrubGrass <- modDat_1 %>% 
-  filter(newRegion == "dryShrubGrass")
-}
-
-```
 
 Training data
 
@@ -332,114 +649,7 @@ df_small <- slice_sample(modDat_1, n = 1e5)
 ```
 
 
-# Exploratory figs & summary values
 
-```{r summary_table}
-create_summary <- function(df) {
-  df %>% 
-    pivot_longer(cols = everything(),
-                 names_to = 'variable') %>% 
-    group_by(variable) %>% 
-    summarise(across(value, .fns = list(mean = ~mean(.x, na.rm = TRUE), min = ~min(.x, na.rm = TRUE), 
-                                        median = ~median(.x, na.rm = TRUE), max = ~max(.x, na.rm = TRUE)))) %>% 
-    mutate(across(where(is.numeric), round, 4))
-}
-
-modDat_1[pred_vars] %>% 
-  create_summary() %>% 
-  knitr::kable(caption = 'summaries of predictor variables')
-
-
-response_summary <- modDat_1 %>% 
-    dplyr::select(#where(is.numeric), -all_of(pred_vars),
-      matches(response)) %>% 
-    create_summary()
-
-
-kable(response_summary, 
-      caption = 'summaries of response variables, calculated using paint')
-
-```
-
-## Plot predictor vars against each other
-
-here using pred dataframe, because smaller and this code is slow. 
-
-```{r pred_v_pred}
-df_pred %>% 
-  slice_sample(n = 5e4) %>% 
-  #select(-matches("_")) %>% 
-ggpairs(lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), 
-        columnLabels = c("swe", "tmean", "prcp", "prcpTempCorr", "isothermality", "wetDegDays"))
-
-```
-
-## boxplots-- # predictor variables compared to binned response variables
-
-```{r climVar_boxplots, fig.height=9, fig.width=8}
-
-# vectors of names of response variables
-vars_response <- response
-
-# longformat dataframes for making boxplots
-if (byRegion == FALSE) {
-df_sample_plots <-  df_sample %>% 
-  rename(response = all_of(response)) %>% 
-  mutate(response = case_when(
-    response <= .25 ~ ".25", 
-    response > .25 & response <=.5 ~ ".5", 
-    response > .5 & response <=.75 ~ ".75", 
-    response >= .75  ~ "1", 
-  )) %>% 
-  select(c(response, pred_vars)) %>% 
-  pivot_longer(cols = names(pred_vars), 
-               names_to = "predictor", 
-               values_to = "value") %>% 
-  filter(!is.na(response) & !is.na(value)) 
-} else {
-  df_sample_plots <-  df_sample %>% 
-  select(c(response, pred_vars, newRegion))  %>% 
-  rename(response = all_of(response), 
-         swe = swe_meanAnnAvg_30yr, 
-         MAT = tmean_meanAnnAvg_30yr,
-         MAP = prcp_meanAnnTotal_30yr,
-         PrecipTempCorr = PrecipTempCorr_meanAnnAvg_30yr, 
-         isothermality = isothermality_meanAnnAvg_30yr, 
-         wetDegDays = annWetDegDays_meanAnnAvg_30yr
-         ) %>% 
-  mutate(response = case_when(
-    response <= .25 ~ ".25", 
-    response > .25 & response <=.5 ~ ".5", 
-    response > .5 & response <=.75 ~ ".75", 
-    response >= .75  ~ "1", 
-  ))  %>% 
-  pivot_longer(cols = c(swe, MAT, MAP, PrecipTempCorr, isothermality, wetDegDays), 
-               names_to = "predictor", 
-               values_to = "value") %>% 
-  filter(!is.na(response) & !is.na(value)) 
-}
-
-# df_biome_long <- 
-#   # for some reason select() was giving me problems
-#   # adding numYrs here so can take weighted average
-#   predvars2long(modDat_1, response_vars = c(vars_response), 
-#                 pred_vars = pred_vars) #%>% 
-#    # mutate(across(all_of(vars_nfire), factor))
-
-
-if (byRegion == FALSE) {
-  ggplot(df_sample_plots, aes_string(x= "response", y = 'value')) +
-  geom_boxplot() +
-  facet_wrap(~predictor, scales = 'free_y') + 
-  ylab("Predictor Variable Values")
-} else {
-  ggplot(df_sample_plots, aes_string(x= "response", y = 'value')) +
-  geom_boxplot() +
-  facet_wrap(~predictor + newRegion , scales = 'free_y') + 
-  ylab("Predictor Variable Values") 
-}
-
-```
 
 # GLMs 
 
