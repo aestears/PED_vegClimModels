@@ -16,7 +16,9 @@ library(terra)
 # data ready for model fitting
 modDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_sf.rds")
 # get level 1 ecoregions shapefiles
-regions <- sf::st_read(dsn = "./Data_raw/Level1Ecoregions/", layer = "NA_CEC_Eco_Level1")
+#regions <- sf::st_read(dsn = "./Data_raw/Level1Ecoregions/", layer = "NA_CEC_Eco_Level1")
+# get level 1 and 2 ecoregion shapefiles
+regions <- sf::st_read(dsn = "./Data_raw/Level2Ecoregions/", layer = "NA_CEC_Eco_Level2") 
 
 # ggplot(regions[200:400,]) + 
 #   geom_sf(aes(col = NA_L1NAME))
@@ -27,6 +29,7 @@ test_rast <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8
 regions_2 <- st_transform(regions, crs = st_crs(test_rast)) %>% 
   st_make_valid()
 crs(test_rast) == crs(regions_2)
+
 # transform modDat to sf to later use st_join
 modDat_2 <- st_as_sf(modDat, coords = c("Lon", "Lat"))
 modDat_2 <- st_set_crs(modDat_2, value = st_crs(test_rast))
@@ -35,6 +38,7 @@ crs(regions_2) == crs(modDat_2)
 
 # match the ecoregion to point data ---------------------------------------
 modDat_3 <- sf::st_join(modDat_2, regions_2)
+
 # missing for places right on the coast... but not a big deal to not have those
 plot(modDat_3[is.na(modDat_3$NA_L1CODE), "geometry"])
 # group into coarser ecoregions -------------------------------------------
