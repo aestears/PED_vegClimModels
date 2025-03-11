@@ -314,35 +314,36 @@ allDat_avg <- test7 %>%
 ## save the data
 saveRDS(allDat_avg, "./Data_processed/CoverData/DataForModels_spatiallyAveraged_sf.rds")
 saveRDS(st_drop_geometry(allDat_avg), "./Data_processed/CoverData/DataForModels_spatiallyAveraged_NoSf.rds")
-
+# allDat_avg <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_NoSf.rds")
+# plot(climDat$tmean, climDat$tmin_annAvg)
 # Testing -----------------------------------------------------------------
-  # determine if the results are accurate 
-test6 <- vect(test5, geom = c("x", "y"), crs = crs(test))
-temp <- terra::rasterize(test6, y = test, field = "ShrubCover", fun = function(x) mean(x, na.rm = TRUE)) %>% 
-  terra::aggregate(fact = 32, fun = function(x) mean(x, na.rm = TRUE))
- 
-test6 <- vect(st_centroid(allDat_avg))
-(temp <- terra::rasterize(test6, y = test, 
-                          field = "precip_driestMonth_meanAnnAvg_CLIM", 
-                          fun = mean, na.rm = TRUE) %>% 
-  terra::aggregate(fact = 32, fun = function(x) mean(x, na.rm = TRUE))
-)
-plot(temp)
-
-  # compare to raw data 
-  
-temp2 <- 
-  rasterize(dat2, y = test, field = "ShrubCover", fun = function(x) mean(x, na.rm = TRUE)) %>% 
-  terra::aggregate(fact = 32, fun = function(x) mean(x, na.rm = TRUE) )
-
-
-par(mfrow = c(1,2))
-plot(temp, 
-     xlim = c(-2000000, 2500000), 
-     ylim = c(-2000000, 1000000))
-plot(temp2, 
-     xlim = c(-2000000, 2500000), 
-     ylim = c(-2000000, 1000000))
-
-## Look the same! 
-
+#   # determine if the results are accurate 
+# test6 <- vect(test5, geom = c("x", "y"), crs = crs(test))
+# temp <- terra::rasterize(test6, y = test, field = "ShrubCover", fun = function(x) mean(x, na.rm = TRUE)) %>% 
+#   terra::aggregate(fact = 32, fun = function(x) mean(x, na.rm = TRUE))
+#  
+# test6 <- vect(st_centroid(allDat_avg))
+# (temp <- terra::rasterize(test6, y = test, 
+#                           field = "precip_driestMonth_meanAnnAvg_CLIM", 
+#                           fun = mean, na.rm = TRUE) %>% 
+#   terra::aggregate(fact = 32, fun = function(x) mean(x, na.rm = TRUE))
+# )
+# plot(temp)
+# 
+#   # compare to raw data 
+#   
+# temp2 <- 
+#   rasterize(dat2, y = test, field = "ShrubCover", fun = function(x) mean(x, na.rm = TRUE)) %>% 
+#   terra::aggregate(fact = 32, fun = function(x) mean(x, na.rm = TRUE) )
+# 
+# 
+# par(mfrow = c(1,2))
+# plot(temp, 
+#      xlim = c(-2000000, 2500000), 
+#      ylim = c(-2000000, 1000000))
+# plot(temp2, 
+#      xlim = c(-2000000, 2500000), 
+#      ylim = c(-2000000, 1000000))
+# 
+# ## Look the same! 
+# 

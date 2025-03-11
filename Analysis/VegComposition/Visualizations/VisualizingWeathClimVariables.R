@@ -16,10 +16,11 @@ library(ggpubr)
 
 # load data ---------------------------------------------------------------
 # load shapefile version of "big composition dataset"
-clim_final <- readRDS("./Data_processed/CoverData/DataForModels_finalFINAL.rds")
-# filter for unique soils data (same across years)
+clim_final <- readRDS("./Data_processed/CoverData/dayMetClimateValuesForAnalysis_final.rds")
+# filter for variables of interest
 climFigDat <- clim_final %>% 
-  select(Year, Long, Lat, prcp_annTotal:durationFrostFreeDays_meanAnnAvg_1yr, swe_meanAnnAvg_CLIM:Start_CLIM) %>% 
+  select(year, Long, Lat, tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM, 
+         tmean_meanAnnAvg_3yrAnom:durationFrostFreeDays_meanAnnAvg_3yrAnom) %>% 
   unique() %>% 
   # make into an sf data.frame
   st_as_sf(coords = c("Long", "Lat"), crs = crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"))
@@ -41,7 +42,7 @@ climFigDat <- climFigDat %>%
 # total annual precipitation data  - over previous 30 years
 # rasterize data
   prcpTot_rast <- climFigDat %>% 
-    filter(Year == 2014) %>% 
+    filter(year == 2014) %>% 
     #slice_sample(n = 5e4) %>%
     
     #terra::vect() %>% 
@@ -60,33 +61,35 @@ climFigDat <- climFigDat %>%
       ggtitle("Annual Total Precip \nmean over previous 30 years - 2014"))
 
 
-# swe \n mean over previous 30 years
-# rasterize data
-swe_rast <- climFigDat %>% 
-  filter(Year == 2014) %>% 
-  #slice_sample(n = 5e4) %>%
-  
-  #terra::vect() %>% 
-  #terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "swe_meanAnnAvg_CLIM", 
-                   
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-2000000, 2500000, -2000000, 1200000
-  ))
-(swe_CLIM_plotAll <- ggplot() + 
-    tidyterra::geom_spatraster(data = swe_rast, aes(fill = mean), na.rm = TRUE) +
-    theme_minimal() + 
-    scale_fill_viridis_c(#option = "D", 
-      guide = guide_colorbar(title = "mm")#, 
-                        #limits = c(0,4000)
-      ) +
-    ggtitle("SWE  \n mean over previous 30 years - 2014"))
+# # swe \n mean over previous 30 years
+# # rasterize data
+# swe_rast <- climFigDat %>% 
+#   filter(Year == 2014) %>% 
+#   #slice_sample(n = 5e4) %>%
+#   
+#   #terra::vect() %>% 
+#   #terra::set.crs(crs(test_rast)) %>% 
+#   terra::rasterize(y = test_rast, 
+#                    field = "swe_meanAnnAvg_CLIM", 
+#                    
+#                    fun = mean, na.rm = TRUE) %>% 
+#   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
+#   ))
+# (swe_CLIM_plotAll <- ggplot() + 
+#     tidyterra::geom_spatraster(data = swe_rast, aes(fill = mean), na.rm = TRUE) +
+#     theme_minimal() + 
+#     scale_fill_viridis_c(#option = "D", 
+#       guide = guide_colorbar(title = "mm")#, 
+#                         #limits = c(0,4000)
+#       ) +
+#     ggtitle("SWE  \n mean over previous 30 years - 2014"))
 
+rm(prcpTot_rast, clim_final)
+gc()
 # tmin \n mean over previous 30 years
 # rasterize data
-tmin_rast <- climFigDat %>% 
-  filter(Year == 2014) %>% 
+tmin_rast <-  climFigDat %>% 
+  filter(year == 2014) %>% 
   #slice_sample(n = 5e4) %>%
   
   #terra::vect() %>% 
@@ -101,15 +104,18 @@ tmin_rast <- climFigDat %>%
     tidyterra::geom_spatraster(data = tmin_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
     scale_fill_viridis_c(#option = "D", 
-      guide = guide_colorbar(title = "Deg. C")#, 
-      #limits = c(0,4000)
+      guide = guide_colorbar(title = "Deg. C"), 
+      limits = c(-30,50)
     ) +
     ggtitle("Annual T. min \n mean over previous 30 years - 2014"))
+
+rm(tmin_rast)
+gc()
 
 # tmax\n mean over previous 30 years
 # rasterize data
 tmax_rast <- climFigDat %>% 
-  filter(Year == 2014) %>% 
+  filter(year == 2014) %>% 
   #slice_sample(n = 5e4) %>%
   
   #terra::vect() %>% 
@@ -124,15 +130,18 @@ tmax_rast <- climFigDat %>%
     tidyterra::geom_spatraster(data = tmax_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
     scale_fill_viridis_c(#option = "D", 
-      guide = guide_colorbar(title = "Deg. C")#, 
-      #limits = c(0,4000)
+      guide = guide_colorbar(title = "Deg. C"), 
+      limits = c(-30,50)
     ) +
     ggtitle("Annual T. max \n mean over previous 30 years - 2014"))
+
+rm(tmax_rast)
+gc()
 
 # tmean\n mean over previous 30 years
 # rasterize data
 tmean_rast <- climFigDat %>% 
-  filter(Year == 2014) %>% 
+  filter(year == 2014) %>% 
   #slice_sample(n = 5e4) %>%
   
   #terra::vect() %>% 
@@ -147,38 +156,39 @@ tmean_rast <- climFigDat %>%
     tidyterra::geom_spatraster(data = tmean_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
     scale_fill_viridis_c(#option = "D", 
-      guide = guide_colorbar(title = "Deg. C")#, 
-      #limits = c(0,4000)
+      guide = guide_colorbar(title = "Deg. C"), 
+      limits = c(-30,50)
     ) +
     ggtitle("Annual T. mean \n mean over previous 30 years - 2014"))
-
+rm(tmean_rast)
+gc()
 # vp\n mean over previous 30 years
 # rasterize data
-vp_rast <- climFigDat %>% 
-  filter(Year == 2014) %>% 
-  #slice_sample(n = 5e4) %>%
-  
-  #terra::vect() %>% 
-  #terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "vp_meanAnnAvg_CLIM", 
-                   
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-2000000, 2500000, -2000000, 1200000
-  ))
-(vp_CLIM_plotAll <- ggplot() + 
-    tidyterra::geom_spatraster(data = vp_rast, aes(fill = mean), na.rm = TRUE) +
-    theme_minimal() + 
-    scale_fill_viridis_c(#option = "D", 
-      guide = guide_colorbar(title = "Pascals")#, 
-      #limits = c(0,4000)
-    ) +
-    ggtitle("Annual Mean daily water vapor pressure - \n mean over previous 30 years - 2014"))
+# vp_rast <- climFigDat %>% 
+#   filter(year == 2014) %>% 
+#   #slice_sample(n = 5e4) %>%
+#   
+#   #terra::vect() %>% 
+#   #terra::set.crs(crs(test_rast)) %>% 
+#   terra::rasterize(y = test_rast, 
+#                    field = "vp_meanAnnAvg_CLIM", 
+#                    
+#                    fun = mean, na.rm = TRUE) %>% 
+#   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
+#   ))
+# (vp_CLIM_plotAll <- ggplot() + 
+#     tidyterra::geom_spatraster(data = vp_rast, aes(fill = mean), na.rm = TRUE) +
+#     theme_minimal() + 
+#     scale_fill_viridis_c(#option = "D", 
+#       guide = guide_colorbar(title = "Pascals")#, 
+#       #limits = c(0,4000)
+#     ) +
+#     ggtitle("Annual Mean daily water vapor pressure - \n mean over previous 30 years - 2014"))
 
 # t warmest month\n mean over previous 30 years
 # rasterize data
 T_warmestMonth_rast <- climFigDat %>% 
-  filter(Year == 2014) %>% 
+  filter(year == 2014) %>% 
   #slice_sample(n = 5e4) %>%
   
   #terra::vect() %>% 
@@ -193,15 +203,17 @@ T_warmestMonth_rast <- climFigDat %>%
     tidyterra::geom_spatraster(data = T_warmestMonth_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
     scale_fill_viridis_c(#option = "D", 
-      guide = guide_colorbar(title = "Deg. C")#, 
-      #limits = c(0,4000)
+      guide = guide_colorbar(title = "Deg. C"), 
+      limits = c(-30,50)
     ) +
     ggtitle("T. of warmest month \n mean over previous 30 years - 2014"))
+rm(T_warmestMonth_rast)
+gc()
 
 # t coldest month\n mean over previous 30 years
 # rasterize data
 T_coldestMonth_rast <- climFigDat %>% 
-  filter(Year == 2014) %>% 
+  filter(year == 2014) %>% 
   #slice_sample(n = 5e4) %>%
   
   #terra::vect() %>% 
@@ -216,15 +228,17 @@ T_coldestMonth_rast <- climFigDat %>%
     tidyterra::geom_spatraster(data = T_coldestMonth_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
     scale_fill_viridis_c(#option = "D", 
-      guide = guide_colorbar(title = "Deg. C")#, 
-      #limits = c(0,4000)
+      guide = guide_colorbar(title = "Deg. C"), 
+      limits = c(-30,50)
     ) +
     ggtitle("T. of coldest month \n mean over previous 30 years - 2014"))
 
+rm(T_coldestMonth_rast)
+gc()
 # Precip seasonality \n mean over previous 30 years
 # rasterize data
 precipSeasonality_rast <- climFigDat %>% 
-  filter(Year == 2014) %>% 
+  filter(year == 2014) %>% 
   #slice_sample(n = 5e4) %>%
   
   #terra::vect() %>% 
@@ -244,10 +258,13 @@ precipSeasonality_rast <- climFigDat %>%
     ) +
     ggtitle("Precip Seasonality \n mean over previous 30 years - 2014"))
 
+rm(precipSeasonality_rast)
+gc()
+
 # Precip seasonality \n mean over previous 30 years
 # rasterize data
 precipTempCorr_rast <- climFigDat %>% 
-  filter(Year == 2014) %>% 
+  filter(year == 2014) %>% 
   #slice_sample(n = 5e4) %>%
   
   #terra::vect() %>% 
@@ -266,11 +283,13 @@ precipTempCorr_rast <- climFigDat %>%
       #limits = c(0,4000)
     ) +
     ggtitle("Precip/Temp Correlation \n mean over previous 30 years - 2014"))
+rm(precipTempCorr_rast)
+gc()
 
 # Above freezing Month \n mean over previous 30 years
 # rasterize data
 aboveFreezeMonth_rast <- climFigDat %>% 
-  filter(Year == 2014) %>% 
+  filter(year == 2014) %>% 
   #slice_sample(n = 5e4) %>%
   
   #terra::vect() %>% 
@@ -290,11 +309,12 @@ aboveFreezeMonth_rast <- climFigDat %>%
       #limits = c(0,4000)
     ) +
     ggtitle("First Month Above Freezing \n mean over previous 30 years - 2014"))
-
+rm(aboveFreezeMonth_rast)
+gc()
 # isothermality \n mean over previous 30 years
 # rasterize data
 isothermality_rast <- climFigDat %>% 
-  filter(Year == 2014) %>% 
+  filter(year == 2014) %>% 
   #slice_sample(n = 5e4) %>%
   
   #terra::vect() %>% 
@@ -314,11 +334,12 @@ isothermality_rast <- climFigDat %>%
                          #limits = c(0,4000)
     ) +
     ggtitle("Isothermality \n mean over previous 30 years - 2014"))
-
+rm(isothermality_rast)
+gc()
 # Annual Water Deficit \n mean over previous 30 years
 # rasterize data
 annWatDef_rast <- climFigDat %>% 
-  filter(Year == 2014) %>% 
+  filter(year == 2014) %>% 
   #slice_sample(n = 5e4) %>%
   
   #terra::vect() %>% 
@@ -339,10 +360,12 @@ annWatDef_rast <- climFigDat %>%
     ) +
     ggtitle("Ann. Water Deficit \n 95th Percentile over previous 30 years - 2014"))
 
+rm(annWatDef_rast)
+gc()
 # Annual wet degree days \n mean over previous 30 years
 # rasterize data
 annWetDegDays_rast <- climFigDat %>% 
-  filter(Year == 2014) %>% 
+  filter(year == 2014) %>% 
   #slice_sample(n = 5e4) %>%
   
   #terra::vect() %>% 
@@ -363,10 +386,12 @@ annWetDegDays_rast <- climFigDat %>%
     ) +
     ggtitle("Ann. Wet Degree Days \n 5th Percentile over previous 30 years - 2014"))
 
+rm(annWetDegDays_rast)
+gc()
 # Annual wet degree days \n mean over previous 30 years
 # rasterize data
 annVPD_rast <- climFigDat %>% 
-  filter(Year == 2014) %>% 
+  filter(year == 2014) %>% 
   #slice_sample(n = 5e4) %>%
   
   #terra::vect() %>% 
@@ -387,10 +412,12 @@ annVPD_rast <- climFigDat %>%
     ) +
     ggtitle("Ann. Max VPD \n 95th Percentile over previous 30 years - 2014"))
 
+rm(annVPD_rast)
+gc()
 # Annual wet degree days \n mean over previous 30 years
 # rasterize data
 frostFreeDays_rast <- climFigDat %>% 
-  filter(Year == 2014) %>% 
+  filter(year == 2014) %>% 
   #slice_sample(n = 5e4) %>%
   
   #terra::vect() %>% 
@@ -411,11 +438,14 @@ frostFreeDays_rast <- climFigDat %>%
     ) +
     ggtitle("Frost Free Days \n 5th Percentile over previous 30 years - 2014"))
 
+rm(frostFreeDays_rast)
+gc()
 # Put all plots together  -------------------------------------------------
 #pdf(file = "./Figures/soilsFigDatFigures/TotalTreeFigures.pdf", width = 11, height = 3.75, compress = FALSE)
 # tree figures
-ggarrange(prcp_totalAnn30yr_plotAll, swe_CLIM_plotAll, tmin_CLIM_plotAll, 
-          tmax_CLIM_plotAll, tmean_CLIM_plotAll, vp_CLIM_plotAll, 
+ggarrange(prcp_totalAnn30yr_plotAll, #swe_CLIM_plotAll, 
+          tmin_CLIM_plotAll, 
+          tmax_CLIM_plotAll, tmean_CLIM_plotAll, #vp_CLIM_plotAll, 
           T_warmestMonth_meanAnnAvg_CLIM_plotAll, T_coldestMonth_meanAnnAvg_CLIM_plotAll,
           precipSeasonality_rast_plotAll, precipTempCorr_rast_plotAll, 
           aboveFreezeMonth_rast_plotAll, isothermality_rast_plotAll, 
@@ -425,5 +455,5 @@ ggarrange(prcp_totalAnn30yr_plotAll, swe_CLIM_plotAll, tmin_CLIM_plotAll,
           nrow = 8) %>% 
   ggexport(
     filename = "./Figures/climateVariableFigures.pdf", 
-    width = 9, height = 25)
+    width = 10, height = 25)
 

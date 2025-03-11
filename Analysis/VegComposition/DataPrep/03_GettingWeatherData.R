@@ -356,6 +356,7 @@ allMetDat2 <- allMetDat %>%
 
 # calculating climate variables for models -------------------------------
 climVar <- allMetDat2 %>% 
+  #slice(1:100) %>% 
   mutate(totalAnnPrecip = rowSums(.[52:63]), # total annual precipitation
          maxAnnSwe = rowSums(.[28:39]), # total annual swe
          T_warmestMonth = pmap_dbl(.[2:13], max), # temperature of warmest month
@@ -432,6 +433,7 @@ a5<-0.00000002034080948
 a6<-0.00000000006136820929
 ## calculating vapor pressure deficit, annual water deficit, and wet degree days (based on code from Adam Noel)
 climVar2 <- allMetDat2%>% 
+  #slice(1:100) %>% 
   # approximation of mean temp (just avg. of max and min, which I realize is not totally accurate)
   mutate(tmean_Jan = (tmax_Jan + tmin_Jan)/2,
          tmean_Feb = (tmax_Feb + tmin_Feb)/2,
@@ -505,9 +507,23 @@ climVar2 <- allMetDat2%>%
     ) %>% 
   #calculate annual values
   transmute(#keep = c("year", "Long", "Lat"),
+  #mutate(
     # annual water deficit (mm of water over degrees celsius)(sum across all months?)
-    tmean = rowMeans(.[c("tmean_Jan", "tmean_Feb", "tmean_March", "tmean_April", "tmean_May", "tmean_June", "tmean_July", "tmean_Aug", "tmean_Sept", "tmean_Oct" ,"tmean_Nov", "tmean_Dec")]
-    ),
+    tmean = pmap_dbl(.[c("tmean_Jan", "tmean_Feb", "tmean_March", "tmean_April", "tmean_May", "tmean_June", "tmean_July", "tmean_Aug", "tmean_Sept", "tmean_Oct" ,"tmean_Nov", "tmean_Dec")],
+                       .f = function(tmean_Jan, tmean_Feb, tmean_March, tmean_April, tmean_May, tmean_June, tmean_July, tmean_Aug, tmean_Sept, tmean_Oct ,tmean_Nov, tmean_Dec, ...) {
+                         temp <- sum(tmean_Jan, tmean_Feb, tmean_March, tmean_April, tmean_May, tmean_June, tmean_July, tmean_Aug, tmean_Sept, tmean_Oct ,tmean_Nov, tmean_Dec)/12
+                         return(temp)
+                       }),
+    # tmin = pmap_dbl(.[c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April", "tmin_May", "tmin_June", "tmin_July", "tmin_Aug", "tmin_Sept", "tmin_Oct" ,"tmin_Nov", "tmin_Dec")],
+    #                  .f = function(tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct ,tmin_Nov, tmin_Dec, ...) {
+    #                    temp <- sum(tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct ,tmin_Nov, tmin_Dec)/12
+    #                    return(temp)
+    #                  }),
+    # tmax = pmap_dbl(.[c("tmax_Jan", "tmax_Feb", "tmax_March", "tmax_April", "tmax_May", "tmax_June", "tmax_July", "tmax_Aug", "tmax_Sept", "tmax_Oct" ,"tmax_Nov", "tmax_Dec")],
+    #                 .f = function(tmax_Jan, tmax_Feb, tmax_March, tmax_April, tmax_May, tmax_June, tmax_July, tmax_Aug, tmax_Sept, tmax_Oct ,tmax_Nov, tmax_Dec, ...) {
+    #                   temp <- sum(tmax_Jan, tmax_Feb, tmax_March, tmax_April, tmax_May, tmax_June, tmax_July, tmax_Aug, tmax_Sept, tmax_Oct ,tmax_Nov, tmax_Dec)/12
+    #                   return(temp)
+    #                 }),
     # annual water deficit (mm of water over degrees celsius)(sum across all months?)
     annWaterDeficit = pmap_dbl(.[c("awd_Jan", "awd_Feb", "awd_March", "awd_April", "awd_May", "awd_June", "awd_July", "awd_Aug", "awd_Sept", "awd_Oct" ,"awd_Nov", "awd_Dec")], 
                                .f = function(awd_Jan, awd_Feb, awd_March, awd_April, awd_May, awd_June, awd_July, awd_Aug, awd_Sept, awd_Oct ,awd_Nov, awd_Dec, ...){
@@ -524,64 +540,32 @@ climVar2 <- allMetDat2%>%
                              }
     ),
     # annual average vapor pressure deficit (in milibars) ()
-    annVPD_mean = rowMeans(.[c("VPD_Jan", "VPD_Feb", "VPD_March","VPD_April" ,"VPD_May","VPD_June", "VPD_July","VPD_Aug","VPD_Sept","VPD_Oct","VPD_Nov","VPD_Dec")]),
+    annVPD_mean = pmap_dbl(.[c("VPD_Jan", "VPD_Feb", "VPD_March","VPD_April" ,"VPD_May","VPD_June", "VPD_July","VPD_Aug","VPD_Sept","VPD_Oct","VPD_Nov","VPD_Dec")], 
+                           .f = function(VPD_Jan, VPD_Feb, VPD_March,VPD_April ,VPD_May,VPD_June, VPD_July,VPD_Aug,VPD_Sept,VPD_Oct,VPD_Nov,VPD_Dec) {
+      mean(VPD_Jan, VPD_Feb, VPD_March,VPD_April ,VPD_May,VPD_June, VPD_July,VPD_Aug,VPD_Sept,VPD_Oct,VPD_Nov,VPD_Dec)
+    }),
     # annual maximum vapor pressure deficit (in milibars) 
     annVPD_max = pmap_dbl(.[c("VPD_Jan", "VPD_Feb", "VPD_March","VPD_April" ,"VPD_May","VPD_June", "VPD_July","VPD_Aug","VPD_Sept","VPD_Oct","VPD_Nov","VPD_Dec")], max),
     # annual minimum vapor pressure deficit (in milibars) 
     annVPD_min = pmap_dbl(.[c("VPD_Jan", "VPD_Feb", "VPD_March","VPD_April" ,"VPD_May","VPD_June", "VPD_July","VPD_Aug","VPD_Sept","VPD_Oct","VPD_Nov","VPD_Dec")], min)
   )
 
-# 
-#   
-#   plot(climVar2[,c("VPD_2_Jan")] ~ 
-#          climVar2[,c("tmax_Jan")], col =  "purple",
-#        xlim = c(-15,40), 
-#        ylim = c(0, 2.5)
-#   )
-#   points(climVar2[,c("VPD_2_Feb")]  ~ 
-#                   climVar2[,c("tmax_Feb")], col = "blue"
-#   )
-#   points(climVar2[,c("VPD_2_March")]  ~ 
-#             climVar2[,c("tmax_March")], col = "turquoise"
-#   )
-#   points(climVar2[,c("VPD_2_April")]  ~ 
-#            climVar2[,c("tmax_April")], col = "green"
-#   )
-#   points(climVar2[,c("VPD_2_May")]  ~ 
-#            climVar2[,c("tmax_May")], col = "yellow"
-#   )
-#   points(climVar2[,c("VPD_2_June")]  ~ 
-#            climVar2[,c("tmax_June")], col = "orange"
-#   )
-#   points(climVar2[,c("VPD_2_July")]  ~ 
-#            climVar2[,c("tmax_July")], col = "red"
-#   )
-#   points(climVar2[,c("VPD_2_Aug")]  ~ 
-#            climVar2[,c("tmax_Aug")], col = "brown"
-#   )
-#   points(climVar2[,c("VPD_2_Sept")]  ~ 
-#            climVar2[,c("tmax_Sept")], col = "grey"
-#   )
-#   points(climVar2[,c("VPD_2_Oct")]  ~ 
-#            climVar2[,c("tmax_Oct")], col = "wheat"
-#   )
-#   points(climVar2[,c("VPD_2_Nov")]  ~ 
-#            climVar2[,c("tmax_Nov")], col = "pink"
-#   )
-#   points(climVar2[,c("VPD_2_Dec")]  ~ 
-#            climVar2[,c("tmax_Dec")], col = "magenta"
-#   )
-#   
-       
+
 climVar <- cbind(climVar, climVar2)
+plot(climVar$tmin, climVar$tmean)
+plot(climVar$tmax, climVar$tmean)
+## recalculate tmean as the average of annual average tmax and annual average tmean 
+climVar <- climVar %>% 
+  mutate(tmean = (tmin_annAvg + tmax_annAvg)/2)
+
 rm(climVar2)
 
 
 # save for subsequent use
 #saveRDS(climVar, file = "./Data_raw/dayMet/climateValuesForAnalysis_monthly.rds")
 climVar <- readRDS(file="./Data_raw/dayMet/climateValuesForAnalysis_monthly.rds")
+  
 
-rm(allMetDat, allMetDat2, annMetDat)
 # calculate sliding window inter-annual climate means ----------------------
 
 ## calculate MAP and MAT over past years (a sliding window?)
@@ -887,65 +871,12 @@ testNew <- test %>%
 # save data 
 saveRDS(testNew, "./Data_processed/CoverData/dayMet_intermediate/climVars_AnnualMeansAndLaggedValues.rds")
 testNew <- readRDS("./Data_processed/CoverData/dayMet_intermediate/climVars_AnnualMeansAndLaggedValues.rds")
+#plot(testNew$tmin_annAvg[1:10000,], testNew$tmean[1:10000,])
 
 #### calculate anomalies ####
 # i.e. how do the 10 yr. lagged values compare to the 30yr lagged values? 5 yr? previous yr? 
 # compare 10 yr values to 30 yr values
 
-rm(test2, annMeans_1yr)
-
-# anomDat_10yr <- test5 %>% 
-#   transmute(
-#     # compare 10 yr values to 30 yr values
-#     # swe as % difference
-#     sweMax_meanAnn_10yrAnom = ((swe_meanAnnAvg_CLIM - swe_meanAnnAvg_10yr)/swe_meanAnnAvg_CLIM),
-#     # tmean as absolute difference
-#     tmean_meanAnnAvg_10yrAnom = tmean_meanAnnAvg_CLIM - tmean_meanAnnAvg_10yr,
-#     # tmin as absolute difference
-#     tmin_meanAnnAvg_10yrAnom = tmin_meanAnnAvg_CLIM - tmin_meanAnnAvg_10yr,
-#     # tmax as absolute difference
-#     tmax_meanAnnAvg_10yrAnom = tmax_meanAnnAvg_CLIM - tmax_meanAnnAvg_10yr,
-#     # vp as % difference
-#     vp_meanAnnAvg_10yrAnom = (vp_meanAnnAvg_CLIM - vp_meanAnnAvg_10yr)/vp_meanAnnAvg_CLIM,
-#     # prcp as % difference
-#     prcp_meanAnnTotal_10yrAnom = (prcp_meanAnnTotal_CLIM - prcp_meanAnnTotal_10yr)/prcp_meanAnnTotal_CLIM,
-#     # t warmest month as absolute difference
-#     T_warmestMonth_meanAnnAvg_10yrAnom = T_warmestMonth_meanAnnAvg_CLIM - T_warmestMonth_meanAnnAvg_10yr,
-#     # t coldest month as absolute difference
-#     T_coldestMonth_meanAnnAvg_10yrAnom = T_coldestMonth_meanAnnAvg_CLIM - T_coldestMonth_meanAnnAvg_10yr,
-#     # precip wettest month as % difference
-#     precip_wettestMonth_meanAnnAvg_10yrAnom = (precip_wettestMonth_meanAnnAvg_CLIM - precip_wettestMonth_meanAnnAvg_10yr)/precip_wettestMonth_meanAnnAvg_CLIM,
-#     # precip driest month as % difference
-#     precip_driestMonth_meanAnnAvg_10yrAnom = (precip_driestMonth_meanAnnAvg_CLIM - precip_driestMonth_meanAnnAvg_10yr)/precip_driestMonth_meanAnnAvg_CLIM,
-#     # precip seasonality as % difference
-#     precip_Seasonality_meanAnnAvg_10yrAnom = (precip_Seasonality_meanAnnAvg_CLIM - precip_Seasonality_meanAnnAvg_10yr)/precip_Seasonality_meanAnnAvg_CLIM,
-#     # precip tempCorr as absolute difference
-#     PrecipTempCorr_meanAnnAvg_10yrAnom = PrecipTempCorr_meanAnnAvg_CLIM - PrecipTempCorr_meanAnnAvg_10yr,
-#     # above Freezing month as absolute difference
-#     aboveFreezing_month_meanAnnAvg_10yrAnom = aboveFreezing_month_meanAnnAvg_CLIM - aboveFreezing_month_meanAnnAvg_10yr,
-#     # isothermailty as % difference
-#     isothermality_meanAnnAvg_10yrAnom = isothermality_meanAnnAvg_CLIM - isothermality_meanAnnAvg_10yr,
-#     # annual water deficit as % difference
-#     annWaterDeficit_meanAnnAvg_10yrAnom = (annWaterDeficit_meanAnnAvg_CLIM - annWaterDeficit_meanAnnAvg_10yr)/annWaterDeficit_meanAnnAvg_CLIM,
-#     # wet degree days as % difference
-#     annWetDegDays_meanAnnAvg_10yrAnom = (annWetDegDays_meanAnnAvg_CLIM - annWetDegDays_meanAnnAvg_10yr)/annWetDegDays_meanAnnAvg_CLIM,
-#     # mean VPD as absolute difference
-#     annVPD_mean_meanAnnAvg_10yrAnom = (annVPD_mean_meanAnnAvg_CLIM - annVPD_mean_meanAnnAvg_10yr),
-#     # min VPD as absolute difference
-#     annVPD_min_meanAnnAvg_10yrAnom = (annVPD_min_meanAnnAvg_CLIM - annVPD_min_meanAnnAvg_10yr),
-#     # max VPD as absolute difference
-#     annVPD_max_meanAnnAvg_10yrAnom = (annVPD_max_meanAnnAvg_CLIM - annVPD_max_meanAnnAvg_10yr),
-#     # 95th percentile of max VPD as absolute difference 
-#     annVPD_max_95percentile_10yrAnom = (annVPD_max_95percentile_CLIM - annVPD_max_95percentile_10yr),
-#     # 95th percentile of annual water deficit as % difference
-#     annWaterDeficit_95percentile_10yrAnom = (annWaterDeficit_95percentile_CLIM - annWaterDeficit_95percentile_10yr)/annWaterDeficit_95percentile_CLIM,
-#     # 5th percentile of annual wet degree days as % difference 
-#     annWetDegDays_5percentile_10yrAnom = (annWetDegDays_5percentile_CLIM - annWetDegDays_5percentile_10yr)/annWetDegDays_5percentile_CLIM,
-#     # 10th percentile of frost-free days as absolute difference 
-#     durationFrostFreeDays_5percentile_10yrAnom = (durationFrostFreeDays_5percentile_CLIM - durationFrostFreeDays_5percentile_10yr),
-#     # mean of frost free days as absolute difference
-#     durationFrostFreeDays_meanAnnAvg_10yrAnom = (durationFrostFreeDays_meanAnnAvg_CLIM - durationFrostFreeDays_meanAnnAvg_10yr)
-#   )
 
 anomDat_3yr <- testNew %>% 
   transmute(
@@ -1001,68 +932,15 @@ anomDat_3yr <- testNew %>%
   )
 
 
-# anomDat_1yr_temp <- test5 %>% 
-#   # remove values for 10 and 5 yr. lags (that aren't anomalies)
-#   select(-c(prcp_annTotal:annVPD_min, swe_meanAnnAvg_10yr:Start_10yr, swe_meanAnnAvg_5yr:Start_5yr))
-# 
-# anomDat_1yr <- anomDat_1yr_temp %>% 
-#   transmute(
-#     # compare 1 yr values to 30 yr values
-#     # sweMax as % difference
-#     swe_meanAnn_1yrAnom = ((swe_meanAnnAvg_CLIM - swe_meanAnnAvg_1yr)/swe_meanAnnAvg_CLIM),
-#     # tmean as absolute difference
-#     tmean_meanAnnAvg_1yrAnom = tmean_meanAnnAvg_CLIM - tmean_meanAnnAvg_1yr,
-#     # tmin as absolute difference
-#     tmin_meanAnnAvg_1yrAnom = tmin_meanAnnAvg_CLIM - tmin_meanAnnAvg_1yr,
-#     # tmax as absolute difference
-#     tmax_meanAnnAvg_1yrAnom = tmax_meanAnnAvg_CLIM - tmax_meanAnnAvg_1yr,
-#     # vp as % difference
-#     vp_meanAnnAvg_1yrAnom = (vp_meanAnnAvg_CLIM - vp_meanAnnAvg_1yr)/vp_meanAnnAvg_CLIM,
-#     # prcp as % difference
-#     prcp_meanAnnTotal_1yrAnom = (prcp_meanAnnTotal_CLIM - prcp_meanAnnTotal_1yr)/prcp_meanAnnTotal_CLIM,
-#     # t warmest month as absolute difference
-#     T_warmestMonth_meanAnnAvg_1yrAnom = T_warmestMonth_meanAnnAvg_CLIM - T_warmestMonth_meanAnnAvg_1yr,
-#     # t coldest month as absolute difference
-#     T_coldestMonth_meanAnnAvg_1yrAnom = T_coldestMonth_meanAnnAvg_CLIM - T_coldestMonth_meanAnnAvg_1yr,
-#     # precip wettest month as % difference
-#     precip_wettestMonth_meanAnnAvg_1yrAnom = (precip_wettestMonth_meanAnnAvg_CLIM - precip_wettestMonth_meanAnnAvg_1yr)/precip_wettestMonth_meanAnnAvg_CLIM,
-#     # precip driest month as % difference
-#     precip_driestMonth_meanAnnAvg_1yrAnom = (precip_driestMonth_meanAnnAvg_CLIM - precip_driestMonth_meanAnnAvg_1yr)/precip_driestMonth_meanAnnAvg_CLIM,
-#     # precip seasonality as % difference
-#     precip_Seasonality_meanAnnAvg_1yrAnom = (precip_Seasonality_meanAnnAvg_CLIM - precip_Seasonality_meanAnnAvg_1yr)/precip_Seasonality_meanAnnAvg_CLIM,
-#     # precip tempCorr as absolute difference
-#     PrecipTempCorr_meanAnnAvg_1yrAnom = PrecipTempCorr_meanAnnAvg_CLIM - PrecipTempCorr_meanAnnAvg_1yr,
-#     # above Freezing month as absolute difference
-#     aboveFreezing_month_meanAnnAvg_1yrAnom = aboveFreezing_month_meanAnnAvg_CLIM - aboveFreezing_month_meanAnnAvg_1yr,
-#     # isothermailty as % difference
-#     isothermality_meanAnnAvg_1yrAnom = isothermality_meanAnnAvg_CLIM - isothermality_meanAnnAvg_1yr,
-#     # annual water deficit as % difference
-#     annWaterDeficit_meanAnnAvg_1yrAnom = (annWaterDeficit_meanAnnAvg_CLIM - annWaterDeficit_meanAnnAvg_1yr)/annWaterDeficit_meanAnnAvg_CLIM,
-#     # wet degree days as % difference
-#     annWetDegDays_meanAnnAvg_1yrAnom = (annWetDegDays_meanAnnAvg_CLIM - annWetDegDays_meanAnnAvg_1yr)/annWetDegDays_meanAnnAvg_CLIM,
-#     # mean VPD as absolute difference
-#     annVPD_mean_meanAnnAvg_1yrAnom = (annVPD_mean_meanAnnAvg_CLIM - annVPD_mean_meanAnnAvg_1yr),
-#     # min VPD as absolute difference
-#     annVPD_min_meanAnnAvg_1yrAnom = (annVPD_min_meanAnnAvg_CLIM - annVPD_min_meanAnnAvg_1yr),
-#     # max VPD as absolute difference
-#     annVPD_max_meanAnnAvg_1yrAnom = (annVPD_max_meanAnnAvg_CLIM - annVPD_max_meanAnnAvg_1yr),
-#     # 95th percentile of max VPD as absolute difference 
-#     annVPD_max_95percentile_1yrAnom = (annVPD_max_95percentile_CLIM - annVPD_max_95percentile_1yr),
-#     # 95th percentile of annual water deficit as % difference
-#     annWaterDeficit_95percentile_1yrAnom = (annWaterDeficit_95percentile_CLIM - annWaterDeficit_95percentile_1yr)/annWaterDeficit_95percentile_CLIM,
-#     # 5th percentile of annual wet degree days as % difference 
-#     annWetDegDays_5percentile_1yrAnom = (annWetDegDays_5percentile_CLIM - annWetDegDays_5percentile_1yr)/annWetDegDays_5percentile_CLIM,
-#     # 10th percentile of frost-free days as absolute difference 
-#     durationFrostFreeDays_5percentile_1yrAnom = (durationFrostFreeDays_5percentile_CLIM - durationFrostFreeDays_5percentile_1yr),
-#     # mean of frost free days as absolute difference
-#     durationFrostFreeDays_meanAnnAvg_1yrAnom = (durationFrostFreeDays_meanAnnAvg_CLIM - durationFrostFreeDays_meanAnnAvg_1yr)
-#     )
-
 climDat <- cbind(testNew, #anomDat_10yr, 
                  anomDat_3yr#, anomDat_1yr
                  ) # %>% 
   #select(-c(swe_meanAnnAvg_1yr:Start_1yr))
+
+plot(climDat$tmin_annAvg[1:10000], climDat$tmean[1:10000])
+
+
 # save climate values for analysis 
 #write.csv(climDat, "./data/dayMet/climateValuesForAnalysis_final.csv", row.names = FALSE)
 saveRDS(climDat, "./Data_processed/CoverData/dayMetClimateValuesForAnalysis_final.rds")
-
+#climDat <- readRDS("./Data_processed/CoverData/dayMetClimateValuesForAnalysis_final.rds")

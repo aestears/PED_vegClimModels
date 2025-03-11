@@ -396,3 +396,8 @@ temp <- vegSoils_new %>%
   saveRDS(vegSoils_final, 
           "./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
   #vegSoils_final <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
+
+  
+ plot(vegSoils_final$tmean, 
+      vegSoils_final$tmin_annAvg)
+  

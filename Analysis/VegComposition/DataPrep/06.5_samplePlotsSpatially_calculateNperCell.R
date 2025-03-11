@@ -197,6 +197,8 @@ datAll <- coverData %>%
 
 ## save the data
 saveRDS(datAll, "./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_sf.rds")
+datAll <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_sf.rds")
+
 saveRDS(st_drop_geometry(datAll), "./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_NoSf.rds")
 
 # Visualize results -------------------------------------------------------
