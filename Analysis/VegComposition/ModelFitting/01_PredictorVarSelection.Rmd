@@ -138,6 +138,20 @@ knitr::kable(format = "html", data.frame("Variable" =
   kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 ```
 
+Now, look at the distribution of input values
+```{r}
+dat %>% 
+  select(tmean_meanAnnAvg_3yrAnom:durationFrostFreeDays_meanAnnAvg_3yrAnom, Year.x, Long.x, Lat.x) %>% 
+  pivot_longer(cols = tmean_meanAnnAvg_3yrAnom:durationFrostFreeDays_meanAnnAvg_3yrAnom,
+               names_to = "variable",
+               values_to = "value"
+                ) %>% 
+  ggplot() +
+  facet_wrap(~variable, scales = "free") +
+   geom_histogram(aes(value))
+
+```
+
 For each grid cell, we also include **soil** information, which is extrapolated from the SOLUS100 dataset. This information is fixed across time in our dataset. 
 ```{r, echo = FALSE, results = 'asis'}
 
@@ -675,7 +689,6 @@ forestClimVars <- c(
 ## Then, identify weather anomaly predictors that are uncorrelated with the climate and soils predictors identified above -- uniquely for each ecoregion 
 
 ### Shrubland and Grassland
-
 The following variables were removed due to correlation with other variables:
 
 ```{r, echo = FALSE, include=FALSE}
@@ -702,8 +715,8 @@ The following variables were removed due to correlation with other variables:
       VPD_min_anom , #25
       #VPD_max_anom , #26
      VPD_max_95_anom , #27
-      annWatDef_95_anom , #28
-      annWetDegDays_5_anom , #29
+      #annWatDef_95_anom , #28
+      #annWetDegDays_5_anom , #29
     frostFreeDays_5_anom #, #30
       #frostFreeDays_anom #31
    ) %>% 
@@ -719,7 +732,8 @@ The following variables were removed due to correlation with other variables:
 * 'tmean_anom' and 'tmax_anom': cor =  .81; chose 'tmax_anom'
 * 'frostFreeDays_anom' and 'aboveFreezingMonth_anom': cor =  .79; chose 'aboveFreezingMonth_anom'
 * 'prcp_anom' and 'prcp_wet_anom': cor =  .74; chose 'prcp_wet_anom'
-
+* remove annWetDegDays_5_anom because the distribution is very skewed
+* remove annWatDef_95_anom because the distribution is very skewed
 
 
 The remaining variables that are uncorrelated are shown here: 
@@ -750,8 +764,8 @@ The remaining variables that are uncorrelated are shown here:
       VPD_min_anom , #25
       #VPD_max_anom , #26
      VPD_max_95_anom , #27
-      annWatDef_95_anom , #28
-      annWetDegDays_5_anom , #29
+      #annWatDef_95_anom , #28
+      #annWetDegDays_5_anom , #29
     frostFreeDays_5_anom #, #30
       #frostFreeDays_anom #31
    ) %>%
@@ -759,8 +773,8 @@ The remaining variables that are uncorrelated are shown here:
     ggpairs( upper = list(continuous = my_fn), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), progress = FALSE))
 
 corrPlotNames_grassShrub <- names(corrPlot$data)
-kable(data.frame("Climate_And_Soils_Variables" = c(corrPlotNames_grassShrub[1:9],rep_len(NA,length.out = 5)), 
-                 "Weather_Anomaly_Variables" = corrPlotNames_grassShrub[12:25]), format = 'html') %>%
+kable(data.frame("Climate_And_Soils_Variables" = c(corrPlotNames_grassShrub[1:9],rep_len(NA,length.out = 3)), 
+                 "Weather_Anomaly_Variables" = corrPlotNames_grassShrub[12:23]), format = 'html') %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 
 ```
@@ -792,8 +806,8 @@ The following variables were removed due to correlation with other variables:
       VPD_min_anom , #26
       #VPD_max_anom , #27
      VPD_max_95_anom , #28
-      annWatDef_95_anom , #29
-      annWetDegDays_5_anom , #30
+      #annWatDef_95_anom , #29
+      #annWetDegDays_5_anom , #30
     frostFreeDays_5_anom #, #31
       #frostFreeDays_anom  #32
    ) %>%
@@ -808,6 +822,8 @@ The following variables were removed due to correlation with other variables:
 * 'VPD_max_anom' and 'VPD_max_95_anom': cor =  .82; chose 'VPD_max_95_anom'
 * 'tmean_anom' and 'tmax_anom': cor =  .73; chose 'tmax_anom'
 * 'frostFreeDays_anom' and 'frostFreeDays_5_anom': cor =  .73; chose 'frostFreeDays_5_anom'
+* remove annWetDegDays_5_anom because the distribution is very skewed
+* remove annWatDef_95_anom because the distribution is very skewed
 
 
 The remaining variables that are uncorrelated are shown below 
@@ -835,8 +851,8 @@ corrPlot <-
       VPD_min_anom , #26
       #VPD_max_anom , #27
      VPD_max_95_anom , #28
-      annWatDef_95_anom , #29
-      annWetDegDays_5_anom , #30
+      #annWatDef_95_anom , #29
+      #annWetDegDays_5_anom , #30
     frostFreeDays_5_anom #, #31
       #frostFreeDays_anom  #32
    ) %>%
@@ -844,8 +860,8 @@ corrPlot <-
     ggpairs( upper = list(continuous = my_fn), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), progress = FALSE))
 
 corrPlotNamesForest <- names(corrPlot$data)
-kable(data.frame("Climate_And_Soils_Variables" = c(corrPlotNamesForest[1:10],rep_len(NA,length.out = 6)), 
-                 "Weather_Anomaly_Variables" = corrPlotNamesForest[12:27]), format = 'html') %>%
+kable(data.frame("Climate_And_Soils_Variables" = c(corrPlotNamesForest[1:10],rep_len(NA,length.out = 4)), 
+                 "Weather_Anomaly_Variables" = corrPlotNamesForest[12:25]), format = 'html') %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 
 ```

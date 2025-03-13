@@ -676,88 +676,6 @@ names(annMeans_30yr)[3:26] <- paste0(names(annMeans_30yr)[3:26], "_30yr")
 saveRDS(annMeans_30yr, "./Data_processed/CoverData/dayMet_intermediate/annMeans_30yrs.rds")
 annMeans_30yr <- readRDS("./Data_processed/CoverData/dayMet_intermediate/annMeans_30yrs.rds")
 
-## for windows that are specific to the year (for 2011 onward, use 30 year
-# ## window; for years prior, use the longest window possible (starting in 1980))
-# endDats <- as.matrix(c(1980:2009))
-# annMeans <- apply(as.matrix(endDats[1:2]), MARGIN = 1, FUN = function(x)
-#   slidingMetMeans(inDat = climVar
-#                   , start = 1980, end = as.numeric(x))
-# )
-# annMeans_2 <- apply(as.matrix(endDats[3:5]), MARGIN = 1, FUN = function(x)
-#   slidingMetMeans(inDat = climVar
-#                   , start = 1980, end = as.numeric(x))
-# )
-# annMeans_3 <- apply(as.matrix(endDats[6:8]), MARGIN = 1, FUN = function(x)
-#   slidingMetMeans(inDat = climVar
-#                   , start = 1980, end = as.numeric(x))
-# )
-# annMeans_4 <- apply(as.matrix(endDats[9:11]), MARGIN = 1, FUN = function(x)
-#   slidingMetMeans(inDat = climVar
-#                   , start = 1980, end = as.numeric(x))
-# )
-# annMeans_5 <- apply(as.matrix(endDats[12:14]), MARGIN = 1, FUN = function(x)
-#   slidingMetMeans(inDat = climVar
-#                   , start = 1980 , end = as.numeric(x))
-# )
-# annMeans_6 <- apply(as.matrix(endDats[15:17]), MARGIN = 1, FUN = function(x)
-#   slidingMetMeans(inDat = climVar
-#                   , start = 1980 , end = as.numeric(x))
-# )
-# annMeans_7 <- apply(as.matrix(endDats[18:20]), MARGIN = 1, FUN = function(x)
-#   slidingMetMeans(inDat = climVar
-#                   , start = 1980 , end = as.numeric(x))
-# )
-# annMeans_8 <- apply(as.matrix(endDats[21:23]), MARGIN = 1, FUN = function(x)
-#   slidingMetMeans(inDat = climVar
-#                   , start = 1980 , end = as.numeric(x))
-# )
-# annMeans_9 <- apply(as.matrix(endDats[24:26]), MARGIN = 1, FUN = function(x)
-#   slidingMetMeans(inDat = climVar
-#                   , start = 1980 , end = as.numeric(x))
-# )
-# annMeans_10 <- apply(as.matrix(endDats[27:28]), MARGIN = 1, FUN = function(x)
-#   slidingMetMeans(inDat = climVar
-#                   , start = 1980 , end = as.numeric(x))
-# )
-# annMeans_11 <- apply(as.matrix(endDats[29:30]), MARGIN = 1, FUN = function(x)
-#   slidingMetMeans(inDat = climVar
-#                   , start = 1980 , end = as.numeric(x))
-# )
-# # put together into one list
-# annMeans_all <- c(annMeans, annMeans_2, annMeans_3, annMeans_4, annMeans_5,
-#                   annMeans_6, annMeans_7, annMeans_8, annMeans_9, annMeans_10,
-#                   annMeans_11)
-# names(annMeans_all) <- c(1980:2009)
-# annMeans_ShorterLagsForClimate<- lapply(endDats, function(x) {
-#   temp <- cbind(annMeans_all[[as.character(x)]], x)
-#   temp$Start <- 1980
-#   names(temp) <- c(names(annMeans_all[[1]]), "End", "Start")
-#   return(temp)
-# })
-# 
-# annMeans_ShorterLagsForClimate <- data.table::rbindlist(annMeans_ShorterLagsForClimate)
-# 
-# names(annMeans_ShorterLagsForClimate)[3:28] <- paste0(names(annMeans_ShorterLagsForClimate)[3:28], "_trimClim")
-# saveRDS(annMeans_ShorterLagsForClimate, "./Data_processed/CoverData/dayMet_intermediate/annMeans_forShorterLagsPriorTo2009.rds")
-
-# ## for last 10-year window
-# endDats <- as.matrix(c(1990:2023))
-# annMeans <- apply(endDats, MARGIN = 1, FUN = function(x)
-#   slidingMetMeans(inDat = climVar, start = as.numeric(x-10), end = as.numeric(x))
-# )
-# names(annMeans) <- c(1990:2023)
-# annMeans_10yr <- lapply(endDats, function(x) {
-#   temp <- cbind(annMeans[[as.character(x)]], x)
-#   temp$Start <- x-10
-#   names(temp) <- c(names(annMeans[[1]]), "End", "Start")
-#   return(temp)
-# })
-# 
-# annMeans_10yr <- data.table::rbindlist(annMeans_10yr)
-# names(annMeans_10yr)[3:28] <- paste0(names(annMeans_10yr)[3:28], "_10yr")
-# saveRDS(annMeans_10yr, "./Data_processed/CoverData/dayMet_intermediate/annMeans_10yrs.rds")
-# annMeans_10yr <- readRDS("./Data_processed/CoverData/dayMet_intermediate/annMeans_10yrs.rds")
-
 # for last 3-year window
 # start in 2000, since we only have climate data starting then anyway
 endDats <- as.matrix(c(2000:2023))
@@ -777,24 +695,6 @@ names(annMeans_3yr)[3:26] <- paste0(names(annMeans_3yr)[3:26], "_3yr")
 saveRDS(annMeans_3yr, "./Data_processed/CoverData/dayMet_intermediate/annMeans_3yrs.rds")
 annMeans_3yr <- readRDS("./Data_processed/CoverData/dayMet_intermediate/annMeans_3yrs.rds")
 
-# # for last 1-year window
-# endDats <- as.matrix(c(1981:2023))
-# annMeans <- apply(endDats, MARGIN = 1, FUN = function(x)
-#   slidingMetMeans(inDat = climVar, start = as.numeric(x-1), end = as.numeric(x))
-# )
-# names(annMeans) <- c(1981:2023)
-# annMeans_1yr <- lapply(endDats, function(x) {
-#   temp <- cbind(annMeans[[as.character(x)]], x)
-#   temp$Start <- x-1
-#   names(temp) <- c(names(annMeans[[1]]), "End", "Start")
-#   return(temp)
-# })
-# 
-# annMeans_1yr <- data.table::rbindlist(annMeans_1yr)
-# names(annMeans_1yr)[3:28] <- paste0(names(annMeans_1yr)[3:28], "_1yr")
-# saveRDS(annMeans_1yr, "./Data_processed/CoverData/dayMet_intermediate/annMeans_1yrs.rds")
-# annMeans_1yr <- readRDS("./Data_processed/CoverData/dayMet_intermediate/annMeans_1yrs.rds")
-
 ## add lagged data to the main climate value data.frame
 test <- climVar %>% 
   select(-c(tmax_Jan:tmax_Dec, tmin_Jan:prcp_Dec)) %>% 
@@ -810,29 +710,6 @@ test <- climVar %>%
 
 rm(annMeans_30yr, annMeans_3yr)
 gc()
-
-# test2 <- test %>% 
-#   left_join(annMeans_5yr, by = c("year" = "End_5yr", 
-#                                  "Long" = "Long", 
-#                                  "Lat" = "Lat"))
-#  
-# rm(test, annMeans_30yr, annMeans_10yr, annMeans_5yr, annMeans, annMeans_2, 
-#    annMeans_3, annMeans_4, annMeans_5, annMeans_6, annMeans_7, annMeans_8,
-#    annMeans_9, annMeans_10, annMeans_11, annMeans_all, climVar)
-# gc()
-# 
-# test3 <- test2 %>%
-#   left_join(annMeans_1yr, by = c("year" = "End_1yr",
-#                                  "Long" = "Long",
-#                                  "Lat" = "Lat"))
-# 
-# rm(annMeans_1yr, test2)
-# annMeans_ShorterLagsForClimate <- readRDS("./Data_processed/CoverData/dayMet_intermediate/annMeans_forShorterLagsPriorTo2009.rds")
-# 
-# test4 <- test3 %>% 
-#   left_join(annMeans_ShorterLagsForClimate, by = c("year" = "End_trimClim",
-#                                                    "Long" = "Long",
-#                                                    "Lat" = "Lat"))
 
 # save intermediate data 
 saveRDS(test, "./Data_processed/CoverData/dayMet_intermediate/climVars_AnnualMeansAndLaggedValues.rds")
@@ -876,7 +753,29 @@ testNew <- readRDS("./Data_processed/CoverData/dayMet_intermediate/climVars_Annu
 #### calculate anomalies ####
 # i.e. how do the 10 yr. lagged values compare to the 30yr lagged values? 5 yr? previous yr? 
 # compare 10 yr values to 30 yr values
+# visualize climate variables
+testNew %>% 
+  drop_na() %>% 
+  select(tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM, year) %>% 
+  pivot_longer(cols = tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM,
+               names_to = "variable",
+               values_to = "value"
+  ) %>% 
+  ggplot() +
+  facet_wrap(~variable, scales = "free") +
+  geom_density(aes(value, col = year))
 
+# visualize weather (3yr) variables
+testNew %>% 
+  drop_na() %>% 
+    select(tmin_meanAnnAvg_3yr :durationFrostFreeDays_meanAnnAvg_3yr, year) %>% 
+  pivot_longer(cols = tmin_meanAnnAvg_3yr:durationFrostFreeDays_meanAnnAvg_3yr,
+               names_to = "variable",
+               values_to = "value"
+  ) %>% 
+  ggplot() +
+  facet_wrap(~variable, scales = "free") +
+  geom_density(aes(value, col = year))
 
 anomDat_3yr <- testNew %>% 
   transmute(
@@ -910,7 +809,7 @@ anomDat_3yr <- testNew %>%
     # isothermailty as % difference
     isothermality_meanAnnAvg_3yrAnom = isothermality_meanAnnAvg_CLIM - isothermality_meanAnnAvg_3yr,    
     # annual water deficit as % difference
-    annWaterDeficit_meanAnnAvg_3yrAnom = (annWaterDeficit_meanAnnAvg_CLIM - annWaterDeficit_meanAnnAvg_3yr)/annWaterDeficit_meanAnnAvg_CLIM,
+    annWaterDeficit_meanAnnAvg_3yrAnom = ((annWaterDeficit_meanAnnAvg_CLIM+.0001) - annWaterDeficit_meanAnnAvg_3yr)/(annWaterDeficit_meanAnnAvg_CLIM+.0001),
     # wet degree days as % difference
     annWetDegDays_meanAnnAvg_3yrAnom = (annWetDegDays_meanAnnAvg_CLIM - annWetDegDays_meanAnnAvg_3yr)/annWetDegDays_meanAnnAvg_CLIM,
     # mean VPD as absolute difference
@@ -922,20 +821,60 @@ anomDat_3yr <- testNew %>%
     # 95th percentile of max VPD as absolute difference 
     annVPD_max_95percentile_3yrAnom = (annVPD_max_95percentile_CLIM - annVPD_max_95percentile_3yr),
     # 95th percentile of annual water deficit as % difference
-    annWaterDeficit_95percentile_3yrAnom = (annWaterDeficit_95percentile_CLIM - annWaterDeficit_95percentile_3yr)/annWaterDeficit_95percentile_CLIM,
+    annWaterDeficit_95percentile_3yrAnom = ((annWaterDeficit_95percentile_CLIM + .0001) - annWaterDeficit_95percentile_3yr)/(annWaterDeficit_95percentile_CLIM + .0001),
     # 5th percentile of annual wet degree days as % difference 
-    annWetDegDays_5percentile_3yrAnom = (annWetDegDays_5percentile_CLIM - annWetDegDays_5percentile_3yr)/annWetDegDays_5percentile_CLIM,
+    annWetDegDays_5percentile_3yrAnom = ((annWetDegDays_5percentile_CLIM + .0001) - annWetDegDays_5percentile_3yr)/(annWetDegDays_5percentile_CLIM + .0001),
     # 5th percentile of frost-free days as absolute difference 
     durationFrostFreeDays_5percentile_3yrAnom = (durationFrostFreeDays_5percentile_CLIM - durationFrostFreeDays_5percentile_3yr),
     # mean of frost free days as absolute difference
     durationFrostFreeDays_meanAnnAvg_3yrAnom = (durationFrostFreeDays_meanAnnAvg_CLIM - durationFrostFreeDays_meanAnnAvg_3yr)
   )
 
-
 climDat <- cbind(testNew, #anomDat_10yr, 
                  anomDat_3yr#, anomDat_1yr
-                 ) # %>% 
-  #select(-c(swe_meanAnnAvg_1yr:Start_1yr))
+) 
+
+# # visualize anomalies
+# climDat %>% 
+#   drop_na() %>% 
+#   select(tmean_meanAnnAvg_3yrAnom :durationFrostFreeDays_meanAnnAvg_3yrAnom, year) %>% 
+#   pivot_longer(cols = tmean_meanAnnAvg_3yrAnom:durationFrostFreeDays_meanAnnAvg_3yrAnom,
+#                names_to = "variable",
+#                values_to = "value"
+#   ) %>% 
+#   ggplot() +
+#   facet_wrap(~variable, scales = "free") +
+#   geom_density(aes(value, col = year))
+#  
+# 
+# awddFig <- climDat %>% 
+#   select(annWetDegDays_5percentile_CLIM, annWetDegDays_5percentile_3yr, annWetDegDays_5percentile_3yrAnom, year) %>% 
+#   drop_na() %>% 
+#   pivot_longer(cols = annWetDegDays_5percentile_CLIM:annWetDegDays_5percentile_3yrAnom,
+#                names_to = "variable",
+#                values_to = "value"
+#   ) %>% 
+#   mutate(variable = factor(variable, levels = c("annWetDegDays_5percentile_CLIM", "annWetDegDays_5percentile_3yr", 
+#                                                  "annWetDegDays_5percentile_3yrAnom"))) %>% 
+#   ggplot() +
+#   facet_wrap(~variable, scales = "free", ncol = 1) +
+#   geom_density(aes(value, colour = as.factor(year)))
+# 
+# annwatdefFig <- climDat %>% 
+#   select(annWaterDeficit_95percentile_CLIM, annWaterDeficit_95percentile_3yr, annWaterDeficit_95percentile_3yrAnom, year) %>% 
+#   drop_na() %>% 
+#   pivot_longer(cols = annWaterDeficit_95percentile_CLIM:annWaterDeficit_95percentile_3yrAnom,
+#                names_to = "variable",
+#                values_to = "value"
+#   ) %>% 
+#   mutate(variable = factor(variable, levels = c("annWaterDeficit_95percentile_CLIM", "annWaterDeficit_95percentile_3yr", 
+#                                                 "annWaterDeficit_95percentile_3yrAnom"))) %>% 
+#   ggplot() +
+#   facet_wrap(~variable, scales = "free", ncol = 1) +
+#   geom_density(aes(value, colour = as.factor(year)))
+# 
+# library(patchwork)
+# awddFig + annwatdefFig
 
 plot(climDat$tmin_annAvg[1:10000], climDat$tmean[1:10000])
 
