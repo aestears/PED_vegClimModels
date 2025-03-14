@@ -57,8 +57,8 @@ source("../../../Functions/transformPreds.R")
 source("../../../Functions/StepBeta_mine.R")
 #source("src/fig_params.R")
 #source("src/modeling_functions.R")
-
-library(bamlss)
+library(gamlss.add)
+library(gamlss)
 library(terra)
 library(tidyterra)
 library(sf)
@@ -89,14 +89,14 @@ modDat[is.infinite(modDat$annWetDegDays_5percentile_3yrAnom), "annWetDegDays_5pe
 ## same, but for annual water deficit 95th percentile 
 modDat[is.infinite(modDat$annWaterDeficit_95percentile_3yrAnom), "annWaterDeficit_95percentile_3yrAnom"] <- -600
 
-# Convert total cover variables into proportions (for later use in beta regression models) ... proportions are already scaled from zero to 1
-modDat <- modDat %>%
-  mutate(TotalTreeCover = TotalTreeCover/100,
-         CAMCover = CAMCover/100,
-         TotalHerbaceousCover = TotalHerbaceousCover/100,
-         BareGroundCover = BareGroundCover/100,
-         ShrubCover = ShrubCover/100
-         )
+# # Convert total cover variables into proportions (for later use in beta regression models) ... proportions are already scaled from zero to 1
+# modDat <- modDat %>%
+#   mutate(TotalTreeCover = TotalTreeCover/100,
+#          CAMCover = CAMCover/100,
+#          TotalHerbaceousCover = TotalHerbaceousCover/100,
+#          BareGroundCover = BareGroundCover/100,
+#          ShrubCover = ShrubCover/100
+#          )
 # For all response variables, make sure there are no 0s add or subtract .0001 from each, since the Gamma model framework can't handle that
 modDat[modDat$TotalTreeCover == 0 & !is.na(modDat$TotalTreeCover), "TotalTreeCover"] <- 0.0001
 modDat[modDat$CAMCover == 0 & !is.na(modDat$CAMCover), "CAMCover"] <- 0.0001
@@ -108,17 +108,17 @@ modDat[modDat$NeedleLeavedTreeCover_prop == 0 & !is.na(modDat$NeedleLeavedTreeCo
 modDat[modDat$C4Cover_prop == 0 & !is.na(modDat$C4Cover_prop), "C4Cover_prop"] <- 0.0001
 modDat[modDat$C3Cover_prop == 0 & !is.na(modDat$C3Cover_prop), "C3Cover_prop"] <- 0.0001
 modDat[modDat$ForbCover_prop == 0 & !is.na(modDat$ForbCover_prop), "ForbCover_prop"] <- 0.0001
-
-modDat[modDat$TotalTreeCover ==1& !is.na(modDat$TotalTreeCover), "TotalTreeCover"] <- 0.999
-modDat[modDat$CAMCover ==1& !is.na(modDat$CAMCover), "CAMCover"] <- 0.999
-modDat[modDat$TotalHerbaceousCover ==1 & !is.na(modDat$TotalHerbaceousCover), "TotalHerbaceousCover"] <- 0.999
-modDat[modDat$BareGroundCover ==1& !is.na(modDat$BareGroundCover), "BareGroundCover"] <- 0.999
-modDat[modDat$ShrubCover ==1& !is.na(modDat$ShrubCover), "ShrubCover"] <- 0.999
-modDat[modDat$BroadleavedTreeCover_prop ==1& !is.na(modDat$BroadleavedTreeCover_prop), "BroadleavedTreeCover_prop"] <- 0.999
-modDat[modDat$NeedleLeavedTreeCover_prop ==1& !is.na(modDat$NeedleLeavedTreeCover_prop), "NeedleLeavedTreeCover_prop"] <- 0.999
-modDat[modDat$C4Cover_prop ==1& !is.na(modDat$C4Cover_prop), "C4Cover_prop"] <- 0.999
-modDat[modDat$C3Cover_prop ==1& !is.na(modDat$C3Cover_prop), "C3Cover_prop"] <- 0.999
-modDat[modDat$ForbCover_prop ==1& !is.na(modDat$ForbCover_prop), "ForbCover_prop"] <- 0.999
+# 
+# modDat[modDat$TotalTreeCover ==1& !is.na(modDat$TotalTreeCover), "TotalTreeCover"] <- 0.999
+# modDat[modDat$CAMCover ==1& !is.na(modDat$CAMCover), "CAMCover"] <- 0.999
+# modDat[modDat$TotalHerbaceousCover ==1 & !is.na(modDat$TotalHerbaceousCover), "TotalHerbaceousCover"] <- 0.999
+# modDat[modDat$BareGroundCover ==1& !is.na(modDat$BareGroundCover), "BareGroundCover"] <- 0.999
+# modDat[modDat$ShrubCover ==1& !is.na(modDat$ShrubCover), "ShrubCover"] <- 0.999
+# modDat[modDat$BroadleavedTreeCover_prop ==1& !is.na(modDat$BroadleavedTreeCover_prop), "BroadleavedTreeCover_prop"] <- 0.999
+# modDat[modDat$NeedleLeavedTreeCover_prop ==1& !is.na(modDat$NeedleLeavedTreeCover_prop), "NeedleLeavedTreeCover_prop"] <- 0.999
+# modDat[modDat$C4Cover_prop ==1& !is.na(modDat$C4Cover_prop), "C4Cover_prop"] <- 0.999
+# modDat[modDat$C3Cover_prop ==1& !is.na(modDat$C3Cover_prop), "C3Cover_prop"] <- 0.999
+# modDat[modDat$ForbCover_prop ==1& !is.na(modDat$ForbCover_prop), "ForbCover_prop"] <- 0.999
 
 ```
 
@@ -218,8 +218,8 @@ modDat_1 <- modDat_1[!is.na(modDat_1[,response]),]
 
 ## Visualize the response variable 
 ```{r visualize response variable}
-hist(modDat_1[,response], main = paste0("Histogram of ",response," transformed to proportion scale"),
-     xlab = paste0(response,"/100"))
+hist(modDat_1[,response], main = paste0("Histogram of ",response),
+     xlab = paste0(response))
 ```
 
 
@@ -236,7 +236,7 @@ if (ecoregion == "shrubGrass") {
 "AWHC"                   , "tmax_anom"          ,"t_warm_anom"          ,"t_cold_anom"         ,   
 "prcp_wet_anom"          , "precp_dry_anom"     ,"prcp_seasonality_anom","prcpTempCorr_anom"   ,   
 "aboveFreezingMonth_anom", "isothermality_anom" ,"annWatDef_anom"       ,"annWetDegDays_anom"  ,   
-"VPD_min_anom"           , "VPD_max_95_anom"    ,"annWatDef_95_anom"    ,"annWetDegDays_5_anom",   
+"VPD_min_anom"           , "VPD_max_95_anom"    ,   
 "frostFreeDays_5_anom"   )
   
 } else if (ecoregion == "forest") {
@@ -249,13 +249,13 @@ if (ecoregion == "shrubGrass") {
 "t_warm_anom"         , "t_cold_anom"         , "prcp_wet_anom"           ,"precp_dry_anom"     , 
 "prcp_seasonality_anom", "prcpTempCorr_anom"  ,  "aboveFreezingMonth_anom", "isothermality_anom",  
 "annWatDef_anom"      , "annWetDegDays_anom"  , "VPD_min_anom"            ,"VPD_max_95_anom"    , 
-"annWatDef_95_anom"   , "annWetDegDays_5_anom", "frostFreeDays_5_anom"   
+ "frostFreeDays_5_anom"   
     )
 }
 
 # subset the data to only include these predictors, and remove any remaining NAs 
 modDat_1 <- modDat_1 %>% 
-  select(prednames, response, newRegion, Year.x, Long, Lat) %>% 
+  select(prednames, response, newRegion, Year.x, Long.x, Lat.x, NA_L1NAME, NA_L2NAME) %>% 
   drop_na()
 
 names(prednames) <- prednames
@@ -349,10 +349,10 @@ df_sample_plots <-  modDat_1  %>%
     response >= .75  ~ "1", 
   )) %>% 
   select(c(response, prednames)) %>% 
-  pivot_longer(cols = prednames, 
+  tidyr::pivot_longer(cols = unname(prednames), 
                names_to = "predictor", 
-               values_to = "value") %>% 
-  filter(!is.na(response) & !is.na(value)) 
+               values_to = "value"
+               )  
  
 
   ggplot(df_sample_plots, aes_string(x= "response", y = 'value')) +
@@ -363,27 +363,308 @@ df_sample_plots <-  modDat_1  %>%
 
 ```
 
-## Fit a null model w/ no predictors 
-With the full dataset (full response variables) -- try using bamlss package to do a beta regression (which allows us to use LASSO later on, I think...)
-```{r}
+
+# Model Fitting
+
+Repeat the following process x # of times for cross validation [
+1. Subset the data into training and test datasets (based on EPA Level II ecoregion--use leave-one-out CV)
+
+2. Then, use cross-validation (based on EPA Level II ecoregion--use leave-one-out CV) within the training dataset to identify the appropriate regularization parameter 
+
+3. Then, fit the model with the regularization parameter identified in step 2 to the entire training dataset identified in step 1 for this iteration 
+ 
+## First, Fit a null model w/ no predictors 
+With the full dataset (full response variables) -- use a Gamma family glm with a "log" link function (suited for response variables that are bounded by 0 and are right skewed)
+```{r fit null model}
 # try using bamlss
-nullMod_bamlss <- bamlss(data = modDat_1, formula = modDat_1[,response] ~ 1, family = "beta", link = "logit")
-plot(nullMod_bamlss)
+nullMod_gamma <- glm(data = modDat_1, formula = modDat_1[,response] ~ 1, family = stats::Gamma(link = "log"))
+#plot(nullMod_gamma)
 
-# results from the betareg function are the same! (or close enough)
-# nullMod_beta <- betareg(formula = modDat_1[,response] ~ 1,
-#                               link = c("logit"), link.phi = NULL,
-#                                type = c("ML"))
+summary(nullMod_gamma)
+```
+Visualize the level 2 ecoregions and how they differ across environmental space
+```{r Visualize ecoregion distribution, fig.width = 8, fig.height=6}
+# make a table of n for each region
+modDat_1 %>% 
+  group_by(NA_L2NAME) %>% 
+  dplyr::summarize("Number_Of_Observations" = length(NA_L2NAME)) %>% 
+  rename("Level_2_Ecoregion" = NA_L2NAME)%>% 
+  kable() %>%
+kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 
-summary(nullMod_bamlss)
-# summary(nullMod_beta)
+## visualize the variation between groups across environmental space
+## make data into spatial format
+modDat_1_sf <- modDat_1 %>% 
+  st_as_sf(coords = c("Long.x", "Lat.x"), crs = st_crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"))
+
+us_states <- tigris::states()
+
+cropped_states <- us_states %>%
+  dplyr::filter(STUSPS!="HI") %>%
+  dplyr::filter(STUSPS!="AK") %>%
+  dplyr::filter(STUSPS!="Puerto Rico") %>%
+  dplyr::filter(STUSPS!="American Samoa") %>%
+  dplyr::filter(STUSPS!="Guam") %>%
+  dplyr::filter(STUSPS!="Commonwealth of the Northern Mariana Islands") %>%
+  dplyr::filter(STUSPS!="United States Virgin Islands") %>%
+
+  sf::st_sf() %>%
+  sf::st_transform(sf::st_crs(modDat_1_sf)) %>%
+  sf::st_crop(sf::st_bbox(modDat_1_sf)+c(-1,-1,1,1))
+
+map1 <- ggplot() +
+  geom_sf(data=cropped_states,fill='white') +
+  geom_sf(data=modDat_1_sf,aes(fill=as.factor(NA_L2NAME)),linewidth=0.5,alpha=0.5) +
+  geom_point(data=modDat_1,alpha=0.5, 
+             aes(x = Long.x, y = Lat.x, color=as.factor(modDat_1$NA_L2NAME))) +
+  #scale_fill_okabeito() +
+  #scale_color_okabeito() +
+ # theme_default() +
+  theme(legend.position = 'none') +
+  labs(title = "Level 2 Ecoregions as spatial blocks")
+
+hull <- modDat_1_sf %>%
+  ungroup() %>%
+  group_by(NA_L2NAME) %>%
+  slice(chull(tmean, prcp))
+
+plot1<-ggplot(data=modDat_1_sf,aes(x=tmean,y=prcp)) +
+  geom_polygon(data = hull, alpha = 0.25,aes(fill=NA_L2NAME) )+
+  geom_point(aes(group=NA_L2NAME,color=NA_L2NAME),alpha=0.25) +
+  theme_minimal() + xlab("Annual Average T_mean - long-term average") +
+  ylab("Annual Average Precip - long-term average") #+
+  #scale_color_okabeito() +
+  #scale_fill_okabeito()
+
+plot2<-ggplot(data=modDat_1_sf %>%
+                pivot_longer(cols=tmean:prcp),
+              aes(x=value,group=name)) +
+  # geom_polygon(data = hull, alpha = 0.25,aes(fill=fold) )+
+  geom_density(aes(group=NA_L2NAME,fill=NA_L2NAME),alpha=0.25) +
+  theme_minimal() +
+  facet_wrap(~name,scales='free')# +
+  #scale_color_okabeito() +
+  #scale_fill_okabeito()
+ 
+library(patchwork)
+(combo <- (map1+plot1)/plot2) 
 ```
 
-## Find the outer level of cross-validation
+
+Fit a global model with all of the data 
+-- use level 2 ecoregion for cross-validation to tune lambda in the LASSO model 
+```{r}
+  # Fit model -----------------------------------------------
+  # penalty values
+  lambdas <- 10^seq(0 ,-7, length.out = 200)  # sequence of penalties to test
+ 
+  
+  # make model matrix (which includes transformations and interactions)
+  # get a text string of possible interactions 
+  combos <- data.frame(gtools::permutations(n = length(prednames),
+                                            r = 2,
+                                            v = prednames))
+  
+  combos$interactions <- paste0(combos$X1, ":", combos$X2)
+  # make text string of interactions
+  int_string <-str_flatten(combos$interactions, collapse = " + ")
+  
+  # get a text string of the possible untransformed model terms
+  mod_string <- paste(response, "~", paste(prednames, collapse = "+"))
+  
+  # make a text string of the moel formula w/ interactions included
+  modWithInteractions <- paste(mod_string, "+",int_string) 
+  # now, make a model formula object
+  f <- as.formula(modWithInteractions)
+  
+  # transform dataframe to model matrix
+  X <- model.matrix(f, modDat_1)
+  # get response variable
+  y <- as.matrix(modDat_1[,response])
+  
+  # specify folds for each observation to use in leave-one-year-out cross-validation
+  my_folds <- as.numeric(as.factor(modDat_1$NA_L2NAME))
+  
+  fit <- cv.glmnet(
+    x = X, 
+    y = y, 
+    family = stats::Gamma(link = "log"),
+    alpha = 1,  # 0 == ridge regression, 1 == lasso, 0.5 ~~ elastic net
+    lambda = lambdas, 
+    type.measure="mse",
+    #penalty.factor = pen_facts,
+    foldid = my_folds,
+    standardize = FALSE
+  )
+  
+  # save the minimum lambda
+  best_lambda <- fit2$lambda.min
+  print(fit)
+  # plot(fit)
+  # look at CV score vs penalty plot
+  plot(log(fit$lambda),fit2$cvm,main=test_eco)
+  
+  ## get the coefficients
+  coef(fit, s = "lambda.min")
+  
+  ## predict on the fitting data
+  
+  
+  # lasso model predictions with the optimal lambda
+  optimal_pred <- predict(fit,newx=X_test,s="lambda.min")
+  
+  # null model and predictions
+  #X_null_train <- data.frame(X_train[,c(1:10,13)])
+  #X_null_test <- data.frame(X_test[,c(1:10,13)])
+  null_fit <- glm(data = as.data.frame(X_train), formula = y_train ~ 1, family = stats::Gamma(link = "log"))
+  null_pred <- predict(null_fit, newdata = as.data.frame(X_test))
+
+  # save data
+  tmp <- data.frame(ecoRegion_holdout = rep(test_eco,length(y_test)),obs=y_test,
+                    pred_opt=optimal_pred[,1], pred_null=null_pred#,
+                    #pred_nopenalty=nopen_pred
+                    )
+  obs_pred <- rbind(obs_pred,tmp)
+```
 
 ```{r}
-# - + define simulation settings ----
+## code from Tredennick et al. 2020
+# try each separate ecoregion as a test set
+# make a list to hold output data 
+outList <- vector(mode = "list", length = length(sort(unique(modDat_1$NA_L2NAME))))
+# obs_pred <- data.frame(ecoregion = character(),obs = numeric(),
+#                        pred_opt = numeric(), pred_null = numeric()#,
+#                        #pred_nopenalty = numeric()
+#                        )
+# make model matrix (which includes transformations and interactions)
+  # get a text string of possible interactions 
+  combos <- data.frame(gtools::permutations(n = length(prednames),
+                                            r = 2,
+                                            v = prednames))
+  
+  combos$interactions <- paste0(combos$X1, ":", combos$X2)
+  # make text string of interactions
+  int_string <-str_flatten(combos$interactions, collapse = " + ")
+  
+  # get a text string of the possible untransformed model terms
+  mod_string <- paste(response, "~", paste(prednames, collapse = "+"))
+  
+  # make a text string of the moel formula w/ interactions included
+  modWithInteractions <- paste(mod_string, "+",int_string) 
+  # now, make a model formula object
+  f <- as.formula(modWithInteractions)
+  
+   # get model matrices that include interaction terms 
+  X_all <- model.matrix(f, modDat_1)
 
+  # now, loop through so with each iteration, a different ecoregion is held out
+ for(i_eco in sort(unique(modDat_1$NA_L2NAME))){
+  
+  # split into training and test sets
+  test_eco <- i_eco
+  
+  # identify the rowID of observations to be in the training and test datasets
+  train <- which(modDat_1$NA_L2NAME!=test_eco)
+  test <- which(modDat_1$NA_L2NAME==test_eco)
+  
+  trainDat_all <- modDat_1[train,]
+  testDat_all <- modDat_1[test,]
+  
+  # get the model matrices for input and response variables
+  X_train <- as.matrix(X_all[train,])
+  X_test <- as.matrix(X_all[test,])
+  
+  y_train <- modDat_1[train,response]
+  y_test <- modDat_1[test,response]
+  
+  train_eco <- modDat_1$NA_L2NAME[train]
+  
+  # Fit model -----------------------------------------------
+  
+  # penalty values
+  lambdas <- 10^seq(0 ,-7, length.out = 200)  # sequence of penalties to test
+  
+  # # don't penalize previous year's abundance or meadow ID
+  # pen_facts <- rep(1, times = ncol(X))
+  # logNtId <- which(colnames(X) == "logNt")
+  # meadaId <- grep("meada",colnames(X))
+  # pen_facts[c(logNtId,meadaId)] <- 0  
+  
+  # specify leave-one-year-out cross-validation
+  my_folds <- as.numeric(as.factor(train_eco))
+  
+  fit <- cv.glmnet(
+    x = X_train, 
+    y = y_train, 
+    #family = gaussian,
+    family = stats::Gamma(link = "log"),
+    alpha = 1,  # 0 == ridge regression, 1 == lasso, 0.5 ~~ elastic net
+    lambda = lambdas, 
+    type.measure="mse",
+    #penalty.factor = pen_facts,
+    foldid = my_folds,
+    standardize = FALSE
+  )
+  
+  # save the minimum lambda
+  best_lambda <- fit2$lambda.min
+  # plot(fit)
+  coef(fit, s = best_lambda)
+  # look at CV score vs penalty plot
+  plot(log(fit$lambda),fit2$cvm,main=test_eco)
+  
+  # lasso model predictions with the optimal lambda
+  optimal_pred <- predict(fit,newx=X_test,s="lambda.min")
+  
+  # null model and predictions
+  null_fit <- glm(data = as.data.frame(X_train), formula = y_train ~ 1, family = stats::Gamma(link = "log"))
+  null_pred <- predict(null_fit, newdata = as.data.frame(X_test))
+
+  # save data
+  tmp <- data.frame(ecoRegion_holdout = rep(test_eco,length(y_test)),obs=y_test,
+                    pred_opt=optimal_pred[,1], pred_null=null_pred#,
+                    #pred_nopenalty=nopen_pred
+                    )
+  # put output into a list 
+  tmpList <- list("modelObject" = fit, 
+       "modelPredictions" = tmp)
+  
+  # save model outputs
+  outList[which(sort(unique(modDat_1$NA_L2NAME)) == i_eco)] <- tmpList
+  # save one example of model fits
+  # if(i_eco==sort(unique(modDat_1$NA_L2NAME))[1]){
+  #   # save model object
+  #   saveRDS(fit,file="./ModelResults/glmnet_fit.RDS")
+  #   
+  #   #saveRDS(nopen,file="./ModelResults/nopenalty_fit.RDS")
+  # }
+}
+
+# calculate correlations between null and optimal model 
+my_cors <- c(cor(obs_pred$pred_opt,obs_pred$obs),
+            cor(obs_pred$pred_null,obs_pred$obs)#, 
+            #cor(obs_pred$pred_nopenalty,obs_pred$obs)
+            )
+
+# calculate mse between null and optimal model 
+my_mse <- c(mean((obs_pred$pred_opt - obs_pred$obs)^2) ,
+            mean((obs_pred$pred_null - obs_pred$obs)^2)#,
+            #mean((obs_pred$pred_nopenalty - obs_pred$obs)^2)
+            )
+
+# print results
+names(my_cors) <- names(my_mse) <- c("optimal","null"#,"no penalty"
+                                     )
+print(my_cors)
+print(my_mse)
+
+# save obs vs pred results
+write.csv(obs_pred,"./ModelResults/obs_vs_pred.csv",row.names=F)
+
+```
+
+```{r}
+## code from Gregor
 # - ++ hold-out strategy (outer loop) ----
 h_all = c("environmentalblock")#,'lastyears',)
 # - ++ cross-validation strategy (inner loop) ----
@@ -450,17 +731,6 @@ run.time = end.time-start.time
 run.time
 ```
 
-
-
-Repeat the following process x # of times for cross validation [
-1. Subset the data into training and test datasets 
-
-2. Then, use cross-validation within the training dataset to identify the appropriate regularization parameter
-
-3. Then, fit the model to the entire training dataset (including climate vars, soils vars, weather vars, and interactions  )]
-
-
-Break the data into three groups for model fitting based on lumped ecoregions
 
 
 Training data
