@@ -57,8 +57,7 @@ source("../../../Functions/transformPreds.R")
 source("../../../Functions/StepBeta_mine.R")
 #source("src/fig_params.R")
 #source("src/modeling_functions.R")
-library(gamlss.add)
-library(gamlss)
+library(glinternet)
 library(terra)
 library(tidyterra)
 library(sf)
@@ -453,26 +452,45 @@ library(patchwork)
 
 Fit a global model with all of the data 
 -- use level 2 ecoregion for cross-validation to tune lambda in the LASSO model 
-```{r}
+```{r fit global model, echo = FALSE}
   # Fit model -----------------------------------------------
   # penalty values
   lambdas <- 10^seq(0 ,-7, length.out = 200)  # sequence of penalties to test
  
   
   # make model matrix (which includes transformations and interactions)
-  # get a text string of possible interactions 
-  combos <- data.frame(gtools::permutations(n = length(prednames),
+  ## only include interactions within and between climate and anomaly variables, and within and between soils variables
+
+ ## break predictors into climate, weather, and soils 
+  prednames_clim <- prednames[which(prednames %in% c("tmin" , "tmax",  "tmean",
+     "prcp", "t_warm" , "t_cold" , "prcp_wet" , "prcp_dry" , "prcp_seasonality", "prcpTempCorr", "abvFreezingMonth" , "isothermality" , "annWatDef" , "annWetDegDays",  "VPD_mean",  "VPD_max",  "VPD_min" , "VPD_max_95", "annWatDef_95", "annWetDegDays_5",  "frostFreeDays_5", "frostFreeDays"))]
+  prednames_weath <- prednames[which(prednames %in% c("tmean_anom", "tmin_anom",  "tmax_anom", 
+    "prcp_anom",      "t_warm_anom" , "t_cold_anom",  "prcp_wet_anom" , "precp_dry_anom" ,  "prcp_seasonality_anom" ,  "prcpTempCorr_anom" , "aboveFreezingMonth_anom",  "isothermality_anom" ,  "annWatDef_anom", "annWetDegDays_anom",  "VPD_mean_anom" , "VPD_min_anom" , "VPD_max_anom", "VPD_max_95_anom", "annWatDef_95_anom" , "annWetDegDays_5_anom",  "frostFreeDays_5_anom" , "frostFreeDays_anom"))]
+  prednames_soils <- prednames[which(prednames %in% c( "soilDepth" , "clay", 
+     "sand" , "coarse" ,  "carbon", "AWHC"))]
+  
+  # get a text string of possible interactions between climate and weather variables
+  combos <- data.frame(gtools::permutations(n = length(c(prednames_clim, prednames_weath)),
                                             r = 2,
-                                            v = prednames))
+                                            v = c(prednames_clim, prednames_weath)))
   
   combos$interactions <- paste0(combos$X1, ":", combos$X2)
-  # make text string of interactions
-  int_string <-str_flatten(combos$interactions, collapse = " + ")
+  
+  
+  # get a text string of possible interactions between soils variables
+  combos_2 <- data.frame(gtools::permutations(n = length(c(prednames_soils)),
+                                            r = 2,
+                                            v = c(prednames_soils)))
+  
+  combos_2$interactions <- paste0(combos_2$X1, ":", combos_2$X2)
+  
+  # make text string of all possible interactions
+  int_string <-str_flatten(c(combos$interactions, combos_2$interactions), collapse = " + ")
   
   # get a text string of the possible untransformed model terms
   mod_string <- paste(response, "~", paste(prednames, collapse = "+"))
   
-  # make a text string of the moel formula w/ interactions included
+  # make a text string of the model formula w/ interactions included
   modWithInteractions <- paste(mod_string, "+",int_string) 
   # now, make a model formula object
   f <- as.formula(modWithInteractions)
@@ -482,12 +500,43 @@ Fit a global model with all of the data
   # get response variable
   y <- as.matrix(modDat_1[,response])
   
-  # specify folds for each observation to use in leave-one-year-out cross-validation
-  my_folds <- as.numeric(as.factor(modDat_1$NA_L2NAME))
+  # split into training and test sets
+  # hold out one ecoregion (arbitrarily chose one, "Western Sierra Madre Piedmont" )
+  test_eco <- unique(modDat_1$NA_L2NAME)[7]
   
+  # identify the rowID of observations to be in the training and test datasets
+  train <- which(modDat_1$NA_L2NAME!=test_eco)
+  test <- which(modDat_1$NA_L2NAME==test_eco)
+  
+  trainDat_all <- modDat_1[train,]
+  testDat_all <- modDat_1[test,]
+  
+  # get the model matrices for input and response variables
+  X_train <- as.matrix(X[train,])
+  X_test <- as.matrix(X[test,])
+  
+  y_train <- modDat_1[train,response]
+  y_test <- modDat_1[test,response]
+  
+  train_eco <- modDat_1$NA_L2NAME[train]
+  
+  # Fit model -----------------------------------------------
+  
+  # penalty values
+  lambdas <- 10^seq(0 ,-7, length.out = 200)  # sequence of penalties to test
+  
+  # # don't penalize previous year's abundance or meadow ID
+  # pen_facts <- rep(1, times = ncol(X))
+  # logNtId <- which(colnames(X) == "logNt")
+  # meadaId <- grep("meada",colnames(X))
+  # pen_facts[c(logNtId,meadaId)] <- 0  
+  
+  # specify leave-one-year-out cross-validation
+  my_folds <- as.numeric(as.factor(train_eco))
+ 
   fit <- cv.glmnet(
-    x = X, 
-    y = y, 
+    x = X_train, 
+    y = y_train, 
     family = stats::Gamma(link = "log"),
     alpha = 1,  # 0 == ridge regression, 1 == lasso, 0.5 ~~ elastic net
     lambda = lambdas, 
@@ -498,34 +547,112 @@ Fit a global model with all of the data
   )
   
   # save the minimum lambda
-  best_lambda <- fit2$lambda.min
+  best_lambda <- fit$lambda.min
   print(fit)
-  # plot(fit)
   # look at CV score vs penalty plot
   plot(log(fit$lambda),fit2$cvm,main=test_eco)
   
   ## get the coefficients
   coef(fit, s = "lambda.min")
-  
-  ## predict on the fitting data
-  
-  
+   
+  ## predict on the test data
   # lasso model predictions with the optimal lambda
-  optimal_pred <- predict(fit,newx=X_test,s="lambda.min")
+  optimal_pred <- predict(fit,newx=X_test,s="lambda.min", type = "response")
   
-  # null model and predictions
+  # # re-fit the model with the specified lambda
+  #  fit_bestLambda <- glmnet(
+  #   x = X_train, 
+  #   y = y_train, 
+  #   family = stats::Gamma(link = "log"),
+  #   alpha = 1,  # 0 == ridge regression, 1 == lasso, 0.5 ~~ elastic net
+  #   lambda = best_lambda, 
+  #   type.measure="mse",
+  #   #penalty.factor = pen_facts,
+  #   #foldid = my_folds,
+  #   standardize = FALSE
+  # )
+  # 
+  # print(fit_bestLambda)
+  # 
+  # ## get the coefficients
+  # coef(fit_bestLambda)
+  # ## use a subset of held-out data to predict with the fitted (and null) models
+  # 
+  # ## predict on the test data
+  # # lasso model predictions with the optimal lambda
+  # optimal_pred_bestLambda <- predict(fit_bestLambda,newx=X_test,s="lambda.min", type = "response")
+  # 
+
+  # null model and predictions -- just with plain predictors, no interactions
   #X_null_train <- data.frame(X_train[,c(1:10,13)])
   #X_null_test <- data.frame(X_test[,c(1:10,13)])
-  null_fit <- glm(data = as.data.frame(X_train), formula = y_train ~ 1, family = stats::Gamma(link = "log"))
-  null_pred <- predict(null_fit, newdata = as.data.frame(X_test))
+  null_fit <- glm(data = as.data.frame(X_train)[,prednames], formula = y_train ~ 1, family = stats::Gamma(link = "log"))
+  null_pred <- predict(null_fit, newdata = as.data.frame(X_test), type = "response"
+                       )
 
   # save data
-  tmp <- data.frame(ecoRegion_holdout = rep(test_eco,length(y_test)),obs=y_test,
+  fullModOut <- list(
+    "modelObject" = fit,
+    "nullModelObject" = null_fit,
+    "modelPredictions" = data.frame(ecoRegion_holdout = rep(test_eco,length(y_test)),obs=y_test,
                     pred_opt=optimal_pred[,1], pred_null=null_pred#,
                     #pred_nopenalty=nopen_pred
-                    )
-  obs_pred <- rbind(obs_pred,tmp)
+                    ))
+  
+  
+# calculate correlations between null and optimal model 
+my_cors <- c(cor(optimal_pred[,1], y_test),
+            cor(null_pred, y_test)
+            )
+
+# calculate mse between null and optimal model 
+my_mse <- c(mean((obs_pred$pred_opt - y_test)^2) ,
+            mean((obs_pred$pred_null - y_test)^2)#,
+            #mean((obs_pred$pred_nopenalty - obs_pred$obs)^2)
+            )
+
+# X_train_glm <-X_train %>% 
+#   as.data.frame %>% 
+#   cbind(response = y_train)
+# # try fitting a glm with the model parameters selected above, just to see what happens
+# fit2 <- glm(response ~ prcp:aboveFreezingMonth_anom+ coarse:AWHC + sand:AWHC +  isothermality:coarse +  prcp:frostFreeDays_5_anom + sand:frostFreeDays_5_anom + prcp:isothermality+ isothermality:sand  + tmean:isothermality+prcp:prcp_seasonality + prcp:prcpTempCorr+ prcp:prcpTempCorr_anom+ prcp:t_cold_anom+ prcp:t_warm_anom  + tmean:prcp +   prcp:VPD_max + tmean:sand,
+# data = X_train_glm ,
+#     family = stats::Gamma(link = "log")
+#             )
+# get the predictions
+# pred_glm <- predict.glm(object = fit2, newdata = as.data.frame(X_test), type = "response")
+
+plot(y = fullModOut$modelPredictions$obs, x = X_test[,2], xlab = c("tmean"), ylab = (paste(response))) # observed values
+points(y = fullModOut$modelPredictions$pred_opt, x = X_test[,2], col = "red") ## predictions w/ the CV model
+points(y = fullModOut$modelPredictions$pred_null, x = X_test[,2], col = "blue") ## predictions with the null model
+#points(y = pred_glm, x = X_test[,2], col = "green") ## predictions with the GLM 
+#points(y = optimal_pred_bestLambda, x = X_test[,2], col = "orange") ## predictions with the best-lambda glmnet model
 ```
+
+
+
+The internal cross-validation process to fit the global LASSO model identified an optimal lambda value (regularization parameter) of `r{best_lambda}`. The following coefficients were kept in the model: 
+```{r}
+# the coefficient matrix from the 'best model' -- find and print those coefficients that aren't 0 in a table
+mat <- as.matrix(coef(fullModOut[1]$modelObject)) 
+mat2 <- mat[mat[,1] > 0,]
+# the coefficient matrix from the 'best lambda model' -- find and print those coefficients that aren't 0 in a table
+#mat3 <- as.matrix(coef(fit_bestLambda)) 
+#mat4 <- mat[mat[,1] > 0,]
+
+globModTerms <- data.frame("Coefficient_Name" = names(mat2), 
+                   "Value_From_LASSO_withCV" = unname(mat2)#, 
+                   #"Coefficient_Name" = names(fit2$coefficients),
+                   #"Value_From_glm" = unname(fit2$coefficients),
+                   #"Coefficient_Name"= names(mat4),
+                   #"Value_From_LASSO_withBestLambda" = unname(mat4)
+                   )
+
+kable(globModTerms, #col.names = c("Coefficient Name", "Value from LASSO")
+      ) %>%
+kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
 
 ```{r}
 ## code from Tredennick et al. 2020
@@ -536,26 +663,13 @@ outList <- vector(mode = "list", length = length(sort(unique(modDat_1$NA_L2NAME)
 #                        pred_opt = numeric(), pred_null = numeric()#,
 #                        #pred_nopenalty = numeric()
 #                        )
-# make model matrix (which includes transformations and interactions)
-  # get a text string of possible interactions 
-  combos <- data.frame(gtools::permutations(n = length(prednames),
-                                            r = 2,
-                                            v = prednames))
+# code to make model matrix  is above(which includes interactions)
+
+  # transform dataframe to model matrix
+  X <- model.matrix(f, modDat_1)
+  # get response variable
+  y <- as.matrix(modDat_1[,response])
   
-  combos$interactions <- paste0(combos$X1, ":", combos$X2)
-  # make text string of interactions
-  int_string <-str_flatten(combos$interactions, collapse = " + ")
-  
-  # get a text string of the possible untransformed model terms
-  mod_string <- paste(response, "~", paste(prednames, collapse = "+"))
-  
-  # make a text string of the moel formula w/ interactions included
-  modWithInteractions <- paste(mod_string, "+",int_string) 
-  # now, make a model formula object
-  f <- as.formula(modWithInteractions)
-  
-   # get model matrices that include interaction terms 
-  X_all <- model.matrix(f, modDat_1)
 
   # now, loop through so with each iteration, a different ecoregion is held out
  for(i_eco in sort(unique(modDat_1$NA_L2NAME))){
@@ -571,8 +685,8 @@ outList <- vector(mode = "list", length = length(sort(unique(modDat_1$NA_L2NAME)
   testDat_all <- modDat_1[test,]
   
   # get the model matrices for input and response variables
-  X_train <- as.matrix(X_all[train,])
-  X_test <- as.matrix(X_all[test,])
+  X_train <- as.matrix(X[train,])
+  X_test <- as.matrix(X[test,])
   
   y_train <- modDat_1[train,response]
   y_test <- modDat_1[test,response]
@@ -611,14 +725,14 @@ outList <- vector(mode = "list", length = length(sort(unique(modDat_1$NA_L2NAME)
   # plot(fit)
   coef(fit, s = best_lambda)
   # look at CV score vs penalty plot
-  plot(log(fit$lambda),fit2$cvm,main=test_eco)
+  #plot(log(fit$lambda),fit2$cvm,main=test_eco)
   
   # lasso model predictions with the optimal lambda
-  optimal_pred <- predict(fit,newx=X_test,s="lambda.min")
+  optimal_pred <- predict(fit,newx=X_test,s="lambda.min", scale = "response")
   
   # null model and predictions
   null_fit <- glm(data = as.data.frame(X_train), formula = y_train ~ 1, family = stats::Gamma(link = "log"))
-  null_pred <- predict(null_fit, newdata = as.data.frame(X_test))
+  null_pred <- predict(null_fit, newdata = as.data.frame(X_test), scale = "response")
 
   # save data
   tmp <- data.frame(ecoRegion_holdout = rep(test_eco,length(y_test)),obs=y_test,
@@ -630,7 +744,7 @@ outList <- vector(mode = "list", length = length(sort(unique(modDat_1$NA_L2NAME)
        "modelPredictions" = tmp)
   
   # save model outputs
-  outList[which(sort(unique(modDat_1$NA_L2NAME)) == i_eco)] <- tmpList
+  outList[[which(sort(unique(modDat_1$NA_L2NAME)) == i_eco)]] <- tmpList
   # save one example of model fits
   # if(i_eco==sort(unique(modDat_1$NA_L2NAME))[1]){
   #   # save model object
@@ -638,7 +752,20 @@ outList <- vector(mode = "list", length = length(sort(unique(modDat_1$NA_L2NAME)
   #   
   #   #saveRDS(nopen,file="./ModelResults/nopenalty_fit.RDS")
   # }
-}
+ }
+  
+ #  # since for the previous run, I predicted on the linear scale rather than the log scale, transform the predictions (just this once, I fixed the code for subsequent runs to predict on the scale of the response)
+ # outList <- lapply(outList, function(x) {
+ #  tmp <- x$modelPredictions %>% 
+ #      mutate(pred_opt = exp(pred_opt),
+ #             pred_null = exp(pred_null))
+ #  return(list(
+ #    "modelObject" = x$modelObject,
+ #    "modelPredictions" = tmp
+ #  ))
+ #      
+ #  })
+  
 
 # calculate correlations between null and optimal model 
 my_cors <- c(cor(obs_pred$pred_opt,obs_pred$obs),
@@ -664,743 +791,71 @@ write.csv(obs_pred,"./ModelResults/obs_vs_pred.csv",row.names=F)
 ```
 
 ```{r}
-## code from Gregor
-# - ++ hold-out strategy (outer loop) ----
-h_all = c("environmentalblock")#,'lastyears',)
-# - ++ cross-validation strategy (inner loop) ----
-cv_all = c('environmentalblock')
-
-start.time <- Sys.time()
-
-# data to use are modDat_1 
-
-## make data into spatial format
-modDat_1_sf <- modDat_1 %>% 
-  st_as_sf(coords = c("Long", "Lat"), crs = st_crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"))
-# covariate names are stored in prednames
-
-# response name is stored in response
-
-  nfolds = 10 ##AES may need to change, not sure how many 
-  nrepeats = 1
-  
-  
-  
-  for(h_i in 1:length(h_all)){
-    
-    print(paste("Running",h_all[h_i],"hold-outs, starting at",hms::round_hms(Sys.time(), secs = 1, digits = NULL)))
-    
-    outer_split <- hold_out_data_rsample(df = modDat_1, holdout_method = h_all[h_i], n_folds = nfolds, n_repeats = nrepeats, lastnyears = 5)
-    
-    # add a repetition column even if there is only 1 repetition
-    if('Fold01' %in% outer_split$id |  'Resample01' %in% outer_split$id | 'Fold1' %in% outer_split$id |  'Resample1' %in% outer_split$id ){
-      outer_split$id2 = outer_split$id
-      outer_split$id = 'Repeat1'
-    }
-    
-    for(j_i in 1:length(cv_all)){
-      
-      print(paste("Running",h_all[h_i],"hold-outs with",cv_all[j_i],"cross-validation, starting at",hms::round_hms(Sys.time(), secs = 1, digits = NULL)))
-      
-      nested_split <- inner_split_cv(x = data_seedingOutcomes, outer_folds = outer_split, cv_method = cv_all[j_i], n_folds = nfolds, n_repeats = nrepeats)
-      
-      # add a repetition column even if there is only 1 repetition
-      if('Fold01' %in% nested_split$inner_resamples[[1]]$id | 'Resample01' %in% nested_split$inner_resamples[[1]]$id | 'Fold1' %in% nested_split$inner_resamples[[1]]$id |  'Resample1' %in% nested_split$inner_resamples[[1]]$id){
-        for(k in 1:length(nested_split$inner_resamples)){
-          nested_split$inner_resamples[[k]]$id2 = nested_split$inner_resamples[[k]]$id
-          nested_split$inner_resamples[[k]]$id = 'Repeat1'
-        }
-      }
-      
-      outputList[[cumulative.index]]<-replicateRuns(nested_splits = nested_split, hmethod=h_all[h_i], cvmethod=cv_all[j_i])
-      
-      # increment index
-      cumulative.index <- cumulative.index + 1
-      
-    }
-    
-    holdOutList[[h_i]] <- nested_split
-  }
-
-  
-  saveRDS(outputList,here::here("03_outputs","08_nestedCrossValidation",paste0(current.species,"-nestedCv-longtermclimate-",nfolds,"outerFolds-results.RDS")))
-  saveRDS(holdOutList,here::here("03_outputs","06_modelData",paste0(current.species,"-nestedCv-longtermclimate-",nfolds,"outerFolds-data.RDS")))
-  
-end.time <- Sys.time()
-run.time = end.time-start.time
-run.time
-```
-
-
-
-Training data
-
-```{r}
-if (byRegion == TRUE) {
-  ## for western forests
-  wf_sample <- if(fit_sample & !test_run) {
-  reordered <- slice_sample(modDat_westForest, prop = 1)
-  
-  low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
-  high <- low + n_train - 1 # last row
-  if(high > nrow(modDat_westForest)) {
-    warning(paste0("n_train size due to low sample size (i.e. < ", n_train,")"))
-    n_train <- n_train*.8
-     low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
-  high <- low + n_train - 1 # last row
-   #stop('trying to sample from rows that dont exist')
-  }
-  reordered[low:high, ]
-} else {
-    modDat_westForest
-}
-
-wf_test <- if(fit_sample & !test_run & 
-              # antijoin only works if there are enough rows that meet 
-              # that criterion, i.e. if wf_sample contains most of the data i
-              # doesnt' work
-              (nrow(modDat_westForest) - nrow(wf_sample) > n_test)) {
-  modDat_westForest %>% 
-    anti_join(wf_sample, by = c("cell_num", "year")) %>% 
-    slice_sample(n = n_test)
-} else {
-  modDat_westForest %>% 
-    slice_sample(n = n_test)
-}
-
-# small sample for certain plots
-wf_small <- slice_sample(modDat_westForest, n = 1e5)
-
-# for eastern forests
-ef_sample <- if(fit_sample & !test_run) {
-  reordered <- slice_sample(modDat_eastForest, prop = 1)
-  
-  low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
-  high <- low + n_train - 1 # last row
-  if(high > nrow(modDat_eastForest)) {
-    warning(paste0("n_train size due to low sample size (i.e. < ", n_train,")"))
-    n_train <- n_train*.8
-     low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
-  high <- low + n_train - 1 # last row
-   #stop('trying to sample from rows that dont exist')
-  }
-  reordered[low:high, ]
-} else {
-    modDat_eastForest
-}
-
-ef_test <- if(fit_sample & !test_run & 
-              # antijoin only works if there are enough rows that meet 
-              # that criterion, i.e. if ef_sample contains most of the data i
-              # doesnt' work
-              (nrow(modDat_eastForest) - nrow(ef_sample) > n_test)) {
-  modDat_eastForest %>% 
-    anti_join(ef_sample, by = c("cell_num", "year")) %>% 
-    slice_sample(n = n_test)
-} else {
-  modDat_eastForest %>% 
-    slice_sample(n = n_test)
-}
-
-# small sample for certain plots
-ef_small <- slice_sample(modDat_eastForest, n = 1e5)
-
-## for grass/shrubs
-g_sample <- if(fit_sample & !test_run) {
-  reordered <- slice_sample(modDat_shrubGrass, prop = 1)
-  
-  low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
-  high <- low + n_train - 1 # last row
-  if(high > nrow(modDat_shrubGrass)) {
-    warning(paste0("n_train size due to low sample size (i.e. < ", n_train,")"))
-    n_train <- n_train*.8
-     low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
-  high <- low + n_train - 1 # last row
-   #stop('trying to sample from rows that dont exist')
-  }
-  reordered[low:high, ]
-} else {
-    modDat_shrubGrass
-}
-
-g_test <- if(fit_sample & !test_run & 
-              # antijoin only works if there are enough rows that meet 
-              # that criterion, i.e. if g_sample contains most of the data i
-              # doesnt' work
-              (nrow(modDat_shrubGrass) - nrow(g_sample) > n_test)) {
-  modDat_shrubGrass %>% 
-    anti_join(g_sample, by = c("cell_num", "year")) %>% 
-    slice_sample(n = n_test)
-} else {
-  modDat_shrubGrass %>% 
-    slice_sample(n = n_test)
-}
-
-# small sample for certain plots
-g_small <- slice_sample(modDat_shrubGrass, n = 1e5)
-
-## do full dataset as well 
-df_sample <- if(fit_sample & !test_run) {
-  reordered <- slice_sample(modDat_1, prop = 1)
-  
-  low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
-  high <- low + n_train - 1 # last row
-  if(high > nrow(modDat_1)) {
-    warning(paste0("n_train size due to low sample size (i.e. < ", n_train,")"))
-    n_train <- n_train*.8
-     low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
-  high <- low + n_train - 1 # last row
-   #stop('trying to sample from rows that dont exist')
-  }
-  reordered[low:high, ]
-} else {
-    modDat_1
-}
-
-df_test <- if(fit_sample & !test_run & 
-              # antijoin only works if there are enough rows that meet 
-              # that criterion, i.e. if df_sample contains most of the data i
-              # doesnt' work
-              (nrow(modDat_1) - nrow(df_sample) > n_test)) {
-  modDat_1 %>% 
-    anti_join(df_sample, by = c("cell_num", "year")) %>% 
-    slice_sample(n = n_test)
-} else {
-  modDat_1 %>% 
-    slice_sample(n = n_test)
-}
-
-# small sample for certain plots
-df_small <- slice_sample(modDat_1, n = 1e5)
-
-} else  if (byRegion == FALSE) {
-  
-  df_sample <- if(fit_sample & !test_run) {
-  reordered <- slice_sample(modDat_1, prop = 1)
-  
-  low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
-  high <- low + n_train - 1 # last row
-  if(high > nrow(modDat_1)) {
-    warning(paste0("n_train size due to low sample size (i.e. < ", n_train,")"))
-    n_train <- n_train*.8
-     low <- (sample_group - 1)*n_train + 1 # first row (of reordered data) to get
-  high <- low + n_train - 1 # last row
-   #stop('trying to sample from rows that dont exist')
-  }
-  reordered[low:high, ]
-} else {
-    modDat_1
-}
-
-df_test <- if(fit_sample & !test_run & 
-              # antijoin only works if there are enough rows that meet 
-              # that criterion, i.e. if df_sample contains most of the data i
-              # doesnt' work
-              (nrow(modDat_1) - nrow(df_sample) > n_test)) {
-  modDat_1 %>% 
-    anti_join(df_sample, by = c("cell_num", "year")) %>% 
-    slice_sample(n = n_test)
-} else {
-  modDat_1 %>% 
-    slice_sample(n = n_test)
-}
-
-# small sample for certain plots
-df_small <- slice_sample(modDat_1, n = 1e5)
-}
-```
-
-
-
-
-# GLMs 
-
-## fitting models
-
-### fitting various transforms
-
-Creating formulas where each variable on its own is transformed numerous ways
-(including formula to fit spline), all other variables are left alone,
-that repeated for each variable. So have models with 1 variable transformed,
-2 transformed, etc. 
-
-see documentation for glms_iterate_transforms, in the modelling_functions.R
-script
-
-```{r iterate_transform, warning = FALSE}
-set.seed(1234)
-
-# parentheses around interaction
-# term are included so that glms_iterate_transforms doesn't transform
-# the interaction term. 
-#pred_vars_inter <- c(pred_vars, params$inter)
-
-
-# pred_vars_inter <- pred_vars
-mods_glm_transf_temp <- glmTransformsIterates(
-  preds = pred_vars, 
-  df = df_sample,
-  response_var = response, 
-  delta_aic = 10)
-
-# not including the last element of the list which is final_formula
-mods_glm_transf <- mods_glm_transf_temp[-length(mods_glm_transf_temp)]
-
-map_dfc(mods_glm_transf, ~ names(.$aic[1:5])) %>% 
-  kable(caption = "5 best transformations at each step")
-best_aic_by_step <- map_dbl(mods_glm_transf, ~.$aic[1])
-
-best_aic_by_step <- c(step0 = mods_glm_transf_temp$step1$aic[['convert_none']], 
-                      best_aic_by_step)
-# AIC improvement by step
-diff(best_aic_by_step)
-plot(y = best_aic_by_step, 
-     x = 1:length(best_aic_by_step) - 1,
-     ylab = "AIC",
-     xlab = "Number of variables transformed")
-
-if (byRegion == TRUE) {
-  ## for western forests
-  mods_glm_transf_WF_temp <- glmTransformsIterates(
-  preds = pred_vars, 
-  df = wf_sample,
-  response_var = response, 
-  delta_aic = 10)
-
-# not including the last element of the list which is final_formula
-mods_glm_transf_WF <- mods_glm_transf_WF_temp[-length(mods_glm_transf_WF_temp)]
-
-map_dfc(mods_glm_transf_WF, ~ names(.$aic[1:5])) %>% 
-  kable(caption = "5 best transformations at each step")
-best_aic_by_step_WF <- map_dbl(mods_glm_transf_WF, ~.$aic[1])
-
-best_aic_by_step_WF <- c(step0 = mods_glm_transf_WF_temp$step1$aic[['convert_none']], 
-                      best_aic_by_step_WF)
-# AIC improvement by step
-diff(best_aic_by_step_WF)
-plot(y = best_aic_by_step_WF, 
-     x = 1:length(best_aic_by_step_WF) - 1,
-     ylab = "AIC",
-     xlab = "Number of variables transformed")
-
-## for eastern forests
-  mods_glm_transf_EF_temp <- glmTransformsIterates(
-  preds = pred_vars, 
-  df = ef_sample,
-  response_var = response, 
-  delta_aic = 10)
-
-# not including the last element of the list which is final_formula
-mods_glm_transf_EF <- mods_glm_transf_EF_temp[-length(mods_glm_transf_EF_temp)]
-
-map_dfc(mods_glm_transf_EF, ~ names(.$aic[1:5])) %>% 
-  kable(caption = "5 best transformations at each step")
-best_aic_by_step_EF <- map_dbl(mods_glm_transf_EF, ~.$aic[1])
-
-best_aic_by_step_EF <- c(step0 = mods_glm_transf_EF_temp$step1$aic[['convert_none']], 
-                      best_aic_by_step_EF)
-# AIC improvement by step
-diff(best_aic_by_step_EF)
-plot(y = best_aic_by_step_EF, 
-     x = 1:length(best_aic_by_step_EF) - 1,
-     ylab = "AIC",
-     xlab = "Number of variables transformed")
-
-## for grasslands/shrubs
-  mods_glm_transf_G_temp <- glmTransformsIterates(
-  preds = pred_vars, 
-  df = g_sample,
-  response_var = response, 
-  delta_aic = 10)
-
-# not including the last element of the list which is final_formula
-mods_glm_transf_G <- mods_glm_transf_G_temp[-length(mods_glm_transf_G_temp)]
-
-map_dfc(mods_glm_transf_G, ~ names(.$aic[1:5])) %>% 
-  kable(caption = "5 best transformations at each step")
-best_aic_by_step_G <- map_dbl(mods_glm_transf_G, ~.$aic[1])
-
-best_aic_by_step_G <- c(step0 = mods_glm_transf_G_temp$step1$aic[['convert_none']], 
-                      best_aic_by_step_G)
-# AIC improvement by step
-diff(best_aic_by_step_G)
-plot(y = best_aic_by_step_G, 
-     x = 1:length(best_aic_by_step_G) - 1,
-     ylab = "AIC",
-     xlab = "Number of variables transformed")
-}
-
-
-```
-
-Best transformation each step.
-
-```{r}
-bestTransformed <- mods_glm_transf_temp$final_formula
-if (byRegion == TRUE) {
-  # for western forests
-  #var_transformed_WF <- map(mods_glm_transf_WF, function(x) x$var_transformed)
-bestTransformed_WF <- mods_glm_transf_WF_temp$final_formula
-
-# for eastern forests
-#var_transformed_EF <- map(mods_glm_transf_EF, function(x) x$var_transformed)
-bestTransformed_EF <- mods_glm_transf_EF_temp$final_formula
-
-# for grass/shrub
-#var_transformed_G <- map(mods_glm_transf_G, function(x) x$var_transformed)
-bestTransformed_G <- mods_glm_transf_G_temp$final_formula
-}
-
-```
-
-### adding interaction terms 
-Plot potential interaction terms using raw data
-
-across values of swe
-```{r}
-# calculate quantiles
-swe_quants <- quantile(df_sample$swe_meanAnnAvg_30yr, na.rm = TRUE)
-# longformat dataframe for making boxplots
-df_sample_swe <-  df_sample %>% 
-  select(c(response, pred_vars)) %>% 
-  # transform the predictors according to above process
-  mutate(isotherm = as.numeric(stats::poly(isothermality_meanAnnAvg_30yr,2,raw=TRUE)[,1]),
-        
-          wetDegDays= as.numeric(stats::poly(annWetDegDays_meanAnnAvg_30yr,2,raw=TRUE)[,1]),
-         swe_log = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,1]),
-        #swe_log_squared = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2]),
-         tmean_log =            as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,1] ),
-         #tmean_log_squared =    as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2] ),
-         prcp_log =             as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,1]),
-        # prcp_log_squared =     as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,2]),
-         prcpTempCorr = as.numeric(stats::poly(PrecipTempCorr_meanAnnAvg_30yr,2,raw=TRUE)[,1])
-         ) %>% 
-  rename(response = all_of(response)) %>% 
-  # mutate(response = case_when(
-  #   response <= .25 ~ ".25", 
-  #   response > .25 & response <=.5 ~ ".5", 
-  #   response > .5 & response <=.75 ~ ".75", 
-  #   response >= .75  ~ "1", 
-  # )) %>% 
-  # pivot_longer(cols = 2:16, 
-  #              names_to = "predictor", 
-  #              values_to = "value") %>% 
-  # filter(!is.na(response) & !is.na(value))
-  mutate(swe_meanAnnAvg_30yr_quants = case_when(
-    swe_meanAnnAvg_30yr <= swe_quants[2] ~ swe_quants[2], 
-    swe_meanAnnAvg_30yr > swe_quants[2]  & swe_meanAnnAvg_30yr <= swe_quants[3]  ~ swe_quants[3], 
-    swe_meanAnnAvg_30yr > swe_quants[3]  & swe_meanAnnAvg_30yr <= swe_quants[4]  ~ swe_quants[4], 
-    swe_meanAnnAvg_30yr >= swe_quants[4]  ~ swe_quants[5], 
-  )) %>% 
-  pivot_longer(cols = 2:13, 
-               names_to = "predictor", 
-               values_to = "value") %>% 
-  filter(!is.na(response) & !is.na(value))
-
-# plot relationships amongst variables according to different levels of SWE 
-ggplot(data = df_sample_swe[!(df_sample_swe$predictor %in% c("swe_log","swe_meanAnnAvg_30yr")),]) + 
-  #geom_point(aes(y = response, x = value, col = as.factor(swe_meanAnnAvg_30yr_quants)), alpha = .5) +
-  geom_smooth(aes(y = response, x = value,  col = as.factor(swe_meanAnnAvg_30yr_quants)), method = "gam") + 
-  facet_wrap(~predictor, scales = "free_x")
-```
-
-Mean Annual Temperature
-```{r}
-tmean_quants <- quantile(df_sample$tmean_meanAnnAvg_30yr, na.rm = TRUE)
-
-# longformat dataframe for making boxplots
-df_sample_tmean <-  df_sample %>% 
-  select(c(response, pred_vars)) %>% 
-  # transform the predictors according to above process
-  mutate(isotherm = as.numeric(stats::poly(isothermality_meanAnnAvg_30yr,2,raw=TRUE)[,1]),
-        
-          wetDegDays= as.numeric(stats::poly(annWetDegDays_meanAnnAvg_30yr,2,raw=TRUE)[,1]),
-         swe_log = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,1]),
-        #swe_log_squared = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2]),
-         tmean_log =            as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,1] ),
-         #tmean_log_squared =    as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2] ),
-         prcp_log =             as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,1]),
-        # prcp_log_squared =     as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,2]),
-         prcpTempCorr = as.numeric(stats::poly(PrecipTempCorr_meanAnnAvg_30yr,2,raw=TRUE)[,1])
-         ) %>% 
-  rename(response = all_of(response)) %>% 
-  # mutate(response = case_when(
-  #   response <= .25 ~ ".25", 
-  #   response > .25 & response <=.5 ~ ".5", 
-  #   response > .5 & response <=.75 ~ ".75", 
-  #   response >= .75  ~ "1", 
-  # )) %>% 
-  # pivot_longer(cols = 2:16, 
-  #              names_to = "predictor", 
-  #              values_to = "value") %>% 
-  # filter(!is.na(response) & !is.na(value))
-  mutate(tmean_meanAnnAvg_30yr_quants = case_when(
-    tmean_meanAnnAvg_30yr <= tmean_quants[2] ~ tmean_quants[2], 
-    tmean_meanAnnAvg_30yr > tmean_quants[2]  & tmean_meanAnnAvg_30yr <= tmean_quants[3]  ~ tmean_quants[3], 
-    tmean_meanAnnAvg_30yr > tmean_quants[3]  & tmean_meanAnnAvg_30yr <= tmean_quants[4]  ~ tmean_quants[4], 
-    tmean_meanAnnAvg_30yr >= tmean_quants[4]  ~ tmean_quants[5], 
-  )) %>% 
-  pivot_longer(cols = 2:13, 
-               names_to = "predictor", 
-               values_to = "value") %>% 
-  filter(!is.na(response) & !is.na(value))
-
-# plot relationships amongst variables according to different levels of tmean 
-ggplot(data = df_sample_tmean[!(df_sample_tmean$predictor %in% c("tmean_log", "tmean_meanAnnAvg_30yr")),]) + 
-  #geom_point(aes(y = response, x = value, col = as.factor(tmean_meanAnnAvg_30yr_quants)), alpha = .3) +
-  geom_smooth(aes(y = response, x = value,  col = as.factor(tmean_meanAnnAvg_30yr_quants)), method = "gam") + 
-  facet_wrap(~predictor, scales = "free_x")
-
-```
-
-Mean annual precipitation
-```{r}
-prcp_quants <- quantile(df_sample$prcp_meanAnnTotal_30yr, na.rm = TRUE)
-
-# longformat dataframe for making boxplots
-df_sample_prcp <-  df_sample %>% 
-  select(c(response, pred_vars)) %>% 
-  # transform the predictors according to above process
-  mutate(isotherm = as.numeric(stats::poly(isothermality_meanAnnAvg_30yr,2,raw=TRUE)[,1]),
-        
-          wetDegDays= as.numeric(stats::poly(annWetDegDays_meanAnnAvg_30yr,2,raw=TRUE)[,1]),
-         swe_log = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,1]),
-        #swe_log_squared = as.numeric(stats::poly(I(log10(I(swe_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2]),
-         tmean_log =            as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,1] ),
-         #tmean_log_squared =    as.numeric(stats::poly(I(log10(I(tmean_meanAnnAvg_30yr+1))),2,raw=TRUE)[,2] ),
-         prcp_log =             as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,1]),
-        # prcp_log_squared =     as.numeric(stats::poly(I(log10(I(prcp_meanAnnTotal_30yr+1))),2,raw=TRUE)[,2]),
-         prcpTempCorr = as.numeric(stats::poly(PrecipTempCorr_meanAnnAvg_30yr,2,raw=TRUE)[,1])
-         ) %>% 
-  rename(response = all_of(response)) %>% 
-  # mutate(response = case_when(
-  #   response <= .25 ~ ".25", 
-  #   response > .25 & response <=.5 ~ ".5", 
-  #   response > .5 & response <=.75 ~ ".75", 
-  #   response >= .75  ~ "1", 
-  # )) %>% 
-  # pivot_longer(cols = 2:16, 
-  #              names_to = "predictor", 
-  #              values_to = "value") %>% 
-  # filter(!is.na(response) & !is.na(value))
-  mutate(prcp_meanAnnTotal_30yr_quants = case_when(
-    prcp_meanAnnTotal_30yr <= prcp_quants[2] ~ prcp_quants[2], 
-    prcp_meanAnnTotal_30yr > prcp_quants[2]  & prcp_meanAnnTotal_30yr <= prcp_quants[3]  ~ prcp_quants[3], 
-    prcp_meanAnnTotal_30yr > prcp_quants[3]  & prcp_meanAnnTotal_30yr <= prcp_quants[4]  ~ prcp_quants[4], 
-    prcp_meanAnnTotal_30yr >= prcp_quants[4]  ~ prcp_quants[5], 
-  )) %>% 
-  pivot_longer(cols = 2:13, 
-               names_to = "predictor", 
-               values_to = "value") %>% 
-  filter(!is.na(response) & !is.na(value))
-
-# plot relationships amongst variables according to different levels of tmean 
-ggplot(data = df_sample_prcp[!(df_sample_prcp$predictor %in% c("prcp_log", "prcp_meanAnnTotal_30yr")),]) + 
-  #geom_point(aes(y = response, x = value, col = as.factor(prcp_meanAnnTotal_30yr_quants)), alpha = .3) +
-  geom_smooth(aes(y = response, x = value,  col = as.factor(prcp_meanAnnTotal_30yr_quants)), method = "gam") + 
-  facet_wrap(~predictor, scales = "free_x")
-
-```
-
-
-#### we'll try running the model w/ all possible interactions
-
-```{r}
-
-
-  ## make table of possible interactions
-# make list of transformed variables into a data.frame
-var_transformed_df <- as.data.frame(str_remove(bestTransformed, paste0(response, " ~ ")) %>% 
-  str_split(pattern = fixed(" + "), simplify = TRUE))#purrr::flatten_dfr(var_transformed_WF) #%>%
-
-
-# if has a "stats::poly( to start, remove that part
-temp <- apply(var_transformed_df, MARGIN = 2, FUN = function(x) {
-if(str_detect(x, pattern = fixed("stats::poly("))) {
-  x_new <- str_remove(x, pattern = fixed("stats::poly(")) %>%
-    str_remove_all(pattern = " ") %>% 
-  str_remove(pattern = fixed(",2,raw=TRUE)")) 
-} else {
-  x_new <- x
-}
-})
-  
-# combine into the 32 possible interactions
-combos <- data.frame(gtools::permutations(n = length(temp),
-r = 2,
-v = temp))
-
-combos$interactions <- paste0(combos$X1, ":", combos$X2)
-# make text string of interactions
-int_string <-str_flatten(combos$interactions, collapse = " + ")
-# formula w/ interactions included
-modWithInteractions <- paste(bestTransformed, "+",int_string) %>% 
-str_remove_all(fixed("stats::"))
-# refitting the glm with the best formula
-mod_glm1 <- betareg(as.formula(modWithInteractions), data = df_sample, link = c("logit"), link.phi = NULL,
- type = c("ML"))                   
- 
-
-if (byRegion == TRUE) {
-  # western forests
-   ## make table of possible interactions
-# make list of transformed variables into a data.frame
-var_transformed_df_WF <- as.data.frame(str_remove(bestTransformed_WF, paste0(response, " ~ ")) %>% 
-  str_split(pattern = fixed(" + "), simplify = TRUE))#purrr::flatten_dfr(var_transformed_WF) #%>%
-
-# if has a "stats::poly( to start, remove that part
-temp_WF <- apply(var_transformed_df_WF, MARGIN = 2, FUN = function(x) {
-if(str_detect(x, pattern = fixed("stats::poly("))) {
-  x_new <- str_remove(x, pattern = fixed("stats::poly(")) %>%
-    str_remove_all(" ") %>% 
-  str_remove(pattern = fixed(",2,raw=TRUE)"))
-} else {
-  x_new <- x
-}
-})
-  
-# combine into the 32 possible interactions
-combos_WF <- data.frame(gtools::permutations(n = length(temp_WF),
-r = 2,
-v = temp_WF))
-
-combos_WF$interactions <- paste0(combos_WF$X1, ":", combos_WF$X2)
-# make text string of interactions
-int_string_WF <-str_flatten(combos_WF$interactions, collapse = " + ")
-# formula w/ interactions included
-modWithInteractions_WF <- paste(bestTransformed_WF, "+", int_string_WF) %>% str_remove_all(fixed("stats::"))
-# refitting the glm with the best formula
-mod_glm1_WF <- betareg(as.formula(modWithInteractions_WF), data = wf_sample, link = c("logit"), link.phi = NULL,
- type = c("ML"))    
-
-  # eastern forests
-    ## make table of possible interactions
-# make list of transformed variables into a data.frame
-var_transformed_df_EF <- as.data.frame(str_remove(bestTransformed_EF, paste0(response, " ~ ")) %>% 
-  str_split(pattern = fixed(" + "), simplify = TRUE))#purrr::flatten_dfr(var_transformed_EF) #%>%
-
-# if has a "stats::poly( to start, remove that part
-temp_EF <- apply(var_transformed_df_EF, MARGIN = 2, FUN = function(x) {
-if(str_detect(x, pattern = fixed("stats::poly("))) {
-  x_new <- str_remove(x, pattern = fixed("stats::poly(")) %>%
-    str_remove_all(" ") %>% 
-  str_remove(pattern = fixed(",2,raw=TRUE)"))
-} else {
-  x_new <- x
-}
-})
-  
-# combine into the 30 possible interactions
-combos_EF <- data.frame(gtools::permutations(n = length(temp_EF),
-r = 2,
-v = temp_EF))
-
-combos_EF$interactions <- paste0(combos_EF$X1, ":", combos_EF$X2)
-# make text string of interactions
-int_string_EF <-str_flatten(combos_EF$interactions, collapse = " + ")
-# formula w/ interactions included
-modWithInteractions_EF <- paste(bestTransformed_EF, "+", int_string_EF) %>% str_remove_all(fixed("stats::"))
-# refitting the glm with the best formula
-mod_glm1_EF <- betareg(as.formula(modWithInteractions_EF), data = ef_sample, link = c("logit"), link.phi = NULL,
- type = c("ML"))    
-
-  ## grassland/shrubs
-    ## make table of possible interactions
-# make list of transformed variables into a data.frame
-var_transformed_df_G <- as.data.frame(str_remove(bestTransformed_G, paste0(response, " ~ ")) %>% 
-  str_split(pattern = fixed(" + "), simplify = TRUE))#purrr::flatten_dfr(var_transformed_G) #%>%
-
-# if has a "stats::poly( to start, remove that part
-temp_G <- apply(var_transformed_df_G, MARGIN = 2, FUN = function(x) {
-if(str_detect(x, pattern = fixed("stats::poly("))) {
-  x_new <- str_remove(x, pattern = fixed("stats::poly(")) %>%
-    str_remove_all(" ") %>% 
-  str_remove(pattern = fixed(",2,raw=TRUE)"))
-} else {
-  x_new <- x
-}
-})
-  
-# combine into the 30 possible interactions
-combos_G <- data.frame(gtools::permutations(n = length(temp_G),
-r = 2,
-v = temp_G))
-
-combos_G$interactions <- paste0(combos_G$X1, ":", combos_G$X2)
-# make text string of interactions
-int_string_G <-str_flatten(combos_G$interactions, collapse = " + ")
-# formula w/ interactions included
-modWithInteractions_G <- paste(bestTransformed_G, "+", int_string_G) %>% str_remove_all(fixed("stats::"))
-# rGitting the glm with the best formula
-mod_glm1_G <- betareg(as.formula(modWithInteractions_G), data = g_sample, link = c("logit"), link.phi = NULL,
- type = c("ML"))  
-
-}
-
-```
-
-### performing backwards AIC-based model selection 
-Using the "StepBeta" function from the StepBeta R package
-```{r}
-
-modSelection <- StepBeta_mine(mod_glm1, data = df_sample)
-if (byRegion == TRUE) {
-  modSelection_WF <- StepBeta_mine(mod_glm1_WF, data = wf_sample)
-  modSelection_EF <- StepBeta_mine(mod_glm1_EF, data = ef_sample)
-  modSelection_G <- StepBeta_mine(mod_glm1_G, data = g_sample)
-}
-```
-
-### same model for all response variables
-
-Response variables are the proportion of years in which fires occurred.
-Using best model formula selected in the previous step
-
-```{r fit_glm1}
-
- best_form <- modSelection$formula
-print(best_form)
-
-# refitting the glm with the best formula
-mod_glmFinal <- betareg(as.formula(best_form), data = df_sample, link = c("logit"), link.phi = NULL,
-                              type = c("ML"))
-
-# should be the same AIC (i.e. refitting the same model)
-AIC(mod_glmFinal)
-
-if (byRegion == TRUE) {
-  ## western forests 
-  best_form_WF <- modSelection_WF$formula
-print(best_form_WF)
-
-# refitting the glm with the best formula
-mod_glmFinal_WF <- betareg(as.formula(best_form_WF), data = wf_sample, link = c("logit"), link.phi = NULL,
-                              type = c("ML"))
-# should be the same AIC (i.e. refitting the same model)
-AIC(mod_glmFinal_WF)
-
- ## eastern forests 
-  best_form_EF <- modSelection_EF$formula
-print(best_form_EF)
-
-# refitting the glm with the best formula
-mod_glmFinal_EF <- betareg(as.formula(best_form_EF), data = ef_sample, link = c("logit"), link.phi = NULL,
-                              type = c("ML"))
-# should be the same AIC (i.e. refitting the same model)
-AIC(mod_glmFinal_EF)
-
- ## grass/shrub
-  best_form_G <- modSelection_G$formula
-print(best_form_G)
-
-# refitting the glm with the best formula
-mod_glmFinal_G <- betareg(as.formula(best_form_G), data = g_sample, link = c("logit"), link.phi = NULL,
-                              type = c("ML"))
-# should be the same AIC (i.e. refitting the same model)
-AIC(mod_glmFinal_G)
-}
-
-
+# ## code from Gregor
+# # - ++ hold-out strategy (outer loop) ----
+# h_all = c("environmentalblock")#,'lastyears',)
+# # - ++ cross-validation strategy (inner loop) ----
+# cv_all = c('environmentalblock')
+# 
+# start.time <- Sys.time()
+# 
+# # data to use are modDat_1 
+# 
+# ## make data into spatial format
+# modDat_1_sf <- modDat_1 %>% 
+#   st_as_sf(coords = c("Long", "Lat"), crs = st_crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"))
+# # covariate names are stored in prednames
+# 
+# # response name is stored in response
+# 
+#   nfolds = 10 ##AES may need to change, not sure how many 
+#   nrepeats = 1
+#   
+#   
+#   
+#   for(h_i in 1:length(h_all)){
+#     
+#     print(paste("Running",h_all[h_i],"hold-outs, starting at",hms::round_hms(Sys.time(), secs = 1, digits = NULL)))
+#     
+#     outer_split <- hold_out_data_rsample(df = modDat_1, holdout_method = h_all[h_i], n_folds = nfolds, n_repeats = nrepeats, lastnyears = 5)
+#     
+#     # add a repetition column even if there is only 1 repetition
+#     if('Fold01' %in% outer_split$id |  'Resample01' %in% outer_split$id | 'Fold1' %in% outer_split$id |  'Resample1' %in% outer_split$id ){
+#       outer_split$id2 = outer_split$id
+#       outer_split$id = 'Repeat1'
+#     }
+#     
+#     for(j_i in 1:length(cv_all)){
+#       
+#       print(paste("Running",h_all[h_i],"hold-outs with",cv_all[j_i],"cross-validation, starting at",hms::round_hms(Sys.time(), secs = 1, digits = NULL)))
+#       
+#       nested_split <- inner_split_cv(x = data_seedingOutcomes, outer_folds = outer_split, cv_method = cv_all[j_i], n_folds = nfolds, n_repeats = nrepeats)
+#       
+#       # add a repetition column even if there is only 1 repetition
+#       if('Fold01' %in% nested_split$inner_resamples[[1]]$id | 'Resample01' %in% nested_split$inner_resamples[[1]]$id | 'Fold1' %in% nested_split$inner_resamples[[1]]$id |  'Resample1' %in% nested_split$inner_resamples[[1]]$id){
+#         for(k in 1:length(nested_split$inner_resamples)){
+#           nested_split$inner_resamples[[k]]$id2 = nested_split$inner_resamples[[k]]$id
+#           nested_split$inner_resamples[[k]]$id = 'Repeat1'
+#         }
+#       }
+#       
+#       outputList[[cumulative.index]]<-replicateRuns(nested_splits = nested_split, hmethod=h_all[h_i], cvmethod=cv_all[j_i])
+#       
+#       # increment index
+#       cumulative.index <- cumulative.index + 1
+#       
+#     }
+#     
+#     holdOutList[[h_i]] <- nested_split
+#   }
+# 
+#   
+#   saveRDS(outputList,here::here("03_outputs","08_nestedCrossValidation",paste0(current.species,"-nestedCv-longtermclimate-",nfolds,"outerFolds-results.RDS")))
+#   saveRDS(holdOutList,here::here("03_outputs","06_modelData",paste0(current.species,"-nestedCv-longtermclimate-",nfolds,"outerFolds-data.RDS")))
+#   
+# end.time <- Sys.time()
+# run.time = end.time-start.time
+# run.time
 ```
 
 ## partial dependence & VIP
