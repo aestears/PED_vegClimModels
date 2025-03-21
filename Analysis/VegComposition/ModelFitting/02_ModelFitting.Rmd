@@ -4,6 +4,7 @@ subtitle: "Based on code from Martin Holdrege's Sagebrush-Fire paper"
 author: "Alice Stears"
 date: "`r lubridate::today()`"
 params: 
+  run: FALSE
   test_run: FALSE
   save_figs: FALSE
   ecoregion: "shrubGrass" #shrubGrass #forest
@@ -47,6 +48,8 @@ fit_sample <- TRUE # fit model to a sample of the data
 n_train <- 5e4 # sample size of the training data
 n_test <- 1e6 # sample size of the testing data (if this is too big the decile dotplot code throws memory errors)
 byRegion <- params$byRegion
+
+run <- params$run
 ```
 
 
@@ -449,11 +452,10 @@ library(patchwork)
 (combo <- (map1+plot1)/plot2) 
 ```
 
-
 Fit a global model with all of the data 
--- use level 2 ecoregion for cross-validation to tune lambda in the LASSO model 
+-- within the training set, use level 2 ecoregion for cross-validation to tune lambda in the LASSO model 
 ```{r fit global model, echo = FALSE}
-  # Fit model -----------------------------------------------
+  # Fit model 
   # penalty values
   lambdas <- 10^seq(0 ,-7, length.out = 200)  # sequence of penalties to test
  
@@ -501,24 +503,28 @@ Fit a global model with all of the data
   y <- as.matrix(modDat_1[,response])
   
   # split into training and test sets
-  # hold out one ecoregion (arbitrarily chose one, "Western Sierra Madre Piedmont" )
+  # hold out several years ()
   test_eco <- unique(modDat_1$NA_L2NAME)[7]
   
   # identify the rowID of observations to be in the training and test datasets
-  train <- which(modDat_1$NA_L2NAME!=test_eco)
-  test <- which(modDat_1$NA_L2NAME==test_eco)
+  ## randomly select three years to hold out from the training dataset (2017, 2021, 2001)
+  #randYears <- sample(unique(modDat_1$Year.x), size = 3)
   
-  trainDat_all <- modDat_1[train,]
-  testDat_all <- modDat_1[test,]
+  #train <- which(!(modDat_1$Year.x %in% c(2017, 2021, 2001)))
+  #test <- which(modDat_1$Year.x %in% c(2017, 2021, 2001))
+  
+  #trainDat_all <- modDat_1[train,]
+  #testDat_all <- modDat_1[test,]
   
   # get the model matrices for input and response variables
-  X_train <- as.matrix(X[train,])
-  X_test <- as.matrix(X[test,])
+  #X_train <- as.matrix(X[train,])
+  #X_test <- as.matrix(X[test,])
   
-  y_train <- modDat_1[train,response]
-  y_test <- modDat_1[test,response]
+  #y_train <- modDat_1[train,response]
+  #y_test <- modDat_1[test,response]
   
-  train_eco <- modDat_1$NA_L2NAME[train]
+  # get the ecoregions for training lambda
+  train_eco <- modDat_1$NA_L2NAME#[train]
   
   # Fit model -----------------------------------------------
   
@@ -534,30 +540,37 @@ Fit a global model with all of the data
   # specify leave-one-year-out cross-validation
   my_folds <- as.numeric(as.factor(train_eco))
  
-  fit <- cv.glmnet(
-    x = X_train, 
-    y = y_train, 
+  if (run == TRUE) {
+    fit <- cv.glmnet(
+    x = X[,2:ncol(X)], 
+    y = y, 
     family = stats::Gamma(link = "log"),
     alpha = 1,  # 0 == ridge regression, 1 == lasso, 0.5 ~~ elastic net
     lambda = lambdas, 
     type.measure="mse",
     #penalty.factor = pen_facts,
     foldid = my_folds,
-    standardize = FALSE
-  )
+    standardize = TRUE ## scales variables prior to the model sequence... coefficients are always returned on the original scale
+    )
+    base::saveRDS(fit, paste0("../ModelFitting/models/", response, "_globalLASSOmod_",ecoregion, ".rds"))
+  
+  } else {
+    fit <- readRDS(paste0("../ModelFitting/models/", response, "_globalLASSOmod_",ecoregion, ".rds"))
+  }
+  
   
   # save the minimum lambda
   best_lambda <- fit$lambda.min
   print(fit)
   # look at CV score vs penalty plot
-  plot(log(fit$lambda),fit2$cvm,main=test_eco)
+  plot(log(fit$lambda),fit$cvm,main= paste0("comparing cross-validation score against log(lambda) \n best log(lambda) = ", round(log(best_lambda),3)))
   
   ## get the coefficients
   coef(fit, s = "lambda.min")
    
   ## predict on the test data
   # lasso model predictions with the optimal lambda
-  optimal_pred <- predict(fit,newx=X_test,s="lambda.min", type = "response")
+  optimal_pred <- predict(fit,newx=X,s="lambda.min", type = "response")
   
   # # re-fit the model with the specified lambda
   #  fit_bestLambda <- glmnet(
@@ -586,28 +599,28 @@ Fit a global model with all of the data
   # null model and predictions -- just with plain predictors, no interactions
   #X_null_train <- data.frame(X_train[,c(1:10,13)])
   #X_null_test <- data.frame(X_test[,c(1:10,13)])
-  null_fit <- glm(data = as.data.frame(X_train)[,prednames], formula = y_train ~ 1, family = stats::Gamma(link = "log"))
-  null_pred <- predict(null_fit, newdata = as.data.frame(X_test), type = "response"
+  null_fit <- glm(data = as.data.frame(X[,prednames]), formula = y ~ 1, family = stats::Gamma(link = "log"))
+  null_pred <- predict(null_fit, newdata = as.data.frame(X), type = "response"
                        )
 
   # save data
   fullModOut <- list(
     "modelObject" = fit,
     "nullModelObject" = null_fit,
-    "modelPredictions" = data.frame(ecoRegion_holdout = rep(test_eco,length(y_test)),obs=y_test,
+    "modelPredictions" = data.frame(ecoRegion_holdout = rep(test_eco,length(y)),obs=y,
                     pred_opt=optimal_pred[,1], pred_null=null_pred#,
                     #pred_nopenalty=nopen_pred
                     ))
   
   
 # calculate correlations between null and optimal model 
-my_cors <- c(cor(optimal_pred[,1], y_test),
-            cor(null_pred, y_test)
+my_cors <- c(cor(optimal_pred[,1], y),
+            cor(null_pred, y)
             )
 
 # calculate mse between null and optimal model 
-my_mse <- c(mean((obs_pred$pred_opt - y_test)^2) ,
-            mean((obs_pred$pred_null - y_test)^2)#,
+my_mse <- c(mean((obs_pred$pred_opt -  y)^2) ,
+            mean((obs_pred$pred_null - y)^2)#,
             #mean((obs_pred$pred_nopenalty - obs_pred$obs)^2)
             )
 
@@ -622,39 +635,36 @@ my_mse <- c(mean((obs_pred$pred_opt - y_test)^2) ,
 # get the predictions
 # pred_glm <- predict.glm(object = fit2, newdata = as.data.frame(X_test), type = "response")
 
-plot(y = fullModOut$modelPredictions$obs, x = X_test[,2], xlab = c("tmean"), ylab = (paste(response))) # observed values
-points(y = fullModOut$modelPredictions$pred_opt, x = X_test[,2], col = "red") ## predictions w/ the CV model
-points(y = fullModOut$modelPredictions$pred_null, x = X_test[,2], col = "blue") ## predictions with the null model
+plot(y = fullModOut$modelPredictions$obs, x = X[,2], xlab = c("tmean"), ylab = (paste(response))) # observed values
+points(y = fullModOut$modelPredictions$pred_opt, x = X[,2], col = "red") ## predictions w/ the CV model
+points(y = fullModOut$modelPredictions$pred_null, x = X[,2], col = "blue") ## predictions with the null model
 #points(y = pred_glm, x = X_test[,2], col = "green") ## predictions with the GLM 
 #points(y = optimal_pred_bestLambda, x = X_test[,2], col = "orange") ## predictions with the best-lambda glmnet model
 ```
 
-
-
 The internal cross-validation process to fit the global LASSO model identified an optimal lambda value (regularization parameter) of `r{best_lambda}`. The following coefficients were kept in the model: 
-```{r}
+```{r coefficients in the global model}
 # the coefficient matrix from the 'best model' -- find and print those coefficients that aren't 0 in a table
-mat <- as.matrix(coef(fullModOut[1]$modelObject)) 
-mat2 <- mat[mat[,1] > 0,]
+mat <- as.matrix(coef(fit)) 
+mat2 <- mat[mat[,1] != 0,]
 # the coefficient matrix from the 'best lambda model' -- find and print those coefficients that aren't 0 in a table
 #mat3 <- as.matrix(coef(fit_bestLambda)) 
 #mat4 <- mat[mat[,1] > 0,]
 
 globModTerms <- data.frame("Coefficient_Name" = names(mat2), 
-                   "Value_From_LASSO_withCV" = unname(mat2)#, 
+                   "Value_From_LASSO_with_internal_CV" = unname(mat2)#, 
                    #"Coefficient_Name" = names(fit2$coefficients),
                    #"Value_From_glm" = unname(fit2$coefficients),
                    #"Coefficient_Name"= names(mat4),
                    #"Value_From_LASSO_withBestLambda" = unname(mat4)
                    )
 
-kable(globModTerms, #col.names = c("Coefficient Name", "Value from LASSO")
+kable(globModTerms, col.names = c("Coefficient Name", "Value from LASSO")
       ) %>%
 kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 ```
 
-
-```{r}
+```{r eval = FALSE, cross-validation }
 ## code from Tredennick et al. 2020
 # try each separate ecoregion as a test set
 # make a list to hold output data 
@@ -717,11 +727,11 @@ outList <- vector(mode = "list", length = length(sort(unique(modDat_1$NA_L2NAME)
     type.measure="mse",
     #penalty.factor = pen_facts,
     foldid = my_folds,
-    standardize = FALSE
+    standardize = TRUE
   )
   
   # save the minimum lambda
-  best_lambda <- fit2$lambda.min
+  best_lambda <- fit$lambda.min
   # plot(fit)
   coef(fit, s = best_lambda)
   # look at CV score vs penalty plot
@@ -790,7 +800,7 @@ write.csv(obs_pred,"./ModelResults/obs_vs_pred.csv",row.names=F)
 
 ```
 
-```{r}
+```{r code from Gregor for cross-validation... not used currently}
 # ## code from Gregor
 # # - ++ hold-out strategy (outer loop) ----
 # h_all = c("environmentalblock")#,'lastyears',)
@@ -858,182 +868,82 @@ write.csv(obs_pred,"./ModelResults/obs_vs_pred.csv",row.names=F)
 # run.time
 ```
 
-## partial dependence & VIP
-
-PDP plot trend made using a small sample of the data
-
-```{r pdp_glm, warning = FALSE, fig.width = 8, fig.height=8}
-#vip::vip(mod_glmFinal, num_features = 15)
-
-#pdp_all_vars(mod_glmFinal, mod_vars = pred_vars, ylab = 'probability',train = df_small)
-
-#caret::varImp(mod_glmFinal)
-```
-
-
-## observed vs. predicted
+## observed vs. predicted values
 
 Predicting on the data
 
-```{r}
+```{r predict on data used for fitting}
 
   # create prediction for each each model
 # (i.e. for each fire proporation variable)
 predict_by_response <- function(mod, df) {
   df_out <- df
-
   response_name <- paste0(response, "_pred")
-  df_out[[response_name]] <- predict(mod, df, type = 'response')
-  df_out
+  df_out <- df_out %>% cbind(predict(mod, newx= df_out, s="lambda.min", type = "response"))
+   colnames(df_out)[ncol(df_out)] <- response_name
+  return(df_out)
 }
 
-pred_glm1 <- predict_by_response(mod_glmFinal, df_test)
+pred_glm1 <- predict_by_response(fit, X)
 
+# add back in true y values
+pred_glm1 <- pred_glm1 %>% 
+  cbind( data.frame("y" = y))
+# rename the true response column to not be 'y_test' 
+colnames(pred_glm1)[which(colnames(pred_glm1) == "y")] <- paste(response)
 
-if (byRegion == TRUE) {
-  ## western forests
-  # create prediction 
-  pred_glm1_WF <- predict_by_response(mod_glmFinal_WF, wf_test)
-  
-  ## eastern forests
-  # create prediction 
-  pred_glm1_EF <- predict_by_response(mod_glmFinal_EF, ef_test)
-  
-  ## grass/shrub
-  # create prediction 
-  pred_glm1_G <- predict_by_response(mod_glmFinal_G, g_test)
-  
-  ## add predictions together for later figures
-  pred_glm1_ALL <- rbind(pred_glm1_WF, pred_glm1_EF, pred_glm1_G)
-}
-
+# add back in lat/long data 
+pred_glm1 <- pred_glm1 %>% 
+  cbind(modDat_1[,c("Long.x", "Lat.x", "Year.x")])
 ```
 
 ### Maps of Residuals
 For CONUS-wide model
-```{r ResidMap_CONUS, fig.height = 7, fig.width = 8, }
+```{r Residual maps, fig.height = 7, fig.width = 8, }
 
 pred_glm1 <- pred_glm1 %>% 
   mutate(resid = .[[response]] - .[[paste0(response,"_pred")]]) 
 
 # rasterize
 # get reference raster
-test_rast <-  rast("../../../data/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
+test_rast <-  rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
   terra::aggregate(fact = 32, fun = "mean")
 
 # rasterize data
 plotResid_rast <- pred_glm1 %>% 
          drop_na(resid) %>% 
   #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("Lon", "Lat")) %>% 
+  terra::vect(geom = c("Long.x", "Lat.x")) %>% 
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "resid", 
                    fun = mean) %>% 
-  terra::crop(ext(-2000000, 2500000, -2000000, 1200000))
+  #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
+  terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+
 # plot
 ggplot() + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)),fill='white') +
   geom_spatraster(data = plotResid_rast) + 
-  ggtitle(paste0("Resids. from Best CONUS wide model of ",s)) + 
-  scale_fill_viridis_c(option = "turbo", limits = c(-.55, .91), na.value = "white")
+  ggtitle(paste0("Resids. (response - pred.) from Grass/shrub ecoregion-wide model of ",s),
+          subtitle = paste0(paste0(globModTerms$Coefficient_Name[1:5], collapse = " + "), " + \n", paste0(globModTerms$Coefficient_Name[6:length(globModTerms$Coefficient_Name)], collapse = " + "), collapse = " + ")) +
+  scale_fill_gradient2(low = "red",
+                       mid = "white" ,
+                       high = "blue" , 
+                       midpoint = 0, 
+                       na.value = "grey80")
+#   scale_fill_viridis_c(option = "turbo", limits = c(-92, 75), 
+#                        na.value = "white",
+#                        breaks = c(-92, -40, 0, 40, 75), 
+#                        labels = c(-92, -40, 0, 40, 75),
+#                        values = c(0,1)
+#                        )
+# scale_x_continuous(breaks = c(0, .25, .5, .75, 1), 
+#                        labels = c("shrub/grass", 0.25, 0.50, 0.75, "forest")) 
 
 # terra::plot(plotResid_rast, main = paste0("Resids. from Best CONUS wide model of ",s), clip = TRUE, 
 #             plg = list(title = "resid."), 
 #             col = map.pal("curvature"))
-```
-
-If applicable, residual plots of region-level models
-```{r, ResidMap_allRegions, fig.height = 7, fig.width = 8, }
-if (byRegion == TRUE){
-pred_glm1_ALL <- pred_glm1_ALL %>% 
-  mutate(resid = .[[response]] - .[[paste0(response,"_pred")]]) 
-
-# rasterize
-
-# rasterize data
-plotResid_rast_ALL <- pred_glm1_ALL %>% 
-         drop_na(resid) %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("Lon", "Lat")) %>% 
-  terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "resid", 
-                   fun = mean) %>% 
-  terra::crop(ext(-2000000, 2500000, -2000000, 1200000))
-# plot
-ggplot() + 
-  geom_spatraster(data = plotResid_rast_ALL) + 
-  ggtitle(paste0("Resids. from regional models of ",s)) + 
-  scale_fill_viridis_c(option = "turbo", limits = c(-.55, .91), na.value = "white")
-}
-
-```
-
-```{r residMap_byRegion, fig.height = 15, fig.width = 8, }
-if (byRegion == TRUE){
-## for western forests
-  pred_glm1_WF <- pred_glm1_WF %>% 
-  mutate(resid = .[[response]] - .[[paste0(response,"_pred")]]) 
-
-# rasterize
-
-# rasterize data
-plotResid_rast_WF <- pred_glm1_WF %>% 
-         drop_na(resid) %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("Lon", "Lat")) %>% 
-  terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "resid", 
-                   fun = mean) %>% 
-  terra::crop(ext(-2000000, 0, -1500000, 1200000))
-westForestRast <- ggplot() + 
-  geom_spatraster(data = plotResid_rast_WF) + 
-  ggtitle(paste0("Resids. from western forest-wide model of ",s)) + 
-  scale_fill_viridis_c(option = "turbo", limits = c(-.55, .91), na.value = "white") 
-
-## for eastern forests
-  pred_glm1_EF <- pred_glm1_EF %>% 
-  mutate(resid = .[[response]] - .[[paste0(response,"_pred")]]) 
-
-# rasterize data
-plotResid_rast_EF <- pred_glm1_EF %>% 
-         drop_na(resid) %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("Lon", "Lat")) %>% 
-  terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "resid", 
-                   fun = mean) %>% 
-  terra::crop(ext(0, 2500000, -1700000, 1200000))
-
-EastForestRast <- ggplot() + 
-  geom_spatraster(data = plotResid_rast_EF) + 
-  ggtitle(paste0("Resids. from eastern forest-wide model of ",s)) + 
-  scale_fill_viridis_c(option = "turbo", limits = c(-.55, .91), na.value = "white") 
-
-## for shrub/grassland
-  pred_glm1_G <- pred_glm1_G %>% 
-  mutate(resid = .[[response]] - .[[paste0(response,"_pred")]]) 
-
-# rasterize data
-plotResid_rast_G <- pred_glm1_G %>% 
-         drop_na(resid) %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("Lon", "Lat")) %>% 
-  terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "resid", 
-                   fun = mean) %>% 
-  terra::crop(ext(-2000000, 900000, -1900000, 1000000))
-grassRast <- ggplot() + 
-  geom_spatraster(data = plotResid_rast_G) + 
-  ggtitle(paste0("Resids. from eastern grass/shrubland-wide model of ",s)) + 
-  scale_fill_viridis_c(option = "turbo", limits = c(-.55, .91), na.value = "white") 
-
-westForestRast / EastForestRast / grassRast
-}
-
 ```
 
 ### Deciles
@@ -1048,35 +958,11 @@ Then predicting on an identical dataset but with warming
 var_prop_pred <- paste0(response, "_pred")
 response_vars <- c(response, var_prop_pred)
 
+prednames_fig <- paste(str_split(globModTerms$Coefficient_Name, ":", simplify = TRUE)) 
+prednames_fig <- prednames_fig[prednames_fig>0]
 pred_glm1_deciles <- predvars2deciles(pred_glm1,
                                       response_vars = response_vars,
-                                      pred_vars = pred_vars)
-
-if (byRegion == TRUE) {
-  ## western forests
-  pred_glm1_deciles_WF <- predvars2deciles(pred_glm1_WF,
-                                      response_vars = response_vars,
-                                      pred_vars = pred_vars) %>% 
-    mutate(newRegion = "westernForest")
-  
-    ## eastern forests
-  pred_glm1_deciles_EF <- predvars2deciles(pred_glm1_EF,
-                                      response_vars = response_vars,
-                                      pred_vars = pred_vars) %>% 
-    mutate(newRegion = "easternForest")
-  
-    ## grass/shrub
-  pred_glm1_deciles_G <- predvars2deciles(pred_glm1_G,
-                                      response_vars = response_vars,
-                                      pred_vars = pred_vars) %>% 
-    mutate(newRegion = "grassShrub")
-  
-  ## put together for later figures 
-  pred_glm1_deciles_ALL <- predvars2deciles(pred_glm1_ALL,
-                                      response_vars = response_vars,
-                                      pred_vars = pred_vars)
-}
-
+                                        pred_vars = pred_vars)
 
 ```
 
@@ -1087,16 +973,13 @@ Publication quality quantile plot
 ```{r decile_plot, fig.height= 10}
 
 # publication quality version
-g3 <- decile_dotplot_pq(pred_glm1_deciles, response = response) + ggtitle("Decile Plot for CONUS-wide model")
+g3 <- decile_dotplot_pq(pred_glm1_deciles, response = response) + ggtitle("Decile Plot")
 
 if(!hmod) {
 # obs/pred inset
 g4 <- add_dotplot_inset(g3, pred_glm1_deciles)
 } else {
   g4 <- g3
-}
-if (byRegion == FALSE){
-  g4
 }
 
   
@@ -1243,6 +1126,18 @@ if(!test_run) {
 
 
 ```
+
+
+## partial dependence plots
+
+```{r pdp_glm, warning = FALSE, fig.width = 8, fig.height=8}
+#vip::vip(mod_glmFinal, num_features = 15)
+
+#pdp_all_vars(mod_glmFinal, mod_vars = pred_vars, ylab = 'probability',train = df_small)
+
+#caret::varImp(fit)
+```
+
 
 # session info
 
