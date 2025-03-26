@@ -47,25 +47,60 @@ dat2 <- dat %>%
 # make sure the raster data is in the appropriate projection
 test <- test %>%
 terra::project(crs(y))
-st_crs(dat) == st_crs(test)
+st_crs(dat2) == st_crs(test)
 
 #(xTest = st_rasterize(dat2[,"ShrubCover"], st_as_stars(st_bbox(test), nx = ncol(test), ny = nrow(test), values = NA_real_)))
 
+## rename the columns in 'dat' 
+# fix names
+dat2  <- dat2 %>%
+  rename(UniqueID = UniquID,
+         StateUnitCounty = SttUntC,
+         PlotCondition = PltCndt,
+         ShrubCover = ShrbCvr,
+         TotalHerbaceousCover = TtlHrbC,
+         TotalTreeCover = TtlTrCv,
+         TotalGramCover = TtlGrmC,
+         AnnualHerbGramCover = AnnlHGC,
+         PerennialHerbGramCover = PrnnHGC,
+         C3GramCover = C3GrmCv,
+         C3GramCover_prop = C3GrmC_,
+         C4GramCover = C4GrmCv,
+         C4GramCover_prop = C4GrmC_,
+         ForbCover = ForbCvr,
+         ForbCover_prop = FrbCvr_,
+         AngioTreeCover = AngTrCv,
+         AngioTreeCover_prop = AngTrC_,
+         ConifTreeCover = CnfTrCv,
+         ConifTreeCover_prop = CnfTrC_,
+         TreeBasalArea = TrBsA_2,
+         BareGroundCover = BrGrndC,
+         LitterCover = LttrCvr,
+         LitterDepth = LttrDpt)
+
+dat2 <- ungroup(dat2)
+
 # rasterize values --------------------------------------------------------
 # get the names of the columns w/ data we want to rasterize
-layerNames <- dat %>% 
-  st_drop_geometry() %>% 
-  dplyr::select(c(TotalTreeCover:TotalHerbaceousCover, BareGroundCover, 
-                  BroadleavedTreeCover_prop:ForbCover_prop, ShrubCover)) %>% 
-  names() 
-years <- sort(unique(dat$Year))
+layerNames <- c("ShrubCover", "TotalHerbaceousCover",  "TotalTreeCover", "C3GramCover_prop", "C4GramCover_prop",
+                  "ForbCover_prop", "AngioTreeCover_prop", "ConifTreeCover_prop",
+                  "BareGroundCover")
+
+years <- sort(unique(dat2$Year))
 
 # rasterize and average cover values
 test2_a <- lapply(layerNames[1:2], FUN = function(x) {
-   temp <- terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
-                   , by = "Year") 
-   names(temp) <- paste0("ID_",years)
-   return(temp)
+  temp_a <- terra::rasterize(dat2[dat2$Year %in% c(1940:1985),], y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                             , by = "Year")
+  temp_b <- terra::rasterize(dat2[dat2$Year %in% c(1986:2023),], y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                             , by = "Year")
+  temp <- c(temp_a, temp_b)
+  
+  names(temp) <- paste0("ID_",years)
+  
+  # re-write NaN values as NA to save space
+  temp[is.nan(temp)] <- NA
+  return(temp)
   # temp <-  dat2 %>% 
   #   select("Lat", "Lon", "Year", all_of(x)) %>% 
   #   drop_na() %>% 
@@ -90,11 +125,18 @@ test2_a <- lapply(layerNames[1:2], FUN = function(x) {
 }
 )
 
-test2_b <- lapply(layerNames[3:4], FUN = function(x) {
-  temp <- terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
-                   , by = "Year")
+
+test2_b <- lapply(layerNames[3], FUN = function(x) {
+  temp_a <- terra::rasterize(dat2[dat2$Year %in% c(1940:1985),], y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                             , by = "Year")
+  temp_b <- terra::rasterize(dat2[dat2$Year %in% c(1986:2023),], y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                             , by = "Year")
+  temp <- c(temp_a, temp_b)
   
   names(temp) <- paste0("ID_",years)
+  
+  # re-write NaN values as NA to save space
+  temp[is.nan(temp)] <- NA
   return(temp)
 }
 )
@@ -103,23 +145,36 @@ test2_ab <- c(test2_a, test2_b)
 rm(test2_a, test2_b)
 gc()
 
-test2_c <- lapply(layerNames[5:6], FUN = function(x) {
-  temp <- terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
-                           , by = "Year")
+test2_c <- lapply(layerNames[4], FUN = function(x) {
+  temp_a <- terra::rasterize(dat2[dat2$Year %in% c(1940:1985),], y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                             , by = "Year")
+  temp_b <- terra::rasterize(dat2[dat2$Year %in% c(1986:2023),], y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                             , by = "Year")
+  temp <- c(temp_a, temp_b)
   
   names(temp) <- paste0("ID_",years)
+  
+  # re-write NaN values as NA to save space
+  temp[is.nan(temp)] <- NA
   return(temp)
 }
 )
 test2_abc <- c(test2_ab, test2_c)
-rm(test2_ab, test2_c)
+rm(test2_ab, test2_c,dat, v, y)
+
 gc()
 
-test2_d <- lapply(layerNames[7], FUN = function(x) {
-  temp <- terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
-                           , by = "Year")
+test2_d <- lapply(layerNames[5], FUN = function(x) {
+  temp_a <- terra::rasterize(dat2[dat2$Year %in% c(1940:1985),], y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                             , by = "Year")
+  temp_b <- terra::rasterize(dat2[dat2$Year %in% c(1986:2023),], y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                             , by = "Year")
+  temp <- c(temp_a, temp_b)
   
   names(temp) <- paste0("ID_",years)
+  
+  # re-write NaN values as NA to save space
+  temp[is.nan(temp)] <- NA
   return(temp)
 }
 )
@@ -127,11 +182,17 @@ test2_abcd <- c(test2_abc, test2_d)
 rm(test2_abc, test2_d)
 gc()
 
-test2_e <- lapply(layerNames[8], FUN = function(x) {
-  temp <- terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
-                           , by = "Year")
+test2_e <- lapply(layerNames[6], FUN = function(x) {
+  temp_a <- terra::rasterize(dat2[dat2$Year %in% c(1940:1985),], y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                             , by = "Year")
+  temp_b <- terra::rasterize(dat2[dat2$Year %in% c(1986:2023),], y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                             , by = "Year")
+  temp <- c(temp_a, temp_b)
   
   names(temp) <- paste0("ID_",years)
+  
+  # re-write NaN values as NA to save space
+  temp[is.nan(temp)] <- NA
   return(temp)
 }
 )
@@ -140,33 +201,87 @@ test2_abcde <- c(test2_abcd, test2_e)
 rm(test2_abcd, test2_e)
 gc()
 
-test2_f <- lapply(layerNames[9], FUN = function(x) {
-  temp <- terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+test2_f <- lapply(layerNames[7], FUN = function(x) {
+  temp_a <- terra::rasterize(dat2[dat2$Year %in% c(1940:1985),], y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
                            , by = "Year")
+  temp_b <- terra::rasterize(dat2[dat2$Year %in% c(1986:2023),], y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                             , by = "Year")
+ temp <- c(temp_a, temp_b)
   
-  names(temp) <- paste0("ID_",years)
+ names(temp) <- paste0("ID_",years)
+ 
+ # re-write NaN values as NA to save space
+ temp[is.nan(temp)] <- NA
   return(temp)
 }
 )
 
 test2_abcdef <- c(test2_abcde, test2_f)
+
+ # terra:::saveRDS(test2_f, file = "./Data_processed/CoverData/IntermediateAnalysisFiles/rasterForSpatialAveraging_f.rds")
+ # test2_f <- terra:::readRDS(file = "./Data_processed/CoverData/IntermediateAnalysisFiles/rasterForSpatialAveraging_f.rds")
+
 rm(test2_abcde, test2_f)
 gc()
 
-test2_g <- lapply(layerNames[10], FUN = function(x) {
-  temp <- terra::rasterize(dat2, y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
-                           , by = "Year")
+test2_g <- lapply(layerNames[8], FUN = function(x) {
+  temp_a <- terra::rasterize(dat2[dat2$Year %in% c(1940:1985),], y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                             , by = "Year")
+  temp_b <- terra::rasterize(dat2[dat2$Year %in% c(1986:2023),], y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                             , by = "Year")
+  temp <- c(temp_a, temp_b)
+  
+  names(temp) <- paste0("ID_",years)
+  
+  # re-write NaN values as NA to save space
+  temp[is.nan(temp)] <- NA
+  return(temp)
+}
+)
+
+test2_abcdefg <- c(test2_abcdef, test2_g)
+
+#terra:::saveRDS(test2_g, file = "./Data_processed/CoverData/IntermediateAnalysisFiles/rasterForSpatialAveraging_g.rds")
+#test2_g <- terra:::readRDS(file = "./Data_processed/CoverData/IntermediateAnalysisFiles/rasterForSpatialAveraging_g.rds")
+
+rm(test2_abcdef, test2_g)
+gc()
+
+test2_h <- lapply(layerNames[9], FUN = function(x) {
+  temp_a <- terra::rasterize(dat2[dat2$Year %in% c(1940:1985),], y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                             , by = "Year")
+  temp_b <- terra::rasterize(dat2[dat2$Year %in% c(1986:2023),], y = test, field = x, fun = mean, na.rm = TRUE#function(x) mean(x, na.rm = TRUE)
+                             , by = "Year")
+  temp <- c(temp_a, temp_b)
+  
+  names(temp) <- paste0("ID_",years)
+  
+  # re-write NaN values as NA to save space
+  temp[is.nan(temp)] <- NA 
   
   names(temp) <- paste0("ID_",years)
   return(temp)
 }
 )
 
-test2 <- c(test2_abcdef, test2_g)
-rm(test2_abcdef, test2_g)
+test2 <- c(test2_abcdefg, test2_h)
+rm(test2_abcdefg, test2_h)
 gc()
 
 names(test2) <- layerNames
+
+
+# save the output ---------------------------------------------------------
+for (i in 1:length(layerNames)){
+  terra::saveRDS(test2[[i]], file = paste0("./Data_processed/CoverData/IntermediateAnalysisFiles/rasterForSpatialAveraging_",layerNames[i],".rds"))
+}
+# ## read back in 
+# test2_new <- vector(length = length(layerNames), mode = "list")
+# for (i in 1:length(layerNames)){
+#   test2_new[[i]] <- terra:::readRDS(file = paste0("./Data_processed/CoverData/IntermediateAnalysisFiles/rasterForSpatialAveraging_",layerNames[i],".rds")) %>% 
+#     rast()
+#   }
+
 
 # library(tidyterra)
 # plotDat <- test2$NeedleLeavedTreeCover_prop %>%
@@ -193,19 +308,20 @@ names(test2) <- layerNames
 # names(testTest) <- layerNames
 # test2 <- testTest
 
+
 # ExtractValuesBackToPoints -----------------------------------------------
 
 centroidPoints <- xyFromCell(test$daymet_v4_prcp_monttl_na_1980_1, cell = 1:ncell(test$daymet_v4_prcp_monttl_na_1980_1)) %>% 
   #as.data.frame() %>% 
   #st_as_sf(coords = c("x", "y")) %>% 
   vect(crs = terra::crs(test)) 
-crs(centroidPoints) == crs(dat) 
+crs(centroidPoints) == crs(dat2) 
   
 
 # extract the points from the raster back to the data.frame 
-test3 <- lapply(names(test2), FUN = function(y) {
+test3 <- lapply(names(test2)[1:length(names(test2))], FUN = function(y) {
   print(y)
-  temp <- lapply(1:length(unique(dat$Year)), FUN = function(x) {
+  temp <- lapply(1:length(unique(dat2$Year)), FUN = function(x) {
     
     # is the raster for this data/year all NAs? 
     if (any(as.numeric(terra::global(test2[[y]][[x]], fun = "notNA")[,1]) > 0)) { # if there is data
@@ -213,10 +329,10 @@ test3 <- lapply(names(test2), FUN = function(y) {
        layer_i <- test2[[y]][[x]] %>% 
         terra::extract(y = centroidPoints, xy = TRUE) %>% # get data just for the points
         filter(!is.na(.data[[names(test2[[y]])[x]]])) 
-      layer_i$Year <- sort(unique(dat$Year))[x]
+      layer_i$Year <- sort(unique(dat2$Year))[x]
       return(layer_i)
     } else {
-      message(paste0("year ", sort(unique(dat$Year))[[x]], " (index ", x,") has no data"))
+      message(paste0("year ", sort(unique(dat2$Year))[[x]], " (index ", x,") has no data"))
     }
     
   }) %>% 
@@ -228,12 +344,23 @@ test3 <- lapply(names(test2), FUN = function(y) {
               x = x,
               y = y, 
               Year = Year)
+  # save this iteration of 'y' as a .csv just in case 
+  write.csv(x = temp2, file = paste0("./Data_processed/CoverData/IntermediateAnalysisFiles/rasterToPoints_",y,".csv"))
+  return(temp2)
 }
 )
-  
+# 
+# test3 <- lapply(names(test2)[1:length(names(test2))], FUN = function(y) {
+#   temp <- read.csv(paste0("./Data_processed/CoverData/IntermediateAnalysisFiles/rasterToPoints_",y,".csv"))
+#   return(temp[,2:6])
+# }
+# )
+
 names(test3) <- layerNames
+
 # save output! 
 saveRDS(test3, "./Data_processed/CoverData/spatiallyAverageData_intermediate.rds")
+
 #test3 <- readRDS("./Data_processed/CoverData/spatiallyAverageData_intermediate.rds")
 # treeCover_rast <- test3$NeedleLeavedTreeCover_prop %>% 
 #   st_as_sf(coords = c('x', 'y')) %>% 
@@ -268,13 +395,14 @@ test5 <- test4[[1]] %>%
   full_join(test4[[6]], by = c("x", "y", "Year")) %>% 
   full_join(test4[[7]], by = c("x", "y", "Year")) %>% 
   full_join(test4[[8]], by = c("x", "y", "Year")) %>% 
-  full_join(test4[[9]], by = c("x", "y", "Year")) %>% 
-  full_join(test4[[10]], by = c("x", "y", "Year"))
+  full_join(test4[[9]], by = c("x", "y", "Year")) #%>% 
+  #full_join(test4[[10]], by = c("x", "y", "Year"))
   
 
 rm(test3, test4)
 gc()
 
+plot(test5$x, test5$y)
 
 saveRDS(test5, "./Data_processed/CoverData/spatiallyAverageData_intermediate_test5.rds")
 rm(test5)
@@ -317,33 +445,34 @@ saveRDS(st_drop_geometry(allDat_avg), "./Data_processed/CoverData/DataForModels_
 # allDat_avg <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_NoSf.rds")
 # plot(climDat$tmean, climDat$tmin_annAvg)
 # Testing -----------------------------------------------------------------
-#   # determine if the results are accurate 
+  # determine if the results are accurate
 # test6 <- vect(test5, geom = c("x", "y"), crs = crs(test))
-# temp <- terra::rasterize(test6, y = test, field = "ShrubCover", fun = function(x) mean(x, na.rm = TRUE)) %>% 
-#   terra::aggregate(fact = 32, fun = function(x) mean(x, na.rm = TRUE))
-#  
+# temp <- terra::rasterize(test6, y = test, field = "TotalHerbaceousCover", fun = function(x) mean(x, na.rm = TRUE)) %>%
+#   terra::aggregate(fact = 8, fun = function(x) mean(x, na.rm = TRUE))
+# plot(temp, xlim = c(-135, -50), ylim = c(20, 55))
+# 
 # test6 <- vect(st_centroid(allDat_avg))
-# (temp <- terra::rasterize(test6, y = test, 
-#                           field = "precip_driestMonth_meanAnnAvg_CLIM", 
-#                           fun = mean, na.rm = TRUE) %>% 
+# (temp <- terra::rasterize(test6, y = test,
+#                           field = "precip_driestMonth_meanAnnAvg_CLIM",
+#                           fun = mean, na.rm = TRUE) %>%
 #   terra::aggregate(fact = 32, fun = function(x) mean(x, na.rm = TRUE))
 # )
 # plot(temp)
 # 
-#   # compare to raw data 
-#   
-# temp2 <- 
-#   rasterize(dat2, y = test, field = "ShrubCover", fun = function(x) mean(x, na.rm = TRUE)) %>% 
+#   # compare to raw data
+# 
+# temp2 <-
+#   rasterize(dat2, y = test, field = "ShrubCover", fun = function(x) mean(x, na.rm = TRUE)) %>%
 #   terra::aggregate(fact = 32, fun = function(x) mean(x, na.rm = TRUE) )
 # 
 # 
 # par(mfrow = c(1,2))
-# plot(temp, 
-#      xlim = c(-2000000, 2500000), 
+# plot(temp,
+#      xlim = c(-2000000, 2500000),
 #      ylim = c(-2000000, 1000000))
-# plot(temp2, 
-#      xlim = c(-2000000, 2500000), 
+# plot(temp2,
+#      xlim = c(-2000000, 2500000),
 #      ylim = c(-2000000, 1000000))
 # 
-# ## Look the same! 
+# ## Look the same!
 # 

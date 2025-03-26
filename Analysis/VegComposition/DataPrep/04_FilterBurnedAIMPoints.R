@@ -244,5 +244,6 @@ plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$CnfTrCv <
 # remove shrub values
 plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$ShrbCvr <- NA
 
+plot(plotDat_noFireAll$Lon, plotDat_noFireAll$Lat)
 
 saveRDS(plotDat_noFireAll, file = "./Data_processed/CoverData/dataForAnalysis_fireRemoved.rds")
