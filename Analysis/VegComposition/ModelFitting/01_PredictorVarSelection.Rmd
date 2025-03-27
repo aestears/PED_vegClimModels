@@ -336,34 +336,34 @@ Then, we removed the following additional variables based on their correlation:
  (corrPlot <- 
    datGrassShrub %>% 
    dplyr::select(
-        #"tmin", 
+             #"tmin", 
       #"tmax", 
-      "tmean", #1
-      "prcp", #2
+      "tmean",
+      "prcp",
       #"t_warm",
       #"t_cold",
       #"prcp_wet",
       #"prcp_dry",
-      "prcp_seasonality", #3
-      "prcpTempCorr",#4
+      "prcp_seasonality",
+      "prcpTempCorr",
       #"abvFreezingMonth",
-      "isothermality", #5
+      "isothermality",
       #"annWatDef",
-      #"annWetDegDays", #6
+      #"annWetDegDays",
       #"VPD_mean",
-      "VPD_max",#7
+      "VPD_max",
       #"VPD_min",
       #"VPD_max_95",
       #"annWatDef_95",
-      #"annWetDegDays_5", 
+      #"annWetDegDays_5",
       #"frostFreeDays_5",
       #"frostFreeDays",
       #"soilDepth",
-      #"clay", #9
-      "sand", #10
-      "coarse", #11
-      #"carbon", 
-      "AWHC" #12
+      #"clay",
+      "sand",
+      "coarse",
+      #"carbon",
+      "AWHC"
    ) %>%
     #slice_sample(n = 5e4) %>% 
    cor()  %>% 
