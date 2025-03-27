@@ -137,8 +137,7 @@ transform_preds <- function(preds) {
 ## function to turn predicted variables into deciles
 predvars2deciles <- function(df, response_vars, pred_vars,
                              filter_var = FALSE,
-                             filter_vars = c("swe_meanAnnAvg_5yr", "tmin_meanAnnAvg_5yr","prcp_meanAnnTotal_5yr",          
-                                              "precip_Seasonality_meanAnnAvg_5yr", "PrecipTempCorr_meanAnnAvg_5yr"),
+                             filter_vars = NULL,
                              weighted_mean = FALSE,
                              add_mid = FALSE,
                              cut_points = seq(0, 1, 0.01)) {
@@ -355,6 +354,7 @@ filter_by_climate <- function(df, add_mid = FALSE,
   percentiles <- map_dfc(filter_vars, function(var) {
     ecdf_list[[var]](df[[var]])
   })
+  names(percentiles) <- filter_vars
   
   # only keep rows falling in the low or high category, for each climate var
   df_filtered <- map_dfr(filter_vars, function(var) {
@@ -370,7 +370,7 @@ filter_by_climate <- function(df, add_mid = FALSE,
     
     out$percentile_category <- as.factor(out$percentile_category)
     
-    # adding seperate category for the middle of the data
+    # adding separate category for the middle of the data
     if(add_mid){
       df_mid <- df[percentiles[[var]] < .6 & percentiles[[var]] > .4, ]
       df_mid$percentile_category <- "40th-60th"

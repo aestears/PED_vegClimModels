@@ -175,29 +175,32 @@ decile_dotplot_pq <- function(df, size = 0.5, response = response) {
   df2 <- df %>% 
     #filter(!name %in% response) %>% 
     mutate(name = var2lab(name, units_md = TRUE)) %>% 
-    arrange(name) 
+    arrange(name)
   
+  # fix the levels to correspond to the predictor values we actually use in this model
   
-  
+  df2$name <-factor(as.character(df2$name))
   
   yvar <- response
   yvar_pred <- paste0(response,"_pred")
   
   # convert to %
-  df2[[yvar]] <- df2[[yvar]]*100
-  df2[[yvar_pred]] <- df2[[yvar_pred]]*100
+  #df2[[yvar]] <- df2[[yvar]]*100
+  #df2[[yvar_pred]] <- df2[[yvar_pred]]*100
   
-  fig_letters <- str_to_upper(c("a", "b", "c", "d", "e", "f", "g", "f", "h", "i", "j", "k", "l"))
+  
+  fig_letters <- str_to_upper(c("a", "b", "c", "d", "e", "f", "g", "f", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q","r", "s", "t", "u", "v", "w", "x", "y", "z"))
   letter_df <- tibble(
     letter = fig_letters[1:length(unique(df2$name))],
-    name = factor(levels(df2$name)),
+    name = (as.factor(unique(df2$name))),
     x = -Inf,
     y = Inf
   )
   
   g <- ggplot(df2, aes(x = mean_value, y = .data[[yvar]])) +
     geom_point(aes(color = "Observed", shape = "Observed"),
-               size = size, alpha = 0.6) +
+               #size = size, 
+               alpha = 0.6) +
     geom_point(aes(y = .data[[yvar_pred]], color = 'Predicted',
                    shape = 'Predicted'), size = size, alpha = 0.75) +
     geom_text(data = letter_df, aes(x = x, y = y, label = letter),
@@ -211,24 +214,21 @@ decile_dotplot_pq <- function(df, size = 0.5, response = response) {
     annotate("segment", x=Inf, xend=Inf, y=-Inf, yend=Inf, size = 1) +
     labs(#y = "Total Tree Cover per decile" ,
       x = "mean climate predictor value per decile") +
-    theme(legend.position = 'top',
-          legend.title = element_blank(),
-          #strip.text = element_text(),
-          strip.background = element_blank(),
-          strip.text = ggtext::element_markdown(margin = margin()),
-          strip.placement = "outside",
-          axis.title.x = element_blank(),
-          axis.line.y = element_blank())+
+    # theme(legend.position = 'top',
+    #       #legend.title = element_blank(),
+    #       #strip.text = element_text(),
+    #       strip.background = element_blank(),
+    #       strip.text = ggtext::element_markdown(margin = margin()),
+    #       strip.placement = "outside",
+    #       axis.title.x = element_blank(),
+    #       axis.line.y = element_blank()) +
     scale_color_manual(name = 'legend', values = c("Observed" = "black", "Predicted" = "#2b8cbe")) +
     scale_shape_manual(name = 'legend', values =  c("Observed" = 19, "Predicted" = 17)) #+
     #sec_axis_fri() # adding second fire return interval axis
   
   g
 }
-library(stringr)
-fig_letters <- str_to_upper(c("a", "b", "c", "d", "e", "f", "g", "f", "h", "i", "j", "k", "l"))
 
- 
 #' convert variable abbreviation to a better label
 #'
 #' @param x character vector
@@ -246,25 +246,57 @@ var2lab <- function(x = NULL, units_md = FALSE, add_letters = FALSE,
                     include_hmod = FALSE) {
   
   
-  # Including units that are written using markdown formating
+  # Including units that are written using markdown formatting
   lookup_md <- c(
-    "PrecipTempCorr_meanAnnAvg_30yr" = "Corr. of monthly precip. temp. - 30 yr. mean",
-    "annWetDegDays_meanAnnAvg_30yr" = "Wet degree days - 30 yr. mean",
-    "isothermality_meanAnnAvg_30yr" = "isothermality - 30 yr. mean",
-    "prcp_meanAnnTotal_30yr" = "Precipitation - 30 yr. mean - mm",
-    #"precip_Seasonality_meanAnnAvg_30yr" = "Precip. seasonality - 30 yr. mean ",
-    "swe_meanAnnAvg_30yr" = "Annual Snow Water Equivalent - 30 yr. mean - kg/m2",
-    "tmean_meanAnnAvg_30yr" = "Annual min. temp - 30 yr. mean - C"
+    "AWHC" = "AWHC",
+    "VPD_max" = "VPD max CLIM",
+    "VPD_max_95_anom" = "VPD max 95 CLIM",
+    "VPD_min_anom" = "VPD min ANOM",
+    "aboveFreezingMonth_anom" = "aboveFreezing ANOM",
+    "annWatDef_anom" = "AnnWatDef ANOM", 
+    "annWetDegDays_anom" = "AnnWetDegDays ANOM", 
+    "coarse" = "coarse", 
+    "frostFreeDays_5_anom" = "FrostFreeDays 5 ANOM",
+    "isothermality" = "isothermality CLIM",
+    "isothermality_anom" = "isothermality ANOM", 
+    "prcp" = "Precip CLIM",
+    "prcpTempCorr" = "PrecipTempCorr CLIM",
+    "prcpTempCorr_anom" = "PrecipTempCorr ANOM",
+    "prcp_seasonality" = "PrecipSeasonality CLIM", 
+    "prcp_seasonality_anom" = "PrecipSeasonality ANOM",
+    "prcp_wet_anom" = "precipWettest ANOM", 
+    "precp_dry_anom" = "precipDriest ANOM", 
+    "sand" = "sand", 
+    "t_cold_anom" = "tempColdest ANOM",
+    "t_warm_anom" = "tempWarmest ANOM",
+    "tmax_anom" = "maxTemp ANOM Ann. maximum Temp. - 3 yr. anomaly", 
+    "tmean" = "meanTemp CLIM"
   )
   
   lookup_name_only <- c(
-    "PrecipTempCorr_meanAnnAvg_30yr" = "Corr. of monthly precip. temp. - 30 yr. mean",
-    "annWetDegDays_meanAnnAvg_30yr" = "Wet degree days - 30 yr. mean",
-    "isothermality_meanAnnAvg_30yr" = "isothermality - 30 yr. mean",
-    "prcp_meanAnnTotal_30yr" = "Precipitation - 30 yr. mean",
-    #"precip_Seasonality_meanAnnAvg_30yr" = "Precip. seasonality - 30 yr. mean ",
-    "swe_meanAnnAvg_30yr" = "Annual Snow Water Equivalent - 30 yr. mean",
-    "tmean_meanAnnAvg_30yr" = "Annual min. temp - 30 yr. mean"
+    "AWHC" = "Average Soil Water Holding Capacity",
+    "VPD_max" = "VPD Ann. maximum - 30 yr. mean",
+    "VPD_max_95_anom" = "VPD Ann. maximum - 30 yr. 95th percentile",
+    "VPD_min_anom" = "VPD Ann. minimum - 3 yr. anomaly",
+    "aboveFreezingMonth_anom" = "Month above freezing - 3 yr. anomaly",
+    "annWatDef_anom" = "Ann. water deficit - 3 yr. anomaly", 
+    "annWetDegDays_anom" = "Ann. wet degree days - 3 yr. anomaly", 
+    "coarse" = "% of soil as coarse fragments", 
+    "frostFreeDays_5_anom" = "Frost free days - 5th percentile over 3 yr. anomaly",
+    "isothermality" = "isothermality - 30 yr. mean",
+    "isothermality_anom" = "isothermality - 3 yr. anomaly", 
+    "prcp" = "Ann. Precip. - 30 yr. mean",
+    "prcpTempCorr" = "Correlation of Precip. and Temp. - 30 yr. mean",
+    "prcpTempCorr_anom" = "Correlation of Precip. and Temp. - 3 yr. anomaly",
+    "prcp_seasonality" = "Precip. seasonality - 30 yr. mean", 
+    "prcp_seasonality_anom" = "Precip. seasonality - 3 yr. anomaly",
+    "prcp_wet_anom" = "Precip. of the wettest month - 3 yr. anomaly", 
+    "precp_dry_anom" = "Precip. of the driest month - 3 yr. anomaly", 
+    "sand" = "% of soil as sand", 
+    "t_cold_anom" = "Temp. of the coldest month - 3 yr. anomaly",
+    "t_warm_anom" = "Temp. of the warmest month - 3 yr. anomaly",
+    "tmax_anom" = "Ann. maximum Temp. - 3 yr. anomaly", 
+    "tmean" = "Ann. mean Temp. - 30 yr. mean"
   )
   
   # if human modification layer included in the input,
@@ -310,13 +342,13 @@ var2lab <- function(x = NULL, units_md = FALSE, add_letters = FALSE,
 #' @param add_smooth whether to add a smoother to the inset
 #' @param ... arguments passed to geom_smooth
 add_dotplot_inset <- function(g, df, add_smooth = FALSE, ...) {
-  fig_letters <- str_to_upper(c("a", "b", "c", "d", "e", "f", "g", "f", "h", "i", "j", "k", "l"))
+  fig_letters <- str_to_upper(c("a", "b", "c", "d", "e", "f", "g", "f", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q","r", "s", "t", "u", "v", "w", "x", "y", "z"))
   
   yvar <- response
   max <- df %>% 
     select(all_of(yvar), all_of(paste0(yvar,"_pred"))) %>% 
-    max * 100
-  inset <- ggplot(df, aes(.data[[yvar]]*100, .data[[paste0(yvar,"_pred")]]*100)) +
+    max #* 100
+  inset <- ggplot(df, aes(.data[[yvar]], .data[[paste0(yvar,"_pred")]])) +
     geom_point(shape = 4, alpha = 0.2, size = 0.3) +
     geom_abline(slope = 1, size = 0.5) +
     labs(y = "Observed Cover (%)",
@@ -328,21 +360,22 @@ add_dotplot_inset <- function(g, df, add_smooth = FALSE, ...) {
     #   aes(x = x, y = y, label = letter),
     #   hjust = -0.8, vjust = 1) +
     theme(axis.title = element_text(size = 6),
-          axis.text = element_text(size = 6),
-          plot.margin = margin())+
-    coord_cartesian(xlim = c(0, max),
-                    ylim = c(0, max))
+          axis.text = element_text(size = 6)#,
+          #plot.margin = margin()
+          )#+
+    #coord_cartesian(xlim = c(0, max),
+                    #ylim = c(0, max))
   
   if(add_smooth) {
     inset <- inset +
       geom_smooth(se = FALSE, color = 'gray', ...)
   }
   
-  
-  g2 <- g +
-    inset_element(inset, left = .85,
-                  bottom = 0.2,
-                  right = 1, top = 0.44)
+  library(ggpubr)
+  g2 <- ggarrange(g, ggarrange(inset, ggplot(), widths = c(1,2)), heights = c(3, 1), nrow = 2)
+    # inset_element(inset, left = .75,
+    #               bottom = -.08,
+    #               right = 1, top = 0.14)
   g2
 }
 
@@ -376,11 +409,11 @@ decile_dotplot_filtered_pq <- function(df,
     arrange(percentile_category, source) %>%  # so factor is ordered
     mutate(percentile_category = paste0(percentile_category, " (", source, ")"),
            percentile_category = factor(percentile_category, levels = unique(percentile_category)),
-           PercentCover = CoverProportion*100) # convert to %)
+           PercentCover = CoverProportion) # convert to %)
   
   letter_df <- expand_grid(filter_var = unique(df2$filter_var), 
                            name = unique(df2$name)) %>% 
-    mutate(letter = fig_letters[1:n()],
+    mutate(letter = seq(1:150)[1:n()],
            x = -Inf,
            y = Inf)
   
@@ -403,7 +436,7 @@ decile_dotplot_filtered_pq <- function(df,
                    shape = percentile_category),
                size = size) +
     facet_grid(filter_var~name, scales = 'free_x', switch = 'x'
-               ,labeller = labeller(filter_var = ~var2lab(.x, units_md = FALSE),
+               ,labeller = labeller(filter_var = ~var2lab(.x, units_md = TRUE),
                                    name = ~var2lab(.x, units_md = TRUE))
     ) +
     labs(x = paste0(response),
@@ -492,3 +525,4 @@ generate_all_legends <- function(df) {
   }
   legends
 }
+
