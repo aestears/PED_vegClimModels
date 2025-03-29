@@ -15,7 +15,7 @@ library(terra)
 # Load data ---------------------------------------------------------------
 
 ## get veg data to get locations (are some duplicated locates b/c plots have data from multiple years)
-vegDat <- read.csv("./Data_processed/CoverData/DataForAnalysis.csv") #%>%
+vegDat <- read.csv("./Data_processed/CoverData/ForAnalysis.csv") #%>%
 #   select(Lat, Lon) %>%
 #   unique()
 # points <- vegDat %>%
@@ -26,12 +26,17 @@ years <- unique(vegDat$Year)
 # get sf point data
 points_sf <- st_read(dsn = "./Data_processed/CoverData/DataForAnalysisPoints/", layer = "vegCompPoints")
 
+vegDat %>% 
+  filter(!is.na(TotalHerbaceousCover)) %>% 
+  ggplot() + 
+  facet_wrap(~Year) + 
+  geom_point(aes(x = Lon, y = Lat))
 
 ## get monthly data downloaded from online
 #test <- terra::rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/Data_raw/dayMet_v4_prcp_monttl_na_1980.tif")
 rastNames <- list.files("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/")
 #reproject points to same crs as rasters
-test <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/Data_raw/dayMet_v4_prcp_monttl_na_1980.tif")
+test <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/dayMet_v4_prcp_monttl_na_1980.tif")
 points_sf <- points_sf %>%
   sf::st_transform(crs(test))
 
@@ -153,43 +158,59 @@ for (i in 1:length(rastNames[str_detect(string = rastNames,
   }
 }
 
-# load monthly average vapor pressure (?) values and make into a raster stack
-for (i in 1:length(rastNames[str_detect(string = rastNames,
-                                        pattern = "vp_monavg_na_.....tif$")])){
-
-  name_i <- rastNames[str_detect(string = rastNames,
-                                 pattern = "vp_monavg_na_.....tif$")][i]
-  temp_rast <- rast(paste0("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/", name_i))
-  # get the data for the locations we want
-  temp_points <-
-    temp_rast %>%
-    terra::extract(points_sf)
-
-  # make column for year and change column names to month value only
-  temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
-  names(temp_points)[2:13] <- c("vp_Jan", "vp_Feb", "vp_March", "vp_April", "vp_May",
-                                "vp_June", "vp_July", "vp_Aug", "vp_Sept", "vp_Oct", "vp_Nov", "vp_Dec")
-  temp_points <- temp_points %>%
-    select(year, vp_Jan:vp_Dec) %>%
-    cbind(st_coordinates(points_sf)) %>%
-    rename(Long = X, Lat = Y)
-
-  if (i == 1 ){
-    vpPoints <- temp_points
-  } else {
-    vpPoints <- rbind(vpPoints, temp_points)
-  }
-}
+# # load monthly average vapor pressure (?) values and make into a raster stack
+# for (i in 1:length(rastNames[str_detect(string = rastNames,
+#                                         pattern = "vp_monavg_na_.....tif$")])){
+# 
+#   name_i <- rastNames[str_detect(string = rastNames,
+#                                  pattern = "vp_monavg_na_.....tif$")][i]
+#   temp_rast <- rast(paste0("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/", name_i))
+#   # get the data for the locations we want
+#   temp_points <-
+#     temp_rast %>%
+#     terra::extract(points_sf)
+# 
+#   # make column for year and change column names to month value only
+#   temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
+#   names(temp_points)[2:13] <- c("vp_Jan", "vp_Feb", "vp_March", "vp_April", "vp_May",
+#                                 "vp_June", "vp_July", "vp_Aug", "vp_Sept", "vp_Oct", "vp_Nov", "vp_Dec")
+#   temp_points <- temp_points %>%
+#     select(year, vp_Jan:vp_Dec) %>%
+#     cbind(st_coordinates(points_sf)) %>%
+#     rename(Long = X, Lat = Y)
+# 
+#   if (i == 1 ){
+#     vpPoints <- temp_points
+#   } else {
+#     vpPoints <- rbind(vpPoints, temp_points)
+#   }
+# }
 
 ## add all variables together (they are in the same order, so can cbind)
+# allMetDat <- tmaxPoints %>%
+#   cbind(tminPoints %>% select(-year, -Long, -Lat)) %>% 
+#   #cbind(vpPoints %>% select(-year, -Long, -Lat)) %>% 
+#   cbind(prcpPoints %>% select(-year, -Long, -Lat))
+tminPoints <- tminPoints %>% 
+  unique()
+tmaxPoints <- tmaxPoints %>% 
+  unique()
+prcpPoints <- prcpPoints %>% 
+  unique()
+
 allMetDat <- tmaxPoints %>%
-  cbind(tminPoints %>% select(-year, -Long, -Lat)) %>% 
-  cbind(vpPoints %>% select(-year, -Long, -Lat)) %>% 
-  cbind(prcpPoints %>% select(-year, -Long, -Lat))
+  left_join(tminPoints, by = c("year", "Long", "Lat")) %>% 
+  #cbind(vpPoints %>% select("year", "Long", "Lat")) %>% 
+  left_join(prcpPoints, by = c("year", "Long", "Lat"))
+
 
 # save data
-#write.csv(allMetDat, file = "./Data_raw/dayMet/sampledDataForAnalysis.csv", row.names = FALSE)
-allMetDat <- read.csv("./Data_raw/dayMet/sampledDataForAnalysis.csv")
+write.csv(allMetDat, file = "./Data_raw/dayMet/sampledDataForAnalysis.csv", row.names = FALSE)
+#allMetDat <- read.csv("./Data_raw/dayMet/sampledDataForAnalysis.csv")
+# 
+# dups <- duplicated(allMetDat[,c("Long", "Lat", "year")])
+# badClim <- allMetDat[dups,]
+# plot(badClim$Long, badClim$Lat)
 
 # get annual climate data -------------------------------------------------
 
@@ -309,44 +330,52 @@ for (i in 1:length(rastNames2[str_detect(string = rastNames2,
   }
 }
 
-# load annual vp ann avg values and make into a raster stack
-for (i in 1:length(rastNames2[str_detect(string = rastNames2,
-                                         pattern = "vp_annavg_na_.....tif$")])){
+# # load annual vp ann avg values and make into a raster stack
+# for (i in 1:length(rastNames2[str_detect(string = rastNames2,
+#                                          pattern = "vp_annavg_na_.....tif$")])){
+# 
+#   name_i <- rastNames2[str_detect(string = rastNames2,
+#                                   pattern = "vp_annavg_na_.....tif$")][i]
+#   temp_rast <- rast(paste0("./Data_raw/dayMet/yearly/", name_i))
+# 
+#   # get the data for the locations we want
+#   temp_points <-
+#     temp_rast %>%
+#     terra::extract(points_sf)
+# 
+#   # make column for year and change column names to month value only
+#   temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
+#   names(temp_points)[2] <- c("vp_annAvg")
+#   temp_points <- temp_points %>%
+#     select(year, vp_annAvg) %>%
+#     cbind(st_coordinates(points_sf)) %>%
+#     rename(Long = X, Lat = Y)
+# 
+#   if (i == 1 ){
+#     vpPoints_ann <- temp_points
+#   } else {
+#     vpPoints_ann <- rbind(vpPoints_ann, temp_points)
+#   }
+# }
 
-  name_i <- rastNames2[str_detect(string = rastNames2,
-                                  pattern = "vp_annavg_na_.....tif$")][i]
-  temp_rast <- rast(paste0("./Data_raw/dayMet/yearly/", name_i))
 
-  # get the data for the locations we want
-  temp_points <-
-    temp_rast %>%
-    terra::extract(points_sf)
-
-  # make column for year and change column names to month value only
-  temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
-  names(temp_points)[2] <- c("vp_annAvg")
-  temp_points <- temp_points %>%
-    select(year, vp_annAvg) %>%
-    cbind(st_coordinates(points_sf)) %>%
-    rename(Long = X, Lat = Y)
-
-  if (i == 1 ){
-    vpPoints_ann <- temp_points
-  } else {
-    vpPoints_ann <- rbind(vpPoints_ann, temp_points)
-  }
-}
-
+tminPoints_ann <- tminPoints_ann %>% 
+  unique()
+tmaxPoints_ann <- tmaxPoints_ann %>% 
+  unique()
+prcpPoints_ann <- prcpPoints_ann %>% 
+  unique()
 # join together
 annMetDat <- prcpPoints_ann %>%
   #left_join(swePoints_ann) %>%
-  cbind(tminPoints_ann %>% select(-year, -Long, -Lat)) %>%
-  cbind(tmaxPoints_ann %>% select(-year, -Long, -Lat)) %>%
-  cbind(vpPoints_ann %>% select(-year, -Long, -Lat))
+  left_join(tminPoints_ann, by = c("year", "Long", "Lat")) %>%
+  left_join(tmaxPoints_ann, by = c("year", "Long", "Lat"))# %>%
+  # left_join(vpPoints_ann %>% select(-year, -Long, -Lat))
 
 # save data
-#write.csv(annMetDat, file = "./Data_raw/dayMet/sampledDataForAnalysis_Annual.csv", row.names = FALSE)
-annMetDat <- read.csv("./Data_raw/dayMet/sampledDataForAnalysis_Annual.csv")
+write.csv(annMetDat, file = "./Data_raw/dayMet/sampledDataForAnalysis_Annual.csv", row.names = FALSE)
+#annMetDat <- read.csv("./Data_raw/dayMet/sampledDataForAnalysis_Annual.csv")
+
 
 # add annual data to the monthly data (will use later in processing)
 allMetDat2 <- allMetDat %>% 
@@ -360,33 +389,36 @@ allMetDat2 <- allMetDat2 %>%
 # calculating climate variables for models -------------------------------
 climVar <- allMetDat2 %>% 
   #slice(1:100) %>% 
-  mutate(totalAnnPrecip = rowSums(.[40:51]), # total annual precipitation
+  mutate(totalAnnPrecip = rowSums(.[c("prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April", "prcp_May", "prcp_June", "prcp_July", "prcp_Aug", "prcp_Sept", "prcp_Oct" ,"prcp_Nov", "prcp_Dec")]), # total annual precipitation
          #maxAnnSwe = rowSums(.[28:39]), # total annual swe
-         T_warmestMonth = pmap_dbl(.[2:13], max), # temperature of warmest month
-         T_coldestMonth = pmap_dbl(.[16:27], min), # temperature of coldest month
-         Tmin_annAvgOfMonthly = rowSums(.[16:27])/12,
-         Tmax_annAvgOfMonthly = rowSums(.[2:13])/12,
-         meanAnnVp = rowMeans(.[28:39]), # annual mean vapor pressure
-         precip_wettestMonth = pmap_dbl(.[40:51], max), # precip of wettest month
-         precip_driestMonth = pmap_dbl(.[40:51], min), # precip of driest month
-         precip_Seasonality = pmap_dbl(.[40:51],   # coefficient of variation (sd/mean) of precipitation
+         T_warmestMonth = pmap_dbl(.[c("tmax_Jan", "tmax_Feb", "tmax_March", "tmax_April", "tmax_May", "tmax_June", "tmax_July", "tmax_Aug", "tmax_Sept", "tmax_Oct",  "tmax_Nov",  "tmax_Dec")], max), # temperature of warmest month
+         T_coldestMonth = pmap_dbl(.[c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April", "tmin_May", "tmin_June", "tmin_July", "tmin_Aug", "tmin_Sept", "tmin_Oct",  "tmin_Nov",  "tmin_Dec")], min), # temperature of coldest month
+         Tmin_annAvgOfMonthly = rowSums(.[c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April", "tmin_May", "tmin_June", "tmin_July", "tmin_Aug", "tmin_Sept", "tmin_Oct",  "tmin_Nov",  "tmin_Dec")])/12,
+         Tmax_annAvgOfMonthly = rowSums(.[c("tmax_Jan", "tmax_Feb", "tmax_March", "tmax_April", "tmax_May", "tmax_June", "tmax_July", "tmax_Aug", "tmax_Sept", "tmax_Oct",  "tmax_Nov",  "tmax_Dec")])/12,
+         #meanAnnVp = rowMeans(.[28:39]), # annual mean vapor pressure
+         precip_wettestMonth = pmap_dbl(.[c("prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April", "prcp_May", "prcp_June", "prcp_July", "prcp_Aug", "prcp_Sept", "prcp_Oct" ,"prcp_Nov", "prcp_Dec")],
+                                        max), # precip of wettest month
+         precip_driestMonth = pmap_dbl(.[c("prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April", "prcp_May", "prcp_June", "prcp_July", "prcp_Aug", "prcp_Sept", "prcp_Oct" ,"prcp_Nov", "prcp_Dec")], 
+                                       min), # precip of driest month
+         precip_Seasonality = pmap_dbl(.[c("prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April", "prcp_May", "prcp_June", "prcp_July", "prcp_Aug", "prcp_Sept", "prcp_Oct" ,"prcp_Nov", "prcp_Dec")],   # coefficient of variation (sd/mean) of precipitation
                                        .f = function(prcp_Jan, prcp_Feb, prcp_March, prcp_April, prcp_May, prcp_June, prcp_July, prcp_Aug, prcp_Sept, prcp_Oct ,prcp_Nov, prcp_Dec, ...) 
                                        {temp <- c(prcp_Jan, prcp_Feb, prcp_March, prcp_April, prcp_May, prcp_June, prcp_July, prcp_Aug, prcp_Sept, prcp_Oct ,prcp_Nov, prcp_Dec)
                                        sd(temp)/mean(temp)
                                        }
          ),
-         PrecipTempCorr = pmap_dbl(.[c(2:13,40:51)], #correlation of monthly temp and precip
+         PrecipTempCorr = pmap_dbl(.[c("tmax_Jan", "tmax_Feb", "tmax_March", "tmax_April", "tmax_May", "tmax_June", "tmax_July", "tmax_Aug", "tmax_Sept", "tmax_Oct",  "tmax_Nov",  "tmax_Dec",
+                                       "prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April", "prcp_May", "prcp_June", "prcp_July", "prcp_Aug", "prcp_Sept", "prcp_Oct" ,"prcp_Nov", "prcp_Dec")], #correlation of monthly temp and precip
                                    .f = function(tmax_Jan, tmax_Feb, tmax_March, tmax_April, tmax_May, tmax_June, tmax_July, tmax_Aug, tmax_Sept, tmax_Oct,  tmax_Nov,  tmax_Dec,
                                                  prcp_Jan, prcp_Feb, prcp_March, prcp_April, prcp_May, prcp_June, prcp_July, prcp_Aug, prcp_Sept, prcp_Oct ,prcp_Nov, prcp_Dec, ...) {
                                      cor(y = c(tmax_Jan, tmax_Feb, tmax_March, tmax_April, tmax_May, tmax_June, tmax_July, tmax_Aug, tmax_Sept, tmax_Oct,  tmax_Nov,  tmax_Dec), 
                                          x = c(prcp_Jan, prcp_Feb, prcp_March, prcp_April, prcp_May, prcp_June, prcp_July, prcp_Aug, prcp_Sept, prcp_Oct ,prcp_Nov, prcp_Dec))
                                    }),
-         aboveFreezing_month = pmap_dbl(.[16:27], # month when temp gets above freezing (when tmin > 0 degrees C, so no freeze at night )
+         aboveFreezing_month = pmap_dbl(.[c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April", "tmin_May", "tmin_June", "tmin_July", "tmin_Aug", "tmin_Sept", "tmin_Oct",  "tmin_Nov",  "tmin_Dec")], # month when temp gets above freezing (when tmin > 0 degrees C, so no freeze at night )
                                         .f = function(tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec) {
                                           temp <- c(tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec)
                                           which(temp > 0)[1] # in degrees C
                                         }),
-         lastAboveFreezing_month = pmap_dbl(.[16:27], # month when temp gets above freezing (when tmin > 0 degrees C, so no freeze at night )
+         lastAboveFreezing_month = pmap_dbl(.[c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April", "tmin_May", "tmin_June", "tmin_July", "tmin_Aug", "tmin_Sept", "tmin_Oct",  "tmin_Nov",  "tmin_Dec")], # month when temp gets above freezing (when tmin > 0 degrees C, so no freeze at night )
                                         .f = function(tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec) {
                                           temp <- c(tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec)
                                           temp2 <- which(temp > 0) # in degrees C
@@ -397,7 +429,8 @@ climVar <- allMetDat2 %>%
                                             }
                                         }),
          
-         isothermality = pmap_dbl(.[c(2:13,16:27)], # isothermality
+         isothermality = pmap_dbl(.[c("tmax_Jan", "tmax_Feb", "tmax_March", "tmax_April", "tmax_May", "tmax_June", "tmax_July", "tmax_Aug", "tmax_Sept", "tmax_Oct",  "tmax_Nov",  "tmax_Dec",
+                                      "tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April", "tmin_May", "tmin_June", "tmin_July", "tmin_Aug", "tmin_Sept", "tmin_Oct",  "tmin_Nov",  "tmin_Dec")], # isothermality
                                   .f = function(tmax_Jan, tmax_Feb, tmax_March, tmax_April, tmax_May, tmax_June, tmax_July, tmax_Aug, tmax_Sept, tmax_Oct,  tmax_Nov,  tmax_Dec,
                                                 tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec, ...) {
                                     tmins <- c(tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec)
@@ -563,13 +596,13 @@ plot(climVar$tmax_annAvg, climVar$tmean)
 # climVar <- climVar %>% 
 #   mutate(tmean = (tmin_annAvg + tmax_annAvg)/2)
 
-rm(climVar2)
+rm(climVar2, tminPoints, tminPoints_ann, tmaxPoints, tmaxPoints_ann, prcpPoints, prcpPoints_ann)
 gc()
 
 # save for subsequent use
-#saveRDS(climVar, file = "./Data_raw/dayMet/climateValuesForAnalysis_monthly.rds")
-climVar <- readRDS(file="./Data_raw/dayMet/climateValuesForAnalysis_monthly.rds")
-  
+saveRDS(climVar, file = "./Data_raw/dayMet/climateValuesForAnalysis_monthly.rds")
+#climVar <- readRDS(file="./Data_raw/dayMet/climateValuesForAnalysis_monthly.rds")
+
 
 # calculate sliding window inter-annual climate means ----------------------
 
@@ -721,7 +754,8 @@ gc()
 
 # save intermediate data 
 saveRDS(test, "./Data_processed/CoverData/dayMet_intermediate/climVars_AnnualMeansAndLaggedValues.rds")
-test <- readRDS("./Data_processed/CoverData_raw/dayMet_intermediate/climVars_AnnualMeansAndLaggedValues.rds")
+test <- readRDS("./Data_processed/CoverData/dayMet_intermediate/climVars_AnnualMeansAndLaggedValues.rds")
+
 # for those years including and after 2010, use the averages over the previous
 # 30 years for climate. for those years before 2010, use the averages over any
 # previous years starting w/ 1980 -- we calculated this previously, but rename here for clarity
@@ -760,6 +794,7 @@ testNew <- readRDS("./Data_processed/CoverData/dayMet_intermediate/climVars_Annu
 
 rm(climVar)
 gc()
+
 
 #### calculate anomalies ####
 # i.e. how do the 10 yr. lagged values compare to the 30yr lagged values? 5 yr? previous yr? 

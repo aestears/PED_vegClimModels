@@ -284,6 +284,12 @@ hist(test)
 test2 <- dat_all$AngioTreeCover_prop + dat_all$ConifTreeCover_prop
 hist(test2)
 
+dat_all %>% 
+  filter(!is.na(TotalHerbaceousCover)) %>% 
+  ggplot() + 
+  facet_wrap(~Year) + 
+  geom_point(aes(Lon, Lat))
+
 ## save dataset for further analysis
 write.csv(dat_all, file = "./Data_processed/CoverData/ForAnalysis.csv", row.names = FALSE)
 #dat_all <- read.csv("./Data_processed/CoverData/DataForAnalysis.csv")
