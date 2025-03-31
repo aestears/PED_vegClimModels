@@ -20,6 +20,12 @@ vegDat_temp <- readRDS("./Data_processed/CoverData/DataForModels_withEcoregion.r
 vegDat <- vegDat_temp %>% 
   st_centroid()
 
+vegDat %>% 
+  ggplot() + 
+  facet_wrap(~Year) + 
+  geom_point(aes(x = Long, y = Lat))
+
+
 # read in soils data ------------------------------------------------------
 # this dataset is from Daniel Schlaepfer, who provided the following information:
 # They are based on SOLUS100 data by Travis Nauman et al.
@@ -147,7 +153,8 @@ if (sum(list.files("./Data_processed/") == "SoilsRaster.rds") == 0) {
 # sample raster to get values for the points in the cover dataset
 
 vegSoils_df <- soilRast %>% 
-  terra::extract(y = vegDat %>% dplyr::select(-x,-y), xy = TRUE, bind = TRUE) %>% 
+  terra::extract(y = vegDat #%>% dplyr::select(-x,-y)
+                 , xy = TRUE, bind = TRUE) %>% 
   as.data.frame()
 
 # calculate soils variables w/ cover data ---------------------------------
@@ -383,7 +390,7 @@ temp <- vegSoils_new %>%
 
 
 
-# save data  --------------------------------------------------------------
+
 # remove unnecessary soils variables 
   vegSoils_final <- vegSoils_new %>% 
     select(-c(clayPerc_2cm:y))
@@ -392,12 +399,50 @@ temp <- vegSoils_new %>%
   ## drop data points for which there are no climate variables (prior to 2000)
   vegSoils_final <- vegSoils_final %>% 
     filter(!is.na(durationFrostFreeDays_meanAnnAvg_3yrAnom))
+ 
   
-  saveRDS(vegSoils_final, 
+  # add back in CAM cover spatially averaged data from previous analysis -----------------------
+   CAMcoverDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_sf.rds") %>% 
+    st_drop_geometry() %>% 
+    st_as_sf(coords = c("Long.x", "Lat.x")) %>% 
+    st_set_crs(value = crs(vegDat)) %>% 
+    filter(!is.na(CAMCover)) 
+
+  vegSoils_final <- 
+    vegSoils_final %>% 
+    mutate(uniqueID = seq(1:nrow(.)))
+  
+  test <- vegSoils_final %>% 
+    #slice_sample(n = 1000) %>% 
+    st_as_sf(coords = c("Long", "Lat"), crs = st_crs(vegDat)) %>% 
+    #st_drop_geometry() %>% 
+    st_buffer(50) %>% 
+      sf::st_join(CAMcoverDat %>% select(CAMCover, Year.x, geometry) %>% st_buffer(100), by = c("Year" = "Year.x"))
+  
+  test <- test %>% 
+    filter(Year == Year.x)
+  uniqueID_dups <- duplicated(test$uniqueID)
+  test <- test[!uniqueID_dups,]
+  
+  newFinalDat <- vegSoils_final %>% 
+    dplyr::left_join(test %>% st_drop_geometry() %>% select(CAMCover, uniqueID), by = "uniqueID")
+  
+  
+  # save data  --------------------------------------------------------------
+
+  saveRDS(newFinalDat, 
           "./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
   #vegSoils_final <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
 
   
- plot(vegSoils_final$tmean, 
-      vegSoils_final$tmin_annAvg)
+ plot(newFinalDat$tmean, 
+      newFinalDat$tmin_annAvg)
+ 
+ newFinalDat %>% 
+   filter(!is.na(TotalHerbaceousCover)) %>% 
+   ggplot() + 
+   facet_wrap(~Year) + 
+   geom_point(aes(x = Long, y = Lat))
+ 
+   
   

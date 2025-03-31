@@ -14,7 +14,14 @@ library(terra)
 # load data ---------------------------------------------------------------
 
 # data ready for model fitting
-modDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_sf.rds")
+#modDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_sf.rds")
+modDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_sf.rds")
+modDat %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(TotalHerbaceousCover)) %>% 
+  ggplot() + 
+  facet_wrap(~Year) + 
+  geom_point(aes(Long, Lat))
 # get level 1 ecoregions shapefiles
 #regions <- sf::st_read(dsn = "./Data_raw/Level1Ecoregions/", layer = "NA_CEC_Eco_Level1")
 # get level 1 and 2 ecoregion shapefiles
@@ -32,22 +39,30 @@ crs(test_rast) == crs(regions_2)
 
 # transform modDat to sf to later use st_join
 modDat_2 <- st_as_sf(modDat, coords = c("Lon", "Lat"))
-modDat_2 <- st_set_crs(modDat_2, value = st_crs(test_rast))
+modDat_2 <- st_transform(modDat_2, crs = st_crs(test_rast))
 
 crs(regions_2) == crs(modDat_2)
 
+#mapview(regions_2 %>% slice_sample(n = 10000)) + mapview(modDat_2 %>% slice_sample(n = 10000))
+
+
+## drop those values that don't have any climate data (pre-1980)
+modDat_2a <- modDat_2[!is.na(modDat_2$prcp_annTotal),]
+
 # match the ecoregion to point data ---------------------------------------
-modDat_3 <- sf::st_join(modDat_2, regions_2)
+modDat_3 <- sf::st_join(modDat_2a, regions_2)
+badRows <- (duplicated(modDat_3[,1:105]))
+modDat_3_noDups <- modDat_3[!badRows,]
 
 # missing for places right on the coast... but not a big deal to not have those
-plot(modDat_3[is.na(modDat_3$NA_L1CODE), "geometry"])
+
 # group into coarser ecoregions -------------------------------------------
 # make a lookup table
 # (eastern forest) put eastern temperate forests, tropical wet forests and northern forests together
 # (dry shrub and grass) put great plains, southern semiarid highlands, Mediterranean California and north american deserts together 
 # (western forest) put northwestern forested mountains, marine west coast forests together, and temperate sierras together
 
-ecoReg_lu <- data.frame("NA_L1NAME" = sort(unique(modDat_3$NA_L1NAME)), 
+ecoReg_lu <- data.frame("NA_L1NAME" = sort(unique(modDat_3_noDups$NA_L1NAME)), 
                         "newRegion" = c("eastForest", "dryShrubGrass", "westForest",
                                         "dryShrubGrass", "dryShrubGrass", "eastForest",
                                         "westForest", "dryShrubGrass", "westForest", 
@@ -55,13 +70,18 @@ ecoReg_lu <- data.frame("NA_L1NAME" = sort(unique(modDat_3$NA_L1NAME)),
                                         ))
 
 # add to main data.frame 
-newDat <- modDat_3 %>% 
+newDat <- modDat_3_noDups %>% 
   left_join(ecoReg_lu) %>% 
   mutate(newRegion = as.factor(newRegion)) 
-
-ggplot(newDat[1:100000,]) + 
-  geom_sf(aes(fill = newRegion))
+# 
+# ggplot(newDat[1:100000,]) + 
+#   geom_sf(aes(fill = newRegion))
 
 # Save Data for further analysis ------------------------------------------
 saveRDS(newDat, "./Data_processed/CoverData/DataForModels_withEcoregion.rds")
 
+# newDat %>% 
+#   st_drop_geometry() %>% 
+#   ggplot() + 
+#   facet_wrap(~Year) +
+#   geom_point(aes(x = Long, y = Lat))

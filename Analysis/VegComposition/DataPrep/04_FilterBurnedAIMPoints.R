@@ -126,6 +126,9 @@ cwf_conus <- cwf_new %>%
 plotDat <- st_read("./Data_processed/CoverData/DataForAnalysisPoints/", "vegCompPoints") %>% 
   st_transform(st_crs(mtbs))
 
+ggplot(plotDat) + 
+  facet_wrap(~Source) + 
+  geom_sf(aes(col = Source))
 
 # Identify overlaps between fire boundaries and plots --------------------------
 rm(us_states, CONUS_states, cwf_layers, cwf_multi, #cwf_multi_fixed, 
@@ -245,5 +248,10 @@ plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$CnfTrCv <
 plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$ShrbCvr <- NA
 
 plot(plotDat_noFireAll$Lon, plotDat_noFireAll$Lat)
+ggplot(plotDat_noFireAll) + 
+  facet_wrap(~Source) + 
+  geom_sf(aes(col = Source))
 
 saveRDS(plotDat_noFireAll, file = "./Data_processed/CoverData/dataForAnalysis_fireRemoved.rds")
+
+  

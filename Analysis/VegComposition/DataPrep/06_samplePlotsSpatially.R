@@ -80,6 +80,13 @@ dat2  <- dat2 %>%
 
 dat2 <- ungroup(dat2)
 
+# dat2 %>% 
+#   st_drop_geometry()  %>% 
+#   filter(!is.na(TotalHerbaceousCover)) %>% 
+#   ggplot() + 
+#   facet_wrap(~Year) + 
+#   geom_point(aes(x = Lon, y = Lat))
+
 # rasterize values --------------------------------------------------------
 # get the names of the columns w/ data we want to rasterize
 layerNames <- c("ShrubCover", "TotalHerbaceousCover",  "TotalTreeCover", "C3GramCover_prop", "C4GramCover_prop",
@@ -87,6 +94,12 @@ layerNames <- c("ShrubCover", "TotalHerbaceousCover",  "TotalTreeCover", "C3Gram
                   "BareGroundCover")
 
 years <- sort(unique(dat2$Year))
+
+dat2 %>% 
+  filter(!is.na(TotalHerbaceousCover)) %>% 
+  ggplot() + 
+  facet_wrap(~Year) + 
+  geom_point(aes(Lon, Lat))
 
 # rasterize and average cover values
 test2_a <- lapply(layerNames[1:2], FUN = function(x) {
@@ -415,33 +428,67 @@ climDat <- readRDS( "./Data_processed/CoverData/dayMetClimateValuesForAnalysis_f
 
 climDat$locID <- paste0(climDat$Lat, "_", climDat$Long)
 climDat$uniqueID <- c(1:nrow(climDat))
-
+# 
+# allDups <- duplicated(climDat)
+# dups <- duplicated(climDat[,c("locID", "year")])
+# badClim <- climDat[dups,]
+# plot(badClim$Long, badClim$Lat)
 # climDat  <- climDat %>%
 #   left_join(uniqueLocs, by = c("Lat", "Long"))
 
 # make points for "locID" in a single year into a raster
 climSF <- climDat %>% 
   dplyr::filter(year == as.integer(2011)) %>% 
-  sf::st_as_sf(coords = c("Long", "Lat"), crs = st_crs(test)) %>% 
+  sf::st_as_sf(coords = c("Long", "Lat"), crs = st_crs(test)) %>%
+  sf::st_transform(crs = crs(test)) %>% 
   select(locID)
 
 
 test5 <- readRDS("./Data_processed/CoverData/spatiallyAverageData_intermediate_test5.rds")
 
-#allDat_avg <- 
-  test7 <- test5 %>% 
+# test5 %>% 
+#   st_drop_geometry()  %>% 
+#   filter(!is.na(TotalHerbaceousCover)) %>% 
+#   ggplot() + 
+#   facet_wrap(~Year) + 
+#   geom_point(aes(x = x, y = y))
+
+#Add in the 'locID' column from the climSF data.frame
+test7 <- test5 %>%
+  #slice_sample(n = 1000) %>% 
   rename(Lon = x, Lat = y) %>% 
-  sf::st_as_sf(coords = c("Lon", "Lat"), crs = st_crs(test)) %>%
+  sf::st_as_sf(coords = c("Lon", "Lat"), crs = st_crs(dat2)) %>%
+  st_transform(crs(test)) %>% 
+  mutate(x = st_coordinates(.)[,1],
+         y = st_coordinates(.)[,2]) %>% 
   st_buffer(400) %>% 
-  sf::st_join(climSF, join = st_nearest_feature)
-  
-# add back in all climate data based on the "locID"
+  sf::st_join(climSFa, join = st_nearest_feature)
+
+# test8 <- test7 %>%
+#   filter(!is.na(TotalHerbaceousCover)) %>%
+#   cbind(st_coordinates(st_centroid(test7 %>%
+#                                      filter(!is.na(TotalHerbaceousCover))))) %>%
+#   st_drop_geometry() %>%
+#   ggplot() +
+#   geom_point(aes(X, Y))
+
+
+  # add back in all climate data based on the "locID"
 allDat_avg <- test7 %>% 
   left_join(climDat, by = c("locID", "Year" = "year"))
 
 ## save the data
 saveRDS(allDat_avg, "./Data_processed/CoverData/DataForModels_spatiallyAveraged_sf.rds")
 saveRDS(st_drop_geometry(allDat_avg), "./Data_processed/CoverData/DataForModels_spatiallyAveraged_NoSf.rds")
+
+allDat_avg %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(TotalHerbaceousCover)) %>% 
+  ggplot() +
+  facet_wrap(~Year) +
+  geom_point(aes(x = Long, y = Lat))
+  #geom_point(aes(x = Long, y = Lat))
+
 # allDat_avg <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_NoSf.rds")
 # plot(climDat$tmean, climDat$tmin_annAvg)
 # Testing -----------------------------------------------------------------
