@@ -146,4 +146,3 @@ awc_rast <- soilsFigDat %>%
     filename = "./Figures/soilsVariableFigures.pdf", 
     width = 11, height = 12)
 
-d

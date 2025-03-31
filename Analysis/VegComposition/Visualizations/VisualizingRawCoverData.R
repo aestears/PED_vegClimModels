@@ -1368,7 +1368,7 @@ coniferCoverProp_rast <- coverDatAvg %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "NeedleLeavedTreeCover_prop", 
+                   field = "ConifTreeCover_prop", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-128, -65, 23, 51))
 (coniferCoverProp_plot_AVG <- ggplot() + 
@@ -1386,7 +1386,7 @@ decidCoverProp_rast <- coverDatAvg %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "BroadleavedTreeCover_prop", 
+                   field = "AngioTreeCover_prop", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-128, -65, 23, 51))
 (decidCoverProp_plot_AVG <- ggplot() + 
@@ -1420,7 +1420,7 @@ C3CoverProp_rast <- coverDatAvg %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "C3Cover_prop", 
+                   field = "C3GramCover_prop", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-128, -65, 23, 51))
 (C3CoverProp_prop_AVG <- ggplot() + 
@@ -1438,7 +1438,7 @@ C4CoverProp_rast <- coverDatAvg %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "C4Cover_prop", 
+                   field = "C4GramCover_prop", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-128, -65, 23, 51))
 (C4CoverProp_prop_AVG <- ggplot() + 

@@ -8,7 +8,7 @@ output:
     df_print: paged
     code_folding: hide
 params:
-  run: false
+  run: true
   test_run: false
   save_figs: false
   ecoregion: shrubGrass
@@ -85,7 +85,7 @@ library(glmnet)
 Data compiled in the `prepDataForModels.R` script
 
 ```{r}
-here::i_am("Analysis/VegComposition/ModelFitting/01_PredictorVarSelection.Rmd")
+here::i_am("Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd")
 modDat <- readRDS( here("Data_processed", "CoverData", "DataForModels_spatiallyAveraged_withSoils_noSf.rds"))
 ## there are some values of the annual wet degree days 5th percentile that have -Inf?? change to lowest value for now? 
 modDat[is.infinite(modDat$annWetDegDays_5percentile_3yrAnom), "annWetDegDays_5percentile_3yrAnom"] <- -47.8
@@ -258,7 +258,7 @@ if (ecoregion == "shrubGrass") {
 
 # subset the data to only include these predictors, and remove any remaining NAs 
 modDat_1 <- modDat_1 %>% 
-  select(prednames, response, newRegion, Year.x, Long.x, Lat.x, NA_L1NAME, NA_L2NAME) %>% 
+  select(prednames, response, newRegion, Year, Long, Lat, NA_L1NAME, NA_L2NAME) %>% 
   drop_na()
 
 names(prednames) <- prednames
@@ -375,6 +375,35 @@ df_sample_plots <-  modDat_1  %>%
 
 ```
 
+Standardize the predictor variables for the model-fitting process
+```{r scaling predictors, fig.height=7, fig.width=10}
+modDat_1_s <- modDat_1 %>% 
+  mutate(across(all_of(prednames), base::scale, .names = "{.col}_s"))
+
+scaleFigDat_1 <- modDat_1_s %>% 
+  select(c(Long, Lat, Year, prednames)) %>% 
+  pivot_longer(cols = all_of(names(prednames)), 
+               names_to = "predNames", 
+               values_to = "predValues_unScaled")
+scaleFigDat_2 <- modDat_1_s %>% 
+  select(c(Long, Lat, Year,paste0(prednames, "_s"))) %>% 
+  pivot_longer(cols = all_of(paste0(prednames, "_s")), 
+               names_to = "predNames", 
+               values_to = "predValues_scaled", 
+               names_sep = ) %>% 
+  mutate(predNames = str_replace(predNames, pattern = "_s$", replacement = ""))
+
+scaleFigDat_3 <- scaleFigDat_1 %>% 
+  left_join(scaleFigDat_2)
+
+ggplot(scaleFigDat_3) + 
+  facet_wrap(~predNames, scales = "free") +
+  geom_histogram(aes(predValues_unScaled), fill = "lightgrey", col = "darkgrey") + 
+  geom_histogram(aes(predValues_scaled), fill = "lightblue", col = "blue") +
+  xlab ("predictor variable values") + 
+  ggtitle("Comparing the distribution of unscaled (grey) to scaled (blue) predictor variables")
+  
+```
 
 # Model Fitting
 
@@ -402,7 +431,7 @@ kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ## visualize the variation between groups across environmental space
 ## make data into spatial format
 modDat_1_sf <- modDat_1 %>% 
-  st_as_sf(coords = c("Long.x", "Lat.x"), crs = st_crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"))
+  st_as_sf(coords = c("Long", "Lat"), crs = st_crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"))
 
 us_states <- suppressMessages(tigris::states())
 
@@ -424,7 +453,7 @@ map1 <- ggplot() +
   geom_sf(data=cropped_states,fill='white') +
   geom_sf(data=modDat_1_sf,aes(fill=as.factor(NA_L2NAME)),linewidth=0.5,alpha=0.5) +
   geom_point(data=modDat_1,alpha=0.5, 
-             aes(x = Long.x, y = Lat.x, color=as.factor(modDat_1$NA_L2NAME))) +
+             aes(x = Long, y = Lat, color=as.factor(NA_L2NAME))) +
   #scale_fill_okabeito() +
   #scale_color_okabeito() +
  # theme_default() +
@@ -497,7 +526,8 @@ Fit a global model with all of the data
   int_string <-str_flatten(c(combos$interactions, combos_2$interactions), collapse = " + ")
   
   # make text string of transformations (log, squared)
-  transform_string <- str_flatten(c(#paste0("I(log(",prednames_clim,"))"), 
+  transform_string <- str_flatten(c(# add square root term 
+                                    #paste0("I(log(",prednames_clim,"))"), 
                                     #paste0("I(log(",prednames_weath,"))"),
                                     #paste0("I(log(",prednames_soils,"))"),
                                     paste0("I(",prednames_clim,"^2)"), 
@@ -516,22 +546,20 @@ Fit a global model with all of the data
   f <- as.formula(modWithInteractions)
   
   # transform dataframe to model matrix
-  X <- model.matrix(f, modDat_1)
+  model.frame(formula = f, data = modDat_1_s)
+  X <- model.matrix(terms(f), modDat_1_s)
   # get response variable
-  y <- as.matrix(modDat_1[,response])
+  y <- as.matrix(modDat_1_s[,response])
   
   # split into training and test sets
   # hold out several years ()
-  test_eco <- unique(modDat_1$NA_L2NAME)[7]
-  
+  # test_eco <- unique(modDat_1_s$NA_L2NAME)[7]
+  # 
   # get the ecoregions for training lambda
-  train_eco <- modDat_1$NA_L2NAME#[train]
+  train_eco <- modDat_1_s$NA_L2NAME#[train]
   
   # Fit model -----------------------------------------------
-  
-  # penalty values
-  lambdas <- 10^seq(0 ,-7, length.out = 200)  # sequence of penalties to test
-  
+
   # # don't penalize previous year's abundance or meadow ID
   # pen_facts <- rep(1, times = ncol(X))
   # logNtId <- which(colnames(X) == "logNt")
@@ -541,23 +569,25 @@ Fit a global model with all of the data
   # specify leave-one-year-out cross-validation
   my_folds <- as.numeric(as.factor(train_eco))
  
+  #thresh <- 1e-15
+  
   if (run == TRUE) {
     fit <- cv.glmnet(
     x = X[,2:ncol(X)], 
     y = y, 
-    
     family = stats::Gamma(link = "log"),
     alpha = 1,  # 0 == ridge regression, 1 == lasso, 0.5 ~~ elastic net
     lambda = lambdas, 
     type.measure="mse",
     #penalty.factor = pen_facts,
     foldid = my_folds,
-    standardize = TRUE ## scales variables prior to the model sequence... coefficients are always returned on the original scale
+    #thresh = thresh,
+    standardize = FALSE ## scales variables prior to the model sequence... coefficients are always returned on the original scale
     )
-    base::saveRDS(fit, paste0("../ModelFitting/models/", response, "_globalLASSOmod_",ecoregion, ".rds"))
+    base::saveRDS(fit, paste0("../ModelFitting/models/", response, "_globalLASSOmod_gammaLogLink_",ecoregion, ".rds"))
   
   } else {
-    fit <- readRDS(paste0("../ModelFitting/models/", response, "_globalLASSOmod_",ecoregion, ".rds"))
+    fit <- readRDS(paste0("../ModelFitting/models/", response, "_globalLASSOmod_gammaLogLink_",ecoregion, ".rds"))
   }
   
   
@@ -565,14 +595,15 @@ Fit a global model with all of the data
   best_lambda <- fit$lambda.min
   print(fit)
   # look at CV score vs penalty plot
-  # plot(log(fit$lambda),fit$cvm,main= paste0("comparing cross-validation score against log(lambda) \n best log(lambda) = ", round(log(best_lambda),3)))
-  # 
-  # ## get the coefficients
-  # glmnet:::coef.cv.glmnet(fit, s = "lambda.min")
-  #  
+  plot(log(fit$lambda),fit$cvm,main= paste0("comparing cross-validation score against log(lambda) \n best log(lambda) = ", round(log(best_lambda),3)))
+
+  ## get the coefficients
+  glmnet:::coef.cv.glmnet(fit, s = best_lambda #"lambda.min"
+                          )
+
   ## predict on the test data
   # lasso model predictions with the optimal lambda
-  optimal_pred <-  glmnet:::predict.cv.glmnet(fit,newx=X,s="lambda.min", type = "response")
+  optimal_pred <-  glmnet:::predict.cv.glmnet(fit, newx=X[,2:ncol(X)], s= best_lambda, type = "response")
   
     null_fit <- glm(data = as.data.frame(X[,prednames]), formula = y ~ 1, family = stats::Gamma(link = "log"))
   null_pred <- predict(null_fit, newdata = as.data.frame(X), type = "response"
@@ -613,7 +644,7 @@ legend(x = 19, y = 150, legend = c("Obs. values", "Preds - best mod.", "Preds - 
 The internal cross-validation process to fit the global LASSO model identified an optimal lambda value (regularization parameter) of `r{best_lambda}`. The following coefficients were kept in the model: 
 ```{r coefficients in the global model}
 # the coefficient matrix from the 'best model' -- find and print those coefficients that aren't 0 in a table
-mat <- as.matrix(coef(fit)) 
+mat <- as.matrix(coef(fit, s = best_lambda)) 
 mat2 <- mat[mat[,1] != 0,]
 # the coefficient matrix from the 'best lambda model' -- find and print those coefficients that aren't 0 in a table
 #mat3 <- as.matrix(coef(fit_bestLambda)) 
@@ -717,7 +748,7 @@ predict_by_response <- function(mod, df) {
   return(df_out)
 }
 
-pred_glm1 <- predict_by_response(fit, X)
+pred_glm1 <- predict_by_response(fit, X[,2:ncol(X)])
 
 # add back in true y values
 pred_glm1 <- pred_glm1 %>% 
@@ -727,7 +758,7 @@ colnames(pred_glm1)[which(colnames(pred_glm1) == "y")] <- paste(response)
 
 # add back in lat/long data 
 pred_glm1 <- pred_glm1 %>% 
-  cbind(modDat_1[,c("Long.x", "Lat.x", "Year.x")])
+  cbind(modDat_1[,c("Long", "Lat", "Year")])
 
 pred_glm1$resid <- pred_glm1[,response] - pred_glm1[,paste0(response, "_pred")]
 pred_glm1$extremeResid <- NA
@@ -758,7 +789,7 @@ test_rast <-  rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d
 plotObs <- pred_glm1 %>% 
          drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("Long.x", "Lat.x")) %>% 
+  terra::vect(geom = c("Long", "Lat")) %>% 
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = response, 
@@ -786,7 +817,7 @@ Predictions across the temporal range of the dataset
 plotPred <- pred_glm1 %>% 
          drop_na(paste0(response,"_pred")) %>% 
   #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("Long.x", "Lat.x")) %>% 
+  terra::vect(geom = c("Long", "Lat")) %>% 
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = paste0(response,"_pred"), 
@@ -797,7 +828,7 @@ plotPred <- pred_glm1 %>%
 # get the point location of those predictions that are > 100
 highPred_points <- pred_glm1 %>% 
   filter(.[[paste0(response,"_pred")]] > 100) %>% 
-  terra::vect(geom = c("Long.x", "Lat.x")) %>% 
+  terra::vect(geom = c("Long", "Lat")) %>% 
   terra::set.crs(crs(test_rast)) 
 
 # make figures
@@ -815,12 +846,12 @@ labs(title = paste0("Predictions from the fitted model of ",s, " in the ",ecoreg
 ```
 
 Residuals across the entire temporal extent of the dataset
-```{r Residual maps2, fig.height = 7, fig.width = 9, }
+```{r Residual maps2, fig.height = 12, fig.width = 9, warning = FALSE }
 # rasterize data
 plotResid_rast <- pred_glm1 %>% 
          drop_na(resid) %>% 
   #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("Long.x", "Lat.x")) %>% 
+  terra::vect(geom = c("Long", "Lat")) %>% 
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "resid", 
@@ -829,7 +860,7 @@ plotResid_rast <- pred_glm1 %>%
   terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
 
 # make figures
-ggplot() +
+map <- ggplot() +
 geom_spatraster(data = plotResid_rast) + 
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)),fill=NA ) +
 labs(title = paste0("Resids. (obs. - pred.) from Grass/shrub ecoregion-wide model of ",s),
@@ -837,8 +868,15 @@ labs(title = paste0("Resids. (obs. - pred.) from Grass/shrub ecoregion-wide mode
   scale_fill_gradient2(low = "red",
                        mid = "white" ,
                        high = "blue" , 
-                       midpoint = 0,   na.value = "white",
-                       limits = c(-100,100))
+                       midpoint = 0,   na.value = "white"#,
+                       #limits = c(-100,100)
+                       )
+hist <- ggplot(pred_glm1) + 
+  geom_histogram(aes(resid), fill = "lightgrey", col = "darkgrey") + 
+  geom_text(aes(x = min(resid)*.9, y = 1500, label = paste0("min = ", round(min(resid),2)))) +
+  geom_text(aes(x = max(resid)*.9, y = 1500, label = paste0("max = ", round(max(resid),2))))
+
+ggarrange(map, hist, heights = c(3,1), ncol = 1)
 
 ```
 
@@ -854,6 +892,8 @@ var_prop_pred <- paste0(response, "_pred")
 response_vars <- c(response, var_prop_pred)
 
 prednames_fig <- paste(str_split(globModTerms$Coefficient_Name, ":", simplify = TRUE)) 
+prednames_fig <- str_replace(prednames_fig, "I\\(", "")
+prednames_fig <- str_replace(prednames_fig, "\\^2\\)", "")
 prednames_fig <- unique(prednames_fig[prednames_fig>0])
 pred_glm1_deciles <- predvars2deciles(pred_glm1,
                                       response_vars = response_vars,
@@ -866,7 +906,7 @@ Here is a quick version of LOESS curves fit to raw data (to double-check the qua
 ```{r, fig.height= 12, fig.width = 12}
 
 pred_glm1 %>%
-  select(prednames_fig, response_vars) %>%
+  select(all_of(c(prednames_fig, response_vars))) %>%
   pivot_longer(cols = prednames_fig)  %>%
   ggplot() +
   facet_wrap(~name, scales = "free") +
@@ -879,7 +919,7 @@ pred_glm1 %>%
 
 Below are the actual quantile plots 
 
-```{r Percentile_plot, fig.height= 12, fig.width = 12}
+```{r Percentile_plot, fig.height= 12, fig.width = 12, warning=FALSE}
 # publication quality version
 g3 <- decile_dotplot_pq(pred_glm1_deciles, response = response) + ggtitle("Decile Plot")
 
@@ -917,7 +957,7 @@ but only based on data that falls into the upper and lower two deciles of
 each predictor variable. 
 
 
-```{r glm_deciles_filtered, fig.height= 14, fig.width = 14, message = FALSE}
+```{r glm_deciles_filtered, fig.height= 18, fig.width = 18, message = FALSE}
 
 pred_glm1_deciles_filt <- predvars2deciles( pred_glm1, 
                          response_vars = response_vars,
@@ -934,7 +974,7 @@ decile_dotplot_filtered_pq(pred_glm1_deciles_filt, xvars = prednames_fig)
 
 Filtered quantile figure with middle 2 deciles also shown
 
-```{r fig.height = 14, fig.width = 14, eval = TRUE}
+```{r fig.height = 18, fig.width = 18, eval = TRUE}
 pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1, 
                          response_vars = response_vars,
                          pred_vars = prednames_fig,
@@ -956,104 +996,111 @@ dev.off()
 
 ## Use terms from global model to re-fit and predict on different held out regions (coming later...)
 ```{r eval = FALSE, cross-validation }
-# ## code from Tredennick et al. 2020
-# # try each separate level II ecoregion as a test set
-# # make a list to hold output data 
-# outList <- vector(mode = "list", length = length(sort(unique(modDat_1$NA_L2NAME))))
-# # obs_pred <- data.frame(ecoregion = character(),obs = numeric(),
-# #                        pred_opt = numeric(), pred_null = numeric()#,
-# #                        #pred_nopenalty = numeric()
-# #                        )
-# 
-# ## get the model specification from the global model 
-# mat <- as.matrix(coef(fit)) 
-# mat2 <- mat[mat[,1] != 0,]
-# 
-# f <- as.formula(paste0(response, " ~ ", paste0(names(mat2)[2:length(names(mat2))], collapse = " + ")))
-# 
-# X_cv <- model.matrix(object = f, data = modDat_1)
-# # get response variable
-# y_cv <- as.matrix(modDat_1[,response])
-#   
-# 
-#   # now, loop through so with each iteration, a different ecoregion is held out
-#  for(i_eco in sort(unique(modDat_1$NA_L2NAME))){
-#   
-#   # split into training and test sets
-#   test_eco <- i_eco
-#   
-#   # identify the rowID of observations to be in the training and test datasets
-#   train <- which(modDat_1$NA_L2NAME!=test_eco) # data for all ecoregions that aren't 'i_eco'
-#   test <- which(modDat_1$NA_L2NAME==test_eco) # data for the ecoregion that is 'i_eco'
-#   
-#   trainDat_all <- modDat_1[train,]
-#   testDat_all <- modDat_1[test,]
-#   
-#   # get the model matrices for input and response variables
-#   X_train <- as.matrix(X_cv[train,])
-#   X_test <- as.matrix(X_cv[test,])
-#   
-#   y_train <- modDat_1[train,response]
-#   y_test <- modDat_1[test,response]
-#   
-#   train_eco <- modDat_1$NA_L2NAME[train]
-#   
-#   # Fit model using glm-----------------------------------------------
-# # 
-# #   # specify leave-one-year-out cross-validation
-# #   my_folds <- as.numeric(as.factor(train_eco))
-# #   
-#   # fit_i <- cv.glmnet(
-#   #   x = X_train[,2:ncol(X_train)], 
-#   #   y = y_train, 
-#   #   #family = gaussian,
-#   #   family = stats::Gamma(link = "log"),
-#   #   alpha = 1,  # 0 == ridge regression, 1 == lasso, 0.5 ~~ elastic net
-#   #   lambda = lambdas, 
-#   #   type.measure="mse",
-#   #   #penalty.factor = pen_facts,
-#   #   foldid = my_folds,
-#   #   standardize = TRUE
-#   # )
-#   
-#   ## just try a regular glm w/ the components from the global model
-#   fit_i <- glm(data = trainDat_all, formula = f, family = stats::Gamma(link = "log"))
-# 
-#     coef(fit_i)
-# 
-#   # lasso model predictions with the optimal lambda
-#   optimal_pred <- predict(fit_i, newdata= testDat_all, scale = "response"
-#                           )
-#   # null model and predictions
-#   # the null model is predictions w/ the global model 
-#   #null_fit <- glm(data = as.data.frame(X_train), formula = y_train ~ 1, family = stats::Gamma(link = "log"))
-#   
-#   null_pred <- glmnet:::predict.cv.glmnet(fit, newx = as.matrix(X[test,]), scale = "response", s=min(fit$lambda))
-# 
-#   # save data
-#   tmp <- data.frame(ecoRegion_holdout = rep(test_eco,length(y_test)),obs=y_test,
-#                     pred_opt=optimal_pred, pred_null=null_pred#,
-#                     #pred_nopenalty=nopen_pred
-#                     ) %>% 
-#     cbind(testDat_all)
-#   # put output into a list 
-#   tmpList <- list("testRegion" = i_eco,
-#     "modelObject" = fit_i, 
-#        "modelPredictions" = tmp)
-#   
-#   # save model outputs
-#   outList[[which(sort(unique(modDat_1$NA_L2NAME)) == i_eco)]] <- tmpList
-#   # save one example of model fits
-#   # if(i_eco==sort(unique(modDat_1$NA_L2NAME))[1]){
-#   #   # save model object
-#   #   saveRDS(fit,file="./ModelResults/glmnet_fit.RDS")
-#   #   
-#   #   #saveRDS(nopen,file="./ModelResults/nopenalty_fit.RDS")
-#   # }
-#  }
-#   
-# # 
-# # # calculate correlations between null and optimal model 
+## code from Tredennick et al. 2020
+# try each separate level II ecoregion as a test set
+# make a list to hold output data
+outList <- vector(mode = "list", length = length(sort(unique(modDat_1$NA_L2NAME))))
+# obs_pred <- data.frame(ecoregion = character(),obs = numeric(),
+#                        pred_opt = numeric(), pred_null = numeric()#,
+#                        #pred_nopenalty = numeric()
+#                        )
+
+## get the model specification from the global model
+mat <- as.matrix(coef(fit))
+mat2 <- mat[mat[,1] != 0,]
+
+f <- as.formula(paste0(response, " ~ ", paste0(names(mat2)[2:length(names(mat2))], collapse = " + ")))
+
+X_cv <- model.matrix(object = f, data = modDat_1_s)
+# get response variable
+y_cv <- as.matrix(modDat_1_s[,response])
+
+
+  # now, loop through so with each iteration, a different ecoregion is held out
+ for(i_eco in sort(unique(modDat_1_s$NA_L2NAME))){
+
+  # split into training and test sets
+  test_eco <- i_eco
+  print(test_eco)
+  # identify the rowID of observations to be in the training and test datasets
+  train <- which(modDat_1_s$NA_L2NAME!=test_eco) # data for all ecoregions that aren't 'i_eco'
+  test <- which(modDat_1_s$NA_L2NAME==test_eco) # data for the ecoregion that is 'i_eco'
+
+  trainDat_all <- modDat_1_s[train,]
+  testDat_all <- modDat_1_s[test,]
+
+  # get the model matrices for input and response variables for cross validation model specification
+  X_train <- as.matrix(X_cv[train,])
+  X_test <- as.matrix(X_cv[test,])
+
+  y_train <- modDat_1_s[train,response]
+  y_test <- modDat_1_s[test,response]
+  
+  # get the model matrices for input and response variables for original model specification
+  X_train_glob <- as.matrix(X[train,])
+  X_test_glob <- as.matrix(X[test,])
+
+  y_train_glob <- modDat_1_s[train,response]
+  y_test_glob <- modDat_1_s[test,response]
+
+  train_eco <- modDat_1_s$NA_L2NAME[train]
+
+  # Fit model using glm-----------------------------------------------
+#
+#   # specify leave-one-year-out cross-validation
+#   my_folds <- as.numeric(as.factor(train_eco))
+#
+  # fit_i <- cv.glmnet(
+  #   x = X_train[,2:ncol(X_train)],
+  #   y = y_train,
+  #   #family = gaussian,
+  #   family = stats::Gamma(link = "log"),
+  #   alpha = 1,  # 0 == ridge regression, 1 == lasso, 0.5 ~~ elastic net
+  #   lambda = lambdas,
+  #   type.measure="mse",
+  #   #penalty.factor = pen_facts,
+  #   foldid = my_folds,
+  #   standardize = TRUE
+  # )
+
+  ## just try a regular glm w/ the components from the global model
+  fit_i <- glm(data = trainDat_all, formula = f, 
+               family =  stats::Gamma(link = "log"))
+
+    coef(fit_i)
+    
+  # lasso model predictions with the optimal lambda
+  optimal_pred <- predict(fit_i, newdata= testDat_all, scale = "response"
+                          )
+  # null model and predictions
+  # the "null" model in this case is the global model
+  # predict on the test data for this iteration w/ the global model 
+  null_pred <- glmnet:::predict.cv.glmnet(fit, newx = X_test_glob[,2:ncol(X_test_glob)], scale = "response", s=min(fit$lambda))
+
+  # save data
+  tmp <- data.frame(ecoRegion_holdout = rep(test_eco,length(y_test)),obs=y_test,
+                    pred_opt=optimal_pred, pred_null=null_pred#,
+                    #pred_nopenalty=nopen_pred
+                    ) %>%
+    cbind(testDat_all)
+  # put output into a list
+  tmpList <- list("testRegion" = i_eco,
+    "modelObject" = fit_i,
+       "modelPredictions" = tmp)
+
+  # save model outputs
+  outList[[which(sort(unique(modDat_1_s$NA_L2NAME)) == i_eco)]] <- tmpList
+  # save one example of model fits
+  # if(i_eco==sort(unique(modDat_1_s$NA_L2NAME))[1]){
+  #   # save model object
+  #   saveRDS(fit,file="./ModelResults/glmnet_fit.RDS")
+  #
+  #   #saveRDS(nopen,file="./ModelResults/nopenalty_fit.RDS")
+  # }
+ }
+
+#
+# # calculate correlations between null and optimal model
 # my_cors <- c(cor(outList[[i]]$modelPredictions$pred_opt, outList[[i]]$modelPredictions$obs), # correlation of LOO model's predictions w/ the observations
 #             cor(outList[[i]]$modelPredictions$s1, outList[[i]]$modelPredictions$obs)#, # correlations of LOO model's predictions w/ global model's predictions
 #             #cor(obs_pred$pred_nopenalty,obs_pred$obs)
@@ -1064,15 +1111,15 @@ dev.off()
 #             mean((outList[[i]]$modelPredictions$s1 - outList[[i]]$modelPredictions$obs)^2)#,
 #             #mean((obs_pred$pred_nopenalty - obs_pred$obs)^2)
 #             )
-# 
-# # # print results
-# # names(my_cors) <- names(my_mse) <- c("optimal","null"#,"no penalty"
-# #                                      )
-# # print(my_cors)
-# # print(my_mse)
-# # 
-# # # save obs vs pred results
-# # write.csv(obs_pred,"./ModelResults/obs_vs_pred.csv",row.names=F)
+
+# # print results
+# names(my_cors) <- names(my_mse) <- c("optimal","null"#,"no penalty"
+#                                      )
+# print(my_cors)
+# print(my_mse)
+#
+# # save obs vs pred results
+# write.csv(obs_pred,"./ModelResults/obs_vs_pred.csv",row.names=F)
 
 ```
 
@@ -1081,72 +1128,72 @@ These models were fit to eight ecoregions, and then predict on one heldout ecore
 
 Observations across the temporal range of the dataset
 ```{r Residual maps4, fig.height = 7, fig.width = 9, }
-# for (i in 1:length(unique(modDat_1$NA_L2NAME))) {
-#   holdoutRegion <- outList[[i]]$testRegion
-#   predictionData <- outList[[i]]$modelPredictions
-#   modTerms <- as.matrix(coef(outList[[i]]$modelObject)) %>% 
-#     as.data.frame() %>% 
-#     filter(V1!=0) %>% 
-#     rownames()
-#   
-#   # calculate residuals
-#   predictionData <- predictionData %>% 
-#   mutate(resid = .[["obs"]] - .[["pred_opt"]] ,
-#          resid_globMod = .[["obs"]]  - .[["s1"]])
-# 
-#   
-# # rasterize
-# # use 'test_rast' from earlier
-#   
-#   # rasterize data
-# plotObs <- predictionData %>% 
-#          drop_na(paste(response)) %>% 
-#   #slice_sample(n = 5e4) %>%
-#   terra::vect(geom = c("Long.x", "Lat.x")) %>% 
-#   terra::set.crs(crs(test_rast)) %>% 
-#   terra::rasterize(y = test_rast, 
-#                    field = "resid_globMod", 
-#                    fun = mean) %>% 
-#   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-#   terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
-# 
-# 
-# # make figures
-# # make histogram
-# hist_i <- ggplot(predictionData) +
-#   geom_histogram(aes(resid_globMod), col = "darkgrey", fill = "lightgrey") + 
-#   xlab(c("Residuals (obs. - pred.)"))
-# # make map
-# map_i <-  ggplot() +
-# geom_spatraster(data = plotObs) + 
-#   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)),fill=NA ) +
-# labs(title = paste0("Residuals (obs. - pred.) for predictions of ", holdoutRegion, " from a model fit to other ecoregions"),
-#      subtitle = paste0(response, " ~ ", paste0( modTerms, collapse = " + "))) +
-#   scale_fill_gradient2(low = "red",
-#                        mid = "white" ,
-#                        high = "blue" , 
-#                        midpoint = 0,   na.value = "white", 
-#                        limits = c(-100, 100))  
-#   
-#  assign(paste0("residPlot_",holdoutRegion),
-#    value = ggarrange(map_i, hist_i, heights = c(3,1), ncol = 1)
-# )
-# 
-# }
-# 
-# 
-# ggarrange(
-#   get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[1]),
-#   get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[2]),
-#   get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[3]),
-#   get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[4]),
-#   get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[5]),
-#   get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[6]),
-#   get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[7]),
-#   get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[8]),
-#   get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[9]), 
-#   ncol = 2, common.legend = TRUE
-# )
+for (i in 1:length(unique(modDat_1_s$NA_L2NAME))) {
+  holdoutRegion <- outList[[i]]$testRegion
+  predictionData <- outList[[i]]$modelPredictions
+  modTerms <- as.matrix(coef(outList[[i]]$modelObject)) %>%
+    as.data.frame() %>%
+    filter(V1!=0) %>%
+    rownames()
+
+  # calculate residuals
+  predictionData <- predictionData %>%
+  mutate(resid = .[["obs"]] - .[["pred_opt"]] ,
+         resid_globMod = .[["obs"]]  - .[["s1"]])
+
+
+# rasterize
+# use 'test_rast' from earlier
+
+  # rasterize data
+plotObs <- predictionData %>%
+         drop_na(paste(response)) %>%
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("Long", "Lat")) %>%
+  terra::set.crs(crs(test_rast)) %>%
+  terra::rasterize(y = test_rast,
+                   field = "resid_globMod",
+                   fun = mean) %>%
+  #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>%
+  terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+
+
+# make figures
+# make histogram
+hist_i <- ggplot(predictionData) +
+  geom_histogram(aes(resid_globMod), col = "darkgrey", fill = "lightgrey") +
+  xlab(c("Residuals (obs. - pred.)"))
+# make map
+map_i <-  ggplot() +
+geom_spatraster(data = plotObs) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)),fill=NA ) +
+labs(title = paste0("Residuals (obs. - pred.) for predictions of ", holdoutRegion, " from a model fit to other ecoregions"),
+     subtitle = paste0(response, " ~ ", paste0( modTerms, collapse = " + "))) +
+  scale_fill_gradient2(low = "red",
+                       mid = "white" ,
+                       high = "blue" ,
+                       midpoint = 0,   na.value = "white",
+                       limits = c(-100, 100))
+
+ assign(paste0("residPlot_",holdoutRegion),
+   value = ggarrange(map_i, hist_i, heights = c(3,1), ncol = 1)
+)
+
+}
+
+
+ggarrange(
+  get(paste0("residPlot_", unique(modDat_1_s$NA_L2NAME))[1]),
+  get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[2]),
+  get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[3]),
+  get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[4]),
+  get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[5]),
+  get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[6]),
+  get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[7]),
+  get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[8]),
+  get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[9]),
+  ncol = 2, common.legend = TRUE
+)
 ```
 
 
