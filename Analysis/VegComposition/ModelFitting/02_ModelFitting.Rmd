@@ -8,7 +8,7 @@ output:
     df_print: paged
     code_folding: hide
 params:
-  run: true
+  run: false
   test_run: false
   save_figs: false
   ecoregion: shrubGrass
@@ -234,26 +234,24 @@ if (ecoregion == "shrubGrass") {
   # select potential predictor variables for the ecoregion of interest
         prednames <-
           c(
-"tmean"                  , "prcp"               ,"prcp_seasonality"     ,"prcpTempCorr"        ,   
-"isothermality"          , "VPD_max"            ,"sand"                 ,"coarse"              ,   
-"AWHC"                   , "tmax_anom"          ,"t_warm_anom"          ,"t_cold_anom"         ,   
-"prcp_wet_anom"          , "precp_dry_anom"     ,"prcp_seasonality_anom","prcpTempCorr_anom"   ,   
-"aboveFreezingMonth_anom", "isothermality_anom" ,"annWatDef_anom"       ,"annWetDegDays_anom"  ,   
-"VPD_min_anom"           , "VPD_max_95_anom"    ,   
-"frostFreeDays_5_anom"   )
+"tmean"             , "prcp"                    ,"prcp_seasonality"        ,"prcpTempCorr"          , 
+"isothermality"     , "annWatDef"               ,"sand"                    ,"coarse"                , 
+"carbon"            , "AWHC"                    ,"tmin_anom"               ,"tmax_anom"             , 
+"t_warm_anom"       , "prcp_wet_anom"           ,"precp_dry_anom"          ,"prcp_seasonality_anom" , 
+"prcpTempCorr_anom" , "aboveFreezingMonth_anom" ,"isothermality_anom"      ,"annWatDef_anom"        , 
+"annWetDegDays_anom", "VPD_mean_anom"           ,"VPD_min_anom"            ,"frostFreeDays_5_anom"   )
   
 } else if (ecoregion == "forest") {
   # select potential predictor variables for the ecoregion of interest
   prednames <- 
     c(
-"tmean"               , "prcp"                , "prcpTempCorr"            ,"isothermality"      , 
-"annWatDef"           , "annWetDegDays"       , "sand"                    ,"coarse"             , 
-"carbon"              , "AWHC"                , "tmax_anom"               ,"prcp_anom"          , 
-"t_warm_anom"         , "t_cold_anom"         , "prcp_wet_anom"           ,"precp_dry_anom"     , 
-"prcp_seasonality_anom", "prcpTempCorr_anom"  ,  "aboveFreezingMonth_anom", "isothermality_anom",  
-"annWatDef_anom"      , "annWetDegDays_anom"  , "VPD_min_anom"            ,"VPD_max_95_anom"    , 
- "frostFreeDays_5_anom"   
-    )
+"tmean"                 ,"prcp"               , "prcp_dry"                , "prcpTempCorr"      ,     
+"isothermality"         ,"annWatDef"          , "clay"                    , "sand"              ,     
+"coarse"                ,"carbon"             , "AWHC"                    , "tmin_anom"         ,     
+"tmax_anom"             ,"prcp_anom"          , "prcp_wet_anom"           , "precp_dry_anom"    ,     
+"prcp_seasonality_anom" ,"prcpTempCorr_anom"  , "aboveFreezingMonth_anom" , "isothermality_anom",     
+"annWatDef_anom"        ,"annWetDegDays_anom" , "VPD_mean_anom"           , "VPD_max_95_anom"   ,     
+"frostFreeDays_5_anom"   )
 }
 
 # subset the data to only include these predictors, and remove any remaining NAs 
@@ -375,11 +373,14 @@ df_sample_plots <-  modDat_1  %>%
 
 ```
 
-Standardize the predictor variables for the model-fitting process
+## Standardize the predictor variables for the model-fitting process
 ```{r scaling predictors, fig.height=7, fig.width=10}
 modDat_1_s <- modDat_1 %>% 
-  mutate(across(all_of(prednames), base::scale, .names = "{.col}_s"))
-
+  mutate(across(all_of(prednames), base::scale, .names = "{.col}_s")) 
+names(modDat_1_s) <- c(names(modDat_1),
+                       paste0(prednames, "_s")
+                       )
+  
 scaleFigDat_1 <- modDat_1_s %>% 
   select(c(Long, Lat, Year, prednames)) %>% 
   pivot_longer(cols = all_of(names(prednames)), 
@@ -407,19 +408,28 @@ ggplot(scaleFigDat_3) +
 
 # Model Fitting
 
-## First, Fit a null model w/ no predictors 
-
-With the full dataset (full response variables) -- use a Gamma family glm with a "log" link function (suited for response variables that are bounded by 0 and are right skewed)
-```{r fit null model}
-# try using bamlss
-nullMod_gamma <- glm(data = modDat_1, formula = modDat_1[,response] ~ 1, family = stats::Gamma(link = "log"))
-#plot(nullMod_gamma)
-
-summary(nullMod_gamma)
-```
-Visualize the level 2 ecoregions and how they differ across environmental space
+## Visualize the level 2 ecoregions and how they differ across environmental space
 ```{r Visualize ecoregion distribution, fig.width = 14, fig.height=10, message=FALSE}
+## visualize the variation between groups across environmental space
+## make data into spatial format
+modDat_1_sf <- modDat_1 %>% 
+  st_as_sf(coords = c("Long", "Lat"), crs = st_crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"))
 
+
+## do a pca of climate across level 2 ecoregions
+pca <- prcomp(modDat_1_s[,paste0(prednames, "_s")])
+library(factoextra)
+(fviz_pca_ind(pca, habillage = modDat_1_s$NA_L2NAME, label = "none", addEllipses = TRUE, ellipse.level = .95, ggtheme = theme_minimal(), alpha.ind = .1))
+
+if(ecoregion == "shrubGrass") {
+  print("We'll combine the 'Mediterranean California' and 'Western Sierra Madre Piedmont' ecoregions (into 'Mediterranean Piedmont'). We'll also combine `Tamaulipas-Texas semiarid plain' and 'South Central semiarid prairies' ecoregions (into (`Semiarid plain and prairies`)" )
+  
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "WESTERN SIERRA MADRE PIEDMONT"), "NA_L2NAME"] <- "MEDITERRANEAN PIEDMONT"
+  modDat_1[modDat_1$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "WESTERN SIERRA MADRE PIEDMONT"), "NA_L2NAME"] <- "MEDITERRANEAN PIEDMONT"
+  
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("TAMAULIPAS-TEXAS SEMIARID PLAIN", "SOUTH CENTRAL SEMIARID PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES"
+  modDat_1[modDat_1$NA_L2NAME %in% c("TAMAULIPAS-TEXAS SEMIARID PLAIN", "SOUTH CENTRAL SEMIARID PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES"
+}
 # make a table of n for each region
 modDat_1 %>% 
   group_by(NA_L2NAME) %>% 
@@ -428,11 +438,11 @@ modDat_1 %>%
   kable() %>%
 kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 
-## visualize the variation between groups across environmental space
-## make data into spatial format
-modDat_1_sf <- modDat_1 %>% 
-  st_as_sf(coords = c("Long", "Lat"), crs = st_crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"))
+```
 
+## Then, look at the spatial distribution and environmental characteristics of the grouped ecoregions 
+```{r fig.width = 14, fig.height=10, message=FALSE}
+# download map info for visualization
 us_states <- suppressMessages(tigris::states())
 
 
@@ -488,8 +498,8 @@ library(patchwork)
 
 ```
 
-Fit a global model with all of the data 
--- within the training set, use level 2 ecoregion for cross-validation to tune lambda in the LASSO model 
+## Fit a global model with all of the data 
+ Within the training set, use level 2 ecoregion for cross-validation to tune lambda in the LASSO model 
 ```{r fit global model, echo = FALSE}
   # Fit model 
   # penalty values
@@ -506,6 +516,11 @@ Fit a global model with all of the data
     "prcp_anom",      "t_warm_anom" , "t_cold_anom",  "prcp_wet_anom" , "precp_dry_anom" ,  "prcp_seasonality_anom" ,  "prcpTempCorr_anom" , "aboveFreezingMonth_anom",  "isothermality_anom" ,  "annWatDef_anom", "annWetDegDays_anom",  "VPD_mean_anom" , "VPD_min_anom" , "VPD_max_anom", "VPD_max_95_anom", "annWatDef_95_anom" , "annWetDegDays_5_anom",  "frostFreeDays_5_anom" , "frostFreeDays_anom"))]
   prednames_soils <- prednames[which(prednames %in% c( "soilDepth" , "clay", 
      "sand" , "coarse" ,  "carbon", "AWHC"))]
+  
+  # add "_s" to scaled variables to all prednames
+  prednames_clim <- paste0(prednames_clim, "_s")
+  prednames_weath <- paste0(prednames_weath, "_s")
+  prednames_soils <- paste0(prednames_soils, "_s")
   
   # get a text string of possible interactions between climate and weather variables
   combos <- data.frame(gtools::permutations(n = length(c(prednames_clim, prednames_weath)),
@@ -527,16 +542,21 @@ Fit a global model with all of the data
   
   # make text string of transformations (log, squared)
   transform_string <- str_flatten(c(# add square root term 
-                                    #paste0("I(log(",prednames_clim,"))"), 
-                                    #paste0("I(log(",prednames_weath,"))"),
-                                    #paste0("I(log(",prednames_soils,"))"),
+                                    paste0("I(log(",prednames_clim,"+20))"), 
+                                    paste0("I(log(",prednames_weath,"+20))"),
+                                    paste0("I(log(",prednames_soils,"+20))"),
+                                    
+                                    paste0("I(sqrt(",prednames_clim,"+20))"), 
+                                    paste0("I(sqrt(",prednames_weath,"+20))"),
+                                    paste0("I(sqrt(",prednames_soils,"+20))"),
+                                    
                                     paste0("I(",prednames_clim,"^2)"), 
                                     paste0("I(",prednames_weath,"^2)"),
                                     paste0("I(",prednames_soils,"^2)"))
                                     , collapse = " + ")
               
   # get a text string of the possible untransformed model terms
-  mod_string <- paste(response, "~", paste(prednames, collapse = "+"))
+  mod_string <- paste(response, "~", paste0(prednames, "_s", collapse = "+"))
   
   # make a text string of the model formula w/ interactions and transformations included
   modWithInteractions <- paste(mod_string, "+",int_string , "+", transform_string
@@ -546,8 +566,7 @@ Fit a global model with all of the data
   f <- as.formula(modWithInteractions)
   
   # transform dataframe to model matrix
-  model.frame(formula = f, data = modDat_1_s)
-  X <- model.matrix(terms(f), modDat_1_s)
+  X <- model.matrix(f, modDat_1_s)
   # get response variable
   y <- as.matrix(modDat_1_s[,response])
   
@@ -595,17 +614,19 @@ Fit a global model with all of the data
   best_lambda <- fit$lambda.min
   print(fit)
   # look at CV score vs penalty plot
-  plot(log(fit$lambda),fit$cvm,main= paste0("comparing cross-validation score against log(lambda) \n best log(lambda) = ", round(log(best_lambda),3)))
-
-  ## get the coefficients
-  glmnet:::coef.cv.glmnet(fit, s = best_lambda #"lambda.min"
-                          )
-
+  plot(log(fit$lambda),fit$cvm,main= paste0("comparing cross-validation score against log(lambda) \n best log(lambda) = ", round(log(best_lambda),3)), ylim = c(0, max(fit$cvm)))
+  # add points for the # of coefficients for each lambda
+  points(log(fit$lambda), fit$nzero, col = "red")
+  
+  ## get the coefficients for the minimum lambda (compare to the lambda that is 1se from the min. )
+  bestLambda_coef <- glmnet:::coef.cv.glmnet(fit, s = best_lambda )
+  seLambda_coef <- glmnet:::coef.cv.glmnet(fit, s = fit$lambda.1se )
+  
   ## predict on the test data
   # lasso model predictions with the optimal lambda
   optimal_pred <-  glmnet:::predict.cv.glmnet(fit, newx=X[,2:ncol(X)], s= best_lambda, type = "response")
-  
-    null_fit <- glm(data = as.data.frame(X[,prednames]), formula = y ~ 1, family = stats::Gamma(link = "log"))
+  optimal_pred_1se <-  glmnet:::predict.cv.glmnet(fit, newx=X[,2:ncol(X)], s= fit$lambda.1se, type = "response")
+    null_fit <- glm(data = as.data.frame(X[,paste0(prednames, "_s")]), formula = y ~ 1, family = stats::Gamma(link = "log"))
   null_pred <- predict(null_fit, newdata = as.data.frame(X), type = "response"
                        )
 
@@ -613,35 +634,41 @@ Fit a global model with all of the data
   fullModOut <- list(
     "modelObject" = fit,
     "nullModelObject" = null_fit,
-    "modelPredictions" = data.frame(ecoRegion_holdout = rep(test_eco,length(y)),obs=y,
-                    pred_opt=optimal_pred[,1], pred_null=null_pred#,
+    "modelPredictions" = data.frame(#ecoRegion_holdout = rep(test_eco,length(y)),
+      obs=y,
+                    pred_opt=optimal_pred[,1], 
+                    pred_opt_se = optimal_pred_1se[,1],
+                    pred_null=null_pred#,
                     #pred_nopenalty=nopen_pred
                     ))
   
   
 # calculate correlations between null and optimal model 
 my_cors <- c(cor(optimal_pred[,1], y),
+             cor(optimal_pred_1se[,1], y), 
             cor(null_pred, y)
             )
 
 # calculate mse between null and optimal model 
 my_mse <- c(mean((fullModOut$modelPredictions$pred_opt -  y)^2) ,
+            mean((fullModOut$modelPredictions$pred_opt_se -  y)^2) ,
             mean((fullModOut$modelPredictions$pred_null - y)^2)#,
             #mean((obs_pred$pred_nopenalty - obs_pred$obs)^2)
             )
 
 plot(main = "A rough comparison of observed and model-predicted values",
   y = fullModOut$modelPredictions$obs, x = X[,2], xlab = c("tmean"), ylab = (paste(response)),
-     ylim = c(-25, 150)) # observed values
+     ylim = c(-25, 170)) # observed values
 points(y = fullModOut$modelPredictions$pred_opt, x = X[,2], col = "red") ## predictions w/ the CV model
+points(y = fullModOut$modelPredictions$pred_opt_se, x = X[,2], col = "green") ## predictions w/ the CV model
 points(y = fullModOut$modelPredictions$pred_null, x = X[,2], col = "blue") ## predictions with the null model
-legend(x = 19, y = 150, legend = c("Obs. values", "Preds - best mod.", "Preds - null mod."), 
-       col = c("black", "red", "blue"), pch = 1, cex = .7)
+legend(x = 18, y = 160, legend = c("Obs. values", "Preds - best lambda", "Preds - ok lambda", "Preds - null mod."), 
+       col = c("black", "red", "green", "blue"), pch = 1, cex = .7)
 #points(y = pred_glm, x = X_test[,2], col = "green") ## predictions with the GLM 
 #points(y = optimal_pred_bestLambda, x = X_test[,2], col = "orange") ## predictions with the best-lambda glmnet model
 ```
 
-The internal cross-validation process to fit the global LASSO model identified an optimal lambda value (regularization parameter) of `r{best_lambda}`. The following coefficients were kept in the model: 
+The internal cross-validation process to fit the global LASSO model identified an optimal lambda value (regularization parameter) of `r{print(best_lambda)}`. The following coefficients were kept in the model: 
 ```{r coefficients in the global model}
 # the coefficient matrix from the 'best model' -- find and print those coefficients that aren't 0 in a table
 mat <- as.matrix(coef(fit, s = best_lambda)) 
@@ -663,78 +690,10 @@ kable(globModTerms, col.names = c("Coefficient Name", "Value from LASSO")
 kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 ```
 
-
-```{r code from Gregor for cross-validation... not used currently, include=FALSE}
-# ## code from Gregor
-# # - ++ hold-out strategy (outer loop) ----
-# h_all = c("environmentalblock")#,'lastyears',)
-# # - ++ cross-validation strategy (inner loop) ----
-# cv_all = c('environmentalblock')
-# 
-# start.time <- Sys.time()
-# 
-# # data to use are modDat_1 
-# 
-# ## make data into spatial format
-# modDat_1_sf <- modDat_1 %>% 
-#   st_as_sf(coords = c("Long", "Lat"), crs = st_crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"))
-# # covariate names are stored in prednames
-# 
-# # response name is stored in response
-# 
-#   nfolds = 10 ##AES may need to change, not sure how many 
-#   nrepeats = 1
-#   
-#   
-#   
-#   for(h_i in 1:length(h_all)){
-#     
-#     print(paste("Running",h_all[h_i],"hold-outs, starting at",hms::round_hms(Sys.time(), secs = 1, digits = NULL)))
-#     
-#     outer_split <- hold_out_data_rsample(df = modDat_1, holdout_method = h_all[h_i], n_folds = nfolds, n_repeats = nrepeats, lastnyears = 5)
-#     
-#     # add a repetition column even if there is only 1 repetition
-#     if('Fold01' %in% outer_split$id |  'Resample01' %in% outer_split$id | 'Fold1' %in% outer_split$id |  'Resample1' %in% outer_split$id ){
-#       outer_split$id2 = outer_split$id
-#       outer_split$id = 'Repeat1'
-#     }
-#     
-#     for(j_i in 1:length(cv_all)){
-#       
-#       print(paste("Running",h_all[h_i],"hold-outs with",cv_all[j_i],"cross-validation, starting at",hms::round_hms(Sys.time(), secs = 1, digits = NULL)))
-#       
-#       nested_split <- inner_split_cv(x = data_seedingOutcomes, outer_folds = outer_split, cv_method = cv_all[j_i], n_folds = nfolds, n_repeats = nrepeats)
-#       
-#       # add a repetition column even if there is only 1 repetition
-#       if('Fold01' %in% nested_split$inner_resamples[[1]]$id | 'Resample01' %in% nested_split$inner_resamples[[1]]$id | 'Fold1' %in% nested_split$inner_resamples[[1]]$id |  'Resample1' %in% nested_split$inner_resamples[[1]]$id){
-#         for(k in 1:length(nested_split$inner_resamples)){
-#           nested_split$inner_resamples[[k]]$id2 = nested_split$inner_resamples[[k]]$id
-#           nested_split$inner_resamples[[k]]$id = 'Repeat1'
-#         }
-#       }
-#       
-#       outputList[[cumulative.index]]<-replicateRuns(nested_splits = nested_split, hmethod=h_all[h_i], cvmethod=cv_all[j_i])
-#       
-#       # increment index
-#       cumulative.index <- cumulative.index + 1
-#       
-#     }
-#     
-#     holdOutList[[h_i]] <- nested_split
-#   }
-# 
-#   
-#   saveRDS(outputList,here::here("03_outputs","08_nestedCrossValidation",paste0(current.species,"-nestedCv-longtermclimate-",nfolds,"outerFolds-results.RDS")))
-#   saveRDS(holdOutList,here::here("03_outputs","06_modelData",paste0(current.species,"-nestedCv-longtermclimate-",nfolds,"outerFolds-data.RDS")))
-#   
-# end.time <- Sys.time()
-# run.time = end.time-start.time
-# run.time
-```
-
+# Visualizations of Model Predictions and Residuals
 ## observed vs. predicted values
 
-Predicting on the data
+### Predicting on the data
 
 ```{r predict on data used for fitting}
 
@@ -758,7 +717,7 @@ colnames(pred_glm1)[which(colnames(pred_glm1) == "y")] <- paste(response)
 
 # add back in lat/long data 
 pred_glm1 <- pred_glm1 %>% 
-  cbind(modDat_1[,c("Long", "Lat", "Year")])
+  cbind(modDat_1_s[,c("Long", "Lat", "Year")])
 
 pred_glm1$resid <- pred_glm1[,response] - pred_glm1[,paste0(response, "_pred")]
 pred_glm1$extremeResid <- NA
@@ -783,7 +742,7 @@ pred_glm1 <- pred_glm1 %>%
 # rasterize
 # get reference raster
 test_rast <-  rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
-  terra::aggregate(fact = 4, fun = "mean")
+  terra::aggregate(fact = 8, fun = "mean")
 
 # rasterize data
 plotObs <- pred_glm1 %>% 
@@ -876,6 +835,7 @@ hist <- ggplot(pred_glm1) +
   geom_text(aes(x = min(resid)*.9, y = 1500, label = paste0("min = ", round(min(resid),2)))) +
   geom_text(aes(x = max(resid)*.9, y = 1500, label = paste0("max = ", round(max(resid),2))))
 
+library(ggpubr)
 ggarrange(map, hist, heights = c(3,1), ncol = 1)
 
 ```
@@ -918,7 +878,7 @@ pred_glm1 %>%
 ```
 
 Below are the actual quantile plots 
-
+(note that the predictor variables are scaled) 
 ```{r Percentile_plot, fig.height= 12, fig.width = 12, warning=FALSE}
 # publication quality version
 g3 <- decile_dotplot_pq(pred_glm1_deciles, response = response) + ggtitle("Decile Plot")
@@ -948,16 +908,14 @@ g4
 ```{r}
 df <- pred_glm1[, prednames_fig] #%>% 
   #mutate(MAT = MAT - 273.15) # k to c
-map(df, quantile, probs = c(0.2, 0.8), na.rm = TRUE)
+quantiles <- map(df, quantile, probs = c(0.2, 0.8), na.rm = TRUE)
 ```
-
 
 Filtered 'Decile' plots of data. These plots show each vegetation variable,
 but only based on data that falls into the upper and lower two deciles of
 each predictor variable. 
 
-
-```{r glm_deciles_filtered, fig.height= 18, fig.width = 18, message = FALSE}
+```{r glm_deciles_filtered, fig.height = 24, fig.width = 24, message = FALSE}
 
 pred_glm1_deciles_filt <- predvars2deciles( pred_glm1, 
                          response_vars = response_vars,
@@ -970,11 +928,9 @@ decile_dotplot_filtered_pq(pred_glm1_deciles_filt, xvars = prednames_fig)
 
 ```
 
-
-
 Filtered quantile figure with middle 2 deciles also shown
 
-```{r fig.height = 18, fig.width = 18, eval = TRUE}
+```{r fig.height = 24, fig.width = 24, eval = TRUE}
 pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1, 
                          response_vars = response_vars,
                          pred_vars = prednames_fig,
@@ -993,9 +949,12 @@ dev.off()
 }
 ```
 
+# Cross-validation 
+## Use terms from global model to re-fit and predict on different held out regions
+## Figures show residuals for each of the models fit to held-out ecoregions 
+These models were fit to six ecoregions, and then predict on the indicated heldout ecoregion
 
-## Use terms from global model to re-fit and predict on different held out regions (coming later...)
-```{r eval = FALSE, cross-validation }
+```{r cross-validation, fig.height = 7, fig.width = 9 }
 ## code from Tredennick et al. 2020
 # try each separate level II ecoregion as a test set
 # make a list to hold output data
@@ -1006,7 +965,7 @@ outList <- vector(mode = "list", length = length(sort(unique(modDat_1$NA_L2NAME)
 #                        )
 
 ## get the model specification from the global model
-mat <- as.matrix(coef(fit))
+mat <- as.matrix(glmnet::coef.glmnet(fit, s = "lambda.min"))
 mat2 <- mat[mat[,1] != 0,]
 
 f <- as.formula(paste0(response, " ~ ", paste0(names(mat2)[2:length(names(mat2))], collapse = " + ")))
@@ -1070,12 +1029,12 @@ y_cv <- as.matrix(modDat_1_s[,response])
     coef(fit_i)
     
   # lasso model predictions with the optimal lambda
-  optimal_pred <- predict(fit_i, newdata= testDat_all, scale = "response"
+  optimal_pred <- predict(fit_i, newdata= testDat_all, type = "response"
                           )
   # null model and predictions
   # the "null" model in this case is the global model
   # predict on the test data for this iteration w/ the global model 
-  null_pred <- glmnet:::predict.cv.glmnet(fit, newx = X_test_glob[,2:ncol(X_test_glob)], scale = "response", s=min(fit$lambda))
+  null_pred <- glmnet:::predict.cv.glmnet(fit, newx = X_test_glob[,2:ncol(X_test_glob)], type = "response", s=min(fit$lambda))
 
   # save data
   tmp <- data.frame(ecoRegion_holdout = rep(test_eco,length(y_test)),obs=y_test,
@@ -1121,13 +1080,6 @@ y_cv <- as.matrix(modDat_1_s[,response])
 # # save obs vs pred results
 # write.csv(obs_pred,"./ModelResults/obs_vs_pred.csv",row.names=F)
 
-```
-
-## plot residuals for each of the models fit to held-out ecoregions 
-These models were fit to eight ecoregions, and then predict on one heldout ecoregion
-
-Observations across the temporal range of the dataset
-```{r Residual maps4, fig.height = 7, fig.width = 9, }
 for (i in 1:length(unique(modDat_1_s$NA_L2NAME))) {
   holdoutRegion <- outList[[i]]$testRegion
   predictionData <- outList[[i]]$modelPredictions
@@ -1152,7 +1104,7 @@ plotObs <- predictionData %>%
   terra::vect(geom = c("Long", "Lat")) %>%
   terra::set.crs(crs(test_rast)) %>%
   terra::rasterize(y = test_rast,
-                   field = "resid_globMod",
+                   field = "resid",
                    fun = mean) %>%
   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>%
   terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
@@ -1167,7 +1119,7 @@ hist_i <- ggplot(predictionData) +
 map_i <-  ggplot() +
 geom_spatraster(data = plotObs) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)),fill=NA ) +
-labs(title = paste0("Residuals (obs. - pred.) for predictions of ", holdoutRegion, " from a model fit to other ecoregions"),
+labs(title = paste0("Residuals (obs. - pred.) for predictions of \n", holdoutRegion, " \n from a model fit to other ecoregions"),
      subtitle = paste0(response, " ~ ", paste0( modTerms, collapse = " + "))) +
   scale_fill_gradient2(low = "red",
                        mid = "white" ,
@@ -1184,17 +1136,19 @@ labs(title = paste0("Residuals (obs. - pred.) for predictions of ", holdoutRegio
 
 ggarrange(
   get(paste0("residPlot_", unique(modDat_1_s$NA_L2NAME))[1]),
-  get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[2]),
-  get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[3]),
-  get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[4]),
-  get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[5]),
-  get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[6]),
-  get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[7]),
-  get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[8]),
-  get(paste0("residPlot_", unique(modDat_1$NA_L2NAME))[9]),
+  get(paste0("residPlot_", unique(modDat_1_s$NA_L2NAME))[2]),
+  get(paste0("residPlot_", unique(modDat_1_s$NA_L2NAME))[3]),
+  get(paste0("residPlot_", unique(modDat_1_s$NA_L2NAME))[4]),
+  get(paste0("residPlot_", unique(modDat_1_s$NA_L2NAME))[5]),
+  get(paste0("residPlot_", unique(modDat_1_s$NA_L2NAME))[6]),
+  get(paste0("residPlot_", unique(modDat_1_s$NA_L2NAME))[7]),
+  #get(paste0("residPlot_", unique(modDat_1_s$NA_L2NAME))[8]),
+  #get(paste0("residPlot_", unique(modDat_1_s$NA_L2NAME))[9]),
   ncol = 2, common.legend = TRUE
 )
+
 ```
+
 
 
 # Save output
