@@ -1,71 +1,115 @@
 # this script runs the '02_ModelFitting.Rmd" file for each cover variable and saves the output
 
+# Shrub/grass ecoregion ---------------------------------------------------
+# total herbaceous cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
-                  params = list(response = "TotalTreeCover_dec" ,
-                                s = "TotalTreeCover"), 
+                  params = list(  run= TRUE, 
+                                  test_run = FALSE,
+                                  save_figs = FALSE,
+                                  ecoregion = "shrubGrass",
+                                  response = "TotalHerbaceousCover"), 
                   output_format = "html_document", 
                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-                  output_file = "glm_beta_model_FirstPass_TotalTreeCover.html")
+                  output_file = "GrassShrub_TotalHerbaceousCover_LASSO_gammaLogLink.html")
 
+#total tree cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
-                  params = list(response = "ShrubCover_dec" ,
-                                s = "ShrubCover"), 
+                  params = list(  run= TRUE, 
+                                  test_run = FALSE,
+                                  save_figs = FALSE,
+                                  ecoregion = "shrubGrass",
+                                  response = "TotalTreeCover"), 
                   output_format = "html_document", 
                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-                  output_file = "glm_beta_model_FirstPass_ShrubCover.html")
+                  output_file = "GrassShrub_TotalTreeCover_LASSO_gammaLogLink.html")
 
+#total shrub cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
-                  params = list(response = "HerbCover_dec" ,
-                                s = "HerbCover"), 
+                  params = list(  run= TRUE, 
+                                  test_run = FALSE,
+                                  save_figs = FALSE,
+                                  ecoregion = "shrubGrass",
+                                  response = "ShrubCover"), 
                   output_format = "html_document", 
                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-                  output_file = "glm_beta_model_FirstPass_HerbCover.html")
+                  output_file = "GrassShrub_ShrubCover_LASSO_gammaLogLink.html")
 
+#CAM cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
-                  params = list(response = "TotalGramCover_dec" ,
-                                s = "TotalGramCover"), 
+                  params = list(  run= TRUE, 
+                                  test_run = FALSE,
+                                  save_figs = FALSE,
+                                  ecoregion = "shrubGrass",
+                                  response = "CAMCover"), 
                   output_format = "html_document", 
                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-                  output_file = "glm_beta_model_FirstPass_TotalGramCover.html")
+                  output_file = "GrassShrub_CAMCover_LASSO_gammaLogLink.html")
 
+#bare ground cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
-                  params = list(response = "C3GramCover_dec" ,
-                                s = "C3GramCover"), 
+                  params = list(  run= TRUE, 
+                                  test_run = FALSE,
+                                  save_figs = FALSE,
+                                  ecoregion = "shrubGrass",
+                                  response = "BareGroundCover"), 
                   output_format = "html_document", 
                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-                  output_file = "glm_beta_model_FirstPass_C3GramCover.html")
+                  output_file = "GrassShrub_BareGroundCover_LASSO_gammaLogLink.html")
 
-rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
-                  params = list(response = "C4GramCover_dec" ,
-                                s = "C4GramCover"), 
-                  output_format = "html_document", 
-                  output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-                  output_file = "glm_beta_model_FirstPass_C4GramCover.html")
 
-rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
-                  params = list(response = "ConifTreeCover_dec" ,
-                                s = "ConifTreeCover"), 
-                  output_format = "html_document", 
-                  output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-                  output_file = "glm_beta_model_FirstPass_ConifTreeCover.html")
+# forest ecoregion --------------------------------------------------------
 
+# total herbaceous cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
-                  params = list(response = "AngioTreeCover_dec" ,
-                                s = "AngioTreeCover"), 
+                  params = list(  run= TRUE, 
+                                  test_run = FALSE,
+                                  save_figs = FALSE,
+                                  ecoregion = "forest",
+                                  response = "TotalHerbaceousCover"), 
                   output_format = "html_document", 
                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-                  output_file = "glm_beta_model_FirstPass_AngioTreeCover.html")
+                  output_file = "forest_TotalHerbaceousCover_LASSO_gammaLogLink.html")
 
+#total tree cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
-                  params = list(response = "AnnualHerbGram_dec" ,
-                                s = "AnnualHerbGram"), 
+                  params = list(  run= TRUE, 
+                                  test_run = FALSE,
+                                  save_figs = FALSE,
+                                  ecoregion = "forest",
+                                  response = "TotalTreeCover"), 
                   output_format = "html_document", 
                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-                  output_file = "glm_beta_model_FirstPass_AnnualHerbGram.html")
+                  output_file = "forest_TotalTreeCover_LASSO_gammaLogLink.html")
 
+#total shrub cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
-                  params = list(response = "PerennialHerbGram_dec" ,
-                                s = "PerennialHerbGram"), 
+                  params = list(  run= TRUE, 
+                                  test_run = FALSE,
+                                  save_figs = FALSE,
+                                  ecoregion = "forest",
+                                  response = "ShrubCover"), 
                   output_format = "html_document", 
                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-                  output_file = "glm_beta_model_FirstPass_PerennialHerbGram.html")
+                  output_file = "forest_ShrubCover_LASSO_gammaLogLink.html")
+
+#CAM cover
+rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
+                  params = list(  run= TRUE, 
+                                  test_run = FALSE,
+                                  save_figs = FALSE,
+                                  ecoregion = "forest",
+                                  response = "CAMCover"), 
+                  output_format = "html_document", 
+                  output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
+                  output_file = "forest_CAMCover_LASSO_gammaLogLink.html")
+
+#bare ground cover
+rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
+                  params = list(  run= TRUE, 
+                                  test_run = FALSE,
+                                  save_figs = FALSE,
+                                  ecoregion = "forest",
+                                  response = "BareGroundCover"), 
+                  output_format = "html_document", 
+                  output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
+                  output_file = "forest_BareGroundCover_LASSO_gammaLogLink.html")
