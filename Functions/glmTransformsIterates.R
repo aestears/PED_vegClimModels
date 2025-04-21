@@ -159,7 +159,7 @@ glmTransformsIterates <- function(preds, df, response_var,
 #' @param df dataframe longform with 'mean_value' column
 #' (i.e. mean value of the predictor variable for the given decile) and 'name' 
 #' column which gives the name of the predictor variable
-decile_dotplot_pq <- function(df, size = 0.5, response = response) {
+decile_dotplot_pq <- function(df, size = 0.5, response = response, IQR = FALSE, CI = FALSE) {
   
   if('filter_var' %in% names(df)) {
     stop('filter_var column present, you should used decile_dotplot_filtered()')
@@ -197,34 +197,120 @@ decile_dotplot_pq <- function(df, size = 0.5, response = response) {
     y = Inf
   )
   
-  g <- ggplot(df2, aes(x = mean_value, y = .data[[yvar]])) +
-    geom_point(aes(color = "Observed", shape = "Observed"),
-               #size = size, 
-               alpha = 0.6) +
-    geom_point(aes(y = .data[[yvar_pred]], color = 'Predicted',
-                   shape = 'Predicted'), size = size, alpha = 0.75) +
-    geom_text(data = letter_df, aes(x = x, y = y, label = letter),
-              hjust = -0.8,
-              vjust = 1) +
-    facet_wrap(~name, scales = 'free_x', strip.position = "bottom") +
-    # using annotate to add in line segements because lemon package (facet_rep_wrap)
-    # isn't being maintained anymore
-    annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf, size = 1) +
-    # adding line segment on the right, for secondary axis
-    annotate("segment", x=Inf, xend=Inf, y=-Inf, yend=Inf, size = 1) +
-    labs(#y = "Total Tree Cover per decile" ,
-      x = "mean climate predictor value per decile") +
-    # theme(legend.position = 'top',
-    #       #legend.title = element_blank(),
-    #       #strip.text = element_text(),
-    #       strip.background = element_blank(),
-    #       strip.text = ggtext::element_markdown(margin = margin()),
-    #       strip.placement = "outside",
-    #       axis.title.x = element_blank(),
-    #       axis.line.y = element_blank()) +
-    scale_color_manual(name = 'legend', values = c("Observed" = "black", "Predicted" = "#2b8cbe")) +
-    scale_shape_manual(name = 'legend', values =  c("Observed" = 19, "Predicted" = 17)) #+
+  if (IQR == TRUE) {
+    g <- ggplot(df2, aes(x = mean_value, y = .data[[yvar]])) +
+      geom_ribbon(aes(ymin = .data[[paste0(yvar, "_IQR_low")]], 
+                      ymax = .data[[paste0(yvar, "_IQR_high")]], 
+                      #color = 'Observed', 
+                      fill = 'Observed'), 
+                  alpha = .2) + 
+      geom_ribbon(aes(ymin = .data[[paste0(yvar_pred, "_IQR_low")]], 
+                      ymax = .data[[paste0(yvar_pred, "_IQR_high")]], 
+                      #color = 'Predicted', 
+                      fill = 'Predicted'),
+                  alpha = .2) + 
+      geom_point(aes(color = "Observed", shape = "Observed"),
+                 #size = size, 
+                 alpha = 0.6) +
+      geom_point(aes(y = .data[[yvar_pred]], color = 'Predicted',
+                     shape = 'Predicted'), size = size, alpha = 0.75) +
+      geom_text(data = letter_df, aes(x = x, y = y, label = letter),
+                hjust = -0.8,
+                vjust = 1) +
+      facet_wrap(~name, scales = 'free_x', strip.position = "bottom") +
+      # using annotate to add in line segements because lemon package (facet_rep_wrap)
+      # isn't being maintained anymore
+      annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf, size = 1) +
+      # adding line segment on the right, for secondary axis
+      annotate("segment", x=Inf, xend=Inf, y=-Inf, yend=Inf, size = 1) +
+      labs(#y = "Total Tree Cover per decile" ,
+        x = "mean climate predictor value per decile") +
+      # theme(legend.position = 'top',
+      #       #legend.title = element_blank(),
+      #       #strip.text = element_text(),
+      #       strip.background = element_blank(),
+      #       strip.text = ggtext::element_markdown(margin = margin()),
+      #       strip.placement = "outside",
+      #       axis.title.x = element_blank(),
+      #       axis.line.y = element_blank()) +
+      scale_color_manual(name = 'legend', values = c("Observed" = "black", "Predicted" = "#2b8cbe")) +
+      scale_fill_manual(name = 'legend', values = c("Observed" = "black", "Predicted" = "#2b8cbe")) +
+      scale_shape_manual(name = 'legend', values =  c("Observed" = 19, "Predicted" = 17)) #+
     #sec_axis_fri() # adding second fire return interval axis
+    
+  } else  if (CI == TRUE) {
+    g <- ggplot(df2, aes(x = mean_value, y = .data[[yvar]])) +
+      geom_ribbon(aes(ymin = .data[[paste0(yvar, "_CI_lower")]], 
+                      ymax = .data[[paste0(yvar, "_CI_upper")]], 
+                      #color = 'Observed', 
+                      fill = 'Observed'), 
+                  alpha = .2) + 
+      geom_ribbon(aes(ymin = .data[[paste0(yvar_pred, "_CI_lower")]], 
+                      ymax = .data[[paste0(yvar_pred, "_CI_upper")]], 
+                      #color = 'Predicted', 
+                      fill = 'Predicted'),
+                  alpha = .2) + 
+      geom_point(aes(color = "Observed", shape = "Observed"),
+                 #size = size, 
+                 alpha = 0.6) +
+      geom_point(aes(y = .data[[yvar_pred]], color = 'Predicted',
+                     shape = 'Predicted'), size = size, alpha = 0.75) +
+      geom_text(data = letter_df, aes(x = x, y = y, label = letter),
+                hjust = -0.8,
+                vjust = 1) +
+      facet_wrap(~name, scales = 'free_x', strip.position = "bottom") +
+      # using annotate to add in line segements because lemon package (facet_rep_wrap)
+      # isn't being maintained anymore
+      annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf, size = 1) +
+      # adding line segment on the right, for secondary axis
+      annotate("segment", x=Inf, xend=Inf, y=-Inf, yend=Inf, size = 1) +
+      labs(#y = "Total Tree Cover per decile" ,
+        x = "mean climate predictor value per decile") +
+      # theme(legend.position = 'top',
+      #       #legend.title = element_blank(),
+      #       #strip.text = element_text(),
+      #       strip.background = element_blank(),
+      #       strip.text = ggtext::element_markdown(margin = margin()),
+      #       strip.placement = "outside",
+      #       axis.title.x = element_blank(),
+      #       axis.line.y = element_blank()) +
+      scale_color_manual(name = 'legend', values = c("Observed" = "black", "Predicted" = "#2b8cbe")) +
+      scale_fill_manual(name = 'legend', values = c("Observed" = "black", "Predicted" = "#2b8cbe")) +
+      scale_shape_manual(name = 'legend', values =  c("Observed" = 19, "Predicted" = 17)) #+
+    #sec_axis_fri() # adding second fire return interval axis
+    
+  } else  {
+    g <- ggplot(df2, aes(x = mean_value, y = .data[[yvar]])) +
+     geom_point(aes(color = "Observed", shape = "Observed"),
+                 #size = size, 
+                 alpha = 0.6) +
+      geom_point(aes(y = .data[[yvar_pred]], color = 'Predicted',
+                     shape = 'Predicted'), size = size, alpha = 0.75) +
+      geom_text(data = letter_df, aes(x = x, y = y, label = letter),
+                hjust = -0.8,
+                vjust = 1) +
+      facet_wrap(~name, scales = 'free_x', strip.position = "bottom") +
+      # using annotate to add in line segements because lemon package (facet_rep_wrap)
+      # isn't being maintained anymore
+      annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf, size = 1) +
+      # adding line segment on the right, for secondary axis
+      annotate("segment", x=Inf, xend=Inf, y=-Inf, yend=Inf, size = 1) +
+      labs(#y = "Total Tree Cover per decile" ,
+        x = "mean climate predictor value per decile") +
+      # theme(legend.position = 'top',
+      #       #legend.title = element_blank(),
+      #       #strip.text = element_text(),
+      #       strip.background = element_blank(),
+      #       strip.text = ggtext::element_markdown(margin = margin()),
+      #       strip.placement = "outside",
+      #       axis.title.x = element_blank(),
+      #       axis.line.y = element_blank()) +
+      scale_color_manual(name = 'legend', values = c("Observed" = "black", "Predicted" = "#2b8cbe")) +
+      scale_fill_manual(name = 'legend', values = c("Observed" = "black", "Predicted" = "#2b8cbe")) +
+      scale_shape_manual(name = 'legend', values =  c("Observed" = 19, "Predicted" = 17)) #+
+    #sec_axis_fri() # adding second fire return interval axis
+    
+  }
   
   g
 }
@@ -257,6 +343,7 @@ var2lab <- function(x = NULL, units_md = FALSE, add_letters = FALSE,
     "annWatDef_s" = "Ann WatDef CLIM", 
     "annWatDef_anom_s" = "AnnWatDef ANOM", 
     "annWetDegDays_anom_s" = "AnnWetDegDays ANOM", 
+    "annWetDegDays_s" = "AnnWetDegDays CLIM",
     "coarse_s" = "coarse", 
     "clay_s" = "clay", 
     "frostFreeDays_5_anom_s" = "FrostFreeDays 5 ANOM",
@@ -288,7 +375,8 @@ var2lab <- function(x = NULL, units_md = FALSE, add_letters = FALSE,
     "VPD_min_anom_s" = "VPD Ann. minimum - 3 yr. anomaly",
     "aboveFreezingMonth_anom_s" = "Month above freezing - 3 yr. anomaly",
     "annWatDef_s" = "Ann. water deficit - 30 yr. mean", 
-    "annWatDef_anom_s" = "Ann. water deficit - 3 yr. anomaly", 
+    "annWatDef_anom_s" = "Ann. water deficit - 3 yr. anomaly",
+    "annWetDegDays_s" = "Ann. wet degree days - 30 yr. mean",
     "annWetDegDays_anom_s" = "Ann. wet degree days - 3 yr. anomaly", 
     "coarse_s" = "% of soil as coarse fragments", 
     "frostFreeDays_5_anom_s" = "Frost free days - 5th percentile over 3 yr. anomaly",
@@ -355,41 +443,89 @@ var2lab <- function(x = NULL, units_md = FALSE, add_letters = FALSE,
 #' @param df dataframe (same dataframe used for decile_dotplot_pq)
 #' @param add_smooth whether to add a smoother to the inset
 #' @param ... arguments passed to geom_smooth
-add_dotplot_inset <- function(g, df, add_smooth = FALSE, ...) {
+add_dotplot_inset <- function(g, df, dfRaw = NULL, add_smooth = FALSE, deciles = TRUE, ...) {
   fig_letters <- str_to_upper(c("a", "b", "c", "d", "e", "f", "g", "f", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q","r", "s", "t", "u", "v", "w", "x", "y", "z"))
-  
   yvar <- response
   max <- df %>% 
-    select(all_of(yvar), all_of(paste0(yvar,"_pred"))) %>% 
+    dplyr::select(all_of(yvar), all_of(paste0(yvar,"_pred"))) %>% 
     max #* 100
-  inset <- ggplot(df, aes(.data[[yvar]], .data[[paste0(yvar,"_pred")]])) +
-    geom_point(shape = 4, alpha = 0.2, size = 0.3) +
-    geom_abline(slope = 1, size = 0.5) +
-    labs(y = "Observed Cover (%)",
-         x = "Predicted Cover (%)") +
-    # geom_text(data = tibble(
-    #   letter = fig_letters[6],
-    #   x = -Inf,
-    #   y = Inf),
-    #   aes(x = x, y = y, label = letter),
-    #   hjust = -0.8, vjust = 1) +
-    theme(axis.title = element_text(size = 6),
-          axis.text = element_text(size = 6)#,
-          #plot.margin = margin()
-          )#+
+  if (deciles == TRUE) {
+   
+    inset <- ggplot(df, aes(y = .data[[yvar]], x = .data[[paste0(yvar,"_pred")]])) +
+      geom_point(shape = 4, alpha = 0.2, size = 0.3) +
+      geom_abline(slope = 1, size = 0.5, col = "red") +
+      labs(y = "Observed Cover (%)",
+           x = "Predicted Cover (%)") +
+      # geom_text(data = tibble(
+      #   letter = fig_letters[6],
+      #   x = -Inf,
+      #   y = Inf),
+      #   aes(x = x, y = y, label = letter),
+      #   hjust = -0.8, vjust = 1) +
+      theme(axis.title = element_text(size = 6),
+            axis.text = element_text(size = 6)#,
+            #plot.margin = margin()
+      )#+
     #coord_cartesian(xlim = c(0, max),
-                    #ylim = c(0, max))
-  
-  if(add_smooth) {
-    inset <- inset +
-      geom_smooth(se = FALSE, color = 'gray', ...)
-  }
-  
-  library(ggpubr)
-  g2 <- ggarrange(g, ggarrange(inset, ggplot(), widths = c(1,2)), heights = c(3, 1), nrow = 2)
+    #ylim = c(0, max))
+    
+    if(add_smooth) {
+      inset <- inset +
+        geom_smooth(se = FALSE, color = 'gray')
+    }
+    
+    library(ggpubr)
+    g2 <- ggarrange(g, ggarrange(inset, ggplot(), widths = c(1,2)), heights = c(3, 1), nrow = 2)
     # inset_element(inset, left = .75,
     #               bottom = -.08,
     #               right = 1, top = 0.14)
+  } else {
+    inset_raw <- ggplot(dfRaw, aes(y = .data[[yvar]], x = .data[[paste0(yvar,"_pred")]])) +
+      geom_point(shape = 4, alpha = 0.2, size = 0.3) +
+      geom_abline(slope = 1, size = 0.5, col = "red") +
+      labs(y = "Observed Cover (%)",
+           x = "Predicted Cover (%)") +
+      theme(axis.title = element_text(size = 6),
+            axis.text = element_text(size = 6)#,
+            #plot.margin = margin()
+      )#+
+    
+    if(add_smooth) {
+      inset_raw <- inset_raw +
+        geom_smooth(se = TRUE, color = 'gray')
+    }
+    
+    
+    inset <- ggplot(df, aes(y = .data[[yvar]], x = .data[[paste0(yvar,"_pred")]])) +
+      geom_point(shape = 4, alpha = 0.2, size = 0.3) +
+      geom_abline(slope = 1, size = 0.5, col = "red") +
+      labs(y = "Observed Cover (%)",
+           x = "Predicted Cover (%)") +
+      # geom_text(data = tibble(
+      #   letter = fig_letters[6],
+      #   x = -Inf,
+      #   y = Inf),
+      #   aes(x = x, y = y, label = letter),
+      #   hjust = -0.8, vjust = 1) +
+      theme(axis.title = element_text(size = 6),
+            axis.text = element_text(size = 6)#,
+            #plot.margin = margin()
+      )#+
+    #coord_cartesian(xlim = c(0, max),
+    #ylim = c(0, max))
+    
+    if(add_smooth) {
+      inset <- inset +
+        geom_smooth(se = FALSE, color = 'gray')
+    }
+    
+    library(ggpubr)
+    g2 <- ggarrange(g, ggarrange(inset,inset_raw, ggplot(), widths = c(1,1,2), nrow = 1), heights = c(3, 1), nrow = 2)
+    # inset_element(inset, left = .75,
+    #               bottom = -.08,
+    #               right = 1, top = 0.14)
+  }
+  
   g2
 }
 
@@ -413,7 +549,7 @@ decile_dotplot_filtered_pq <- function(df,
   #   df[df$name == "MAT", ]$mean_value - 273.15
   df2 <- df %>% 
     filter(name %in% xvars) %>% 
-    select(name, filter_var, percentile_category, decile, mean_value,
+    dplyr::select(name, filter_var, percentile_category, decile, mean_value,
            all_of(yvar), all_of(paste0(yvar, "_pred"))) %>% 
     pivot_longer(cols = all_of(c(yvar, paste0(yvar, "_pred"))),
                  names_to = 'source',

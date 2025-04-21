@@ -161,6 +161,13 @@ predvars2deciles <- function(df, response_vars, pred_vars,
                         filter_var = filter_var,
                         weighted_mean = weighted_mean,
                         cut_points = cut_points)
+  
+  if (filter_var == FALSE) {
+    names(out)[c(4, 9)] <- response_vars
+  } else {
+    names(out)[c(6, 11)] <- response_vars
+  }
+  
   out
 }
 
@@ -272,7 +279,7 @@ longdf2deciles <- function(df, response_vars, filter_var = FALSE,
   out0 <- df %>% 
     # the named vector in select was selecting by the names
     # not the vector values!
-    select(all_of(group_vars), value, unname(response_vars), 
+    dplyr::select(all_of(group_vars), value, unname(response_vars), 
            # using matches here b/ if column not present
            # this will still work
            matches('numYrs'), matches('weight')) %>% 
@@ -286,7 +293,8 @@ longdf2deciles <- function(df, response_vars, filter_var = FALSE,
     unnest(cols = c("data", "percentile")) %>% 
     group_by(across(all_of(group_vars))) %>% 
     mutate(decile = cut(percentile, cut_points,
-                        labels = 1:(length(cut_points) - 1))) %>% 
+                        labels = 1:(length(cut_points) - 1)),
+           resid_sqrd = (.data[[response_vars[2]]] - .data[[response_vars[1]]])^2) %>% 
     # calculate mean of response variables for each decile of each predictor
     # variable
     group_by(across(all_of(c(group_vars, 'decile'))), arrange = FALSE) %>% 
@@ -297,7 +305,7 @@ longdf2deciles <- function(df, response_vars, filter_var = FALSE,
     return(as_tibble(out0))
   }
   
-  if(weighted_mean) {
+  if (weighted_mean) {
     out <- out0 %>% 
       summarize(across(unname(response_vars), weighted.mean, w = .data[[weight_var]]),
                 mean_value = weighted.mean(value, w = .data[[weight_var]]), 
@@ -305,11 +313,21 @@ longdf2deciles <- function(df, response_vars, filter_var = FALSE,
                 .groups = 'drop')
     
   } else {
+      
     out <- out0 %>% 
-      summarize(across(unname(response_vars), ~mean(.x, na.rm = TRUE)),
+      summarize(across(unname(response_vars), .fns = list(
+        mean = ~mean(.x, na.rm = TRUE), 
+        #sd = ~sd(.x, na.rm = TRUE), 
+        CI_upper = ~(mean(.x,  na.rm = TRUE) + (sd(.x, na.rm = TRUE)*1.96)),
+        CI_lower = ~(mean(.x,  na.rm = TRUE) - (sd(.x, na.rm = TRUE)*1.96)),
+        IQR_low = ~quantile(.x, probs = .25, na.rm = TRUE, type = 9), 
+        IQR_high = ~quantile(.x, probs = .75, na.rm = TRUE, type = 9))),
                 mean_value = mean(value, na.rm = TRUE), # mean of predictor for that decile
-                .groups = 'drop')
-  }
+               # IQR_high = ,
+                #IQR_low = , 
+        RMSE = sqrt(mean(resid_sqrd)),# RMSE for that decile
+                .groups = 'drop') 
+    }
   
   as_tibble(out)
 }
