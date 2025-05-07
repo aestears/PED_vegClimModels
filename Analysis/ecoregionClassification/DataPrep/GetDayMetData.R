@@ -294,7 +294,7 @@ climVar <- allMetDat2 %>%
                                            "prcp_Oct" ,"prcp_Nov", "prcp_Dec")],   # coefficient of variation (sd/mean) of precipitation
                                        .f = function(prcp_Jan, prcp_Feb, prcp_March, prcp_April, prcp_May, prcp_June, prcp_July, prcp_Aug, prcp_Sept, prcp_Oct ,prcp_Nov, prcp_Dec, ...) 
                                        {temp <- c(prcp_Jan, prcp_Feb, prcp_March, prcp_April, prcp_May, prcp_June, prcp_July, prcp_Aug, prcp_Sept, prcp_Oct ,prcp_Nov, prcp_Dec)
-                                      ( sd(temp)/mean(temp))*100
+                                      ( sd(temp)/mean(temp))
                                        }
          ),
          PrecipTempCorr = pmap_dbl(.[c(c("tmax_Jan" , "tmax_Feb",  "tmax_March","tmax_April", "tmax_May",     
@@ -340,7 +340,7 @@ climVar <- allMetDat2 %>%
                                     tmaxes <- c(tmax_Jan, tmax_Feb, tmax_March, tmax_April, tmax_May, tmax_June, tmax_July, tmax_Aug, tmax_Sept, tmax_Oct,  tmax_Nov,  tmax_Dec)
                                     tMaxMax <- max(c(tmax_Jan, tmax_Feb, tmax_March, tmax_April, tmax_May, tmax_June, tmax_July, tmax_Aug, tmax_Sept, tmax_Oct,  tmax_Nov,  tmax_Dec))
                                     tMinMin <- min(c(tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec))
-                                    mean(tmins-tmaxes)/(tMaxMax-tMinMin) * 100
+                                    mean(tmaxes-tmins)/(tMaxMax-tMinMin) * 100
                                   }),
          
   ) %>% 
@@ -419,22 +419,6 @@ climVar2 <- allMetDat2%>%
     awdd_Oct = ifelse(tmean_Oct*2 < prcp_Oct, tmean_Oct*30, NA),
     awdd_Nov = ifelse(tmean_Nov*2 < prcp_Nov, tmean_Nov*30, NA),
     awdd_Dec = ifelse(tmean_Dec*2 < prcp_Dec, tmean_Dec*30, NA),
-    # calculate VPD in milibars (100Pa = 1mb, vp is in Pa)
-    # #(0.6108 * exp(17.27 * TMAX / (TMAX + 237.3))
-    # VPD_Jan = (6.11*exp((17.27*tmean_Jan)/(237.3 + tmean_Jan))) -  (vp_Jan/100),
-    # VPD_Feb = (6.11*exp((17.27*tmean_Feb)/(237.3 + tmean_Feb))) -  (vp_Feb/100),
-    # VPD_March = (6.11*exp((17.27*tmean_March)/(237.3 + tmean_March))) - (vp_March/100),
-    # VPD_April = (6.11*exp((17.27*tmean_April)/(237.3 + tmean_April)))- (vp_April/100),
-    # VPD_May =   (6.11*exp((17.27*tmean_May)/(237.3 + tmean_May))) - (vp_May/100),
-    # VPD_June =  (6.11*exp((17.27*tmean_June)/(237.3 + tmean_June))) - (vp_June/100) ,
-    # VPD_July =  (6.11*exp((17.27*tmean_July)/(237.3 + tmean_July))) - (vp_July/100),
-    # VPD_Aug =   (6.11*exp((17.27*tmean_Aug)/(237.3 + tmean_Aug))) -  (vp_Aug/100),
-    # VPD_Sept =  (6.11*exp((17.27*tmean_Sept)/(237.3 + tmean_Sept)))- (vp_Sept/100),
-    # VPD_Oct =   (6.11*exp((17.27*tmean_Oct)/(237.3 + tmean_Oct))) - (vp_Oct/100),
-    # VPD_Nov =   (6.11*exp((17.27*tmean_Nov)/(237.3 + tmean_Nov))) - (vp_Nov/100),
-    # VPD_Dec =   (6.11*exp((17.27*tmean_Dec)/(237.3 + tmean_Dec))) - (vp_Dec/100),
-    # second try for VPD (based on https://static-content.springer.com/esm/art%3A10.1038%2Fnclimate1693/MediaObjects/41558_2013_BFnclimate1693_MOESM272_ESM.pdf)
-    # units are Pascals 
     VPD_Jan = ((( a0+ tmean_Jan*(a1+ tmean_Jan *(a2+ tmean_Jan *(a3+ tmean_Jan *(a4	+ tmean_Jan *(a5	+ tmean_Jan *a6)))))))*100 -  (tmean_Jan))/1000,
     VPD_Feb = ((( a0+ tmean_Feb*(a1+ tmean_Feb *(a2+ tmean_Feb *(a3+ tmean_Feb *(a4	+ tmean_Feb *(a5	+ tmean_Feb *a6)))))))*100 -  (tmean_Feb))/1000,
     VPD_March = ((( a0+ tmean_March*(a1+ tmean_March *(a2+ tmean_March *(a3+ tmean_March *(a4	+ tmean_March *(a5	+ tmean_March *a6)))))))*100 -  (tmean_March))/1000,
@@ -477,58 +461,21 @@ climVar2 <- allMetDat2%>%
   )
 
 
-# 
-#   
-#   plot(climVar2[,c("VPD_2_Jan")] ~ 
-#          climVar2[,c("tmax_Jan")], col =  "purple",
-#        xlim = c(-15,40), 
-#        ylim = c(0, 2.5)
-#   )
-#   points(climVar2[,c("VPD_2_Feb")]  ~ 
-#                   climVar2[,c("tmax_Feb")], col = "blue"
-#   )
-#   points(climVar2[,c("VPD_2_March")]  ~ 
-#             climVar2[,c("tmax_March")], col = "turquoise"
-#   )
-#   points(climVar2[,c("VPD_2_April")]  ~ 
-#            climVar2[,c("tmax_April")], col = "green"
-#   )
-#   points(climVar2[,c("VPD_2_May")]  ~ 
-#            climVar2[,c("tmax_May")], col = "yellow"
-#   )
-#   points(climVar2[,c("VPD_2_June")]  ~ 
-#            climVar2[,c("tmax_June")], col = "orange"
-#   )
-#   points(climVar2[,c("VPD_2_July")]  ~ 
-#            climVar2[,c("tmax_July")], col = "red"
-#   )
-#   points(climVar2[,c("VPD_2_Aug")]  ~ 
-#            climVar2[,c("tmax_Aug")], col = "brown"
-#   )
-#   points(climVar2[,c("VPD_2_Sept")]  ~ 
-#            climVar2[,c("tmax_Sept")], col = "grey"
-#   )
-#   points(climVar2[,c("VPD_2_Oct")]  ~ 
-#            climVar2[,c("tmax_Oct")], col = "wheat"
-#   )
-#   points(climVar2[,c("VPD_2_Nov")]  ~ 
-#            climVar2[,c("tmax_Nov")], col = "pink"
-#   )
-#   points(climVar2[,c("VPD_2_Dec")]  ~ 
-#            climVar2[,c("tmax_Dec")], col = "magenta"
-#   )
-#   
-
 climVar <- cbind(climVar, climVar2)
 rm(climVar2)
-
+gc()
 
 # save for subsequent use
 saveRDS(climVar, file = "./Data_raw/dayMet/ECOREGIONclimateValuesForAnalysis_monthly.rds")
 climVar <- readRDS(file="./Data_raw/dayMet/ECOREGIONclimateValuesForAnalysis_monthly.rds")
 
+
 rm(allMetDat, allMetDat2, annMetDat)
-# calculate sliding window inter-annual climate means ----------------------
+gc()
+
+
+## correct precip seasonality data... replace NA values w/ zeros (can't divide by zero, so have NAN values when the mean(precip) is 0)
+climVar[climVar$prcp_annTotal==0,"precip_Seasonality"] <- 0
 
 ## calculate MAP and MAT over past years (a sliding window?)
 # function
@@ -538,73 +485,410 @@ slidingMetMeans <- function(inDat, start, end) {
     filter(year %in% c(start:endActual)) %>% 
     group_by(Long, Lat) %>% 
     summarize(#sweMax_meanAnnAvg = mean(swe_annAvg),
-              tmin_meanAnnAvg = mean(tmin_annAvg),
-              tmax_meanAnnAvg = mean(tmax_annAvg),
-              tmean_meanAnnAvg = mean(tmean),
-              #vp_meanAnnAvg = mean(vp_annAvg),
-              prcp_meanAnnTotal = mean(prcp_annTotal),
-              T_warmestMonth_meanAnnAvg = mean(T_warmestMonth), # temperature of warmest month
-              T_coldestMonth_meanAnnAvg = mean(T_coldestMonth), # temperature of coldest month
-              precip_wettestMonth_meanAnnAvg = mean(precip_wettestMonth), # precip of wettest month
-              precip_driestMonth_meanAnnAvg = mean(precip_driestMonth), # precip of driest month
-              precip_Seasonality_meanAnnAvg = mean(precip_Seasonality),
-              PrecipTempCorr_meanAnnAvg = mean(PrecipTempCorr),
-              aboveFreezing_month_meanAnnAvg = mean(aboveFreezing_month),
-              isothermality_meanAnnAvg = mean(isothermality),
-              annWaterDeficit_meanAnnAvg = mean(annWaterDeficit),
-              annWetDegDays_meanAnnAvg = mean(annWetDegDays),
-              annVPD_mean_meanAnnAvg = mean(annVPD_mean),
-              annVPD_max_meanAnnAvg = mean(annVPD_max),
-              annVPD_min_meanAnnAvg = mean(annVPD_min),
-              annVPD_max_95percentile = unname(quantile(annVPD_max, probs = 0.95, na.rm = TRUE)),
-              annWaterDeficit_95percentile = unname(quantile(annWaterDeficit, probs = 0.95, na.rm = TRUE)),
-              annWetDegDays_5percentile = unname(quantile(annWetDegDays, probs = 0.05, na.rm = TRUE)),
-              durationFrostFreeDays_5percentile = unname(quantile(durationFrostFreeDays, probs = 0.05, na.rm = TRUE)),
-              durationFrostFreeDays_meanAnnAvg = unname(mean(durationFrostFreeDays))
+      tmin_meanAnnAvg = mean(tmin_annAvg),
+      tmax_meanAnnAvg = mean(tmax_annAvg),
+      tmean_meanAnnAvg = mean(tmean),
+      #vp_meanAnnAvg = mean(vp_annAvg),
+      prcp_meanAnnTotal = mean(prcp_annTotal),
+      T_warmestMonth_meanAnnAvg = mean(T_warmestMonth), # temperature of warmest month
+      T_coldestMonth_meanAnnAvg = mean(T_coldestMonth), # temperature of coldest month
+      precip_wettestMonth_meanAnnAvg = mean(precip_wettestMonth), # precip of wettest month
+      precip_driestMonth_meanAnnAvg = mean(precip_driestMonth), # precip of driest month
+      precip_Seasonality_meanAnnAvg = mean(precip_Seasonality),
+      PrecipTempCorr_meanAnnAvg = mean(PrecipTempCorr),
+      aboveFreezing_month_meanAnnAvg = mean(aboveFreezing_month),
+      isothermality_meanAnnAvg = mean(isothermality),
+      annWaterDeficit_meanAnnAvg = mean(annWaterDeficit),
+      annWetDegDays_meanAnnAvg = mean(annWetDegDays),
+      annVPD_mean_meanAnnAvg = mean(annVPD_mean),
+      annVPD_max_meanAnnAvg = mean(annVPD_max),
+      annVPD_min_meanAnnAvg = mean(annVPD_min),
+      annVPD_max_95percentile = unname(quantile(annVPD_max, probs = 0.95, na.rm = TRUE)),
+      annWaterDeficit_95percentile = unname(quantile(annWaterDeficit, probs = 0.95, na.rm = TRUE)),
+      annWetDegDays_5percentile = unname(quantile(annWetDegDays, probs = 0.05, na.rm = TRUE)),
+      durationFrostFreeDays_5percentile = unname(quantile(durationFrostFreeDays, probs = 0.05, na.rm = TRUE)),
+      durationFrostFreeDays_meanAnnAvg = unname(mean(durationFrostFreeDays))
     )
   return(outDat)
 }
 
 #testDat <- climVar[runif(10000,min=0, max = nrow(climVar)),]
 # for last 30-year window
-endDats <- as.matrix(c(2011))
-annMeans <- apply(as.matrix(endDats[1]), MARGIN = 1, FUN = function(x)
+endDats <- as.matrix(c(2011:2023))
+annMeans <- apply(as.matrix(endDats[1:2]), MARGIN = 1, FUN = function(x)
+  slidingMetMeans(inDat = climVar
+                  , start = as.numeric(x-30), end = as.numeric(x))
+)
+annMeans_2 <- apply(as.matrix(endDats[3:5]), MARGIN = 1, FUN = function(x)
+  slidingMetMeans(inDat = climVar
+                  , start = as.numeric(x-30), end = as.numeric(x))
+)
+annMeans_3 <- apply(as.matrix(endDats[6:8]), MARGIN = 1, FUN = function(x)
+  slidingMetMeans(inDat = climVar
+                  , start = as.numeric(x-30), end = as.numeric(x))
+)
+annMeans_4 <- apply(as.matrix(endDats[9:11]), MARGIN = 1, FUN = function(x)
+  slidingMetMeans(inDat = climVar
+                  , start = as.numeric(x-30), end = as.numeric(x))
+)
+annMeans_5 <- apply(as.matrix(endDats[12:13]), MARGIN = 1, FUN = function(x)
   slidingMetMeans(inDat = climVar
                   , start = as.numeric(x-30), end = as.numeric(x))
 )
 
+## for years prior to 2011 and as early as 2000, calculate the average over any previous years (which will be less than 30, as few as 20, but is ok...)
+endDats2 <- as.matrix(c(2000:2010))
+
+annMeans_6 <- apply(as.matrix(endDats2[1:3]), MARGIN = 1, FUN = function(x)
+  slidingMetMeans(inDat = climVar
+                  , start = 1980, end = as.numeric(x))
+)
+
+annMeans_7 <- apply(as.matrix(endDats2[4:6]), MARGIN = 1, FUN = function(x)
+  slidingMetMeans(inDat = climVar
+                  , start = 1980, end = as.numeric(x))
+)
+
+annMeans_8 <- apply(as.matrix(endDats2[7:9]), MARGIN = 1, FUN = function(x)
+  slidingMetMeans(inDat = climVar
+                  , start = 1980, end = as.numeric(x))
+)
+
+annMeans_9 <- apply(as.matrix(endDats2[10:11]), MARGIN = 1, FUN = function(x)
+  slidingMetMeans(inDat = climVar
+                  , start = 1980, end = as.numeric(x))
+)
+
+
 # put together into one list
-annMeans_all <- c(annMeans)
-names(annMeans_all) <- c(2011)
-annMeans_30yr <- lapply(endDats, function(x) {
+annMeans_all <- c(annMeans, annMeans_2, annMeans_3, annMeans_4, annMeans_5, annMeans_6, annMeans_7, annMeans_8,
+                  annMeans_9)
+
+names(annMeans_all) <- c(2011:2023, 2000:2010)
+annMeans_30yr_temp1 <- lapply(endDats, function(x) {
   temp <- cbind(annMeans_all[[as.character(x)]], x)
   temp$Start <- x-30
   names(temp) <- c(names(annMeans_all[[1]]), "End", "Start")
   return(temp)
 })
+annMeans_30yr_temp2 <- lapply(endDats2, function(x) {
+  temp <- cbind(annMeans_all[[as.character(x)]], x)
+  temp$Start <- 1980
+  names(temp) <- c(names(annMeans_all[[1]]), "End", "Start")
+  return(temp)
+})
 
-annMeans_30yr <- data.table::rbindlist(annMeans_30yr)
+
+annMeans_30yr <- data.table::rbindlist(c(annMeans_30yr_temp1, annMeans_30yr_temp2))
 
 names(annMeans_30yr)[3:26] <- paste0(names(annMeans_30yr)[3:26], "_30yr")
-saveRDS(annMeans_30yr, "./Data_processed/CoverData/dayMet_intermediate/ECOREGIONSannMeans_30yrs.rds")
-annMeans_30yr <- readRDS("./Data_processed/CoverData/dayMet_intermediate/ECOREGIONSannMeans_30yrs.rds")
+saveRDS(annMeans_30yr, "./Data_processed/EcoregionData/dayMet_intermediate/annMeans_30yrs.rds")
+annMeans_30yr <- readRDS("./Data_processed/EcoregionData/dayMet_intermediate/annMeans_30yrs.rds")
+
+# for last 3-year window
+# start in 2000, since we only have climate data starting then anyway
+endDats <- as.matrix(c(2000:2023))
+annMeans <- apply(endDats, MARGIN = 1, FUN = function(x)
+  slidingMetMeans(inDat = climVar, start = as.numeric(x-3), end = as.numeric(x))
+)
+names(annMeans) <- c(2000:2023)
+annMeans_3yr <- lapply(endDats, function(x) {
+  temp <- cbind(annMeans[[as.character(x)]], x)
+  temp$Start <- x-3
+  names(temp) <- c(names(annMeans[[1]]), "End", "Start")
+  return(temp)
+})
+
+annMeans_3yr <- data.table::rbindlist(annMeans_3yr)
+names(annMeans_3yr)[3:26] <- paste0(names(annMeans_3yr)[3:26], "_3yr")
+saveRDS(annMeans_3yr, "./Data_processed/EcoregionData/dayMet_intermediate/annMeans_3yrs.rds")
+annMeans_3yr <- readRDS("./Data_processed/EcoregionData/dayMet_intermediate/annMeans_3yrs.rds")
+
+rm(annMeans, annMeans_2, annMeans_3, annMeans_30yr_temp1, annMeans_30yr_temp2, annMeans_4, annMeans_5, annMeans_6, annMeans_7, annMeans_8, annMeans_9, annMeans_all)
+gc()
 
 ## add lagged data to the main climate value data.frame
 test <- climVar %>% 
-  dplyr::select(-c(tmax_Jan:tmax_Dec, tmin_Jan:prcp_Dec)) %>% 
+  select(-c(tmax_Jan:tmax_Dec, tmin_Jan:prcp_Dec)) %>% 
   #filter(year == 2020) %>% 
   #slice(1:100) %>% 
   left_join(annMeans_30yr, by = c("year" = "End_30yr", 
                                   "Long" = "Long", 
-                                  "Lat" = "Lat"))
+                                  "Lat" = "Lat")) %>% 
+  left_join(annMeans_3yr, by = c("year" = "End_3yr", 
+                                 "Long" = "Long", 
+                                 "Lat" = "Lat")
+  )
 
-rm(annMeans_30yr, annMeans_10yr)
+rm(annMeans_30yr, annMeans_3yr)
 gc()
 
 # save intermediate data 
-saveRDS(test, "./Data_processed/CoverData/dayMet_intermediate/ECOREGIONSclimVars_AnnualMeansAndLaggedValues.rds")
-test <- readRDS("./Data_processed/CoverData/dayMet_intermediate/ECOREGIONSclimVars_AnnualMeansAndLaggedValues.rds")
+saveRDS(test, "./Data_processed/EcoregionData/dayMet_intermediate/climVars_AnnualMeansAndLaggedValues.rds")
+test <- readRDS("./Data_processed/EcoregionData/dayMet_intermediate/climVars_AnnualMeansAndLaggedValues.rds")
+
 # for those years including and after 2010, use the averages over the previous
 # 30 years for climate. for those years before 2010, use the averages over any
-# previous years starting w/ 1980
+# previous years starting w/ 1980 -- we calculated this previously, but rename here for clarity
 
+testNew <- test %>% 
+  rename("tmin_meanAnnAvg_CLIM" = tmin_meanAnnAvg_30yr, 
+         "tmin_meanAnnAvg_CLIM" = tmin_meanAnnAvg_30yr                  ,  
+         "tmax_meanAnnAvg_CLIM" = tmax_meanAnnAvg_30yr                  ,     
+         "tmean_meanAnnAvg_CLIM" = tmean_meanAnnAvg_30yr                 ,   
+         "prcp_meanAnnTotal_CLIM" = prcp_meanAnnTotal_30yr                ,     
+         "T_warmestMonth_meanAnnAvg_CLIM" = T_warmestMonth_meanAnnAvg_30yr        ,    
+         "T_coldestMonth_meanAnnAvg_CLIM" = T_coldestMonth_meanAnnAvg_30yr    , 
+         "precip_wettestMonth_meanAnnAvg_CLIM" = precip_wettestMonth_meanAnnAvg_30yr   ,     
+         "precip_driestMonth_meanAnnAvg_CLIM" = precip_driestMonth_meanAnnAvg_30yr    ,    
+         "precip_Seasonality_meanAnnAvg_CLIM" = precip_Seasonality_meanAnnAvg_30yr  ,  
+         "PrecipTempCorr_meanAnnAvg_CLIM" = PrecipTempCorr_meanAnnAvg_30yr        ,     
+         "aboveFreezing_month_meanAnnAvg_CLIM" = aboveFreezing_month_meanAnnAvg_30yr   ,    
+         "isothermality_meanAnnAvg_CLIM" = isothermality_meanAnnAvg_30yr     , 
+         "annWaterDeficit_meanAnnAvg_CLIM" = annWaterDeficit_meanAnnAvg_30yr     ,     
+         "annWetDegDays_meanAnnAvg_CLIM" = annWetDegDays_meanAnnAvg_30yr        ,    
+         "annVPD_mean_meanAnnAvg_CLIM" = annVPD_mean_meanAnnAvg_30yr    , 
+         "annVPD_max_meanAnnAvg_CLIM" = annVPD_max_meanAnnAvg_30yr            ,     
+         "annVPD_min_meanAnnAvg_CLIM" = annVPD_min_meanAnnAvg_30yr            ,    
+         "annVPD_max_95percentile_CLIM" = annVPD_max_95percentile_30yr, 
+         "annWaterDeficit_95percentile_CLIM" = annWaterDeficit_95percentile_30yr     ,     
+         "annWetDegDays_5percentile_CLIM" = annWetDegDays_5percentile_30yr        ,    
+         "durationFrostFreeDays_5percentile_CLIM" = durationFrostFreeDays_5percentile_30yr,  
+         "durationFrostFreeDays_meanAnnAvg_CLIM" = durationFrostFreeDays_meanAnnAvg_30yr ,     
+         "Start_CLIM" = Start_30yr)
+
+
+# save data 
+saveRDS(testNew, "./Data_processed/EcoregionData/dayMet_intermediate/climVars_AnnualMeansAndLaggedValues.rds")
+testNew <- readRDS("./Data_processed/EcoregionData/dayMet_intermediate/climVars_AnnualMeansAndLaggedValues.rds")
+#plot(testNew$tmin_annAvg[1:10000,], testNew$tmean[1:10000,])
+
+rm(climVar)
+gc()
+
+
+#### calculate anomalies ####
+# i.e. how do the 10 yr. lagged values compare to the 30yr lagged values? 5 yr? previous yr? 
+# compare 10 yr values to 30 yr values
+# visualize climate variables
+# testNew %>% 
+#   drop_na() %>% 
+#   slice_sample(n = 10000) %>% 
+#   select(tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM, year) %>% 
+#   pivot_longer(cols = tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM,
+#                names_to = "variable",
+#                values_to = "value"
+#   ) %>% 
+#   ggplot() +
+#   facet_wrap(~variable, scales = "free") +
+#   geom_density(aes(value, col = year))
+# 
+# # visualize weather (3yr) variables
+# testNew %>% 
+#   drop_na() %>% 
+#   slice_sample(n = 10000) %>% 
+#   select(tmin_meanAnnAvg_3yr :durationFrostFreeDays_meanAnnAvg_3yr, year) %>% 
+#   pivot_longer(cols = tmin_meanAnnAvg_3yr:durationFrostFreeDays_meanAnnAvg_3yr,
+#                names_to = "variable",
+#                values_to = "value"
+#   ) %>% 
+#   ggplot() +
+#   facet_wrap(~variable, scales = "free") +
+#   geom_density(aes(value, col = year))
+
+anomDat_3yr <- testNew %>% 
+  transmute(
+    # compare 5 yr values to 30 yr values
+    # swe as % difference
+    #swe_meanAnn_3yrAnom = swe_meanAnnAvg_CLIM - swe_meanAnnAvg_3yr/swe_meanAnnAvg_CLIM,
+    # tmean as absolute difference
+    tmean_meanAnnAvg_3yrAnom = tmean_meanAnnAvg_CLIM - tmean_meanAnnAvg_3yr,
+    # tmin as absolute difference
+    tmin_meanAnnAvg_3yrAnom = tmin_meanAnnAvg_CLIM - tmin_meanAnnAvg_3yr,
+    # tmax as absolute difference
+    tmax_meanAnnAvg_3yrAnom = tmax_meanAnnAvg_CLIM - tmax_meanAnnAvg_3yr,
+    # vp as % difference
+    #vp_meanAnnAvg_3yrAnom = (vp_meanAnnAvg_CLIM - vp_meanAnnAvg_3yr)/vp_meanAnnAvg_CLIM,
+    # prcp as % difference
+    prcp_meanAnnTotal_3yrAnom = (prcp_meanAnnTotal_CLIM - prcp_meanAnnTotal_3yr)/prcp_meanAnnTotal_CLIM,
+    # t warmest month as absolute difference
+    T_warmestMonth_meanAnnAvg_3yrAnom = T_warmestMonth_meanAnnAvg_CLIM - T_warmestMonth_meanAnnAvg_3yr,
+    # t coldest month as absolute difference
+    T_coldestMonth_meanAnnAvg_3yrAnom = T_coldestMonth_meanAnnAvg_CLIM - T_coldestMonth_meanAnnAvg_3yr,
+    # precip wettest month as % difference
+    precip_wettestMonth_meanAnnAvg_3yrAnom = (precip_wettestMonth_meanAnnAvg_CLIM - precip_wettestMonth_meanAnnAvg_3yr)/precip_wettestMonth_meanAnnAvg_CLIM,
+    # precip driest month as % difference
+    precip_driestMonth_meanAnnAvg_3yrAnom = (precip_driestMonth_meanAnnAvg_CLIM - precip_driestMonth_meanAnnAvg_3yr)/precip_driestMonth_meanAnnAvg_CLIM,
+    # precip seasonality as % difference
+    precip_Seasonality_meanAnnAvg_3yrAnom = (precip_Seasonality_meanAnnAvg_CLIM - precip_Seasonality_meanAnnAvg_3yr)/precip_Seasonality_meanAnnAvg_CLIM,
+    # precip tempCorr as absolute difference
+    PrecipTempCorr_meanAnnAvg_3yrAnom = PrecipTempCorr_meanAnnAvg_CLIM - PrecipTempCorr_meanAnnAvg_3yr,
+    # above Freezing month as absolute difference
+    aboveFreezing_month_meanAnnAvg_3yrAnom = aboveFreezing_month_meanAnnAvg_CLIM - aboveFreezing_month_meanAnnAvg_3yr,
+    # isothermailty as % difference
+    isothermality_meanAnnAvg_3yrAnom = isothermality_meanAnnAvg_CLIM - isothermality_meanAnnAvg_3yr,    
+    # annual water deficit as % difference
+    annWaterDeficit_meanAnnAvg_3yrAnom = ((annWaterDeficit_meanAnnAvg_CLIM+.0001) - annWaterDeficit_meanAnnAvg_3yr)/(annWaterDeficit_meanAnnAvg_CLIM+.0001),
+    # wet degree days as % difference
+    annWetDegDays_meanAnnAvg_3yrAnom = (annWetDegDays_meanAnnAvg_CLIM - annWetDegDays_meanAnnAvg_3yr)/annWetDegDays_meanAnnAvg_CLIM,
+    # mean VPD as absolute difference
+    annVPD_mean_meanAnnAvg_3yrAnom = (annVPD_mean_meanAnnAvg_CLIM - annVPD_mean_meanAnnAvg_3yr),
+    # min VPD as absolute difference
+    annVPD_min_meanAnnAvg_3yrAnom = (annVPD_min_meanAnnAvg_CLIM - annVPD_min_meanAnnAvg_3yr),
+    # max VPD as absolute difference
+    annVPD_max_meanAnnAvg_3yrAnom = (annVPD_max_meanAnnAvg_CLIM - annVPD_max_meanAnnAvg_3yr),
+    # 95th percentile of max VPD as absolute difference 
+    annVPD_max_95percentile_3yrAnom = (annVPD_max_95percentile_CLIM - annVPD_max_95percentile_3yr),
+    # 95th percentile of annual water deficit as % difference
+    annWaterDeficit_95percentile_3yrAnom = ((annWaterDeficit_95percentile_CLIM + .0001) - annWaterDeficit_95percentile_3yr)/(annWaterDeficit_95percentile_CLIM + .0001),
+    # 5th percentile of annual wet degree days as % difference 
+    annWetDegDays_5percentile_3yrAnom = ((annWetDegDays_5percentile_CLIM + .0001) - annWetDegDays_5percentile_3yr)/(annWetDegDays_5percentile_CLIM + .0001),
+    # 5th percentile of frost-free days as absolute difference 
+    durationFrostFreeDays_5percentile_3yrAnom = (durationFrostFreeDays_5percentile_CLIM - durationFrostFreeDays_5percentile_3yr),
+    # mean of frost free days as absolute difference
+    durationFrostFreeDays_meanAnnAvg_3yrAnom = (durationFrostFreeDays_meanAnnAvg_CLIM - durationFrostFreeDays_meanAnnAvg_3yr)
+  )
+
+climDat <- cbind(testNew, #anomDat_10yr, 
+                 anomDat_3yr#, anomDat_1yr
+) 
+
+
+#///// # precp_dry_anom is NAN all across CA and much of the southwest... the
+#issue occurs because this anomaly is a % change, and it produces a NaN value
+#when the climate value is 0 and the weather value is 0. Change all anomaly
+#values to 0 when both the climate and weather variables are 0
+climDat[(climDat$precip_driestMonth_meanAnnAvg_CLIM == 0 & !is.na(climDat$precip_driestMonth_meanAnnAvg_CLIM)) 
+        & (climDat$precip_driestMonth_meanAnnAvg_3yr == 0 & !is.na(climDat$precip_driestMonth_meanAnnAvg_3yr)),
+        c("precip_driestMonth_meanAnnAvg_3yrAnom")] <- 0
+
+# # visualize anomalies
+# climDat %>% 
+#   drop_na() %>% 
+#   select(tmean_meanAnnAvg_3yrAnom :durationFrostFreeDays_meanAnnAvg_3yrAnom, year) %>% 
+#   pivot_longer(cols = tmean_meanAnnAvg_3yrAnom:durationFrostFreeDays_meanAnnAvg_3yrAnom,
+#                names_to = "variable",
+#                values_to = "value"
+#   ) %>% 
+#   ggplot() +
+#   facet_wrap(~variable, scales = "free") +
+#   geom_density(aes(value, col = year))
+#  
+# 
+# awddFig <- climDat %>% 
+#   select(annWetDegDays_5percentile_CLIM, annWetDegDays_5percentile_3yr, annWetDegDays_5percentile_3yrAnom, year) %>% 
+#   drop_na() %>% 
+#   pivot_longer(cols = annWetDegDays_5percentile_CLIM:annWetDegDays_5percentile_3yrAnom,
+#                names_to = "variable",
+#                values_to = "value"
+#   ) %>% 
+#   mutate(variable = factor(variable, levels = c("annWetDegDays_5percentile_CLIM", "annWetDegDays_5percentile_3yr", 
+#                                                  "annWetDegDays_5percentile_3yrAnom"))) %>% 
+#   ggplot() +
+#   facet_wrap(~variable, scales = "free", ncol = 1) +
+#   geom_density(aes(value, colour = as.factor(year)))
+# 
+# annwatdefFig <- climDat %>% 
+#   select(annWaterDeficit_95percentile_CLIM, annWaterDeficit_95percentile_3yr, annWaterDeficit_95percentile_3yrAnom, year) %>% 
+#   drop_na() %>% 
+#   pivot_longer(cols = annWaterDeficit_95percentile_CLIM:annWaterDeficit_95percentile_3yrAnom,
+#                names_to = "variable",
+#                values_to = "value"
+#   ) %>% 
+#   mutate(variable = factor(variable, levels = c("annWaterDeficit_95percentile_CLIM", "annWaterDeficit_95percentile_3yr", 
+#                                                 "annWaterDeficit_95percentile_3yrAnom"))) %>% 
+#   ggplot() +
+#   facet_wrap(~variable, scales = "free", ncol = 1) +
+#   geom_density(aes(value, colour = as.factor(year)))
+# 
+# library(patchwork)
+# awddFig + annwatdefFig
+
+plot(climDat$tmin_annAvg[1:10000], climDat$tmean[1:10000])
+
+
+# save climate values for analysis 
+#write.csv(climDat, "./Data_raw/dayMet/climateValuesForAnalysis_final.csv", row.names = FALSE)
+saveRDS(climDat, "./Data_processed/EcoregionData/ECOREGIONS_dayMetClimateValuesForAnalysis_final.rds")
+#climDat <- readRDS("./Data_processed/CoverData_raw/dayMetClimateValuesForAnalysis_final.rds")
+
+# # calculate sliding window inter-annual climate means ----------------------
+# 
+# ## calculate MAP and MAT over past years (a sliding window?)
+# # function
+# slidingMetMeans <- function(inDat, start, end) {
+#   endActual <- end-1 # subtract one so that we're actually looking at the 30, 10, 5, etc. years previous to the "end" year
+#   outDat <- inDat %>% 
+#     filter(year %in% c(start:endActual)) %>% 
+#     group_by(Long, Lat) %>% 
+#     summarize(#sweMax_meanAnnAvg = mean(swe_annAvg),
+#               tmin_meanAnnAvg = mean(tmin_annAvg),
+#               tmax_meanAnnAvg = mean(tmax_annAvg),
+#               tmean_meanAnnAvg = mean(tmean),
+#               #vp_meanAnnAvg = mean(vp_annAvg),
+#               prcp_meanAnnTotal = mean(prcp_annTotal),
+#               T_warmestMonth_meanAnnAvg = mean(T_warmestMonth), # temperature of warmest month
+#               T_coldestMonth_meanAnnAvg = mean(T_coldestMonth), # temperature of coldest month
+#               precip_wettestMonth_meanAnnAvg = mean(precip_wettestMonth), # precip of wettest month
+#               precip_driestMonth_meanAnnAvg = mean(precip_driestMonth), # precip of driest month
+#               precip_Seasonality_meanAnnAvg = mean(precip_Seasonality),
+#               PrecipTempCorr_meanAnnAvg = mean(PrecipTempCorr),
+#               aboveFreezing_month_meanAnnAvg = mean(aboveFreezing_month),
+#               isothermality_meanAnnAvg = mean(isothermality),
+#               annWaterDeficit_meanAnnAvg = mean(annWaterDeficit),
+#               annWetDegDays_meanAnnAvg = mean(annWetDegDays),
+#               annVPD_mean_meanAnnAvg = mean(annVPD_mean),
+#               annVPD_max_meanAnnAvg = mean(annVPD_max),
+#               annVPD_min_meanAnnAvg = mean(annVPD_min),
+#               annVPD_max_95percentile = unname(quantile(annVPD_max, probs = 0.95, na.rm = TRUE)),
+#               annWaterDeficit_95percentile = unname(quantile(annWaterDeficit, probs = 0.95, na.rm = TRUE)),
+#               annWetDegDays_5percentile = unname(quantile(annWetDegDays, probs = 0.05, na.rm = TRUE)),
+#               durationFrostFreeDays_5percentile = unname(quantile(durationFrostFreeDays, probs = 0.05, na.rm = TRUE)),
+#               durationFrostFreeDays_meanAnnAvg = unname(mean(durationFrostFreeDays))
+#     )
+#   return(outDat)
+# }
+# 
+# #testDat <- climVar[runif(10000,min=0, max = nrow(climVar)),]
+# # for last 30-year window
+# endDats <- as.matrix(c(2011))
+# annMeans <- apply(as.matrix(endDats[1]), MARGIN = 1, FUN = function(x)
+#   slidingMetMeans(inDat = climVar
+#                   , start = as.numeric(x-30), end = as.numeric(x))
+# )
+# 
+# # put together into one list
+# annMeans_all <- c(annMeans)
+# names(annMeans_all) <- c(2011)
+# annMeans_30yr <- lapply(endDats, function(x) {
+#   temp <- cbind(annMeans_all[[as.character(x)]], x)
+#   temp$Start <- x-30
+#   names(temp) <- c(names(annMeans_all[[1]]), "End", "Start")
+#   return(temp)
+# })
+# 
+# annMeans_30yr <- data.table::rbindlist(annMeans_30yr)
+# 
+# names(annMeans_30yr)[3:26] <- paste0(names(annMeans_30yr)[3:26], "_30yr")
+# saveRDS(annMeans_30yr, "./Data_processed/CoverData/dayMet_intermediate/ECOREGIONSannMeans_30yrs.rds")
+# annMeans_30yr <- readRDS("./Data_processed/CoverData/dayMet_intermediate/ECOREGIONSannMeans_30yrs.rds")
+# 
+# ## add lagged data to the main climate value data.frame
+# test <- climVar %>% 
+#   dplyr::select(-c(tmax_Jan:tmax_Dec, tmin_Jan:prcp_Dec)) %>% 
+#   #filter(year == 2020) %>% 
+#   #slice(1:100) %>% 
+#   left_join(annMeans_30yr, by = c("year" = "End_30yr", 
+#                                   "Long" = "Long", 
+#                                   "Lat" = "Lat"))
+# 
+# rm(annMeans_30yr, annMeans_10yr)
+# gc()
+# 
+# # save intermediate data 
+# saveRDS(test, "./Data_processed/CoverData/dayMet_intermediate/ECOREGIONSclimVars_AnnualMeansAndLaggedValues.rds")
+# test <- readRDS("./Data_processed/CoverData/dayMet_intermediate/ECOREGIONSclimVars_AnnualMeansAndLaggedValues.rds")
+# # for those years including and after 2010, use the averages over the previous
+# # 30 years for climate. for those years before 2010, use the averages over any
+# # previous years starting w/ 1980
+# 

@@ -13,7 +13,7 @@ library(tidyverse)
 # load data ---------------------------------------------------------------
 
 # load dayMet climate data that has been processed in '03_GettingWeatherData.R'
-climDat <- readRDS("./Data_processed/CoverData/dayMet_intermediate/ECOREGIONSclimVars_AnnualMeansAndLaggedValues.rds")
+climDat <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Data_processed/EcoregionData/ECOREGIONS_dayMetClimateValuesForAnalysis_final.rds")
 
 # load ecoregion data
 regions <- sf::st_read(dsn = "./Data_raw/Level1Ecoregions/", layer = "NA_CEC_Eco_Level1")
@@ -257,7 +257,6 @@ vegSoil_awc <- map(.x = c(1:nrow(temp)),
 ) 
 
 vegSoils_new$totalAvailableWaterHoldingCapacity <- unlist(vegSoil_awc)
-
 
 # code from Daniel to calculate AWC
 #Total profile available water-holding capacity (may be some rSOILWAT functions that can help with this? 
