@@ -8,13 +8,14 @@ output:
     df_print: paged
     code_folding: hide
 params:
-  run: true      
+  run: FALSE      
   test_run: false
   save_figs: false
-  ecoregion:   forest         
+  ecoregion:   CONUS         
   response: CAMCover
   removeTexasLouisianaPlain: FALSE
-  trimAnomalies: TRUE
+  trimAnomalies: FALSE
+  autoKfold: FALSE
 subtitle: "Based on code from Martin Holdrege's Sagebrush-Fire paper"
 ---
 The data consists of vegetation % cover by functional group from across CONUS (from AIM, FIA, LANDFIRE, and RAP), 
@@ -41,6 +42,7 @@ n_test <- 1e6 # sample size of the testing data (if this is too big the decile d
 trimAnom <- params$trimAnomalies
 removeTLP <- params$removeTexasLouisianaPlain
 run <- params$run
+autoKfold <- params$autoKfold
 ```
 
 
@@ -236,7 +238,7 @@ if (ecoregion == "shrubGrass") {
 "prcpTempCorr_anom" , "aboveFreezingMonth_anom" ,"isothermality_anom"      ,"annWatDef_anom"        , 
 "annWetDegDays_anom", "VPD_mean_anom"           ,"VPD_min_anom"            ,"frostFreeDays_5_anom"   )
   
-} else if (ecoregion == "forest") {
+} else if (ecoregion %in% c("forest", "eastForest", "westForest")) {
   # select potential predictor variables for the ecoregion of interest
   prednames <- 
     c(
@@ -255,7 +257,7 @@ if (ecoregion == "shrubGrass") {
 "aboveFreezingMonth_anom" ,"isothermality_anom" ,"annWatDef_anom" , "annWetDegDays_anom"  , "VPD_mean_anom"      ,    
 "VPD_max_95_anom"         ,"frostFreeDays_5_anom"   
   )
-}
+} 
 
 # get the name of the transformed response
 response_t <- paste0(response, "_transformed")
@@ -288,8 +290,13 @@ if (ecoregion == "shrubGrass") {
     filter(newRegion %in% c("eastForest", "westForest"))
 } else if (ecoregion == "CONUS") {
   modDat_1_s <- modDat_1_s
+} else if (ecoregion == "eastForest") {
+   modDat_1_s <- modDat_1_s %>% 
+    filter(newRegion == "eastForest")
+} else if (ecoregion == "westForest") {
+    modDat_1_s <- modDat_1_s %>% 
+    filter(newRegion == "westForest")
 }
-
 # remove the rows that have no observations for the response variable of interest
 modDat_1_s <- modDat_1_s[!is.na(modDat_1_s[,response]),]
 ```
@@ -510,6 +517,12 @@ modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPA
   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "MARINE WEST COAST AND WESTERN CORDILLERA"
     
   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
+} else if (ecoregion == "eastForest") {
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("EVERGLADES", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"
+
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "CENTRAL USA PLAINS"), "NA_L2NAME"] <- "MIXED WOOD AND CENTRAL USA PLAINS"
+  
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD SHIELD", "ATLANTIC HIGHLANDS"), "NA_L2NAME"] <- "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD"
 }
 # make a table of n for each region
 modDat_1_s %>% 
@@ -520,9 +533,8 @@ modDat_1_s %>%
 kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 
 ```
-
-## Then, look at the spatial distribution and environmental characteristics of the grouped ecoregions 
-```{r fig.width = 14, fig.height=10, message=FALSE}
+If there are observations in Louisiana, sub-sample them so they're not so over-represented in the dataset
+```{r}
 ## make data into spatial format
 modDat_1_sf <- modDat_1_s %>% 
   st_as_sf(coords = c("Long", "Lat"), crs = st_crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"))
@@ -542,6 +554,42 @@ cropped_states <- suppressMessages(state_boundaries_wgs84 %>%
   sf::st_sf() %>%
   sf::st_transform(sf::st_crs(modDat_1_sf))) #%>%
   #sf::st_crop(sf::st_bbox(modDat_1_sf)+c(-1,-1,1,1))
+if (ecoregion %in% c("Forest", "eastForest")){
+modDat_1_s$uniqueID <- 1:nrow(modDat_1_s)
+modDat_1_sf$uniqueID <- 1:nrow(modDat_1_sf)
+
+# find which observations overlap with Louisiana
+obs_LA_temp <- st_intersects(modDat_1_sf, cropped_states[cropped_states$NAME == "Louisiana",], sparse = FALSE) 
+obs_LA_1 <- modDat_1_sf[which(obs_LA_temp == TRUE, arr.ind = TRUE)[,1],]
+# now, find only those within the oversampled area (near the coast)
+dims <- c(xmin = 730439.1, xmax = 1042195.5, ymax = -1222745.2, ymin = -1390430.9)
+badBox <- st_bbox(dims) %>% 
+  st_as_sfc() %>% 
+  st_set_crs(value = st_crs(modDat_1_sf))
+  
+obs_LA_temp2 <- st_intersects(obs_LA_1, badBox, sparse = FALSE)
+obs_LA_2 <- obs_LA_1[which(obs_LA_temp2 == TRUE, arr.ind = TRUE)[,1],]
+
+# subsample so there aren't so many 
+# get every 3rd observation
+obs_LA_sampled <- obs_LA_2[seq(from = 1, to = nrow(obs_LA_2), by = 6),]
+# remove observations that aren't sampled from the larger dataset
+obsToRemove <- obs_LA_2[!(obs_LA_2$uniqueID %in% obs_LA_sampled$uniqueID),]
+
+modDat_1_sf <- modDat_1_sf[!(modDat_1_sf$uniqueID %in% obsToRemove$uniqueID),]
+modDat_1_s <- modDat_1_s[!(modDat_1_s$uniqueID %in% obsToRemove$uniqueID),]
+
+# ggplot() +
+#   geom_sf(data = cropped_states[cropped_states$NAME == "Louisiana",]) +
+#  geom_sf(data = obs_LA_1, col = "black") +
+#   geom_sf(data = modDat_1_sf, col = "red", pch = 20)   
+}
+
+```
+
+
+## Then, look at the spatial distribution and environmental characteristics of the grouped ecoregions 
+```{r fig.width = 14, fig.height=10, message=FALSE}
 
 map1 <- ggplot() +
   geom_sf(data=cropped_states,fill='white') +
@@ -584,7 +632,12 @@ plot2<-ggplot(data=modDat_1_sf %>%
 library(patchwork)
 (combo <- (map1+plot1)/plot2) 
 
+# ggplot(data = modDat_1_s) + 
+#   geom_density(aes(ShrubCover_transformed, col = NA_L2NAME)) + 
+#   xlim(c(0,25))
+
 ```
+
 
 ## Fit a global model with all of the data 
 
@@ -708,23 +761,14 @@ X <- X[,!(colnames(X) %in% badNames)]
 ```
 
 ```{r}
-  
+if (autoKfold == FALSE) {
   # get the ecoregions for training lambda
   train_eco <- modDat_1_s$NA_L2NAME#[train]
   
   # Fit model -----------------------------------------------
-
-  # # don't penalize previous year's abundance or meadow ID
-  # pen_facts <- rep(1, times = ncol(X))
-  # logNtId <- which(colnames(X) == "logNt")
-  # meadaId <- grep("meada",colnames(X))
-  # pen_facts[c(logNtId,meadaId)] <- 0  
-  
   # specify leave-one-year-out cross-validation
   my_folds <- as.numeric(as.factor(train_eco))
- 
-  #thresh <- 1e-15
-  
+
   if (run == TRUE) {
     # set up parallel processing
     library(doMC)
@@ -751,6 +795,36 @@ X <- X[,!(colnames(X) %in% badNames)]
   } else {
     fit <- readRDS(paste0("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/", response, "_globalLASSOmod_gammaLogLink_",ecoregion, "_noTLP_",removeTLP,".rds"))
   }
+  
+} else if (autoKfold == TRUE) {
+   if (run == TRUE) {
+    # set up parallel processing
+    library(doMC)
+    # this computer has 16 cores (parallel::detectCores())
+    registerDoMC(cores = 8)
+    
+    fit <- cv.glmnet(
+    x = X[,2:ncol(X)], 
+    y = y, 
+    family = stats::Gamma(link = "log"),
+    keep = FALSE,
+    alpha = 1,  # 0 == ridge regression, 1 == lasso, 0.5 ~~ elastic net
+    lambda = lambdas, 
+    #nlambda = 100,
+    type.measure="mse",
+    #penalty.factor = pen_facts,
+    #foldid = my_folds,
+    #thresh = thresh,
+    standardize = FALSE, ## scales variables prior to the model sequence... coefficients are always returned on the original scale
+    parallel = TRUE
+    )
+    base::saveRDS(fit, paste0("../ModelFitting/models/", response, "_globalLASSOmod_gammaLogLink_",ecoregion, "_noTLP_",removeTLP,"_kFoldDefault.rds"))
+  
+  } else {
+    fit <- readRDS(paste0("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/", response, "_globalLASSOmod_gammaLogLink_",ecoregion, "_noTLP_",removeTLP,"_kFoldDefault.rds"))
+  }
+}
+
   
   # assess model fit
   # assess.glmnet(fit$fit.preval, #newx = X[,2:293], 
@@ -1333,7 +1407,7 @@ plotObs_2 <- plotObs %>%
            min(tempExt[,2]), max(tempExt[,2])) 
        )
 # make figures
-ggplot() +
+map_obs <- ggplot() +
 geom_spatraster(data = plotObs_2) + 
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
@@ -1345,6 +1419,11 @@ labs(title = paste0("Observations of ", response, " in the ",ecoregion, " ecoreg
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
+hist_obs <- ggplot(pred_glm1) + 
+  geom_histogram(aes(.data[[response]]), fill = "lightgrey", col = "darkgrey")
+
+library(ggpubr)
+ggarrange(map_obs, hist_obs, heights = c(3,1), ncol = 1)
 ```
 
 Predictions across the temporal range of the dataset
@@ -1377,7 +1456,7 @@ plotPred_2 <- plotPred %>%
            min(tempExt[,2]), max(tempExt[,2])) 
        )
 # make figures
-ggplot() +
+map_preds1 <- ggplot() +
 geom_spatraster(data = plotPred_2) + 
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA )  + 
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
@@ -1391,6 +1470,12 @@ labs(title = paste0("Predictions from the 'best lambda' fitted model of ", respo
                        limits = c(0,100)) + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
+
+hist_preds1 <- ggplot(pred_glm1) + 
+  geom_histogram(aes(.data[[paste0(response, "_pred")]]), fill = "lightgrey", col = "darkgrey")+ 
+  xlim(c(0,100))
+
+ggarrange(map_preds1, hist_preds1, heights = c(3,1), ncol = 1)
 ```
 
 ```{r predicted values map 1se lambda model, fig.height = 7, fig.width = 9, }
@@ -1422,7 +1507,7 @@ plotPred_2 <- plotPred %>%
            min(tempExt[,2]), max(tempExt[,2])) 
        )
 # make figures
-ggplot() +
+map_preds2 <- ggplot() +
 geom_spatraster(data = plotPred_2) + 
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA )  + 
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
@@ -1436,6 +1521,12 @@ labs(title = paste0("Predictions from the '1SE lambda' fitted model of ", respon
                        limits = c(0,100)) + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
+
+hist_preds2 <- ggplot(pred_glm1_1se) + 
+  geom_histogram(aes(.data[[paste0(response, "_pred")]]), fill = "lightgrey", col = "darkgrey")+ 
+  xlim(c(0,100))
+
+ggarrange(map_preds2, hist_preds2, heights = c(3,1), ncol = 1)
 ```
 
 Residuals across the entire temporal extent of the dataset
@@ -1476,7 +1567,7 @@ geom_spatraster(data =plotResid_rast_2) +
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
   geom_sf(data = badResids_high, col = "blue") +
   geom_sf(data = badResids_low, col = "red") +
-labs(title = paste0("Resids. (obs. - pred.) from Grass/shrub ecoregion-wide model of ", response),
+labs(title = paste0("Resids. (obs. - pred.) from the ", ecoregion," ecoregion-wide model of ", response),
      subtitle = "bestLambda model \n red points indicate locations that have residuals below -100 \n blue points indicate locatiosn that have residuals above 100") +
   scale_fill_gradient2(low = "red",
                        mid = "white" ,
@@ -1492,7 +1583,6 @@ hist <- ggplot(pred_glm1) +
   geom_text(aes(x = max(resid)*.9, y = 1500, label = paste0("max = ", round(max(resid),2)))) + 
   geom_vline(aes(xintercept = mean(resid)))
 
-library(ggpubr)
 ggarrange(map, hist, heights = c(3,1), ncol = 1)
 ```
 
@@ -1533,7 +1623,7 @@ geom_spatraster(data =plotResid_rast_2) +
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
   geom_sf(data = badResids_high, col = "blue") +
   geom_sf(data = badResids_low, col = "red") +
-labs(title = paste0("Resids. (obs. - pred.) from Grass/shrub ecoregion-wide model of ", response),
+labs(title = paste0("Resids. (obs. - pred.) from the ", ecoregion," ecoregion-wide model of ", response),
      subtitle = paste0(name_secondBestMod,"\n red points indicate locations that have residuals below -100 \n blue points indicate locatiosn that have residuals above 100")) +
   scale_fill_gradient2(low = "red",
                        mid = "white" ,
@@ -1588,7 +1678,7 @@ longResidMod_bestLambda <- ggplot(pred_glm1) +
   geom_smooth(aes(x = Long, y = resid)) + 
   xlab("Longitude") + 
   ylab("Residuals") +
-  ggtitle(paste0("from ", name_secondBestMod))
+  ggtitle("from best lamba model")
 longResidMod_1seLambda <- ggplot(pred_glm1_1se) + 
   geom_point(aes(x = Long, y = resid), alpha = .1) + 
   geom_smooth(aes(x = Long, y = resid)) + 
