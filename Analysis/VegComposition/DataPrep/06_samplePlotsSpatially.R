@@ -462,7 +462,7 @@ test7 <- test5 %>%
   mutate(x = st_coordinates(.)[,1],
          y = st_coordinates(.)[,2]) %>% 
   st_buffer(400) %>% 
-  sf::st_join(climSFa, join = st_nearest_feature)
+  sf::st_join(climSF, join = st_nearest_feature)
 
 # test8 <- test7 %>%
 #   filter(!is.na(TotalHerbaceousCover)) %>%

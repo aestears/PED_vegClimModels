@@ -15,6 +15,7 @@ library(terra)
 
 # data ready for model fitting
 #modDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_sf.rds")
+
 modDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_sf.rds")
 modDat %>% 
   st_drop_geometry() %>% 

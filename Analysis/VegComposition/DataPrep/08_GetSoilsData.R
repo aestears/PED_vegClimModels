@@ -158,6 +158,7 @@ vegSoils_df <- soilRast %>%
   as.data.frame()
 
 # calculate soils variables w/ cover data ---------------------------------
+names(vegSoils_df)[c(186, 187)] <- c("x_UTM", "y_UTM")
 vegSoils_new <- 
   vegSoils_df %>% 
   dplyr::mutate(
@@ -393,7 +394,7 @@ temp <- vegSoils_new %>%
 
 # remove unnecessary soils variables 
   vegSoils_final <- vegSoils_new %>% 
-    select(-c(clayPerc_2cm:y))
+    select(-c(clayPerc_2cm:organicCarbonPerc_176cm))
   
   
   ## drop data points for which there are no climate variables (prior to 2000)
@@ -435,14 +436,14 @@ temp <- vegSoils_new %>%
   #vegSoils_final <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
 
   
- plot(newFinalDat$tmean, 
-      newFinalDat$tmin_annAvg)
- 
- newFinalDat %>% 
-   filter(!is.na(TotalHerbaceousCover)) %>% 
-   ggplot() + 
-   facet_wrap(~Year) + 
-   geom_point(aes(x = Long, y = Lat))
+ # plot(newFinalDat$tmean, 
+ #      newFinalDat$tmin_annAvg)
+ # 
+ # newFinalDat %>% 
+ #   filter(!is.na(TotalHerbaceousCover)) %>% 
+ #   ggplot() + 
+ #   facet_wrap(~Year) + 
+ #   geom_point(aes(x = Long, y = Lat))
  
    
   
