@@ -28,8 +28,9 @@ modDat %>%
 # get level 1 and 2 ecoregion shapefiles
 regions <- sf::st_read(dsn = "./Data_raw/Level2Ecoregions/", layer = "NA_CEC_Eco_Level2") 
 
-# ggplot(regions[200:400,]) + 
-#   geom_sf(aes(col = NA_L1NAME))
+# ggplot(regions[200:400,]) +
+#   geom_sf(aes(col = NA_L1NAME)) + 
+#   geom_point(data = modDat, aes(x, y))
 # ensure projections are the same -----------------------------------------
 # want them both to have this same crs as below
 test_rast <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif")
@@ -39,12 +40,12 @@ regions_2 <- st_transform(regions, crs = st_crs(test_rast)) %>%
 crs(test_rast) == crs(regions_2)
 
 # transform modDat to sf to later use st_join
-modDat_2 <- st_as_sf(modDat, coords = c("Lon", "Lat"))
-modDat_2 <- st_transform(modDat_2, crs = st_crs(test_rast))
+#modDat_2 <- st_as_sf(modDat, coords = c("Lon", "Lat"))
+modDat_2 <- st_transform(modDat, crs = st_crs(test_rast))
 
 crs(regions_2) == crs(modDat_2)
 
-#mapview(regions_2 %>% slice_sample(n = 10000)) + mapview(modDat_2 %>% slice_sample(n = 10000))
+mapview(regions_2 %>% slice_sample(n = 10000)) + mapview(modDat_2 %>% slice_sample(n = 10000))
 
 
 ## drop those values that don't have any climate data (pre-1980)
@@ -56,6 +57,9 @@ badRows <- (duplicated(modDat_3[,1:105]))
 modDat_3_noDups <- modDat_3[!badRows,]
 
 # missing for places right on the coast... but not a big deal to not have those
+
+ggplot(modDat_3) + 
+  geom_point(aes(x, y, col = NA_L2NAME))
 
 # group into coarser ecoregions -------------------------------------------
 # make a lookup table

@@ -8,8 +8,8 @@
 # load packages -----------------------------------------------------------
 
 library(tidyverse)
-
-
+library(sf)
+library(ggpubr)
 # load data  -------------------------------------------------------------- use
 # data before climate values are added, so that we can tell how much of
 # potential data we're losing when we use different climate cutoffs

@@ -8,13 +8,13 @@ output:
     df_print: paged
     code_folding: hide
 params:
-  run: FALSE      
-  test_run: false
-  save_figs: false
-  ecoregion:   CONUS         
-  response: CAMCover
+  run: TRUE      
+  test_run: FALSE
+  save_figs: FALSE
+  ecoregion:   eastForest         
+  response: ShrubCover
   removeTexasLouisianaPlain: FALSE
-  trimAnomalies: FALSE
+  trimAnomalies: TRUE
   autoKfold: FALSE
 subtitle: "Based on code from Martin Holdrege's Sagebrush-Fire paper"
 ---
@@ -466,74 +466,8 @@ df_sample_plots <-  modDat_1_s  %>%
 
 # Model Fitting
 
-## Visualize the level 2 ecoregions and how they differ across environmental space
-```{r Visualize ecoregion distribution, fig.height=10, fig.width=14, message=FALSE, warning=FALSE}
-## visualize the variation between groups across environmental space
-
-## do a pca of climate across level 2 ecoregions
-pca <- prcomp(modDat_1_s[,paste0(prednames)])
-library(factoextra)
-(fviz_pca_ind(pca, habillage = modDat_1_s$NA_L2NAME, label = "none", addEllipses = TRUE, ellipse.level = .95, ggtheme = theme_minimal(), alpha.ind = .1))
-
-if (ecoregion == "shrubGrass") {
-  print("We'll combine the 'Mediterranean California' and 'Western Sierra Madre Piedmont' ecoregions (into 'Mediterranean Piedmont'). We'll also combine `Tamaulipas-Texas semiarid plain,' 'Texas-Lousiana Coastal plain,' and 'South Central semiarid prairies' ecoregions (into (`Semiarid plain and prairies`)." )
-  
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "WESTERN SIERRA MADRE PIEDMONT"), "NA_L2NAME"] <- "MEDITERRANEAN PIEDMONT"
-  
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("TAMAULIPAS-TEXAS SEMIARID PLAIN", "TEXAS-LOUISIANA COASTAL PLAIN", "SOUTH CENTRAL SEMIARID PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES"
- 
-    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND WEST COAST FOREST"
-  
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "UPPER GILA MOUNTAINS"), "NA_L2NAME"] <- "MEDITERRANEAN CALIFORNIA AND UPPER GILA MOUNTAINS"
-
-modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS"
-  
-} else if (ecoregion == "CONUS") {
-  
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND WEST COAST FOREST"
-  
-   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS"
-  
-   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "UPPER GILA MOUNTAINS"), "NA_L2NAME"] <- "MEDITERRANEAN CALIFORNIA AND UPPER GILA MOUNTAINS"
-  
-   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS", "SOUTHEASTERN USA PLAINS",  "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN AND MIXED WOOD PLAINS"
-   
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("SOUTH CENTRAL SEMIARID PRAIRIES", "TEXAS-LOUISIANA COASTAL PLAIN"), "NA_L2NAME"] <- "SOUTH CENTRAL SEMIARID PRAIRIES"
-} else if (ecoregion == "forest"  & response != "CAMCover") {
-   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "EVERGLADES"), "NA_L2NAME"] <- "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS	AND EVERGLADES"
-   
-   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("UPPER GILA MOUNTAINS", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS"
-   
-   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS\tAND EVERGLADES", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS"
-   
-   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("ATLANTIC HIGHLANDS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "HIGHLANDS AND APPALACHIAN FORESTS"
-   
-   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("CENTRAL USA PLAINS", "MIXED WOOD PLAINS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOOD PLAINS"
-   
-} else if (ecoregion == "forest" & response == "CAMCover") {
-  
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
-    
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "MARINE WEST COAST AND WESTERN CORDILLERA"
-    
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
-} else if (ecoregion == "eastForest") {
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("EVERGLADES", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"
-
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "CENTRAL USA PLAINS"), "NA_L2NAME"] <- "MIXED WOOD AND CENTRAL USA PLAINS"
-  
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD SHIELD", "ATLANTIC HIGHLANDS"), "NA_L2NAME"] <- "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD"
-}
-# make a table of n for each region
-modDat_1_s %>% 
-  group_by(NA_L2NAME) %>% 
-  dplyr::summarize("Number_Of_Observations" = length(NA_L2NAME)) %>% 
-  rename("Level_2_Ecoregion" = NA_L2NAME)%>% 
-  kable() %>%
-kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
-
-```
-If there are observations in Louisiana, sub-sample them so they're not so over-represented in the dataset
+## Visualize the spatial blocks and how they differ across environmental space
+First, if there are observations in Louisiana, sub-sample them so they're not so over-represented in the dataset
 ```{r}
 ## make data into spatial format
 modDat_1_sf <- modDat_1_s %>% 
@@ -554,13 +488,14 @@ cropped_states <- suppressMessages(state_boundaries_wgs84 %>%
   sf::st_sf() %>%
   sf::st_transform(sf::st_crs(modDat_1_sf))) #%>%
   #sf::st_crop(sf::st_bbox(modDat_1_sf)+c(-1,-1,1,1))
-if (ecoregion %in% c("Forest", "eastForest")){
+if (ecoregion %in% c("Forest", "eastForest", "forest")){
 modDat_1_s$uniqueID <- 1:nrow(modDat_1_s)
 modDat_1_sf$uniqueID <- 1:nrow(modDat_1_sf)
 
 # find which observations overlap with Louisiana
-obs_LA_temp <- st_intersects(modDat_1_sf, cropped_states[cropped_states$NAME == "Louisiana",], sparse = FALSE) 
-obs_LA_1 <- modDat_1_sf[which(obs_LA_temp == TRUE, arr.ind = TRUE)[,1],]
+obs_LA_temp <- st_intersects(modDat_1_sf, cropped_states[cropped_states$NAME == "Louisiana",], sparse = FALSE)
+if (sum(obs_LA_temp) > 0) {
+ obs_LA_1 <- modDat_1_sf[which(obs_LA_temp == TRUE, arr.ind = TRUE)[,1],]
 # now, find only those within the oversampled area (near the coast)
 dims <- c(xmin = 730439.1, xmax = 1042195.5, ymax = -1222745.2, ymin = -1390430.9)
 badBox <- st_bbox(dims) %>% 
@@ -571,21 +506,181 @@ obs_LA_temp2 <- st_intersects(obs_LA_1, badBox, sparse = FALSE)
 obs_LA_2 <- obs_LA_1[which(obs_LA_temp2 == TRUE, arr.ind = TRUE)[,1],]
 
 # subsample so there aren't so many 
-# get every 3rd observation
-obs_LA_sampled <- obs_LA_2[seq(from = 1, to = nrow(obs_LA_2), by = 6),]
+# get every 7th observation
+obs_LA_sampled <- obs_LA_2[seq(from = 1, to = nrow(obs_LA_2), by = 10),]
 # remove observations that aren't sampled from the larger dataset
 obsToRemove <- obs_LA_2[!(obs_LA_2$uniqueID %in% obs_LA_sampled$uniqueID),]
 
 modDat_1_sf <- modDat_1_sf[!(modDat_1_sf$uniqueID %in% obsToRemove$uniqueID),]
-modDat_1_s <- modDat_1_s[!(modDat_1_s$uniqueID %in% obsToRemove$uniqueID),]
-
+modDat_1_s <- modDat_1_s[!(modDat_1_s$uniqueID %in% obsToRemove$uniqueID),] 
+}
+# 
 # ggplot() +
 #   geom_sf(data = cropped_states[cropped_states$NAME == "Louisiana",]) +
 #  geom_sf(data = obs_LA_1, col = "black") +
-#   geom_sf(data = modDat_1_sf, col = "red", pch = 20)   
+#   geom_sf(data = modDat_1_sf, col = "red", pch = 20) +
+#   $geom_hline(aes(yintercept = -590062))
+  #ylim(c(-1390431, -1222745)) +
+  #xlim(c(730439.1, 1042196))
 }
 
 ```
+
+```{r Visualize ecoregion distribution, fig.height=10, fig.width=14, message=FALSE, warning=FALSE}
+
+## do a pca of climate across level 2 ecoregions
+pca <- prcomp(modDat_1_s[,paste0(prednames)])
+library(factoextra)
+(fviz_pca_ind(pca, habillage = modDat_1_s$NA_L2NAME, label = "none", addEllipses = TRUE, ellipse.level = .95, ggtheme = theme_minimal(), alpha.ind = .1))
+
+if (ecoregion == "shrubGrass") {
+  print("We'll combine the 'Mediterranean California' and 'Western Sierra Madre Piedmont' ecoregions (into 'Mediterranean Piedmont'). We'll also combine `Tamaulipas-Texas semiarid plain,' 'Texas-Lousiana Coastal plain,' and 'South Central semiarid prairies' ecoregions (into (`Semiarid plain and prairies`)." )
+  
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "WESTERN SIERRA MADRE PIEDMONT"), "NA_L2NAME"] <- "MEDITERRANEAN PIEDMONT"
+  
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("TAMAULIPAS-TEXAS SEMIARID PLAIN", "TEXAS-LOUISIANA COASTAL PLAIN", "SOUTH CENTRAL SEMIARID PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES"
+ 
+    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND WEST COAST FOREST"
+  
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "UPPER GILA MOUNTAINS"), "NA_L2NAME"] <- "MEDITERRANEAN CALIFORNIA AND UPPER GILA MOUNTAINS"
+
+modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS"
+#////
+modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "WESTERN SIERRA MADRE PIEDMONT"), "NA_L2NAME"] <- "MEDITERRANEAN PIEDMONT"
+  
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("TAMAULIPAS-TEXAS SEMIARID PLAIN", "TEXAS-LOUISIANA COASTAL PLAIN", "SOUTH CENTRAL SEMIARID PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES"
+ 
+    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND WEST COAST FOREST"
+  
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "UPPER GILA MOUNTAINS"), "NA_L2NAME"] <- "MEDITERRANEAN CALIFORNIA AND UPPER GILA MOUNTAINS"
+
+modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS"
+ if (response == "CAMCover") {
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN PIEDMONT", "SEMIARID PLAIN AND PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES AND PIEDMONT"
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MEDITERRANEAN PIEDMONT", "SEMIARID PLAIN AND PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES AND PIEDMONT"
+ }  
+
+} else if (ecoregion == "CONUS") {
+  
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND WEST COAST FOREST"
+  
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS"
+  
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "UPPER GILA MOUNTAINS"), "NA_L2NAME"] <- "MEDITERRANEAN CALIFORNIA AND UPPER GILA MOUNTAINS"
+  
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS", "SOUTHEASTERN USA PLAINS",  "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN AND MIXED WOOD PLAINS"
+   
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("SOUTH CENTRAL SEMIARID PRAIRIES", "TEXAS-LOUISIANA COASTAL PLAIN"), "NA_L2NAME"] <- "SOUTH CENTRAL SEMIARID PRAIRIES"
+  #///
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND WEST COAST FOREST"
+  
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS"
+  
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "UPPER GILA MOUNTAINS"), "NA_L2NAME"] <- "MEDITERRANEAN CALIFORNIA AND UPPER GILA MOUNTAINS"
+  
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS", "SOUTHEASTERN USA PLAINS",  "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN AND MIXED WOOD PLAINS"
+   
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("SOUTH CENTRAL SEMIARID PRAIRIES", "TEXAS-LOUISIANA COASTAL PLAIN"), "NA_L2NAME"] <- "SOUTH CENTRAL SEMIARID PRAIRIES"
+  
+} else if (ecoregion == "forest"  & response != "CAMCover") {
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "EVERGLADES"), "NA_L2NAME"] <- "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS	AND EVERGLADES"
+   
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("UPPER GILA MOUNTAINS", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS"
+   
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS\tAND EVERGLADES", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS"
+   
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("ATLANTIC HIGHLANDS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "HIGHLANDS AND APPALACHIAN FORESTS"
+   
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("CENTRAL USA PLAINS", "MIXED WOOD PLAINS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOOD PLAINS"
+   
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD SHIELD", "CENTRAL AND MIXED WOOD PLAINS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOOD PLAINS AND MIXED WOOD SHIELD"
+   
+       ## divide southeastern US plains into two regions, since it's by far the largest group
+  modDat_1_s[modDat_1_s$NA_L2NAME == "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS" &
+               modDat_1_s$Long < -966595#-1773969
+               , "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"
+  modDat_1_s[modDat_1_s$NA_L2NAME == "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS", "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 2"
+   #///
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "EVERGLADES"), "NA_L2NAME"] <- "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS	AND EVERGLADES"
+   
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("UPPER GILA MOUNTAINS", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS"
+   
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS\tAND EVERGLADES", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS"
+   
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("ATLANTIC HIGHLANDS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "HIGHLANDS AND APPALACHIAN FORESTS"
+   
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("CENTRAL USA PLAINS", "MIXED WOOD PLAINS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOOD PLAINS"
+   
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD SHIELD", "CENTRAL AND MIXED WOOD PLAINS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOOD PLAINS AND MIXED WOOD SHIELD"
+          ## divide southeastern US plains into two regions, since it's by far the largest group
+  modDat_1_sf[modDat_1_sf$NA_L2NAME == "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS" &
+              st_coordinates(modDat_1_sf)[,1] < -966595#-1773969
+                , ]$NA_L2NAME <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"
+  modDat_1_sf[modDat_1_sf$NA_L2NAME == "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS", "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 2"
+} else if (ecoregion == "forest" & response == "CAMCover") {
+  
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
+    
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "MARINE WEST COAST AND WESTERN CORDILLERA"
+    
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
+  
+  #///
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
+    
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "MARINE WEST COAST AND WESTERN CORDILLERA"
+    
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
+  
+} else if (ecoregion == "eastForest") {
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("EVERGLADES", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"
+
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS","CENTRAL USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN AND CENTRAL USA PLAINS"
+
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD SHIELD", "ATLANTIC HIGHLANDS"), "NA_L2NAME"] <- "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD"
+
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD"), "NA_L2NAME"] <- "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD AND PLAINS"
+
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("SOUTHEASTERN AND CENTRAL USA PLAINS", "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD AND PLAINS"), "NA_L2NAME"] <- "PLAINS AND HIGHLANDS AND SHIELD"
+
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND COAST"
+
+  # #////
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("EVERGLADES", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"
+
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS","CENTRAL USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN AND CENTRAL USA PLAINS"
+  
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD SHIELD", "ATLANTIC HIGHLANDS"), "NA_L2NAME"] <- "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD"
+  
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD"), "NA_L2NAME"] <- "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD AND PLAINS"
+  
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("SOUTHEASTERN AND CENTRAL USA PLAINS", "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD AND PLAINS"), "NA_L2NAME"] <- "PLAINS AND HIGHLANDS AND SHIELD"
+  
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND COAST"
+  
+   ## divide southeastern US plains into two regions, since it's by far the largest group
+  # modDat_1_s[modDat_1_s$NA_L2NAME == "SOUTHEASTERN USA PLAINS" &
+  #              modDat_1_s$Lat < -590062, "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS 1"
+  # modDat_1_s[modDat_1_s$NA_L2NAME == "SOUTHEASTERN USA PLAINS", #&
+  #             # modDat_1_s$Lat < -590062,
+  #            "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS 2"
+
+  #   ## divide southeastern US plains into two regions, since it's by far the largest group
+  # modDat_1_s[modDat_1_s$NA_L2NAME == "OZARK/OUACHITA-APPALACHIAN FORESTS" &
+  #              modDat_1_s$Long < 854862.2, "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS 1"
+  # modDat_1_s[modDat_1_s$NA_L2NAME == "OZARK/OUACHITA-APPALACHIAN FORESTS" &
+  #              modDat_1_s$Long  >=   854862.2, "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS 2"
+}
+# make a table of n for each region
+modDat_1_s %>% 
+  group_by(NA_L2NAME) %>% 
+  dplyr::summarize("Number_Of_Observations" = length(NA_L2NAME)) %>% 
+  rename("Level_2_Ecoregion" = NA_L2NAME)%>% 
+  kable() %>%
+kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+```
+
 
 
 ## Then, look at the spatial distribution and environmental characteristics of the grouped ecoregions 
@@ -631,10 +726,10 @@ plot2<-ggplot(data=modDat_1_sf %>%
  
 library(patchwork)
 (combo <- (map1+plot1)/plot2) 
-
-# ggplot(data = modDat_1_s) + 
-#   geom_density(aes(ShrubCover_transformed, col = NA_L2NAME)) + 
-#   xlim(c(0,25))
+# 
+# ggplot(data = modDat_1_s) +
+#   geom_density(aes(ShrubCover_transformed, col = NA_L2NAME)) +
+#   xlim(c(0,100))
 
 ```
 
@@ -653,9 +748,8 @@ library(patchwork)
 ```{r fit global model, echo = FALSE}
   # Fit model 
   # penalty values
-  lambdas <- 10^seq(1,-7, length.out = 200)  # sequence of penalties to test
+  lambdas <- 10^seq(1,-5, length.out = 200)  # sequence of penalties to test
  
-  
   # make model matrix (which includes transformations and interactions)
   ## only include interactions within and between climate and anomaly variables, and within and between soils variables
 
@@ -690,13 +784,13 @@ library(patchwork)
   
   # make text string of transformations (log, squared)
   transform_string <- str_flatten(c(# add square root term 
-                                    paste0("I(log(",prednames_clim,"+20))"), 
-                                    paste0("I(log(",prednames_weath,"+20))"),
-                                    paste0("I(log(",prednames_soils,"+20))"),
+                                    paste0("I(log(",prednames_clim,"+30))"), 
+                                    paste0("I(log(",prednames_weath,"+30))"),
+                                    paste0("I(log(",prednames_soils,"+30))"),
                                     
-                                    paste0("I(sqrt(",prednames_clim,"+20))"), 
-                                    paste0("I(sqrt(",prednames_weath,"+20))"),
-                                    paste0("I(sqrt(",prednames_soils,"+20))"),
+                                    paste0("I(sqrt(",prednames_clim,"+30))"), 
+                                    paste0("I(sqrt(",prednames_weath,"+30))"),
+                                    paste0("I(sqrt(",prednames_soils,"+30))"),
                                     
                                     paste0("I(",prednames_clim,"^2)"), 
                                     paste0("I(",prednames_weath,"^2)"),
@@ -781,14 +875,15 @@ if (autoKfold == FALSE) {
     family = stats::Gamma(link = "log"),
     keep = FALSE,
     alpha = 1,  # 0 == ridge regression, 1 == lasso, 0.5 ~~ elastic net
-    lambda = lambdas, 
-    #nlambda = 100,
+    #lambda = lambdas, 
+    nlambda = 50,
     type.measure="mse",
     #penalty.factor = pen_facts,
     foldid = my_folds,
     #thresh = thresh,
     standardize = FALSE, ## scales variables prior to the model sequence... coefficients are always returned on the original scale
-    parallel = TRUE
+    parallel = TRUE#, 
+    #relax = ifelse(response == "ShrubCover", yes = TRUE, no = FALSE)
     )
     base::saveRDS(fit, paste0("../ModelFitting/models/", response, "_globalLASSOmod_gammaLogLink_",ecoregion, "_noTLP_",removeTLP,".rds"))
   
@@ -808,8 +903,9 @@ if (autoKfold == FALSE) {
     y = y, 
     family = stats::Gamma(link = "log"),
     keep = FALSE,
-    alpha = 1,  # 0 == ridge regression, 1 == lasso, 0.5 ~~ elastic net
-    lambda = lambdas, 
+    alpha = .5,  # 0 == ridge regression, 1 == lasso, 0.5 ~~ elastic net
+    lambda = lambdas,
+    relax = ifelse(response == "ShrubCover", yes = TRUE, no = FALSE),
     #nlambda = 100,
     type.measure="mse",
     #penalty.factor = pen_facts,
@@ -825,7 +921,6 @@ if (autoKfold == FALSE) {
   }
 }
 
-  
   # assess model fit
   # assess.glmnet(fit$fit.preval, #newx = X[,2:293], 
   #               newy = y, family = stats::Gamma(link = "log"))
@@ -839,6 +934,7 @@ if (autoKfold == FALSE) {
   print(fit)     
   
   plot(fit)
+
 ```
 
 Now, we need to do stability selection to ensure the coefficients that are being chosen with each lambda are stable 
@@ -956,7 +1052,7 @@ if (trimAnom == TRUE) {
   # get unique predictors
   bestLamb_all<- bestLambda_coef$VariableName %>% #[str_detect(bestLambda_coef$VariableName, pattern = "_anom_s")] %>% 
     str_remove(pattern = "I\\(") %>% 
-    str_remove(pattern = "_s\\^2\\)") %>% 
+    str_remove(pattern = "\\^2\\)") %>% 
     str_split(pattern = ":", simplify = TRUE) 
   if (ncol(bestLamb_all) == 1) {
     bestLamb_all <- unique(bestLamb_all)

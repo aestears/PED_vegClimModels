@@ -439,7 +439,7 @@ climDat$uniqueID <- c(1:nrow(climDat))
 # make points for "locID" in a single year into a raster
 climSF <- climDat %>% 
   dplyr::filter(year == as.integer(2011)) %>% 
-  sf::st_as_sf(coords = c("Long", "Lat"), crs = st_crs(test)) %>%
+  sf::st_as_sf(coords = c("Long", "Lat"), crs = "PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]") %>%
   sf::st_transform(crs = crs(test)) %>% 
   select(locID)
 
@@ -453,12 +453,27 @@ test5 <- readRDS("./Data_processed/CoverData/spatiallyAverageData_intermediate_t
 #   facet_wrap(~Year) + 
 #   geom_point(aes(x = x, y = y))
 
-#Add in the 'locID' column from the climSF data.frame
-test7 <- test5 %>%
+#plot(test5$x, test5$y)
+
+# udpate CRS of test5 
+test5 <- test5 %>%
   #slice_sample(n = 1000) %>% 
   rename(Lon = x, Lat = y) %>% 
-  sf::st_as_sf(coords = c("Lon", "Lat"), crs = st_crs(dat2)) %>%
-  st_transform(crs(test)) %>% 
+  sf::st_as_sf(coords = c("Lon", "Lat"), crs = st_crs(dat2)) #%>%
+  #st_transform(crs(test)) 
+st_crs(test5) <- st_crs(test)
+
+plot(climSF$geometry)
+points(test5$geometry, col = "red")
+
+crs(climSF) == crs(test5)
+
+#Add in the 'locID' column from the climSF data.frame
+test7 <- test5 %>%
+#   #slice_sample(n = 1000) %>% 
+#   rename(Lon = x, Lat = y) %>% 
+#   sf::st_as_sf(coords = c("Lon", "Lat"), crs = st_crs(dat2)) %>%
+#   st_transform(crs(test)) %>% 
   mutate(x = st_coordinates(.)[,1],
          y = st_coordinates(.)[,2]) %>% 
   st_buffer(400) %>% 
@@ -481,12 +496,15 @@ allDat_avg <- test7 %>%
 saveRDS(allDat_avg, "./Data_processed/CoverData/DataForModels_spatiallyAveraged_sf.rds")
 saveRDS(st_drop_geometry(allDat_avg), "./Data_processed/CoverData/DataForModels_spatiallyAveraged_NoSf.rds")
 
+# allDat_avg <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_sf.rds")
+# allDat_avg %>% 
+#   st_drop_geometry() %>% 
+#   filter(!is.na(TotalHerbaceousCover)) %>% 
 allDat_avg %>% 
-  st_drop_geometry() %>% 
-  filter(!is.na(TotalHerbaceousCover)) %>% 
+  #filter(Year == 2012) %>% 
   ggplot() +
-  facet_wrap(~Year) +
-  geom_point(aes(x = Long, y = Lat))
+  #facet_wrap(~Year) +
+  geom_point(aes(x = x, y = y, color = TotalHerbaceousCover))
   #geom_point(aes(x = Long, y = Lat))
 
 # allDat_avg <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_NoSf.rds")
