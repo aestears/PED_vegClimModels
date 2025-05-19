@@ -1057,7 +1057,7 @@ If prompted to do so by the input arguments, remove any predictors that are for 
 ```{r}
 if (trimAnom == TRUE) {
   # get unique predictors
-  bestLamb_all<- bestLambda_coef$VariableName %>% #[str_detect(bestLambda_coef$VariableName, pattern = "_anom_s")] %>% 
+  bestLamb_all <- bestLambda_coef$VariableName %>% #[str_detect(bestLambda_coef$VariableName, pattern = "_anom_s")] %>% 
     str_remove(pattern = "I\\(") %>% 
     str_remove(pattern = "\\^2\\)") %>% 
     str_split(pattern = ":", simplify = TRUE) 
@@ -1072,7 +1072,7 @@ if (trimAnom == TRUE) {
   # get climate
    bestLamb_clim <- bestLamb_all[bestLamb_all %in% prednames_clim]
   # which anomalies are present in the predictors, but their corresponding climate variable isn't
-   bestLamb_anomsWithMissingClim <- bestLamb_anom[!(str_remove(bestLamb_anom, "_anom_s") %in%  str_remove(bestLamb_clim, "_s"))]
+   bestLamb_anomsWithMissingClim <- bestLamb_anom[!(str_remove(bestLamb_anom, "_anom") %in% bestLamb_clim)]
    # remove anomalies (and all interaction terms w/ those anomalies) from the predictor list
 
    if (length(bestLamb_anomsWithMissingClim) != 0) {
@@ -1104,7 +1104,7 @@ if (trimAnom == TRUE) {
   # get climate
    seLamb_clim <- seLamb_all[seLamb_all %in% prednames_clim]
   # which anomalies are present in the predictors, but their corresponding climate variable isn't
-   seLamb_anomsWithMissingClim <- seLamb_anom[!(str_remove(seLamb_anom, "_anom_s") %in%  str_remove(seLamb_clim, "_s"))]
+   seLamb_anomsWithMissingClim <- seLamb_anom[!(str_remove(seLamb_anom, "_anom") %in%  seLamb_clim)]
    # remove anomalies (and all interaction terms w/ those anomalies) from the predictor list
       if (length(seLamb_anomsWithMissingClim) != 0) {
     seLambda_coef_NEW <- seLambda_coef
@@ -1135,7 +1135,7 @@ if (trimAnom == TRUE) {
   # get climate
    halfseLambclim <- halfseLamball[halfseLamball %in% prednames_clim]
   # which anomalies are present in the predictors, but their corresponding climate variable isn't
-   halfseLambanomsWithMissingClim <- halfseLambanom[!(str_remove(halfseLambanom, "_anom_s") %in%  str_remove(halfseLambclim, "_s"))]
+   halfseLambanomsWithMissingClim <- halfseLambanom[!(str_remove(halfseLambanom, "_anom_s") %in%  halfseLambclim)]
    # remove anomalies (and all interaction terms w/ those anomalies) from the predictor list
 
    
