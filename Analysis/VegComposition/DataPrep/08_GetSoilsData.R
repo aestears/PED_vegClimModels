@@ -431,6 +431,10 @@ temp <- vegSoils_new %>%
   
   # save data  --------------------------------------------------------------
 
+  # newFinalDat[newFinalDat$precip_driestMonth_meanAnnAvg_3yr == newFinalDat$precip_driestMonth_meanAnnAvg_CLIM, 
+  #            c("precip_driestMonth_meanAnnAvg_3yrAnom")
+  #           ] <- 0
+  
   saveRDS(newFinalDat, 
           "./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
   #vegSoils_final <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")

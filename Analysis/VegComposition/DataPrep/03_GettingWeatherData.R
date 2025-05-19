@@ -604,6 +604,29 @@ saveRDS(climVar, file = "./Data_raw/dayMet/climateValuesForAnalysis_monthly.rds"
 #climVar <- readRDS(file="./Data_raw/dayMet/climateValuesForAnalysis_monthly.rds")
 
 
+
+# fix issue w/ prcp_seasonality and prcpTempCorr --------------------------
+# precip seasonality
+# Plot annual precip against precip seasonality to see what the values look like as it approaches 0… 
+# climVar %>% 
+#   slice_sample(n = 500000) %>% 
+#   ggplot() +
+#   geom_point(aes(x = totalAnnPrecip, y = precip_Seasonality), alpha = .3) + 
+#   geom_smooth(aes(y = precip_Seasonality, x = totalAnnPrecip))
+# as precip gets closer to 0, seasonality goes up (the average is 2), so that's what I'll change the NA values to 
+climVar[is.na(climVar$precip_Seasonality), "precip_Seasonality"] <- 2
+
+# precip temp corr
+#It would make sense to change this to 0 (as we approach 0 precip, it seems likely that precip and temp are uncorrelated) 
+# climVar %>%
+#   slice_sample(n = 500000) %>%
+#   ggplot() +
+#   geom_point(aes(x = tmean, y = PrecipTempCorr), alpha = .3) +
+#   geom_smooth(aes(y = PrecipTempCorr, x = tmean))
+
+#with low precip, the correlation is close to zero, but actually a bit below... will change to -.25
+climVar[is.na(climVar$PrecipTempCorr), "PrecipTempCorr"] <- -.25
+  
 # calculate sliding window inter-annual climate means ----------------------
 
 ## calculate MAP and MAT over past years (a sliding window?)
@@ -795,35 +818,34 @@ testNew <- readRDS("./Data_processed/CoverData/dayMet_intermediate/climVars_Annu
 rm(climVar)
 gc()
 
-
-#### calculate anomalies ####
+# calculate anomalies -----------------------------------------------------
 # i.e. how do the 10 yr. lagged values compare to the 30yr lagged values? 5 yr? previous yr? 
 # compare 10 yr values to 30 yr values
 # visualize climate variables
-testNew %>% 
-  drop_na() %>% 
-  slice_sample(n = 10000) %>% 
-  select(tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM, year) %>% 
-  pivot_longer(cols = tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM,
-               names_to = "variable",
-               values_to = "value"
-  ) %>% 
-  ggplot() +
-  facet_wrap(~variable, scales = "free") +
-  geom_density(aes(value, col = year))
-
-# visualize weather (3yr) variables
-testNew %>% 
-  drop_na() %>% 
-  slice_sample(n = 10000) %>% 
-    select(tmin_meanAnnAvg_3yr :durationFrostFreeDays_meanAnnAvg_3yr, year) %>% 
-  pivot_longer(cols = tmin_meanAnnAvg_3yr:durationFrostFreeDays_meanAnnAvg_3yr,
-               names_to = "variable",
-               values_to = "value"
-  ) %>% 
-  ggplot() +
-  facet_wrap(~variable, scales = "free") +
-  geom_density(aes(value, col = year))
+# testNew %>% 
+#   drop_na() %>% 
+#   slice_sample(n = 10000) %>% 
+#   select(tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM, year) %>% 
+#   pivot_longer(cols = tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM,
+#                names_to = "variable",
+#                values_to = "value"
+#   ) %>% 
+#   ggplot() +
+#   facet_wrap(~variable, scales = "free") +
+#   geom_density(aes(value, col = year))
+# 
+# # visualize weather (3yr) variables
+# testNew %>% 
+#   drop_na() %>% 
+#   slice_sample(n = 10000) %>% 
+#     select(tmin_meanAnnAvg_3yr :durationFrostFreeDays_meanAnnAvg_3yr, year) %>% 
+#   pivot_longer(cols = tmin_meanAnnAvg_3yr:durationFrostFreeDays_meanAnnAvg_3yr,
+#                names_to = "variable",
+#                values_to = "value"
+#   ) %>% 
+#   ggplot() +
+#   facet_wrap(~variable, scales = "free") +
+#   geom_density(aes(value, col = year))
 
 anomDat_3yr <- testNew %>% 
   transmute(
@@ -882,6 +904,15 @@ climDat <- cbind(testNew, #anomDat_10yr,
                  anomDat_3yr#, anomDat_1yr
 ) 
 
+
+# remove years for which there are no climate averages (any time before 2000) --------------------
+climDatNew <- climDat[climDat$year > 1999,]
+
+# fix issue w/ anomaly of precip driest month -----------------------------
+
+climDatNew[climDatNew$precip_driestMonth_meanAnnAvg_3yr == climDatNew$precip_driestMonth_meanAnnAvg_CLIM, 
+           c("precip_driestMonth_meanAnnAvg_3yrAnom")] <- 0
+
 # # visualize anomalies
 # climDat %>% 
 #   drop_na() %>% 
@@ -924,10 +955,10 @@ climDat <- cbind(testNew, #anomDat_10yr,
 # library(patchwork)
 # awddFig + annwatdefFig
 
-plot(climDat$tmin_annAvg[1:10000], climDat$tmean[1:10000])
+#plot(climDat$tmin_annAvg[1:10000], climDat$tmean[1:10000])
 
 
 # save climate values for analysis 
 #write.csv(climDat, "./Data_raw/dayMet/climateValuesForAnalysis_final.csv", row.names = FALSE)
-saveRDS(climDat, "./Data_processed/CoverData/dayMetClimateValuesForAnalysis_final.rds")
+saveRDS(climDatNew, "./Data_processed/CoverData/dayMetClimateValuesForAnalysis_final.rds")
 #climDat <- readRDS("./Data_processed/CoverData_raw/dayMetClimateValuesForAnalysis_final.rds")
