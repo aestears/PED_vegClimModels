@@ -8,11 +8,11 @@ output:
     df_print: paged
     code_folding: hide
 params:
-  run: TRUE      
+  run: FALSE      
   test_run: FALSE
   save_figs: FALSE
-  ecoregion:   CONUS         
-  response: ShrubCover
+  ecoregion:   forest         
+  response: BareGroundCover
   removeTexasLouisianaPlain: FALSE
   trimAnomalies: TRUE
   autoKfold: FALSE

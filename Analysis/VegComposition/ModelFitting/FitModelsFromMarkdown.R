@@ -368,19 +368,19 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFittin
                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
                   output_file = "forest_CAMCover_NoTrimAnoms_LASSO_gammaLogLink.html")
 
-#bare ground cover
-rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
-                  params = list(  run = FALSE, 
-                                  test_run = FALSE,
-                                  save_figs = FALSE,
-                                  trimAnomalies = FALSE,
-                                  ecoregion = "forest",
-                                  response = "BareGroundCover",
-                                  removeTexasLouisianaPlain = FALSE), 
-                  output_format = "html_document", 
-                  output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-                  output_file = "forest_BareGroundCover_NoTrimAnoms_LASSO_gammaLogLink.html")
-
+# #bare ground cover
+# rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
+#                   params = list(  run = FALSE, 
+#                                   test_run = FALSE,
+#                                   save_figs = FALSE,
+#                                   trimAnomalies = FALSE,
+#                                   ecoregion = "forest",
+#                                   response = "BareGroundCover",
+#                                   removeTexasLouisianaPlain = FALSE), 
+#                   output_format = "html_document", 
+#                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
+#                   output_file = "forest_BareGroundCover_NoTrimAnoms_LASSO_gammaLogLink.html")
+# 
 
 
 # CONUS-wide models; no trim anomalies- ------------------------------------------------
