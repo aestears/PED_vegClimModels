@@ -40,21 +40,21 @@ set.seed(12011993)
 
 modDat_use <- modDat %>% 
   rename("Long" = x, "Lat" = y) %>% 
-  dplyr::select(c(newRegion, #swe_meanAnnAvg_30yr:
-                  tmin_meanAnnAvg_30yr:durationFrostFreeDays_meanAnnAvg_30yr,
+  dplyr::select(c(newRegion, #swe_meanAnnAvg_CLIM:
+                  tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM,
                                          soilDepth                  , surfaceClay_perc          ,                
                                          avgSandPerc_acrossDepth    ,  avgCoarsePerc_acrossDepth,                 
                                          avgOrganicCarbonPerc_0_3cm ,  totalAvailableWaterHoldingCapacity,
                                          Long, Lat)) %>% 
   mutate(newRegion = as.factor(newRegion)) %>% 
-  drop_na() %>% 
-  mutate(isothermality_meanAnnAvg_30yr = -1 * isothermality_meanAnnAvg_30yr)
+  drop_na() #%>% 
+  #mutate(isothermality_meanAnnAvg_CLIM = -1 * isothermality_meanAnnAvg_CLIM)
   
 default_idx <-  createDataPartition(modDat$newRegion, p = 0.8, list = FALSE)
 modDat_fit <- modDat_use[default_idx, ] %>% 
-    # dplyr::select(newRegion, swe_meanAnnAvg_30yr , annWetDegDays_meanAnnAvg_30yr , 
-  #           tmean_meanAnnAvg_30yr , isothermality_meanAnnAvg_30yr , 
-  #         prcp_meanAnnTotal_30yr , PrecipTempCorr_meanAnnAvg_30yr, 
+    # dplyr::select(newRegion, swe_meanAnnAvg_CLIM , annWetDegDays_meanAnnAvg_CLIM , 
+  #           tmean_meanAnnAvg_CLIM , isothermality_meanAnnAvg_CLIM , 
+  #         prcp_meanAnnTotal_CLIM , PrecipTempCorr_meanAnnAvg_CLIM, 
   #        soilDepth                  , surfaceClay_perc          ,                
   #        avgSandPerc_acrossDepth    ,  avgCoarsePerc_acrossDepth,                 
   #        avgOrganicCarbonPerc_0_3cm ,  totalAvailableWaterHoldingCapacity, Long, Lat) %>% 
@@ -63,11 +63,11 @@ modDat_fit <- modDat_use[default_idx, ] %>%
 
 modDat_test <-  modDat_use[-default_idx, ] %>% 
   mutate(newRegion = as.factor(newRegion)) %>% 
-  # dplyr::select(c(newRegion, swe_meanAnnAvg_30yr:
-  #                   # tmean_meanAnnAvg_30yr:prcp_meanAnnTotal_30yr,
-  #                   #                        precip_wettestMonth_meanAnnAvg_30yr:PrecipTempCorr_meanAnnAvg_30yr, 
-  #                   #                        isothermality_meanAnnAvg_30yr:annVPD_min_meanAnnAvg_30yr, 
-  #                   durationFrostFreeDays_meanAnnAvg_30yr,
+  # dplyr::select(c(newRegion, swe_meanAnnAvg_CLIM:
+  #                   # tmean_meanAnnAvg_CLIM:prcp_meanAnnTotal_CLIM,
+  #                   #                        precip_wettestMonth_meanAnnAvg_CLIM:PrecipTempCorr_meanAnnAvg_CLIM, 
+  #                   #                        isothermality_meanAnnAvg_CLIM:annVPD_min_meanAnnAvg_CLIM, 
+  #                   durationFrostFreeDays_meanAnnAvg_CLIM,
   #                 soilDepth                  , surfaceClay_perc          ,                
   #                 avgSandPerc_acrossDepth    ,  avgCoarsePerc_acrossDepth,                 
   #                 avgOrganicCarbonPerc_0_3cm ,  totalAvailableWaterHoldingCapacity,
@@ -105,77 +105,77 @@ my_fn <- function(data, mapping, method="p", use="pairwise", ...){
 (corrPlot2 <- 
    modDat_fit %>% 
    dplyr::select(
-     "tmin_meanAnnAvg_30yr"                  ,
-     "tmax_meanAnnAvg_30yr"                  , "tmean_meanAnnAvg_30yr"                 ,
-     "prcp_meanAnnTotal_30yr"                , "T_warmestMonth_meanAnnAvg_30yr"       , 
-     "T_coldestMonth_meanAnnAvg_30yr"        , "precip_wettestMonth_meanAnnAvg_30yr"  , 
-     "precip_driestMonth_meanAnnAvg_30yr"    , "precip_Seasonality_meanAnnAvg_30yr"   , 
-     "PrecipTempCorr_meanAnnAvg_30yr"       ,  "aboveFreezing_month_meanAnnAvg_30yr"   ,
-     "isothermality_meanAnnAvg_30yr"        ,  "annWaterDeficit_meanAnnAvg_30yr"       ,
-     "annWetDegDays_meanAnnAvg_30yr"        ,  "annVPD_mean_meanAnnAvg_30yr"           ,
-     "annVPD_max_meanAnnAvg_30yr"           ,  "annVPD_min_meanAnnAvg_30yr"            ,
-     "annVPD_max_95percentile_30yr"         ,  
-     "annWaterDeficit_95percentile_30yr"     ,
-     "annWetDegDays_5percentile_30yr"       ,  "durationFrostFreeDays_5percentile_30yr",
-     "durationFrostFreeDays_meanAnnAvg_30yr",  "soilDepth"                             ,
+     "tmin_meanAnnAvg_CLIM"                  ,
+     "tmax_meanAnnAvg_CLIM"                  , "tmean_meanAnnAvg_CLIM"                 ,
+     "prcp_meanAnnTotal_CLIM"                , "T_warmestMonth_meanAnnAvg_CLIM"       , 
+     "T_coldestMonth_meanAnnAvg_CLIM"        , "precip_wettestMonth_meanAnnAvg_CLIM"  , 
+     "precip_driestMonth_meanAnnAvg_CLIM"    , "precip_Seasonality_meanAnnAvg_CLIM"   , 
+     "PrecipTempCorr_meanAnnAvg_CLIM"       ,  "aboveFreezing_month_meanAnnAvg_CLIM"   ,
+     "isothermality_meanAnnAvg_CLIM"        ,  "annWaterDeficit_meanAnnAvg_CLIM"       ,
+     "annWetDegDays_meanAnnAvg_CLIM"        ,  "annVPD_mean_meanAnnAvg_CLIM"           ,
+     "annVPD_max_meanAnnAvg_CLIM"           ,  "annVPD_min_meanAnnAvg_CLIM"            ,
+     "annVPD_max_95percentile_CLIM"         ,  
+     "annWaterDeficit_95percentile_CLIM"     ,
+     "annWetDegDays_5percentile_CLIM"       ,  "durationFrostFreeDays_5percentile_CLIM",
+     "durationFrostFreeDays_meanAnnAvg_CLIM",  "soilDepth"                             ,
      "surfaceClay_perc"                     ,  "avgSandPerc_acrossDepth"               ,
      "avgCoarsePerc_acrossDepth"            ,  "avgOrganicCarbonPerc_0_3cm"            ,
      "totalAvailableWaterHoldingCapacity" 
    ) %>% 
    rename(
-     "prcp" = prcp_meanAnnTotal_30yr,
-     "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_30yr,  "isothermality" = isothermality_meanAnnAvg_30yr,
-     "Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr) %>%
+     "prcp" = prcp_meanAnnTotal_CLIM,
+     "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  "isothermality" = isothermality_meanAnnAvg_CLIM,
+     "Wet \n DegDays" = annWetDegDays_meanAnnAvg_CLIM) %>%
    cor()  %>% 
    caret::findCorrelation(cutoff = .7, verbose = TRUE, names = TRUE, exact = TRUE))
 # the findCorrelation() function says we should remove these variables: 
-# "tmean_meanAnnAvg_30yr"                  "tmin_meanAnnAvg_30yr"                   "annVPD_mean_meanAnnAvg_30yr"           
-# "aboveFreezing_month_meanAnnAvg_30yr"    "durationFrostFreeDays_meanAnnAvg_30yr"  "durationFrostFreeDays_5percentile_30yr"
-# "tmax_meanAnnAvg_30yr"                   "annVPD_min_meanAnnAvg_30yr"             "T_coldestMonth_meanAnnAvg_30yr"        
-#  "annVPD_max_meanAnnAvg_30yr"             "T_warmestMonth_meanAnnAvg_30yr"         "Wet \n DegDays"                        
-#  "annWaterDeficit_95percentile_30yr"      "annWaterDeficit_meanAnnAvg_30yr"        "annWetDegDays_5percentile_30yr"        
-#  "prcp"                                   "precip_Seasonality_meanAnnAvg_30yr"     "totalAvailableWaterHoldingCapacity"    
+# "tmean_meanAnnAvg_CLIM"                  "tmin_meanAnnAvg_CLIM"                   "annVPD_mean_meanAnnAvg_CLIM"           
+# "aboveFreezing_month_meanAnnAvg_CLIM"    "durationFrostFreeDays_meanAnnAvg_CLIM"  "durationFrostFreeDays_5percentile_CLIM"
+# "tmax_meanAnnAvg_CLIM"                   "annVPD_min_meanAnnAvg_CLIM"             "T_coldestMonth_meanAnnAvg_CLIM"        
+#  "annVPD_max_meanAnnAvg_CLIM"             "T_warmestMonth_meanAnnAvg_CLIM"         "Wet \n DegDays"                        
+#  "annWaterDeficit_95percentile_CLIM"      "annWaterDeficit_meanAnnAvg_CLIM"        "annWetDegDays_5percentile_CLIM"        
+#  "prcp"                                   "precip_Seasonality_meanAnnAvg_CLIM"     "totalAvailableWaterHoldingCapacity"    
 #  "avgSandPerc_acrossDepth"      
 
 ## also remove wet degree days, since it's correlated w/ 
 (corrPlot2 <- 
     modDat_fit %>% 
-    dplyr::select(#"tmin_meanAnnAvg_30yr"              ,
-      #"tmax_meanAnnAvg_30yr" ,                 
-      #"tmean_meanAnnAvg_30yr"                  ,
-     #"prcp_meanAnnTotal_30yr"                 ,
-      #"T_warmestMonth_meanAnnAvg_30yr"       , 
-      #"T_coldestMonth_meanAnnAvg_30yr"         ,
-      "precip_wettestMonth_meanAnnAvg_30yr"    ,
-      "precip_driestMonth_meanAnnAvg_30yr"   , 
-      #"precip_Seasonality_meanAnnAvg_30yr"     ,
-      "PrecipTempCorr_meanAnnAvg_30yr"        , #"aboveFreezing_month_meanAnnAvg_30yr" ,  
-      "isothermality_meanAnnAvg_30yr"          ,#"annWaterDeficit_meanAnnAvg_30yr"       , #"annWetDegDays_meanAnnAvg_30yr"       ,  
-      #"annVPD_mean_meanAnnAvg_30yr"            ,
-      #"annVPD_max_meanAnnAvg_30yr"            , #"annVPD_min_meanAnnAvg_30yr"          ,  
-      "annVPD_max_95percentile_30yr"           ,#"annWaterDeficit_95percentile_30yr"     , 
-      #"annWetDegDays_5percentile_30yr"      ,  
-      #"durationFrostFreeDays_5percentile_30yr" ,#"durationFrostFreeDays_meanAnnAvg_30yr" , 
+    dplyr::select(#"tmin_meanAnnAvg_CLIM"              ,
+      #"tmax_meanAnnAvg_CLIM" ,                 
+      #"tmean_meanAnnAvg_CLIM"                  ,
+     #"prcp_meanAnnTotal_CLIM"                 ,
+      #"T_warmestMonth_meanAnnAvg_CLIM"       , 
+      #"T_coldestMonth_meanAnnAvg_CLIM"         ,
+      "precip_wettestMonth_meanAnnAvg_CLIM"    ,
+      "precip_driestMonth_meanAnnAvg_CLIM"   , 
+      #"precip_Seasonality_meanAnnAvg_CLIM"     ,
+      "PrecipTempCorr_meanAnnAvg_CLIM"        , #"aboveFreezing_month_meanAnnAvg_CLIM" ,  
+      "isothermality_meanAnnAvg_CLIM"          ,#"annWaterDeficit_meanAnnAvg_CLIM"       , #"annWetDegDays_meanAnnAvg_CLIM"       ,  
+      #"annVPD_mean_meanAnnAvg_CLIM"            ,
+      #"annVPD_max_meanAnnAvg_CLIM"            , #"annVPD_min_meanAnnAvg_CLIM"          ,  
+      "annVPD_max_95percentile_CLIM"           ,#"annWaterDeficit_95percentile_CLIM"     , 
+      #"annWetDegDays_5percentile_CLIM"      ,  
+      #"durationFrostFreeDays_5percentile_CLIM" ,#"durationFrostFreeDays_meanAnnAvg_CLIM" , 
       "soilDepth"                           ,  
        "surfaceClay_perc"                       ,
       #"avgSandPerc_acrossDepth"               , 
       "avgCoarsePerc_acrossDepth"           ,  
       "avgOrganicCarbonPerc_0_3cm"            #, #"totalAvailableWaterHoldingCapacity"
     ) %>% 
-    rename(#"MAP" =  prcp_meanAnnTotal_30yr,
-      #"T_warmest \nmonth" = T_warmestMonth_meanAnnAvg_30yr, 
-      #"T_coldest \nmonth" = T_coldestMonth_meanAnnAvg_30yr,
-      "precip_wettest" = precip_wettestMonth_meanAnnAvg_30yr, 
-      "precip_driest" = precip_driestMonth_meanAnnAvg_30yr,
-      "P/T corr" = PrecipTempCorr_meanAnnAvg_30yr,
-      "isothermality" = isothermality_meanAnnAvg_30yr,
-      #"watDef" = annWaterDeficit_meanAnnAvg_30yr,
-      #"Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr,
-      #"VPD_max" = annVPD_max_meanAnnAvg_30yr,
-      #"VPD_min" = annVPD_min_meanAnnAvg_30yr,
-      "VPD_max_95" = annVPD_max_95percentile_30yr, 
-      #"watDef_95" = annWaterDeficit_95percentile_30yr,
-      #"wetDegDays_5" = annWetDegDays_5percentile_30yr,
+    rename(#"MAP" =  prcp_meanAnnTotal_CLIM,
+      #"T_warmest \nmonth" = T_warmestMonth_meanAnnAvg_CLIM, 
+      #"T_coldest \nmonth" = T_coldestMonth_meanAnnAvg_CLIM,
+      "precip_wettest" = precip_wettestMonth_meanAnnAvg_CLIM, 
+      "precip_driest" = precip_driestMonth_meanAnnAvg_CLIM,
+      "P/T corr" = PrecipTempCorr_meanAnnAvg_CLIM,
+      "isothermality" = isothermality_meanAnnAvg_CLIM,
+      #"watDef" = annWaterDeficit_meanAnnAvg_CLIM,
+      #"Wet \n DegDays" = annWetDegDays_meanAnnAvg_CLIM,
+      #"VPD_max" = annVPD_max_meanAnnAvg_CLIM,
+      #"VPD_min" = annVPD_min_meanAnnAvg_CLIM,
+      "VPD_max_95" = annVPD_max_95percentile_CLIM, 
+      #"watDef_95" = annWaterDeficit_95percentile_CLIM,
+      #"wetDegDays_5" = annWetDegDays_5percentile_CLIM,
       "surfClay" = surfaceClay_perc,
       #"sand" = avgSandPerc_acrossDepth,
       "coarse" = avgCoarsePerc_acrossDepth,
@@ -198,11 +198,11 @@ modDat_testNew <- modDat_test %>%
          newRegion = str_replace(newRegion, "westForest", "forest")) %>% 
   mutate(newRegionFact = as.factor(newRegion))
 
-testMod_3 <- glm(newRegionFact ~ precip_wettestMonth_meanAnnAvg_30yr    +
-                 precip_driestMonth_meanAnnAvg_30yr   + 
-                 PrecipTempCorr_meanAnnAvg_30yr        +
-                 isothermality_meanAnnAvg_30yr          +
-                 annVPD_max_95percentile_30yr           +
+testMod_3 <- glm(newRegionFact ~ precip_wettestMonth_meanAnnAvg_CLIM    +
+                 precip_driestMonth_meanAnnAvg_CLIM   + 
+                 PrecipTempCorr_meanAnnAvg_CLIM        +
+                 isothermality_meanAnnAvg_CLIM          +
+                 annVPD_max_95percentile_CLIM           +
                  soilDepth                           +  
                  surfaceClay_perc                       +
                  avgCoarsePerc_acrossDepth           +  
@@ -320,33 +320,33 @@ temp_b2 <- temp_b %>%
 temp_TEMP <- temp_b %>% 
   st_as_sf(coords = c("Long", "Lat"), crs = crs(soilRastTemp))
 
-temp_elev <- elevatr::get_elev_point(temp2, src = "aws")
+temp_elev <- elevatr::get_elev_point(temp_TEMP, src = "aws")
 
 temp_TEMP <- temp_TEMP %>% st_join(temp_elev, left = TRUE, join = st_nearest_feature)
 
-# within each band of elevation (100 m), what is the frequency of bad predictions
-(badClass_elev <- temp_TEMP %>% 
-    mutate(elevRound = plyr::round_any(elevation, 100)) %>% 
-    st_drop_geometry() %>% 
-    group_by(elevRound, newRegion) %>% 
-    dplyr::summarize(goodPredNumber = sum(goodPred),
-                     badPredNumber = sum(!goodPred),
-                     totalPredNumber = n()) %>% 
-    mutate(badPredRate = badPredNumber/totalPredNumber)
-)
-
-(badPredElevation_mapA <- ggplot(badClass_elev,aes(x = elevRound, y = badPredRate, col = newRegion)) + 
-    geom_point(data = badClass_elev[badClass_elev$totalPredNumber<100,],
-               aes(x = elevRound, y = badPredRate), col = "black", pch = 8, size = 4) +
-    geom_point() +
-    geom_line() +
-    labs(title = "Misclassification",
-         x = "elevation - m", 
-         y = "Average rate of misclassification", 
-         subtitle = "asterisks indicates elevation bands where there are <100 observations") +
-    theme_minimal() +
-    scale_color_discrete(type = c("#bf812d","#35978f")))
-
+# # within each band of elevation (100 m), what is the frequency of bad predictions
+# (badClass_elev <- temp_TEMP %>% 
+#     mutate(elevRound = plyr::round_any(elevation, 100)) %>% 
+#     st_drop_geometry() %>% 
+#     group_by(elevRound, newRegion) %>% 
+#     dplyr::summarize(goodPredNumber = sum(goodPred),
+#                      badPredNumber = sum(!goodPred),
+#                      totalPredNumber = n()) %>% 
+#     mutate(badPredRate = badPredNumber/totalPredNumber)
+# )
+# 
+# (badPredElevation_mapA <- ggplot(badClass_elev,aes(x = elevRound, y = badPredRate, col = newRegion)) + 
+#     geom_point(data = badClass_elev[badClass_elev$totalPredNumber<100,],
+#                aes(x = elevRound, y = badPredRate), col = "black", pch = 8, size = 4) +
+#     geom_point() +
+#     geom_line() +
+#     labs(title = "Misclassification",
+#          x = "elevation - m", 
+#          y = "Average rate of misclassification", 
+#          subtitle = "asterisks indicates elevation bands where there are <100 observations") +
+#     theme_minimal() +
+#     scale_color_discrete(type = c("#bf812d","#35978f")))
+# 
 
 ## confusion matrix
 regMod_3_confMat <- caret::confusionMatrix(data = temp_b$newRegion_predClass,
@@ -430,7 +430,7 @@ ggpubr::annotate_figure(ggarrange(
   regMod_3_PredMAP, 
   regMod_3_PredMAP_GB, 
   regMod_3_PredMAP_PIPO,
-  badPredElevation_mapA,
+  #badPredElevation_mapA,
   regMod_3_ternGoodPreds,
   regMod_3_ternBadPreds,
   regMod_3Pred_mapBadGrass, 
@@ -449,78 +449,78 @@ ggpubr::annotate_figure(ggarrange(
 (corrPlot <- 
    modDat_fit %>% 
    dplyr::select(
-     "tmin_meanAnnAvg_30yr"                  ,
-     "tmax_meanAnnAvg_30yr"                  , "tmean_meanAnnAvg_30yr"                 ,
-     "prcp_meanAnnTotal_30yr"                , "T_warmestMonth_meanAnnAvg_30yr"       , 
-     "T_coldestMonth_meanAnnAvg_30yr"        , "precip_wettestMonth_meanAnnAvg_30yr"  , 
-     "precip_driestMonth_meanAnnAvg_30yr"    , "precip_Seasonality_meanAnnAvg_30yr"   , 
-     "PrecipTempCorr_meanAnnAvg_30yr"       ,  "aboveFreezing_month_meanAnnAvg_30yr"   ,
-     "isothermality_meanAnnAvg_30yr"        ,  "annWaterDeficit_meanAnnAvg_30yr"       ,
-     "annWetDegDays_meanAnnAvg_30yr"        ,  #"annVPD_mean_meanAnnAvg_30yr"           ,
-     #"annVPD_max_meanAnnAvg_30yr"           ,  "annVPD_min_meanAnnAvg_30yr"            ,
-     #"annVPD_max_95percentile_30yr"         ,  
-     "annWaterDeficit_95percentile_30yr"     ,
-     "annWetDegDays_5percentile_30yr"       ,  "durationFrostFreeDays_5percentile_30yr",
-     "durationFrostFreeDays_meanAnnAvg_30yr",  "soilDepth"                             ,
+     "tmin_meanAnnAvg_CLIM"                  ,
+     "tmax_meanAnnAvg_CLIM"                  , "tmean_meanAnnAvg_CLIM"                 ,
+     "prcp_meanAnnTotal_CLIM"                , "T_warmestMonth_meanAnnAvg_CLIM"       , 
+     "T_coldestMonth_meanAnnAvg_CLIM"        , "precip_wettestMonth_meanAnnAvg_CLIM"  , 
+     "precip_driestMonth_meanAnnAvg_CLIM"    , "precip_Seasonality_meanAnnAvg_CLIM"   , 
+     "PrecipTempCorr_meanAnnAvg_CLIM"       ,  "aboveFreezing_month_meanAnnAvg_CLIM"   ,
+     "isothermality_meanAnnAvg_CLIM"        ,  "annWaterDeficit_meanAnnAvg_CLIM"       ,
+     "annWetDegDays_meanAnnAvg_CLIM"        ,  #"annVPD_mean_meanAnnAvg_CLIM"           ,
+     #"annVPD_max_meanAnnAvg_CLIM"           ,  "annVPD_min_meanAnnAvg_CLIM"            ,
+     #"annVPD_max_95percentile_CLIM"         ,  
+     "annWaterDeficit_95percentile_CLIM"     ,
+     "annWetDegDays_5percentile_CLIM"       ,  "durationFrostFreeDays_5percentile_CLIM",
+     "durationFrostFreeDays_meanAnnAvg_CLIM",  "soilDepth"                             ,
      "surfaceClay_perc"                     ,  "avgSandPerc_acrossDepth"               ,
      "avgCoarsePerc_acrossDepth"            ,  "avgOrganicCarbonPerc_0_3cm"            ,
      "totalAvailableWaterHoldingCapacity" 
    ) %>% 
    rename(
-     "prcp" = prcp_meanAnnTotal_30yr,
-     "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_30yr,  "isothermality" = isothermality_meanAnnAvg_30yr,
-     "Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr) %>%
+     "prcp" = prcp_meanAnnTotal_CLIM,
+     "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  "isothermality" = isothermality_meanAnnAvg_CLIM,
+     "Wet \n DegDays" = annWetDegDays_meanAnnAvg_CLIM) %>%
    cor()  %>% 
    caret::findCorrelation(cutoff = .7, verbose = TRUE, names = TRUE, exact = TRUE))
 # the findCorrelation() function says we should remove these variables: 
-# "tmin_meanAnnAvg_30yr"  
-#  "durationFrostFreeDays_meanAnnAvg_30yr" 
-# "tmean_meanAnnAvg_30yr"   
-# "aboveFreezing_month_meanAnnAvg_30yr"  
-#, "durationFrostFreeDays_5percentile_30yr",
-# "tmax_meanAnnAvg_30yr"
+# "tmin_meanAnnAvg_CLIM"  
+#  "durationFrostFreeDays_meanAnnAvg_CLIM" 
+# "tmean_meanAnnAvg_CLIM"   
+# "aboveFreezing_month_meanAnnAvg_CLIM"  
+#, "durationFrostFreeDays_5percentile_CLIM",
+# "tmax_meanAnnAvg_CLIM"
 # "Wet \n DegDays" 
-# "annWaterDeficit_95percentile_30yr"
-# "annWetDegDays_5percentile_30yr
-# "annWaterDeficit_meanAnnAvg_30yr"
+# "annWaterDeficit_95percentile_CLIM"
+# "annWetDegDays_5percentile_CLIM
+# "annWaterDeficit_meanAnnAvg_CLIM"
 # "prcp" 
-# "precip_Seasonality_meanAnnAvg_30yr" 
+# "precip_Seasonality_meanAnnAvg_CLIM" 
 # "totalAvailableWaterHoldingCapacity"
 # "surfaceClay_perc
 
 ## also remove wet degree days, since it's correlated w/ 
 (corrPlot2 <- 
     modDat_fit %>% 
-    dplyr::select(#"tmin_meanAnnAvg_30yr"              ,
-      #"tmax_meanAnnAvg_30yr" ,                 
-      #"tmean_meanAnnAvg_30yr"                  ,
-      #"prcp_meanAnnTotal_30yr"                 ,
-      "T_warmestMonth_meanAnnAvg_30yr"       , 
-      "T_coldestMonth_meanAnnAvg_30yr"         ,"precip_wettestMonth_meanAnnAvg_30yr"    ,
-      "precip_driestMonth_meanAnnAvg_30yr"   , 
-      #"precip_Seasonality_meanAnnAvg_30yr"     ,
-      "PrecipTempCorr_meanAnnAvg_30yr"        , #"aboveFreezing_month_meanAnnAvg_30yr" ,  
-      "isothermality_meanAnnAvg_30yr"          ,#"annWaterDeficit_meanAnnAvg_30yr"       , #"annWetDegDays_meanAnnAvg_30yr"       ,  
-      #"annVPD_mean_meanAnnAvg_30yr"            ,"annVPD_max_meanAnnAvg_30yr"            , "annVPD_min_meanAnnAvg_30yr"          ,  
-      #"annVPD_max_95percentile_30yr"           ,#"annWaterDeficit_95percentile_30yr"     , 
-      #"annWetDegDays_5percentile_30yr"      ,  
-      #"durationFrostFreeDays_5percentile_30yr" ,#"durationFrostFreeDays_meanAnnAvg_30yr" , 
+    dplyr::select(#"tmin_meanAnnAvg_CLIM"              ,
+      #"tmax_meanAnnAvg_CLIM" ,                 
+      #"tmean_meanAnnAvg_CLIM"                  ,
+      #"prcp_meanAnnTotal_CLIM"                 ,
+      "T_warmestMonth_meanAnnAvg_CLIM"       , 
+      "T_coldestMonth_meanAnnAvg_CLIM"         ,"precip_wettestMonth_meanAnnAvg_CLIM"    ,
+      "precip_driestMonth_meanAnnAvg_CLIM"   , 
+      #"precip_Seasonality_meanAnnAvg_CLIM"     ,
+      "PrecipTempCorr_meanAnnAvg_CLIM"        , #"aboveFreezing_month_meanAnnAvg_CLIM" ,  
+      "isothermality_meanAnnAvg_CLIM"          ,#"annWaterDeficit_meanAnnAvg_CLIM"       , #"annWetDegDays_meanAnnAvg_CLIM"       ,  
+      #"annVPD_mean_meanAnnAvg_CLIM"            ,"annVPD_max_meanAnnAvg_CLIM"            , "annVPD_min_meanAnnAvg_CLIM"          ,  
+      #"annVPD_max_95percentile_CLIM"           ,#"annWaterDeficit_95percentile_CLIM"     , 
+      #"annWetDegDays_5percentile_CLIM"      ,  
+      #"durationFrostFreeDays_5percentile_CLIM" ,#"durationFrostFreeDays_meanAnnAvg_CLIM" , 
       "soilDepth"                           ,  
       # "surfaceClay_perc"                       ,
       "avgSandPerc_acrossDepth"               , "avgCoarsePerc_acrossDepth"           ,  
       "avgOrganicCarbonPerc_0_3cm"            #, #"totalAvailableWaterHoldingCapacity"
     ) %>% 
-    rename(#"MAP" =  prcp_meanAnnTotal_30yr,
-      "T_warmest \nmonth" = T_warmestMonth_meanAnnAvg_30yr, "T_coldest \nmonth" = T_coldestMonth_meanAnnAvg_30yr,
-      "precip_wettest" = precip_wettestMonth_meanAnnAvg_30yr, "precip_driest" = precip_driestMonth_meanAnnAvg_30yr,
-      "P/T corr" = PrecipTempCorr_meanAnnAvg_30yr, "isothermality" = isothermality_meanAnnAvg_30yr,
-      #"watDef" = annWaterDeficit_meanAnnAvg_30yr,
-      #"Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr,
-      #"VPD_max" = annVPD_max_meanAnnAvg_30yr,
-      #"VPD_min" = annVPD_min_meanAnnAvg_30yr,
-      #"VPD_max_95" = annVPD_max_95percentile_30yr, 
-      #"watDef_95" = annWaterDeficit_95percentile_30yr,
-      #"wetDegDays_5" = annWetDegDays_5percentile_30yr,
+    rename(#"MAP" =  prcp_meanAnnTotal_CLIM,
+      "T_warmest \nmonth" = T_warmestMonth_meanAnnAvg_CLIM, "T_coldest \nmonth" = T_coldestMonth_meanAnnAvg_CLIM,
+      "precip_wettest" = precip_wettestMonth_meanAnnAvg_CLIM, "precip_driest" = precip_driestMonth_meanAnnAvg_CLIM,
+      "P/T corr" = PrecipTempCorr_meanAnnAvg_CLIM, "isothermality" = isothermality_meanAnnAvg_CLIM,
+      #"watDef" = annWaterDeficit_meanAnnAvg_CLIM,
+      #"Wet \n DegDays" = annWetDegDays_meanAnnAvg_CLIM,
+      #"VPD_max" = annVPD_max_meanAnnAvg_CLIM,
+      #"VPD_min" = annVPD_min_meanAnnAvg_CLIM,
+      #"VPD_max_95" = annVPD_max_95percentile_CLIM, 
+      #"watDef_95" = annWaterDeficit_95percentile_CLIM,
+      #"wetDegDays_5" = annWetDegDays_5percentile_CLIM,
       #"surfClay" = surfaceClay_perc,
       "sand" = avgSandPerc_acrossDepth,
       "coarse" = avgCoarsePerc_acrossDepth,
@@ -537,12 +537,12 @@ modDat_fitNew <- modDat_fit %>%
   mutate(newRegion = str_replace(newRegion, "eastForest", "forest"),
          newRegion = str_replace(newRegion, "westForest", "forest")) %>% 
   mutate(newRegionFact = as.factor(newRegion)) %>% 
-  mutate(T_warmestMonth_S = scale(T_warmestMonth_meanAnnAvg_30yr),
-         T_coldestMonth_S = scale(T_coldestMonth_meanAnnAvg_30yr),
-         precip_wettestMonth_S = scale(precip_wettestMonth_meanAnnAvg_30yr),
-         precip_driestMonth_S = scale(precip_driestMonth_meanAnnAvg_30yr),
-         PrecipTempCorr_S = scale(PrecipTempCorr_meanAnnAvg_30yr),
-         isothermality_S = scale(isothermality_meanAnnAvg_30yr),
+  mutate(T_warmestMonth_S = scale(T_warmestMonth_meanAnnAvg_CLIM),
+         T_coldestMonth_S = scale(T_coldestMonth_meanAnnAvg_CLIM),
+         precip_wettestMonth_S = scale(precip_wettestMonth_meanAnnAvg_CLIM),
+         precip_driestMonth_S = scale(precip_driestMonth_meanAnnAvg_CLIM),
+         PrecipTempCorr_S = scale(PrecipTempCorr_meanAnnAvg_CLIM),
+         isothermality_S = scale(isothermality_meanAnnAvg_CLIM),
          soilDepth_S = scale(soilDepth),
          avgSandPerc_S = scale(avgSandPerc_acrossDepth),
          avgCoarsePerc_S = scale(avgCoarsePerc_acrossDepth),
@@ -553,12 +553,12 @@ modDat_testNew <- modDat_test %>%
          newRegion = str_replace(newRegion, "westForest", "forest")) %>% 
   mutate(newRegionFact = as.factor(newRegion))
 
-testMod_2 <- glm(newRegionFact ~ T_warmestMonth_meanAnnAvg_30yr       + 
-                   T_coldestMonth_meanAnnAvg_30yr         +
-                   precip_wettestMonth_meanAnnAvg_30yr    +
-                   precip_driestMonth_meanAnnAvg_30yr   + 
-                   PrecipTempCorr_meanAnnAvg_30yr        +   
-                   isothermality_meanAnnAvg_30yr          +
+testMod_2 <- glm(newRegionFact ~ T_warmestMonth_meanAnnAvg_CLIM       + 
+                   T_coldestMonth_meanAnnAvg_CLIM         +
+                   precip_wettestMonth_meanAnnAvg_CLIM    +
+                   precip_driestMonth_meanAnnAvg_CLIM   + 
+                   PrecipTempCorr_meanAnnAvg_CLIM        +   
+                   isothermality_meanAnnAvg_CLIM          +
                    soilDepth                           +  
                    avgSandPerc_acrossDepth               + avgCoarsePerc_acrossDepth           +  
                    avgOrganicCarbonPerc_0_3cm,
@@ -796,9 +796,9 @@ effSizeFig_2 <- ggplot(beta.table_2, aes(y=estimate, x=variable, ymin=low, ymax=
 # reorganize data frame
 # get decile values
 tempDec <- temp %>% 
-  pivot_longer(cols = c(T_warmestMonth_meanAnnAvg_30yr, T_coldestMonth_meanAnnAvg_30yr , precip_wettestMonth_meanAnnAvg_30yr , 
-                        precip_driestMonth_meanAnnAvg_30yr , PrecipTempCorr_meanAnnAvg_30yr , 
-                        isothermality_meanAnnAvg_30yr , soilDepth , avgSandPerc_acrossDepth , 
+  pivot_longer(cols = c(T_warmestMonth_meanAnnAvg_CLIM, T_coldestMonth_meanAnnAvg_CLIM , precip_wettestMonth_meanAnnAvg_CLIM , 
+                        precip_driestMonth_meanAnnAvg_CLIM , PrecipTempCorr_meanAnnAvg_CLIM , 
+                        isothermality_meanAnnAvg_CLIM , soilDepth , avgSandPerc_acrossDepth , 
                         avgCoarsePerc_acrossDepth , avgOrganicCarbonPerc_0_3cm ), 
                names_to = "predictor_name",
                values_to = "predictor_value"
@@ -898,12 +898,12 @@ modDat_testNew <- modDat_test %>%
          newRegion = str_replace(newRegion, "westForest", "forest")) %>% 
   mutate(newRegionFact = as.factor(newRegion))
 
-testMod_2b <- glm(newRegionFact ~ T_warmestMonth_meanAnnAvg_30yr       + 
-      T_coldestMonth_meanAnnAvg_30yr         +
-      precip_wettestMonth_meanAnnAvg_30yr    +
-      #precip_driestMonth_meanAnnAvg_30yr   + 
-      PrecipTempCorr_meanAnnAvg_30yr        +   
-      isothermality_meanAnnAvg_30yr          +
+testMod_2b <- glm(newRegionFact ~ T_warmestMonth_meanAnnAvg_CLIM       + 
+      T_coldestMonth_meanAnnAvg_CLIM         +
+      precip_wettestMonth_meanAnnAvg_CLIM    +
+      #precip_driestMonth_meanAnnAvg_CLIM   + 
+      PrecipTempCorr_meanAnnAvg_CLIM        +   
+      isothermality_meanAnnAvg_CLIM          +
       soilDepth                           +  
       avgSandPerc_acrossDepth               + avgCoarsePerc_acrossDepth           +  
       avgOrganicCarbonPerc_0_3cm,
@@ -1106,9 +1106,9 @@ effSizeFig_2 <- ggplot(beta.table_2, aes(y=estimate, x=variable, ymin=low, ymax=
 # reorganize data frame
 # get decile values
 tempDec <- temp %>% 
-  pivot_longer(cols = c(T_warmestMonth_meanAnnAvg_30yr, T_coldestMonth_meanAnnAvg_30yr , precip_wettestMonth_meanAnnAvg_30yr , 
-                        precip_driestMonth_meanAnnAvg_30yr , PrecipTempCorr_meanAnnAvg_30yr , 
-                        isothermality_meanAnnAvg_30yr , soilDepth , avgSandPerc_acrossDepth , 
+  pivot_longer(cols = c(T_warmestMonth_meanAnnAvg_CLIM, T_coldestMonth_meanAnnAvg_CLIM , precip_wettestMonth_meanAnnAvg_CLIM , 
+                        precip_driestMonth_meanAnnAvg_CLIM , PrecipTempCorr_meanAnnAvg_CLIM , 
+                        isothermality_meanAnnAvg_CLIM , soilDepth , avgSandPerc_acrossDepth , 
                         avgCoarsePerc_acrossDepth , avgOrganicCarbonPerc_0_3cm ), 
                names_to = "predictor_name",
                values_to = "predictor_value"
@@ -1199,23 +1199,23 @@ ggpubr::annotate_figure(ggarrange(
 (corrPlot <- 
    modDat_fit %>% 
    dplyr::select(
-     "tmin_meanAnnAvg_30yr"                  ,
-     "tmax_meanAnnAvg_30yr"                  , 
-     "tmean_meanAnnAvg_30yr"                 ,
-     "prcp_meanAnnTotal_30yr"                , 
-     "T_warmestMonth_meanAnnAvg_30yr"       , 
-     "T_coldestMonth_meanAnnAvg_30yr"        , 
-     "precip_wettestMonth_meanAnnAvg_30yr"  ,  #"precip_driestMonth_meanAnnAvg_30yr"    , 
-     "precip_Seasonality_meanAnnAvg_30yr"   , 
-     "PrecipTempCorr_meanAnnAvg_30yr"       ,  
-     "aboveFreezing_month_meanAnnAvg_30yr"   ,
-     "isothermality_meanAnnAvg_30yr"        , 
-     "annWaterDeficit_meanAnnAvg_30yr"       ,
-     "annWetDegDays_meanAnnAvg_30yr"        ,  #"annVPD_mean_meanAnnAvg_30yr"           ,#"annVPD_max_meanAnnAvg_30yr"           ,  "annVPD_min_meanAnnAvg_30yr"            ,#"annVPD_max_95percentile_30yr"         ,  
-     "annWaterDeficit_95percentile_30yr"     ,
-     "annWetDegDays_5percentile_30yr"       ,  
-     "durationFrostFreeDays_5percentile_30yr",
-     "durationFrostFreeDays_meanAnnAvg_30yr",  
+     "tmin_meanAnnAvg_CLIM"                  ,
+     "tmax_meanAnnAvg_CLIM"                  , 
+     "tmean_meanAnnAvg_CLIM"                 ,
+     "prcp_meanAnnTotal_CLIM"                , 
+     "T_warmestMonth_meanAnnAvg_CLIM"       , 
+     "T_coldestMonth_meanAnnAvg_CLIM"        , 
+     "precip_wettestMonth_meanAnnAvg_CLIM"  ,  #"precip_driestMonth_meanAnnAvg_CLIM"    , 
+     "precip_Seasonality_meanAnnAvg_CLIM"   , 
+     "PrecipTempCorr_meanAnnAvg_CLIM"       ,  
+     "aboveFreezing_month_meanAnnAvg_CLIM"   ,
+     "isothermality_meanAnnAvg_CLIM"        , 
+     "annWaterDeficit_meanAnnAvg_CLIM"       ,
+     "annWetDegDays_meanAnnAvg_CLIM"        ,  #"annVPD_mean_meanAnnAvg_CLIM"           ,#"annVPD_max_meanAnnAvg_CLIM"           ,  "annVPD_min_meanAnnAvg_CLIM"            ,#"annVPD_max_95percentile_CLIM"         ,  
+     "annWaterDeficit_95percentile_CLIM"     ,
+     "annWetDegDays_5percentile_CLIM"       ,  
+     "durationFrostFreeDays_5percentile_CLIM",
+     "durationFrostFreeDays_meanAnnAvg_CLIM",  
      "soilDepth"                             ,
      "surfaceClay_perc"                     ,  
      "avgSandPerc_acrossDepth"               ,
@@ -1224,68 +1224,68 @@ ggpubr::annotate_figure(ggarrange(
      "totalAvailableWaterHoldingCapacity" 
    ) %>% 
    rename(
-     "prcp" = prcp_meanAnnTotal_30yr,
-     "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_30yr,  "isothermality" = isothermality_meanAnnAvg_30yr,
-     "Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr) %>%
+     "prcp" = prcp_meanAnnTotal_CLIM,
+     "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  "isothermality" = isothermality_meanAnnAvg_CLIM,
+     "Wet \n DegDays" = annWetDegDays_meanAnnAvg_CLIM) %>%
    cor()  %>% 
    caret::findCorrelation(cutoff = .7, verbose = TRUE, names = TRUE, exact = TRUE))
 # the findCorrelation() function says we should remove these variables: 
 #1. chose between tmean and tmin: chose tmin
-#2. chose between tmin and aboveFreezing_month_meanAnnAvg_30yr: chose aboveFreezing_month_meanAnnAvg_30yr
-#3. chose between aboveFreezing_month_meanAnnAvg_30yr and durationFrostFreeDays_meanAnnAvg_30yr: chose durationFrostFreeDays_meanAnnAvg_30yr
-#4. chose between durationFrostFreeDays_meanAnnAvg_30yr and durationFrostFreeDays_5percentile_30yr: chose durationFrostFreeDays_5percentile_30yr
-#5. chose between durationFrostFreeDays_5percentile_30yr and tmax_meanAnnAvg_30yr: chose tmax_meanAnnAvg_30yr
-#6. chose between tmax_meanAnnAvg_30yr and T_coldestMonth_meanAnnAvg_30yr: chose T_coldestMonth_meanAnnAvg_30yr
-#7. chose between annWetDegDays_meanAnnAvg_30yr and annWetDegDays_5percentile_30yr: chose annWetDegDays_5percentile_30yr
-#8. chose between annWaterDeficit_95percentile_30yr and annWaterDeficit_meanAnnAvg_30yr: chose annWaterDeficit_meanAnnAvg_30yr
-#9. chose between annWaterDeficit_meanAnnAvg_30yr and precip_Seasonality_meanAnnAvg_30yr: chose precip_Seasonality_meanAnnAvg_30yr
-#10. chose between annWetDegDays_5percentile_30yr and prcp_meanAnnTotal_30yr: chose prcp_meanAnnTotal_30yr
-#11. chose between prcp_meanAnnTotal_30yr and precip_wettestMonth_meanAnnAvg_30yr: chose precip_wettestMonth_meanAnnAvg_30yr
+#2. chose between tmin and aboveFreezing_month_meanAnnAvg_CLIM: chose aboveFreezing_month_meanAnnAvg_CLIM
+#3. chose between aboveFreezing_month_meanAnnAvg_CLIM and durationFrostFreeDays_meanAnnAvg_CLIM: chose durationFrostFreeDays_meanAnnAvg_CLIM
+#4. chose between durationFrostFreeDays_meanAnnAvg_CLIM and durationFrostFreeDays_5percentile_CLIM: chose durationFrostFreeDays_5percentile_CLIM
+#5. chose between durationFrostFreeDays_5percentile_CLIM and tmax_meanAnnAvg_CLIM: chose tmax_meanAnnAvg_CLIM
+#6. chose between tmax_meanAnnAvg_CLIM and T_coldestMonth_meanAnnAvg_CLIM: chose T_coldestMonth_meanAnnAvg_CLIM
+#7. chose between annWetDegDays_meanAnnAvg_CLIM and annWetDegDays_5percentile_CLIM: chose annWetDegDays_5percentile_CLIM
+#8. chose between annWaterDeficit_95percentile_CLIM and annWaterDeficit_meanAnnAvg_CLIM: chose annWaterDeficit_meanAnnAvg_CLIM
+#9. chose between annWaterDeficit_meanAnnAvg_CLIM and precip_Seasonality_meanAnnAvg_CLIM: chose precip_Seasonality_meanAnnAvg_CLIM
+#10. chose between annWetDegDays_5percentile_CLIM and prcp_meanAnnTotal_CLIM: chose prcp_meanAnnTotal_CLIM
+#11. chose between prcp_meanAnnTotal_CLIM and precip_wettestMonth_meanAnnAvg_CLIM: chose precip_wettestMonth_meanAnnAvg_CLIM
 #12. chose between totalAvailableWaterHoldingCapacity and soilDepth: chose soilDepth
 #13. chose between "avgSandPerc_acrossDepth" and "surfaceClay_perc": chose avgSandPerc_acrossDepth       
 
-#"tmean_meanAnnAvg_30yr"                  "tmin_meanAnnAvg_30yr"                  
-#"aboveFreezing_month_meanAnnAvg_30yr"    "durationFrostFreeDays_meanAnnAvg_30yr" 
-#"durationFrostFreeDays_5percentile_30yr" "tmax_meanAnnAvg_30yr"                  
-#"Wet \n DegDays"                         "annWaterDeficit_95percentile_30yr"     
-#"annWaterDeficit_meanAnnAvg_30yr"        "annWetDegDays_5percentile_30yr"        
+#"tmean_meanAnnAvg_CLIM"                  "tmin_meanAnnAvg_CLIM"                  
+#"aboveFreezing_month_meanAnnAvg_CLIM"    "durationFrostFreeDays_meanAnnAvg_CLIM" 
+#"durationFrostFreeDays_5percentile_CLIM" "tmax_meanAnnAvg_CLIM"                  
+#"Wet \n DegDays"                         "annWaterDeficit_95percentile_CLIM"     
+#"annWaterDeficit_meanAnnAvg_CLIM"        "annWetDegDays_5percentile_CLIM"        
 # "prcp"                                   "totalAvailableWaterHoldingCapacity"    
 # "surfaceClay_perc"       
 
 ## also remove wet degree days, since it's correlated w/ 
 (corrPlot2 <- 
     modDat_fit %>% 
-    dplyr::select(#"tmin_meanAnnAvg_30yr"              ,
-      #"tmax_meanAnnAvg_30yr" ,                 
-      #"tmean_meanAnnAvg_30yr"                  ,
-      #"prcp_meanAnnTotal_30yr"                 ,
-      "T_warmestMonth_meanAnnAvg_30yr"       , 
-      "T_coldestMonth_meanAnnAvg_30yr"         ,"precip_wettestMonth_meanAnnAvg_30yr"    ,
-      #"precip_driestMonth_meanAnnAvg_30yr"   , 
-      "precip_Seasonality_meanAnnAvg_30yr"     ,
-      "PrecipTempCorr_meanAnnAvg_30yr"        , #"aboveFreezing_month_meanAnnAvg_30yr" ,  
-      "isothermality_meanAnnAvg_30yr"          ,#"annWaterDeficit_meanAnnAvg_30yr"       , #"annWetDegDays_meanAnnAvg_30yr"       ,  
-      # "annVPD_mean_meanAnnAvg_30yr"            ,"annVPD_max_meanAnnAvg_30yr"            , "annVPD_min_meanAnnAvg_30yr"          ,  
-      # "annVPD_max_95percentile_30yr"           ,
-      # "annWaterDeficit_95percentile_30yr"     , 
-      # "annWetDegDays_5percentile_30yr"      ,  
-      # "durationFrostFreeDays_5percentile_30yr" ,#"durationFrostFreeDays_meanAnnAvg_30yr" , 
+    dplyr::select(#"tmin_meanAnnAvg_CLIM"              ,
+      #"tmax_meanAnnAvg_CLIM" ,                 
+      #"tmean_meanAnnAvg_CLIM"                  ,
+      #"prcp_meanAnnTotal_CLIM"                 ,
+      "T_warmestMonth_meanAnnAvg_CLIM"       , 
+      "T_coldestMonth_meanAnnAvg_CLIM"         ,"precip_wettestMonth_meanAnnAvg_CLIM"    ,
+      #"precip_driestMonth_meanAnnAvg_CLIM"   , 
+      "precip_Seasonality_meanAnnAvg_CLIM"     ,
+      "PrecipTempCorr_meanAnnAvg_CLIM"        , #"aboveFreezing_month_meanAnnAvg_CLIM" ,  
+      "isothermality_meanAnnAvg_CLIM"          ,#"annWaterDeficit_meanAnnAvg_CLIM"       , #"annWetDegDays_meanAnnAvg_CLIM"       ,  
+      # "annVPD_mean_meanAnnAvg_CLIM"            ,"annVPD_max_meanAnnAvg_CLIM"            , "annVPD_min_meanAnnAvg_CLIM"          ,  
+      # "annVPD_max_95percentile_CLIM"           ,
+      # "annWaterDeficit_95percentile_CLIM"     , 
+      # "annWetDegDays_5percentile_CLIM"      ,  
+      # "durationFrostFreeDays_5percentile_CLIM" ,#"durationFrostFreeDays_meanAnnAvg_CLIM" , 
       "soilDepth"                           ,  
       # "surfaceClay_perc"                       ,
       "avgSandPerc_acrossDepth"               , "avgCoarsePerc_acrossDepth"           ,  
       "avgOrganicCarbonPerc_0_3cm"            #, "totalAvailableWaterHoldingCapacity"
     ) %>% 
-    rename(#"MAP" =  prcp_meanAnnTotal_30yr,
-      "T_warmest \nmonth" = T_warmestMonth_meanAnnAvg_30yr, "T_coldest \nmonth" = T_coldestMonth_meanAnnAvg_30yr,
-      "precip_wettest" = precip_wettestMonth_meanAnnAvg_30yr, #"precip_driest" = precip_driestMonth_meanAnnAvg_30yr,
-      "P/T corr" = PrecipTempCorr_meanAnnAvg_30yr, "isothermality" = isothermality_meanAnnAvg_30yr,
-      #"watDef" = annWaterDeficit_meanAnnAvg_30yr,
-      #"Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr,
-      #"VPD_max" = annVPD_max_meanAnnAvg_30yr,
-      #"VPD_min" = annVPD_min_meanAnnAvg_30yr,
-      #"VPD_max_95" = annVPD_max_95percentile_30yr, 
-      #"watDef_95" = annWaterDeficit_95percentile_30yr,
-      #"wetDegDays_5" = annWetDegDays_5percentile_30yr,
+    rename(#"MAP" =  prcp_meanAnnTotal_CLIM,
+      "T_warmest \nmonth" = T_warmestMonth_meanAnnAvg_CLIM, "T_coldest \nmonth" = T_coldestMonth_meanAnnAvg_CLIM,
+      "precip_wettest" = precip_wettestMonth_meanAnnAvg_CLIM, #"precip_driest" = precip_driestMonth_meanAnnAvg_CLIM,
+      "P/T corr" = PrecipTempCorr_meanAnnAvg_CLIM, "isothermality" = isothermality_meanAnnAvg_CLIM,
+      #"watDef" = annWaterDeficit_meanAnnAvg_CLIM,
+      #"Wet \n DegDays" = annWetDegDays_meanAnnAvg_CLIM,
+      #"VPD_max" = annVPD_max_meanAnnAvg_CLIM,
+      #"VPD_min" = annVPD_min_meanAnnAvg_CLIM,
+      #"VPD_max_95" = annVPD_max_95percentile_CLIM, 
+      #"watDef_95" = annWaterDeficit_95percentile_CLIM,
+      #"wetDegDays_5" = annWetDegDays_5percentile_CLIM,
       #"surfClay" = surfaceClay_perc,
       "sand" = avgSandPerc_acrossDepth,
       "coarse" = avgCoarsePerc_acrossDepth,
@@ -1309,11 +1309,11 @@ modDat_testNew <- modDat_test %>%
   mutate(newRegionFact = as.factor(newRegion))
 
 testMod_4 <- glm(newRegionFact ~ #
-                   T_warmestMonth_meanAnnAvg_30yr    + 
-                 T_coldestMonth_meanAnnAvg_30yr      + precip_wettestMonth_meanAnnAvg_30yr    +
-                 precip_Seasonality_meanAnnAvg_30yr  +
-                 PrecipTempCorr_meanAnnAvg_30yr   +  
-                 isothermality_meanAnnAvg_30yr   +
+                   T_warmestMonth_meanAnnAvg_CLIM    + 
+                 T_coldestMonth_meanAnnAvg_CLIM      + precip_wettestMonth_meanAnnAvg_CLIM    +
+                 precip_Seasonality_meanAnnAvg_CLIM  +
+                 PrecipTempCorr_meanAnnAvg_CLIM   +  
+                 isothermality_meanAnnAvg_CLIM   +
                  soilDepth                  +  
                  avgSandPerc_acrossDepth      + avgCoarsePerc_acrossDepth    +  
                  avgOrganicCarbonPerc_0_3cm   
@@ -1518,9 +1518,9 @@ effSizeFig_2 <- ggplot(beta.table_2, aes(y=estimate, x=variable, ymin=low, ymax=
 # reorganize data frame
 # get decile values
 tempDec <- temp %>% 
-  pivot_longer(cols = c(T_warmestMonth_meanAnnAvg_30yr, T_coldestMonth_meanAnnAvg_30yr , precip_wettestMonth_meanAnnAvg_30yr , 
-                        precip_Seasonality_meanAnnAvg_30yr , PrecipTempCorr_meanAnnAvg_30yr , 
-                        isothermality_meanAnnAvg_30yr , soilDepth , avgSandPerc_acrossDepth , 
+  pivot_longer(cols = c(T_warmestMonth_meanAnnAvg_CLIM, T_coldestMonth_meanAnnAvg_CLIM , precip_wettestMonth_meanAnnAvg_CLIM , 
+                        precip_Seasonality_meanAnnAvg_CLIM , PrecipTempCorr_meanAnnAvg_CLIM , 
+                        isothermality_meanAnnAvg_CLIM , soilDepth , avgSandPerc_acrossDepth , 
                         avgCoarsePerc_acrossDepth , avgOrganicCarbonPerc_0_3cm ), 
                names_to = "predictor_name",
                values_to = "predictor_value"
@@ -1612,23 +1612,23 @@ ggpubr::annotate_figure(ggarrange(
 (corrPlot <- 
    modDat_fit %>% 
    dplyr::select(
-     "tmin_meanAnnAvg_30yr"                  ,
-     "tmax_meanAnnAvg_30yr"                  , 
-     "tmean_meanAnnAvg_30yr"                 ,
-     "prcp_meanAnnTotal_30yr"                , 
-     "T_warmestMonth_meanAnnAvg_30yr"       , 
-     "T_coldestMonth_meanAnnAvg_30yr"        , 
-     "precip_wettestMonth_meanAnnAvg_30yr"  ,  #"precip_driestMonth_meanAnnAvg_30yr"    , 
-     #"precip_Seasonality_meanAnnAvg_30yr"   , 
-     "PrecipTempCorr_meanAnnAvg_30yr"       ,  
-     "aboveFreezing_month_meanAnnAvg_30yr"   ,
-     "isothermality_meanAnnAvg_30yr"        , 
-     "annWaterDeficit_meanAnnAvg_30yr"       ,
-     "annWetDegDays_meanAnnAvg_30yr"        ,  #"annVPD_mean_meanAnnAvg_30yr"           ,#"annVPD_max_meanAnnAvg_30yr"           ,  "annVPD_min_meanAnnAvg_30yr"            ,#"annVPD_max_95percentile_30yr"         ,  
-     "annWaterDeficit_95percentile_30yr"     ,
-     "annWetDegDays_5percentile_30yr"       ,  
-     "durationFrostFreeDays_5percentile_30yr",
-     "durationFrostFreeDays_meanAnnAvg_30yr",  
+     "tmin_meanAnnAvg_CLIM"                  ,
+     "tmax_meanAnnAvg_CLIM"                  , 
+     "tmean_meanAnnAvg_CLIM"                 ,
+     "prcp_meanAnnTotal_CLIM"                , 
+     "T_warmestMonth_meanAnnAvg_CLIM"       , 
+     "T_coldestMonth_meanAnnAvg_CLIM"        , 
+     "precip_wettestMonth_meanAnnAvg_CLIM"  ,  #"precip_driestMonth_meanAnnAvg_CLIM"    , 
+     #"precip_Seasonality_meanAnnAvg_CLIM"   , 
+     "PrecipTempCorr_meanAnnAvg_CLIM"       ,  
+     "aboveFreezing_month_meanAnnAvg_CLIM"   ,
+     "isothermality_meanAnnAvg_CLIM"        , 
+     "annWaterDeficit_meanAnnAvg_CLIM"       ,
+     "annWetDegDays_meanAnnAvg_CLIM"        ,  #"annVPD_mean_meanAnnAvg_CLIM"           ,#"annVPD_max_meanAnnAvg_CLIM"           ,  "annVPD_min_meanAnnAvg_CLIM"            ,#"annVPD_max_95percentile_CLIM"         ,  
+     "annWaterDeficit_95percentile_CLIM"     ,
+     "annWetDegDays_5percentile_CLIM"       ,  
+     "durationFrostFreeDays_5percentile_CLIM",
+     "durationFrostFreeDays_meanAnnAvg_CLIM",  
      "soilDepth"                             ,
      "surfaceClay_perc"                     ,  
      "avgSandPerc_acrossDepth"               ,
@@ -1637,66 +1637,66 @@ ggpubr::annotate_figure(ggarrange(
      "totalAvailableWaterHoldingCapacity" 
    ) %>% 
    rename(
-     "prcp" = prcp_meanAnnTotal_30yr,
-     "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_30yr,  "isothermality" = isothermality_meanAnnAvg_30yr,
-     "Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr) %>%
+     "prcp" = prcp_meanAnnTotal_CLIM,
+     "prcp \n TempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  "isothermality" = isothermality_meanAnnAvg_CLIM,
+     "Wet \n DegDays" = annWetDegDays_meanAnnAvg_CLIM) %>%
    cor()  %>% 
    caret::findCorrelation(cutoff = .7, verbose = TRUE, names = TRUE, exact = TRUE))
 # the findCorrelation() function says we should remove these variables: 
-#1. chose between tmin_meanAnnAvg_30yr and tmean_meanAnnAvg_30yr: chose tmean_meanAnnAvg_30yr
-#2. chose between tmean_meanAnnAvg_30yr and durationFrostFreeDays_meanAnnAvg_30yr: chose durationFrostFreeDays_meanAnnAvg_30yr
-#3. chose between durationFrostFreeDays_meanAnnAvg_30yr and aboveFreezing_month_meanAnnAvg_30yr: chose aboveFreezing_month_meanAnnAvg_30yr
-#4. chose between aboveFreezing_month_meanAnnAvg_30yr and durationFrostFreeDays_5percentile_30yr: chose durationFrostFreeDays_5percentile_30yr
-#5. chose between durationFrostFreeDays_5percentile_30yr and tmax_meanAnnAvg_30yr: chose tmax_meanAnnAvg_30yr
-#6. chose between tmax_meanAnnAvg_30yr and T_coldestMonth_meanAnnAvg_30yr: chose T_coldestMonth_meanAnnAvg_30yr
-#7. chose between isothermality and annWetDegDays_5percentile_30yr: chose annWetDegDays_5percentile_30yr
-#8. chose between annWaterDeficit_95percentile_30yr and annWaterDeficit_meanAnnAvg_30yr: chose annWaterDeficit_meanAnnAvg_30yr
-#9. chose between annWetDegDays_5percentile_30yr and prcp: chose prcp
-#10. chose between prcp and precip_wettestMonth_meanAnnAvg_30yr: chose precip_wettestMonth_meanAnnAvg_30yr
+#1. chose between tmin_meanAnnAvg_CLIM and tmean_meanAnnAvg_CLIM: chose tmean_meanAnnAvg_CLIM
+#2. chose between tmean_meanAnnAvg_CLIM and durationFrostFreeDays_meanAnnAvg_CLIM: chose durationFrostFreeDays_meanAnnAvg_CLIM
+#3. chose between durationFrostFreeDays_meanAnnAvg_CLIM and aboveFreezing_month_meanAnnAvg_CLIM: chose aboveFreezing_month_meanAnnAvg_CLIM
+#4. chose between aboveFreezing_month_meanAnnAvg_CLIM and durationFrostFreeDays_5percentile_CLIM: chose durationFrostFreeDays_5percentile_CLIM
+#5. chose between durationFrostFreeDays_5percentile_CLIM and tmax_meanAnnAvg_CLIM: chose tmax_meanAnnAvg_CLIM
+#6. chose between tmax_meanAnnAvg_CLIM and T_coldestMonth_meanAnnAvg_CLIM: chose T_coldestMonth_meanAnnAvg_CLIM
+#7. chose between isothermality and annWetDegDays_5percentile_CLIM: chose annWetDegDays_5percentile_CLIM
+#8. chose between annWaterDeficit_95percentile_CLIM and annWaterDeficit_meanAnnAvg_CLIM: chose annWaterDeficit_meanAnnAvg_CLIM
+#9. chose between annWetDegDays_5percentile_CLIM and prcp: chose prcp
+#10. chose between prcp and precip_wettestMonth_meanAnnAvg_CLIM: chose precip_wettestMonth_meanAnnAvg_CLIM
 #11. chose between totalAvailableWaterHoldingCapacity and soil Depth: chose soil Depth
 #12. chose between avgSandPerc_acrossDepth and surfaceClay_perc: chose avgSandPerc_acrossDepth
- ## drop  [1] "tmin_meanAnnAvg_30yr"                   "tmean_meanAnnAvg_30yr"                 
-# [3] "durationFrostFreeDays_meanAnnAvg_30yr"  "aboveFreezing_month_meanAnnAvg_30yr"   
-# [5] "durationFrostFreeDays_5percentile_30yr" "tmax_meanAnnAvg_30yr"                  
-# [7] "Wet \n DegDays"                         "annWaterDeficit_95percentile_30yr"     
-# [9] "annWetDegDays_5percentile_30yr"         "prcp"                                  
+ ## drop  [1] "tmin_meanAnnAvg_CLIM"                   "tmean_meanAnnAvg_CLIM"                 
+# [3] "durationFrostFreeDays_meanAnnAvg_CLIM"  "aboveFreezing_month_meanAnnAvg_CLIM"   
+# [5] "durationFrostFreeDays_5percentile_CLIM" "tmax_meanAnnAvg_CLIM"                  
+# [7] "Wet \n DegDays"                         "annWaterDeficit_95percentile_CLIM"     
+# [9] "annWetDegDays_5percentile_CLIM"         "prcp"                                  
 # [11] "totalAvailableWaterHoldingCapacity"     "surfaceClay_perc"      
 
 ## also remove wet degree days, since it's correlated w/ 
 (corrPlot2 <- 
     modDat_fit %>% 
-    dplyr::select(#"tmin_meanAnnAvg_30yr"              ,
-      #"tmax_meanAnnAvg_30yr" ,                 
-      #"tmean_meanAnnAvg_30yr"                  ,
-      #"prcp_meanAnnTotal_30yr"                 ,
-      "T_warmestMonth_meanAnnAvg_30yr"       , 
-      "T_coldestMonth_meanAnnAvg_30yr"         ,"precip_wettestMonth_meanAnnAvg_30yr"    ,
-      #"precip_driestMonth_meanAnnAvg_30yr"   , 
-      #"precip_Seasonality_meanAnnAvg_30yr"     ,
-      "PrecipTempCorr_meanAnnAvg_30yr"        , #"aboveFreezing_month_meanAnnAvg_30yr" ,  
-      "isothermality_meanAnnAvg_30yr"          ,"annWaterDeficit_meanAnnAvg_30yr"       , 
-      #"annWetDegDays_meanAnnAvg_30yr"       ,  
-       #"annVPD_mean_meanAnnAvg_30yr"            ,"annVPD_max_meanAnnAvg_30yr"            , "annVPD_min_meanAnnAvg_30yr"          ,  
-       #"annVPD_max_95percentile_30yr"           ,
-       #"annWaterDeficit_95percentile_30yr"     , 
-       #"annWetDegDays_5percentile_30yr"      ,  
-       #"durationFrostFreeDays_5percentile_30yr" ,#"durationFrostFreeDays_meanAnnAvg_30yr" , 
+    dplyr::select(#"tmin_meanAnnAvg_CLIM"              ,
+      #"tmax_meanAnnAvg_CLIM" ,                 
+      #"tmean_meanAnnAvg_CLIM"                  ,
+      #"prcp_meanAnnTotal_CLIM"                 ,
+      "T_warmestMonth_meanAnnAvg_CLIM"       , 
+      "T_coldestMonth_meanAnnAvg_CLIM"         ,"precip_wettestMonth_meanAnnAvg_CLIM"    ,
+      #"precip_driestMonth_meanAnnAvg_CLIM"   , 
+      #"precip_Seasonality_meanAnnAvg_CLIM"     ,
+      "PrecipTempCorr_meanAnnAvg_CLIM"        , #"aboveFreezing_month_meanAnnAvg_CLIM" ,  
+      "isothermality_meanAnnAvg_CLIM"          ,"annWaterDeficit_meanAnnAvg_CLIM"       , 
+      #"annWetDegDays_meanAnnAvg_CLIM"       ,  
+       #"annVPD_mean_meanAnnAvg_CLIM"            ,"annVPD_max_meanAnnAvg_CLIM"            , "annVPD_min_meanAnnAvg_CLIM"          ,  
+       #"annVPD_max_95percentile_CLIM"           ,
+       #"annWaterDeficit_95percentile_CLIM"     , 
+       #"annWetDegDays_5percentile_CLIM"      ,  
+       #"durationFrostFreeDays_5percentile_CLIM" ,#"durationFrostFreeDays_meanAnnAvg_CLIM" , 
       "soilDepth"                           ,  
        #"surfaceClay_perc"                       ,
       "avgSandPerc_acrossDepth"               , "avgCoarsePerc_acrossDepth"           ,  
       "avgOrganicCarbonPerc_0_3cm"            #, "totalAvailableWaterHoldingCapacity"
     ) %>% 
-    rename(#"MAP" =  prcp_meanAnnTotal_30yr,
-      "T_warmest \nmonth" = T_warmestMonth_meanAnnAvg_30yr, "T_coldest \nmonth" = T_coldestMonth_meanAnnAvg_30yr,
-      "precip_wettest" = precip_wettestMonth_meanAnnAvg_30yr, #"precip_driest" = precip_driestMonth_meanAnnAvg_30yr,
-      "P/T corr" = PrecipTempCorr_meanAnnAvg_30yr, "isothermality" = isothermality_meanAnnAvg_30yr,
-      #"watDef" = annWaterDeficit_meanAnnAvg_30yr,
-      #"Wet \n DegDays" = annWetDegDays_meanAnnAvg_30yr,
-      #"VPD_max" = annVPD_max_meanAnnAvg_30yr,
-      #"VPD_min" = annVPD_min_meanAnnAvg_30yr,
-      #"VPD_max_95" = annVPD_max_95percentile_30yr, 
-      #"watDef_95" = annWaterDeficit_95percentile_30yr,
-      #"wetDegDays_5" = annWetDegDays_5percentile_30yr,
+    rename(#"MAP" =  prcp_meanAnnTotal_CLIM,
+      "T_warmest \nmonth" = T_warmestMonth_meanAnnAvg_CLIM, "T_coldest \nmonth" = T_coldestMonth_meanAnnAvg_CLIM,
+      "precip_wettest" = precip_wettestMonth_meanAnnAvg_CLIM, #"precip_driest" = precip_driestMonth_meanAnnAvg_CLIM,
+      "P/T corr" = PrecipTempCorr_meanAnnAvg_CLIM, "isothermality" = isothermality_meanAnnAvg_CLIM,
+      #"watDef" = annWaterDeficit_meanAnnAvg_CLIM,
+      #"Wet \n DegDays" = annWetDegDays_meanAnnAvg_CLIM,
+      #"VPD_max" = annVPD_max_meanAnnAvg_CLIM,
+      #"VPD_min" = annVPD_min_meanAnnAvg_CLIM,
+      #"VPD_max_95" = annVPD_max_95percentile_CLIM, 
+      #"watDef_95" = annWaterDeficit_95percentile_CLIM,
+      #"wetDegDays_5" = annWetDegDays_5percentile_CLIM,
       #"surfClay" = surfaceClay_perc,
       "sand" = avgSandPerc_acrossDepth,
       "coarse" = avgCoarsePerc_acrossDepth,
@@ -1720,11 +1720,11 @@ modDat_testNew <- modDat_test %>%
   mutate(newRegionFact = as.factor(newRegion))
 
 testMod_5 <- glm(newRegionFact ~ #
-                   T_warmestMonth_meanAnnAvg_30yr    + 
-                   T_coldestMonth_meanAnnAvg_30yr      + precip_wettestMonth_meanAnnAvg_30yr    +
-                   annWaterDeficit_meanAnnAvg_30yr  +
-                   PrecipTempCorr_meanAnnAvg_30yr   +  
-                   isothermality_meanAnnAvg_30yr   +
+                   T_warmestMonth_meanAnnAvg_CLIM    + 
+                   T_coldestMonth_meanAnnAvg_CLIM      + precip_wettestMonth_meanAnnAvg_CLIM    +
+                   annWaterDeficit_meanAnnAvg_CLIM  +
+                   PrecipTempCorr_meanAnnAvg_CLIM   +  
+                   isothermality_meanAnnAvg_CLIM   +
                    soilDepth                  +  
                    avgSandPerc_acrossDepth      + avgCoarsePerc_acrossDepth    +  
                    avgOrganicCarbonPerc_0_3cm   
@@ -1929,9 +1929,9 @@ effSizeFig_2 <- ggplot(beta.table_2, aes(y=estimate, x=variable, ymin=low, ymax=
 # reorganize data frame
 # get decile values
 tempDec <- temp %>% 
-  pivot_longer(cols = c(T_warmestMonth_meanAnnAvg_30yr, T_coldestMonth_meanAnnAvg_30yr , precip_wettestMonth_meanAnnAvg_30yr , 
-                        annWaterDeficit_meanAnnAvg_30yr , PrecipTempCorr_meanAnnAvg_30yr , 
-                        isothermality_meanAnnAvg_30yr , soilDepth , avgSandPerc_acrossDepth , 
+  pivot_longer(cols = c(T_warmestMonth_meanAnnAvg_CLIM, T_coldestMonth_meanAnnAvg_CLIM , precip_wettestMonth_meanAnnAvg_CLIM , 
+                        annWaterDeficit_meanAnnAvg_CLIM , PrecipTempCorr_meanAnnAvg_CLIM , 
+                        isothermality_meanAnnAvg_CLIM , soilDepth , avgSandPerc_acrossDepth , 
                         avgCoarsePerc_acrossDepth , avgOrganicCarbonPerc_0_3cm ), 
                names_to = "predictor_name",
                values_to = "predictor_value"
@@ -2024,11 +2024,11 @@ testMod.null <- glm(formula = newRegionFact ~ 1, family = "binomial",
 testMod.full <- 
   glm(data =  modDat_fitNew %>% 
         dplyr::select(newRegionFact, 
-                        T_warmestMonth_meanAnnAvg_30yr    , 
-                        T_coldestMonth_meanAnnAvg_30yr      , precip_wettestMonth_meanAnnAvg_30yr    ,
-                        annWaterDeficit_meanAnnAvg_30yr  ,
-                        PrecipTempCorr_meanAnnAvg_30yr   ,  
-                        isothermality_meanAnnAvg_30yr   ,
+                        T_warmestMonth_meanAnnAvg_CLIM    , 
+                        T_coldestMonth_meanAnnAvg_CLIM      , precip_wettestMonth_meanAnnAvg_CLIM    ,
+                        annWaterDeficit_meanAnnAvg_CLIM  ,
+                        PrecipTempCorr_meanAnnAvg_CLIM   ,  
+                        isothermality_meanAnnAvg_CLIM   ,
                         soilDepth                  ,  
                         avgSandPerc_acrossDepth      , avgCoarsePerc_acrossDepth    ,  
                         avgOrganicCarbonPerc_0_3cm )
@@ -2241,9 +2241,9 @@ effSizeFig_2 <- ggplot(beta.table_2, aes(y=estimate, x=variable, ymin=low, ymax=
 # reorganize data frame
 # get decile values
 tempDec <- temp %>% 
-  pivot_longer(cols = c(T_warmestMonth_meanAnnAvg_30yr, T_coldestMonth_meanAnnAvg_30yr , precip_wettestMonth_meanAnnAvg_30yr , 
-                        annWaterDeficit_meanAnnAvg_30yr , PrecipTempCorr_meanAnnAvg_30yr , 
-                        isothermality_meanAnnAvg_30yr , soilDepth , avgSandPerc_acrossDepth , 
+  pivot_longer(cols = c(T_warmestMonth_meanAnnAvg_CLIM, T_coldestMonth_meanAnnAvg_CLIM , precip_wettestMonth_meanAnnAvg_CLIM , 
+                        annWaterDeficit_meanAnnAvg_CLIM , PrecipTempCorr_meanAnnAvg_CLIM , 
+                        isothermality_meanAnnAvg_CLIM , soilDepth , avgSandPerc_acrossDepth , 
                         avgCoarsePerc_acrossDepth , avgOrganicCarbonPerc_0_3cm ), 
                names_to = "predictor_name",
                values_to = "predictor_value"
@@ -2337,29 +2337,29 @@ testMod.null <- glm(formula = newRegionFact ~ 1, family = "binomial",
 testMod_7  <- 
   glm(data =  modDat_fitNew %>% 
         dplyr::select(newRegionFact, 
-                      T_warmestMonth_meanAnnAvg_30yr    , 
-                      T_coldestMonth_meanAnnAvg_30yr      , precip_wettestMonth_meanAnnAvg_30yr    ,
-                      annWaterDeficit_meanAnnAvg_30yr  ,
-                      PrecipTempCorr_meanAnnAvg_30yr   ,  
-                      isothermality_meanAnnAvg_30yr   ,
+                      T_warmestMonth_meanAnnAvg_CLIM    , 
+                      T_coldestMonth_meanAnnAvg_CLIM      , precip_wettestMonth_meanAnnAvg_CLIM    ,
+                      annWaterDeficit_meanAnnAvg_CLIM  ,
+                      PrecipTempCorr_meanAnnAvg_CLIM   ,  
+                      isothermality_meanAnnAvg_CLIM   ,
                       soilDepth                  ,  
                       avgSandPerc_acrossDepth      , avgCoarsePerc_acrossDepth    ,  
                       avgOrganicCarbonPerc_0_3cm )
-      , formula = newRegionFact ~ . + T_warmestMonth_meanAnnAvg_30yr:T_coldestMonth_meanAnnAvg_30yr +
-        T_warmestMonth_meanAnnAvg_30yr:precip_wettestMonth_meanAnnAvg_30yr + 
-        T_warmestMonth_meanAnnAvg_30yr:annWaterDeficit_meanAnnAvg_30yr +
-        T_warmestMonth_meanAnnAvg_30yr:PrecipTempCorr_meanAnnAvg_30yr +
-        T_warmestMonth_meanAnnAvg_30yr:isothermality_meanAnnAvg_30yr + 
-        T_coldestMonth_meanAnnAvg_30yr:precip_wettestMonth_meanAnnAvg_30yr  +
-        T_coldestMonth_meanAnnAvg_30yr:annWaterDeficit_meanAnnAvg_30yr  +
-        T_coldestMonth_meanAnnAvg_30yr:PrecipTempCorr_meanAnnAvg_30yr +
-        T_coldestMonth_meanAnnAvg_30yr:isothermality_meanAnnAvg_30yr  +
-        precip_wettestMonth_meanAnnAvg_30yr:annWaterDeficit_meanAnnAvg_30yr +
-        precip_wettestMonth_meanAnnAvg_30yr:PrecipTempCorr_meanAnnAvg_30yr +
-        precip_wettestMonth_meanAnnAvg_30yr:isothermality_meanAnnAvg_30yr + 
-        annWaterDeficit_meanAnnAvg_30yr:PrecipTempCorr_meanAnnAvg_30yr  +
-        annWaterDeficit_meanAnnAvg_30yr:isothermality_meanAnnAvg_30yr  +
-        PrecipTempCorr_meanAnnAvg_30yr:isothermality_meanAnnAvg_30yr  ,
+      , formula = newRegionFact ~ . + T_warmestMonth_meanAnnAvg_CLIM:T_coldestMonth_meanAnnAvg_CLIM +
+        T_warmestMonth_meanAnnAvg_CLIM:precip_wettestMonth_meanAnnAvg_CLIM + 
+        T_warmestMonth_meanAnnAvg_CLIM:annWaterDeficit_meanAnnAvg_CLIM +
+        T_warmestMonth_meanAnnAvg_CLIM:PrecipTempCorr_meanAnnAvg_CLIM +
+        T_warmestMonth_meanAnnAvg_CLIM:isothermality_meanAnnAvg_CLIM + 
+        T_coldestMonth_meanAnnAvg_CLIM:precip_wettestMonth_meanAnnAvg_CLIM  +
+        T_coldestMonth_meanAnnAvg_CLIM:annWaterDeficit_meanAnnAvg_CLIM  +
+        T_coldestMonth_meanAnnAvg_CLIM:PrecipTempCorr_meanAnnAvg_CLIM +
+        T_coldestMonth_meanAnnAvg_CLIM:isothermality_meanAnnAvg_CLIM  +
+        precip_wettestMonth_meanAnnAvg_CLIM:annWaterDeficit_meanAnnAvg_CLIM +
+        precip_wettestMonth_meanAnnAvg_CLIM:PrecipTempCorr_meanAnnAvg_CLIM +
+        precip_wettestMonth_meanAnnAvg_CLIM:isothermality_meanAnnAvg_CLIM + 
+        annWaterDeficit_meanAnnAvg_CLIM:PrecipTempCorr_meanAnnAvg_CLIM  +
+        annWaterDeficit_meanAnnAvg_CLIM:isothermality_meanAnnAvg_CLIM  +
+        PrecipTempCorr_meanAnnAvg_CLIM:isothermality_meanAnnAvg_CLIM  ,
         family = "binomial", 
       na.action = na.fail)
 
@@ -2558,9 +2558,9 @@ effSizeFig_2 <- ggplot(beta.table_2, aes(y=estimate, x=variable, ymin=low, ymax=
 # reorganize data frame
 # get decile values
 tempDec <- temp %>% 
-  pivot_longer(cols = c(T_warmestMonth_meanAnnAvg_30yr, T_coldestMonth_meanAnnAvg_30yr , precip_wettestMonth_meanAnnAvg_30yr , 
-                        annWaterDeficit_meanAnnAvg_30yr , PrecipTempCorr_meanAnnAvg_30yr , 
-                        isothermality_meanAnnAvg_30yr , soilDepth , avgSandPerc_acrossDepth , 
+  pivot_longer(cols = c(T_warmestMonth_meanAnnAvg_CLIM, T_coldestMonth_meanAnnAvg_CLIM , precip_wettestMonth_meanAnnAvg_CLIM , 
+                        annWaterDeficit_meanAnnAvg_CLIM , PrecipTempCorr_meanAnnAvg_CLIM , 
+                        isothermality_meanAnnAvg_CLIM , soilDepth , avgSandPerc_acrossDepth , 
                         avgCoarsePerc_acrossDepth , avgOrganicCarbonPerc_0_3cm ), 
                names_to = "predictor_name",
                values_to = "predictor_value"
@@ -2614,33 +2614,33 @@ test <- tempDec %>%
 ## Make interaction plots 
 library(sjPlot)
 library(sjmisc)
-(int1_plot <- plot_model(testMod_7, type = "pred", terms = c("T_warmestMonth_meanAnnAvg_30yr", 
-                                               "T_coldestMonth_meanAnnAvg_30yr")))
-(int2_plot <- plot_model(testMod_7, type = "pred", terms = c("T_warmestMonth_meanAnnAvg_30yr", 
-                                                             "precip_wettestMonth_meanAnnAvg_30yr")))
-(int3_plot <- plot_model(testMod_7, type = "pred", terms = c("T_warmestMonth_meanAnnAvg_30yr", 
-                                                             "annWaterDeficit_meanAnnAvg_30yr")))
-(int4_plot <- plot_model(testMod_7, type = "pred", terms = c("T_warmestMonth_meanAnnAvg_30yr", 
-                                                             "PrecipTempCorr_meanAnnAvg_30yr")))
-(int5_plot <- plot_model(testMod_7, type = "pred", terms = c("T_warmestMonth_meanAnnAvg_30yr", 
-                                                             "isothermality_meanAnnAvg_30yr")))
+(int1_plot <- plot_model(testMod_7, type = "pred", terms = c("T_warmestMonth_meanAnnAvg_CLIM", 
+                                               "T_coldestMonth_meanAnnAvg_CLIM")))
+(int2_plot <- plot_model(testMod_7, type = "pred", terms = c("T_warmestMonth_meanAnnAvg_CLIM", 
+                                                             "precip_wettestMonth_meanAnnAvg_CLIM")))
+(int3_plot <- plot_model(testMod_7, type = "pred", terms = c("T_warmestMonth_meanAnnAvg_CLIM", 
+                                                             "annWaterDeficit_meanAnnAvg_CLIM")))
+(int4_plot <- plot_model(testMod_7, type = "pred", terms = c("T_warmestMonth_meanAnnAvg_CLIM", 
+                                                             "PrecipTempCorr_meanAnnAvg_CLIM")))
+(int5_plot <- plot_model(testMod_7, type = "pred", terms = c("T_warmestMonth_meanAnnAvg_CLIM", 
+                                                             "isothermality_meanAnnAvg_CLIM")))
 
-(int6_plot <- plot_model(testMod_7, type = "pred", terms = c("T_coldestMonth_meanAnnAvg_30yr", 
-                                                             "precip_wettestMonth_meanAnnAvg_30yr")))
-(int7_plot <- plot_model(testMod_7, type = "pred", terms = c("T_coldestMonth_meanAnnAvg_30yr", 
-                                                             "annWaterDeficit_meanAnnAvg_30yr")))
-(int7_plot <- plot_model(testMod_7, type = "pred", terms = c("T_coldestMonth_meanAnnAvg_30yr", 
-                                                             "PrecipTempCorr_meanAnnAvg_30yr")))
-(int8_plot <- plot_model(testMod_7, type = "pred", terms = c("T_coldestMonth_meanAnnAvg_30yr", 
-                                                             "isothermality_meanAnnAvg_30yr")))
+(int6_plot <- plot_model(testMod_7, type = "pred", terms = c("T_coldestMonth_meanAnnAvg_CLIM", 
+                                                             "precip_wettestMonth_meanAnnAvg_CLIM")))
+(int7_plot <- plot_model(testMod_7, type = "pred", terms = c("T_coldestMonth_meanAnnAvg_CLIM", 
+                                                             "annWaterDeficit_meanAnnAvg_CLIM")))
+(int7_plot <- plot_model(testMod_7, type = "pred", terms = c("T_coldestMonth_meanAnnAvg_CLIM", 
+                                                             "PrecipTempCorr_meanAnnAvg_CLIM")))
+(int8_plot <- plot_model(testMod_7, type = "pred", terms = c("T_coldestMonth_meanAnnAvg_CLIM", 
+                                                             "isothermality_meanAnnAvg_CLIM")))
 
-(int9_plot <- plot_model(testMod_7, type = "pred", terms = c("annWaterDeficit_meanAnnAvg_30yr", 
-                                                             "PrecipTempCorr_meanAnnAvg_30yr")))
-(int10_plot <- plot_model(testMod_7, type = "pred", terms = c("annWaterDeficit_meanAnnAvg_30yr", 
-                                                             "isothermality_meanAnnAvg_30yr")))
+(int9_plot <- plot_model(testMod_7, type = "pred", terms = c("annWaterDeficit_meanAnnAvg_CLIM", 
+                                                             "PrecipTempCorr_meanAnnAvg_CLIM")))
+(int10_plot <- plot_model(testMod_7, type = "pred", terms = c("annWaterDeficit_meanAnnAvg_CLIM", 
+                                                             "isothermality_meanAnnAvg_CLIM")))
 
-(int11_plot <- plot_model(testMod_7, type = "pred", terms = c("PrecipTempCorr_meanAnnAvg_30yr",  
-                                                              "isothermality_meanAnnAvg_30yr")))
+(int11_plot <- plot_model(testMod_7, type = "pred", terms = c("PrecipTempCorr_meanAnnAvg_CLIM",  
+                                                              "isothermality_meanAnnAvg_CLIM")))
  
                                                               
 (intPlots <-  ggarrange(int1_plot, int2_plot, int3_plot, int4_plot, int5_plot, 
@@ -2690,24 +2690,24 @@ ggpubr::annotate_figure(ggarrange(
 
 # in previous model, many interactions didn't have that much of an impact (as seen in interaction figures... )
 # will retain these: 
-# annWaterDeficit_meanAnnAvg_30yr:T_warmestMonth_meanAnnAvg_30yr
-# T_coldestMonth_meanAnnAvg_30yr:PrecipTempCorr_meanAnnAvg_30yr
-# T_warmestMonth_meanAnnAvg_30yr:PrecipTempCorr_meanAnnAvg_30yr
+# annWaterDeficit_meanAnnAvg_CLIM:T_warmestMonth_meanAnnAvg_CLIM
+# T_coldestMonth_meanAnnAvg_CLIM:PrecipTempCorr_meanAnnAvg_CLIM
+# T_warmestMonth_meanAnnAvg_CLIM:PrecipTempCorr_meanAnnAvg_CLIM
 
 testMod_8  <- 
   glm(data =  modDat_fitNew %>% 
         dplyr::select(newRegionFact, 
-                      T_warmestMonth_meanAnnAvg_30yr    , 
-                      T_coldestMonth_meanAnnAvg_30yr      , precip_wettestMonth_meanAnnAvg_30yr    ,
-                      annWaterDeficit_meanAnnAvg_30yr  ,
-                      PrecipTempCorr_meanAnnAvg_30yr   ,  
-                      isothermality_meanAnnAvg_30yr   ,
+                      T_warmestMonth_meanAnnAvg_CLIM    , 
+                      T_coldestMonth_meanAnnAvg_CLIM      , precip_wettestMonth_meanAnnAvg_CLIM    ,
+                      annWaterDeficit_meanAnnAvg_CLIM  ,
+                      PrecipTempCorr_meanAnnAvg_CLIM   ,  
+                      isothermality_meanAnnAvg_CLIM   ,
                       soilDepth                  ,  
                       avgSandPerc_acrossDepth      , avgCoarsePerc_acrossDepth    ,  
                       avgOrganicCarbonPerc_0_3cm )
-      , formula = newRegionFact ~ . + annWaterDeficit_meanAnnAvg_30yr:T_warmestMonth_meanAnnAvg_30yr + 
-        T_coldestMonth_meanAnnAvg_30yr:PrecipTempCorr_meanAnnAvg_30yr +
-        T_warmestMonth_meanAnnAvg_30yr:PrecipTempCorr_meanAnnAvg_30yr,
+      , formula = newRegionFact ~ . + annWaterDeficit_meanAnnAvg_CLIM:T_warmestMonth_meanAnnAvg_CLIM + 
+        T_coldestMonth_meanAnnAvg_CLIM:PrecipTempCorr_meanAnnAvg_CLIM +
+        T_warmestMonth_meanAnnAvg_CLIM:PrecipTempCorr_meanAnnAvg_CLIM,
       family = "binomial", 
       na.action = na.fail)
 
@@ -2902,9 +2902,9 @@ effSizeFig_2 <- ggplot(beta.table_2, aes(y=estimate, x=variable, ymin=low, ymax=
 # reorganize data frame
 # get decile values
 tempDec <- temp %>% 
-  pivot_longer(cols = c(T_warmestMonth_meanAnnAvg_30yr, T_coldestMonth_meanAnnAvg_30yr , precip_wettestMonth_meanAnnAvg_30yr , 
-                        annWaterDeficit_meanAnnAvg_30yr , PrecipTempCorr_meanAnnAvg_30yr , 
-                        isothermality_meanAnnAvg_30yr , soilDepth , avgSandPerc_acrossDepth , 
+  pivot_longer(cols = c(T_warmestMonth_meanAnnAvg_CLIM, T_coldestMonth_meanAnnAvg_CLIM , precip_wettestMonth_meanAnnAvg_CLIM , 
+                        annWaterDeficit_meanAnnAvg_CLIM , PrecipTempCorr_meanAnnAvg_CLIM , 
+                        isothermality_meanAnnAvg_CLIM , soilDepth , avgSandPerc_acrossDepth , 
                         avgCoarsePerc_acrossDepth , avgOrganicCarbonPerc_0_3cm ), 
                names_to = "predictor_name",
                values_to = "predictor_value"
@@ -2967,12 +2967,12 @@ test <- tempDec %>%
 ## Make interaction plots 
 library(sjPlot)
 library(sjmisc)
-(int1_plot <- plot_model(testMod_8, type = "pred", terms = c("T_warmestMonth_meanAnnAvg_30yr", 
-                                                             "annWaterDeficit_meanAnnAvg_30yr")))
-(int2_plot <- plot_model(testMod_8, type = "pred", terms = c("T_coldestMonth_meanAnnAvg_30yr", 
-                                                             "PrecipTempCorr_meanAnnAvg_30yr")))
-(int3_plot <- plot_model(testMod_8, type = "pred", terms = c("T_warmestMonth_meanAnnAvg_30yr", 
-                                                             "PrecipTempCorr_meanAnnAvg_30yr")))
+(int1_plot <- plot_model(testMod_8, type = "pred", terms = c("T_warmestMonth_meanAnnAvg_CLIM", 
+                                                             "annWaterDeficit_meanAnnAvg_CLIM")))
+(int2_plot <- plot_model(testMod_8, type = "pred", terms = c("T_coldestMonth_meanAnnAvg_CLIM", 
+                                                             "PrecipTempCorr_meanAnnAvg_CLIM")))
+(int3_plot <- plot_model(testMod_8, type = "pred", terms = c("T_warmestMonth_meanAnnAvg_CLIM", 
+                                                             "PrecipTempCorr_meanAnnAvg_CLIM")))
 
 
 (intPlots <-  ggarrange(int1_plot, int2_plot, int3_plot,
@@ -3014,12 +3014,12 @@ modDat_fitNew <- modDat_fit %>%
   mutate(newRegion = str_replace(newRegion, "eastForest", "forest"),
          newRegion = str_replace(newRegion, "westForest", "forest")) %>% 
   mutate(newRegionFact = as.factor(newRegion)) %>% 
-  mutate(T_warmestMonth_S = scale(T_warmestMonth_meanAnnAvg_30yr),
-         T_coldestMonth_S = scale(T_coldestMonth_meanAnnAvg_30yr),
-         precip_wettestMonth_S = scale(precip_wettestMonth_meanAnnAvg_30yr),
-         precip_driestMonth_S = scale(precip_driestMonth_meanAnnAvg_30yr),
-         PrecipTempCorr_S = scale(PrecipTempCorr_meanAnnAvg_30yr),
-         isothermality_S = scale(isothermality_meanAnnAvg_30yr),
+  mutate(T_warmestMonth_S = scale(T_warmestMonth_meanAnnAvg_CLIM),
+         T_coldestMonth_S = scale(T_coldestMonth_meanAnnAvg_CLIM),
+         precip_wettestMonth_S = scale(precip_wettestMonth_meanAnnAvg_CLIM),
+         precip_driestMonth_S = scale(precip_driestMonth_meanAnnAvg_CLIM),
+         PrecipTempCorr_S = scale(PrecipTempCorr_meanAnnAvg_CLIM),
+         isothermality_S = scale(isothermality_meanAnnAvg_CLIM),
          soilDepth_S = scale(soilDepth),
          avgSandPerc_S = scale(avgSandPerc_acrossDepth),
          avgCoarsePerc_S = scale(avgCoarsePerc_acrossDepth),
@@ -3029,12 +3029,12 @@ modDat_testNew <- modDat_test %>%
   mutate(newRegion = str_replace(newRegion, "eastForest", "forest"),
          newRegion = str_replace(newRegion, "westForest", "forest")) %>% 
   mutate(newRegionFact = as.factor(newRegion)) %>% 
-  mutate(T_warmestMonth_S = scale(T_warmestMonth_meanAnnAvg_30yr),
-         T_coldestMonth_S = scale(T_coldestMonth_meanAnnAvg_30yr),
-         precip_wettestMonth_S = scale(precip_wettestMonth_meanAnnAvg_30yr),
-         precip_driestMonth_S = scale(precip_driestMonth_meanAnnAvg_30yr),
-         PrecipTempCorr_S = scale(PrecipTempCorr_meanAnnAvg_30yr),
-         isothermality_S = scale(isothermality_meanAnnAvg_30yr),
+  mutate(T_warmestMonth_S = scale(T_warmestMonth_meanAnnAvg_CLIM),
+         T_coldestMonth_S = scale(T_coldestMonth_meanAnnAvg_CLIM),
+         precip_wettestMonth_S = scale(precip_wettestMonth_meanAnnAvg_CLIM),
+         precip_driestMonth_S = scale(precip_driestMonth_meanAnnAvg_CLIM),
+         PrecipTempCorr_S = scale(PrecipTempCorr_meanAnnAvg_CLIM),
+         isothermality_S = scale(isothermality_meanAnnAvg_CLIM),
          soilDepth_S = scale(soilDepth),
          avgSandPerc_S = scale(avgSandPerc_acrossDepth),
          avgCoarsePerc_S = scale(avgCoarsePerc_acrossDepth),
@@ -3302,9 +3302,9 @@ testMod.null <- glm(formula = newRegionFact ~ 1, family = "binomial",
                     data = modDat_fitNew)
 testMod.full <- 
   glm(data =  modDat_fitNew %>% 
-        dplyr::select(newRegionFact, T_warmestMonth_meanAnnAvg_30yr, T_coldestMonth_meanAnnAvg_30yr , precip_wettestMonth_meanAnnAvg_30yr , 
-                      precip_driestMonth_meanAnnAvg_30yr , PrecipTempCorr_meanAnnAvg_30yr , 
-                      isothermality_meanAnnAvg_30yr , soilDepth , avgSandPerc_acrossDepth , 
+        dplyr::select(newRegionFact, T_warmestMonth_meanAnnAvg_CLIM, T_coldestMonth_meanAnnAvg_CLIM , precip_wettestMonth_meanAnnAvg_CLIM , 
+                      precip_driestMonth_meanAnnAvg_CLIM , PrecipTempCorr_meanAnnAvg_CLIM , 
+                      isothermality_meanAnnAvg_CLIM , soilDepth , avgSandPerc_acrossDepth , 
                       avgCoarsePerc_acrossDepth , avgOrganicCarbonPerc_0_3cm )
       , formula = newRegionFact ~ . + .^2 , family = "binomial", 
                      na.action = na.fail)
@@ -3443,9 +3443,9 @@ effSizeFig_2 <- ggplot(beta.table_2, aes(y=estimate, x=variable, ymin=low, ymax=
 # reorganize data frame
 # get decile values
 tempDec <- temp %>% 
-  pivot_longer(cols = c(T_warmestMonth_meanAnnAvg_30yr, T_coldestMonth_meanAnnAvg_30yr , precip_wettestMonth_meanAnnAvg_30yr , 
-                                    precip_driestMonth_meanAnnAvg_30yr , PrecipTempCorr_meanAnnAvg_30yr , 
-                                    isothermality_meanAnnAvg_30yr , soilDepth , avgSandPerc_acrossDepth , 
+  pivot_longer(cols = c(T_warmestMonth_meanAnnAvg_CLIM, T_coldestMonth_meanAnnAvg_CLIM , precip_wettestMonth_meanAnnAvg_CLIM , 
+                                    precip_driestMonth_meanAnnAvg_CLIM , PrecipTempCorr_meanAnnAvg_CLIM , 
+                                    isothermality_meanAnnAvg_CLIM , soilDepth , avgSandPerc_acrossDepth , 
                                     avgCoarsePerc_acrossDepth , avgOrganicCarbonPerc_0_3cm ), 
                names_to = "predictor_name",
                values_to = "predictor_value"
@@ -3528,11 +3528,11 @@ ggpubr::annotate_figure(ggarrange(
 # # following this example:
 # # https://stats.oarc.ucla.edu/r/dae/multinomial-logistic-regression/
 # modDat_fit$newRegionFact <- relevel(modDat_fit$newRegion, ref = "dryShrubGrass")
-# testMod <- nnet::multinom(newRegionFact ~     precip_wettestMonth_meanAnnAvg_30yr  + 
-#                             precip_driestMonth_meanAnnAvg_30yr    +
-#                             PrecipTempCorr_meanAnnAvg_30yr       +
-#                             #isothermality_meanAnnAvg_30yr        +
-#                             annVPD_max_95percentile_30yr         +  
+# testMod <- nnet::multinom(newRegionFact ~     precip_wettestMonth_meanAnnAvg_CLIM  + 
+#                             precip_driestMonth_meanAnnAvg_CLIM    +
+#                             PrecipTempCorr_meanAnnAvg_CLIM       +
+#                             #isothermality_meanAnnAvg_CLIM        +
+#                             annVPD_max_95percentile_CLIM         +  
 #                             soilDepth                             +
 #                             surfaceClay_perc                     + 
 #                             avgCoarsePerc_acrossDepth            +  avgOrganicCarbonPerc_0_3cm,
@@ -3711,9 +3711,9 @@ ggpubr::annotate_figure(ggarrange(
 
 # library(rpart)
 # # fit a basic classification tree model
-# treeMod <- rpart(newRegion ~  swe_meanAnnAvg_30yr + annWetDegDays_meanAnnAvg_30yr + 
-#                    tmean_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr + 
-#                    PrecipTempCorr_meanAnnAvg_30yr + surfaceClay_perc +             
+# treeMod <- rpart(newRegion ~  swe_meanAnnAvg_CLIM + annWetDegDays_meanAnnAvg_CLIM + 
+#                    tmean_meanAnnAvg_CLIM + isothermality_meanAnnAvg_CLIM + prcp_meanAnnTotal_CLIM + 
+#                    PrecipTempCorr_meanAnnAvg_CLIM + surfaceClay_perc +             
 #                    avgSandPerc_acrossDepth + avgCoarsePerc_acrossDepth +              
 #                    avgOrganicCarbonPerc_0_3cm + totalAvailableWaterHoldingCapacity,
 #                  data = modDat_fit, method = 'class')
@@ -3761,9 +3761,9 @@ ggpubr::annotate_figure(ggarrange(
 #   
 #   # train a model and store in the list
 #   models[[i]] <- rpart(
-#     newRegion ~  swe_meanAnnAvg_30yr + annWetDegDays_meanAnnAvg_30yr + 
-#       tmean_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr + 
-#       PrecipTempCorr_meanAnnAvg_30yr + surfaceClay_perc +             
+#     newRegion ~  swe_meanAnnAvg_CLIM + annWetDegDays_meanAnnAvg_CLIM + 
+#       tmean_meanAnnAvg_CLIM + isothermality_meanAnnAvg_CLIM + prcp_meanAnnTotal_CLIM + 
+#       PrecipTempCorr_meanAnnAvg_CLIM + surfaceClay_perc +             
 #       avgSandPerc_acrossDepth + avgCoarsePerc_acrossDepth +              
 #       avgOrganicCarbonPerc_0_3cm + totalAvailableWaterHoldingCapacity,
 #     data = modDat_fit, method = 'class',
@@ -3795,9 +3795,9 @@ ggpubr::annotate_figure(ggarrange(
 # 
 # ## fit the best tree
 # bestTree <- rpart(
-#   newRegion ~  swe_meanAnnAvg_30yr + annWetDegDays_meanAnnAvg_30yr + 
-#     tmean_meanAnnAvg_30yr + isothermality_meanAnnAvg_30yr + prcp_meanAnnTotal_30yr + 
-#     PrecipTempCorr_meanAnnAvg_30yr + surfaceClay_perc +             
+#   newRegion ~  swe_meanAnnAvg_CLIM + annWetDegDays_meanAnnAvg_CLIM + 
+#     tmean_meanAnnAvg_CLIM + isothermality_meanAnnAvg_CLIM + prcp_meanAnnTotal_CLIM + 
+#     PrecipTempCorr_meanAnnAvg_CLIM + surfaceClay_perc +             
 #     avgSandPerc_acrossDepth + avgCoarsePerc_acrossDepth +              
 #     avgOrganicCarbonPerc_0_3cm + totalAvailableWaterHoldingCapacity,
 #   data = modDat_fit, method = 'class',
@@ -3848,15 +3848,15 @@ ggpubr::annotate_figure(ggarrange(
 
 # # Conditional Inference Regression Tree with all possible variables 
 # ## now, try using partykit r package (conditional inference, nonparametric regression tree)
-# partyTreeALL <- partykit::ctree(newRegion ~  tmin_meanAnnAvg_30yr                  +
-#                              tmax_meanAnnAvg_30yr                   + tmean_meanAnnAvg_30yr                            +
-#                              prcp_meanAnnTotal_30yr                 + T_warmestMonth_meanAnnAvg_30yr    +     T_coldestMonth_meanAnnAvg_30yr         +
-#                               precip_wettestMonth_meanAnnAvg_30yr   +  precip_driestMonth_meanAnnAvg_30yr   +  precip_Seasonality_meanAnnAvg_30yr     +
-#                               PrecipTempCorr_meanAnnAvg_30yr        +  aboveFreezing_month_meanAnnAvg_30yr  +  isothermality_meanAnnAvg_30yr          +
-#                               annWaterDeficit_meanAnnAvg_30yr       +  annWetDegDays_meanAnnAvg_30yr        +  annVPD_mean_meanAnnAvg_30yr            +
-#                               annVPD_max_meanAnnAvg_30yr            +  annVPD_min_meanAnnAvg_30yr           +  annVPD_max_95percentile_30yr           +
-#                               annWaterDeficit_95percentile_30yr     +  annWetDegDays_5percentile_30yr       +  durationFrostFreeDays_5percentile_30yr +
-#                               durationFrostFreeDays_meanAnnAvg_30yr +  soilDepth                            +  surfaceClay_perc                       +
+# partyTreeALL <- partykit::ctree(newRegion ~  tmin_meanAnnAvg_CLIM                  +
+#                              tmax_meanAnnAvg_CLIM                   + tmean_meanAnnAvg_CLIM                            +
+#                              prcp_meanAnnTotal_CLIM                 + T_warmestMonth_meanAnnAvg_CLIM    +     T_coldestMonth_meanAnnAvg_CLIM         +
+#                               precip_wettestMonth_meanAnnAvg_CLIM   +  precip_driestMonth_meanAnnAvg_CLIM   +  precip_Seasonality_meanAnnAvg_CLIM     +
+#                               PrecipTempCorr_meanAnnAvg_CLIM        +  aboveFreezing_month_meanAnnAvg_CLIM  +  isothermality_meanAnnAvg_CLIM          +
+#                               annWaterDeficit_meanAnnAvg_CLIM       +  annWetDegDays_meanAnnAvg_CLIM        +  annVPD_mean_meanAnnAvg_CLIM            +
+#                               annVPD_max_meanAnnAvg_CLIM            +  annVPD_min_meanAnnAvg_CLIM           +  annVPD_max_95percentile_CLIM           +
+#                               annWaterDeficit_95percentile_CLIM     +  annWetDegDays_5percentile_CLIM       +  durationFrostFreeDays_5percentile_CLIM +
+#                               durationFrostFreeDays_meanAnnAvg_CLIM +  soilDepth                            +  surfaceClay_perc                       +
 #                               avgSandPerc_acrossDepth               +  avgCoarsePerc_acrossDepth            + avgOrganicCarbonPerc_0_3cm +
 #                               totalAvailableWaterHoldingCapacity,
 #                    data = modDat_fit, control = partykit::ctree_control(maxdepth = 7))
@@ -3998,12 +3998,12 @@ ggpubr::annotate_figure(ggarrange(
 
 # # Conditional Inference Regression Tree with top 7 most important variables 
 # # try restricting the tree depth (too long right now)
-# partyTree_1 <- partykit::ctree(newRegion ~  precip_driestMonth_meanAnnAvg_30yr   + PrecipTempCorr_meanAnnAvg_30yr        +
+# partyTree_1 <- partykit::ctree(newRegion ~  precip_driestMonth_meanAnnAvg_CLIM   + PrecipTempCorr_meanAnnAvg_CLIM        +
 #                                 avgOrganicCarbonPerc_0_3cm + 
 #                                  surfaceClay_perc + 
-#                                  annVPD_max_meanAnnAvg_30yr + 
-#                                  prcp_meanAnnTotal_30yr + 
-#                                  annWetDegDays_5percentile_30yr
+#                                  annVPD_max_meanAnnAvg_CLIM + 
+#                                  prcp_meanAnnTotal_CLIM + 
+#                                  annWetDegDays_5percentile_CLIM
 #                                   ,
 #                                 data = modDat_fit, control = partykit::ctree_control(maxdepth = 7))
 # partyTree_1
@@ -4111,37 +4111,37 @@ ggpubr::annotate_figure(ggarrange(
 # #     mutate(
 # #       partyPrediction_prob = pmap_dbl(.[c("partyPrediction.dryShrubGrass", "partyPrediction.eastForest", "partyPrediction.westForest")], max),
 # #            across(partyPrediction.dryShrubGrass:partyPrediction.westForest, ~.x == partyPrediction)) %>%
-# #   select(c("precip_driestMonth_meanAnnAvg_30yr"  ,   "PrecipTempCorr_meanAnnAvg_30yr"      ,
-# #            "T_warmestMonth_meanAnnAvg_30yr"    ,"avgOrganicCarbonPerc_0_3cm" ,    
-# #            "vp_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr", 
-# #            "swe_meanAnnAvg_30yr", "partyPrediction", "partyPrediction_prob")) %>% 
+# #   select(c("precip_driestMonth_meanAnnAvg_CLIM"  ,   "PrecipTempCorr_meanAnnAvg_CLIM"      ,
+# #            "T_warmestMonth_meanAnnAvg_CLIM"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+# #            "vp_meanAnnAvg_CLIM", "prcp_meanAnnTotal_CLIM", 
+# #            "swe_meanAnnAvg_CLIM", "partyPrediction", "partyPrediction_prob")) %>% 
 # # ggplot() + 
-# #   geom_point(aes(x = precip_driestMonth_meanAnnAvg_30yr, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
+# #   geom_point(aes(x = precip_driestMonth_meanAnnAvg_CLIM, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
 # #   theme_minimal() + 
 # #   theme() + 
 # #   xlab("Precip of the driest month") + 
 # #   labs(color = "Ecoregion") + 
 # #   ylab("Probability") +
 # #   facet_wrap(~partyPrediction) + 
-# #   geom_smooth(aes(x = precip_driestMonth_meanAnnAvg_30yr,  y = partyPrediction_prob),color = "black", se = FALSE) )
+# #   geom_smooth(aes(x = precip_driestMonth_meanAnnAvg_CLIM,  y = partyPrediction_prob),color = "black", se = FALSE) )
 # # 
 # # (partyTree_1_preciTempCorr <-  partyTree_1Preds %>%
 # #     mutate(
 # #       partyPrediction_prob = pmap_dbl(.[c("partyPrediction.dryShrubGrass", "partyPrediction.eastForest", "partyPrediction.westForest")], max),
 # #       across(partyPrediction.dryShrubGrass:partyPrediction.westForest, ~.x == partyPrediction)) %>%
-# #     select(c("precip_driestMonth_meanAnnAvg_30yr"  ,   "PrecipTempCorr_meanAnnAvg_30yr"      ,
-# #              "T_warmestMonth_meanAnnAvg_30yr"    ,"avgOrganicCarbonPerc_0_3cm" ,    
-# #              "vp_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr", 
-# #              "swe_meanAnnAvg_30yr", "partyPrediction", "partyPrediction_prob")) %>% 
+# #     select(c("precip_driestMonth_meanAnnAvg_CLIM"  ,   "PrecipTempCorr_meanAnnAvg_CLIM"      ,
+# #              "T_warmestMonth_meanAnnAvg_CLIM"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+# #              "vp_meanAnnAvg_CLIM", "prcp_meanAnnTotal_CLIM", 
+# #              "swe_meanAnnAvg_CLIM", "partyPrediction", "partyPrediction_prob")) %>% 
 # #     ggplot() + 
-# #     geom_point(aes(x = PrecipTempCorr_meanAnnAvg_30yr, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
+# #     geom_point(aes(x = PrecipTempCorr_meanAnnAvg_CLIM, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
 # #     theme_minimal() + 
 # #     theme() + 
 # #     xlab("Precip / Temp. Correlation") + 
 # #     labs(color = "Ecoregion") + 
 # #     ylab("Probability") +
 # #     facet_wrap(~partyPrediction) + 
-# #     geom_smooth(aes(x = PrecipTempCorr_meanAnnAvg_30yr,  y = partyPrediction_prob),color = "black", se = FALSE) +
+# #     geom_smooth(aes(x = PrecipTempCorr_meanAnnAvg_CLIM,  y = partyPrediction_prob),color = "black", se = FALSE) +
 # #     ylim(c(.5, 1)))   
 # #  
 # # #
@@ -4149,29 +4149,29 @@ ggpubr::annotate_figure(ggarrange(
 # #     mutate(
 # #       partyPrediction_prob = pmap_dbl(.[c("partyPrediction.dryShrubGrass", "partyPrediction.eastForest", "partyPrediction.westForest")], max),
 # #       across(partyPrediction.dryShrubGrass:partyPrediction.westForest, ~.x == partyPrediction)) %>%
-# #     select(c("precip_driestMonth_meanAnnAvg_30yr"  ,   "PrecipTempCorr_meanAnnAvg_30yr"      ,
-# #              "T_warmestMonth_meanAnnAvg_30yr"    ,"avgOrganicCarbonPerc_0_3cm" ,    
-# #              "vp_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr", 
-# #              "swe_meanAnnAvg_30yr", "partyPrediction", "partyPrediction_prob")) %>% 
+# #     select(c("precip_driestMonth_meanAnnAvg_CLIM"  ,   "PrecipTempCorr_meanAnnAvg_CLIM"      ,
+# #              "T_warmestMonth_meanAnnAvg_CLIM"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+# #              "vp_meanAnnAvg_CLIM", "prcp_meanAnnTotal_CLIM", 
+# #              "swe_meanAnnAvg_CLIM", "partyPrediction", "partyPrediction_prob")) %>% 
 # #     ggplot() + 
-# #     geom_point(aes(x = T_warmestMonth_meanAnnAvg_30yr, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
+# #     geom_point(aes(x = T_warmestMonth_meanAnnAvg_CLIM, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
 # #     theme_minimal() + 
 # #     theme() + 
 # #     xlab("Temp of warmest month") + 
 # #     labs(color = "Ecoregion") + 
 # #     ylab("Probability") +
 # #     facet_wrap(~partyPrediction) + 
-# #     geom_smooth(aes(x = T_warmestMonth_meanAnnAvg_30yr,  y = partyPrediction_prob),color = "black", se = FALSE) +
+# #     geom_smooth(aes(x = T_warmestMonth_meanAnnAvg_CLIM,  y = partyPrediction_prob),color = "black", se = FALSE) +
 # #     ylim(c(.5, 1)))   
 # # 
 # # (partyTree_1_Carbon <-  partyTree_1Preds %>%
 # #     mutate(
 # #       partyPrediction_prob = pmap_dbl(.[c("partyPrediction.dryShrubGrass", "partyPrediction.eastForest", "partyPrediction.westForest")], max),
 # #       across(partyPrediction.dryShrubGrass:partyPrediction.westForest, ~.x == partyPrediction)) %>%
-# #     select(c("precip_driestMonth_meanAnnAvg_30yr"  ,   "PrecipTempCorr_meanAnnAvg_30yr"      ,
-# #              "T_warmestMonth_meanAnnAvg_30yr"    ,"avgOrganicCarbonPerc_0_3cm" ,    
-# #              "vp_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr", 
-# #              "swe_meanAnnAvg_30yr", "partyPrediction", "partyPrediction_prob")) %>% 
+# #     select(c("precip_driestMonth_meanAnnAvg_CLIM"  ,   "PrecipTempCorr_meanAnnAvg_CLIM"      ,
+# #              "T_warmestMonth_meanAnnAvg_CLIM"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+# #              "vp_meanAnnAvg_CLIM", "prcp_meanAnnTotal_CLIM", 
+# #              "swe_meanAnnAvg_CLIM", "partyPrediction", "partyPrediction_prob")) %>% 
 # #     ggplot() + 
 # #     geom_point(aes(x = avgOrganicCarbonPerc_0_3cm, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
 # #     theme_minimal() + 
@@ -4187,57 +4187,57 @@ ggpubr::annotate_figure(ggarrange(
 # #     mutate(
 # #       partyPrediction_prob = pmap_dbl(.[c("partyPrediction.dryShrubGrass", "partyPrediction.eastForest", "partyPrediction.westForest")], max),
 # #       across(partyPrediction.dryShrubGrass:partyPrediction.westForest, ~.x == partyPrediction)) %>%
-# #     select(c("precip_driestMonth_meanAnnAvg_30yr"  ,   "PrecipTempCorr_meanAnnAvg_30yr"      ,
-# #              "T_warmestMonth_meanAnnAvg_30yr"    ,"avgOrganicCarbonPerc_0_3cm" ,    
-# #              "vp_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr", 
-# #              "swe_meanAnnAvg_30yr", "partyPrediction", "partyPrediction_prob")) %>% 
+# #     select(c("precip_driestMonth_meanAnnAvg_CLIM"  ,   "PrecipTempCorr_meanAnnAvg_CLIM"      ,
+# #              "T_warmestMonth_meanAnnAvg_CLIM"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+# #              "vp_meanAnnAvg_CLIM", "prcp_meanAnnTotal_CLIM", 
+# #              "swe_meanAnnAvg_CLIM", "partyPrediction", "partyPrediction_prob")) %>% 
 # #     ggplot() + 
-# #     geom_point(aes(x = vp_meanAnnAvg_30yr, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
+# #     geom_point(aes(x = vp_meanAnnAvg_CLIM, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
 # #     theme_minimal() + 
 # #     theme() + 
 # #     xlab("mean annual daily atmospheric vapor pressure") + 
 # #     labs(color = "Ecoregion") + 
 # #     ylab("Probability") +
 # #     facet_wrap(~partyPrediction) + 
-# #     geom_smooth(aes(x = vp_meanAnnAvg_30yr,  y = partyPrediction_prob),color = "black", se = FALSE) +
+# #     geom_smooth(aes(x = vp_meanAnnAvg_CLIM,  y = partyPrediction_prob),color = "black", se = FALSE) +
 # #     ylim(c(.5, 1)))   
 # # 
 # # (partyTree_1_MAP <-  partyTree_1Preds %>%
 # #     mutate(
 # #       partyPrediction_prob = pmap_dbl(.[c("partyPrediction.dryShrubGrass", "partyPrediction.eastForest", "partyPrediction.westForest")], max),
 # #       across(partyPrediction.dryShrubGrass:partyPrediction.westForest, ~.x == partyPrediction)) %>%
-# #     select(c("precip_driestMonth_meanAnnAvg_30yr"  ,   "PrecipTempCorr_meanAnnAvg_30yr"      ,
-# #              "T_warmestMonth_meanAnnAvg_30yr"    ,"avgOrganicCarbonPerc_0_3cm" ,    
-# #              "vp_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr", 
-# #              "swe_meanAnnAvg_30yr", "partyPrediction", "partyPrediction_prob")) %>% 
+# #     select(c("precip_driestMonth_meanAnnAvg_CLIM"  ,   "PrecipTempCorr_meanAnnAvg_CLIM"      ,
+# #              "T_warmestMonth_meanAnnAvg_CLIM"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+# #              "vp_meanAnnAvg_CLIM", "prcp_meanAnnTotal_CLIM", 
+# #              "swe_meanAnnAvg_CLIM", "partyPrediction", "partyPrediction_prob")) %>% 
 # #     ggplot() + 
-# #     geom_point(aes(x = prcp_meanAnnTotal_30yr, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
+# #     geom_point(aes(x = prcp_meanAnnTotal_CLIM, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
 # #     theme_minimal() + 
 # #     theme() + 
 # #     xlab("mean annual precip") + 
 # #     labs(color = "Ecoregion") + 
 # #     ylab("Probability") +
 # #     facet_wrap(~partyPrediction) + 
-# #     geom_smooth(aes(x = prcp_meanAnnTotal_30yr,  y = partyPrediction_prob),color = "black", se = FALSE) +
+# #     geom_smooth(aes(x = prcp_meanAnnTotal_CLIM,  y = partyPrediction_prob),color = "black", se = FALSE) +
 # #     ylim(c(.5, 1)))   
 # # 
 # # (partyTree_1_swe <-  partyTree_1Preds %>%
 # #     mutate(
 # #       partyPrediction_prob = pmap_dbl(.[c("partyPrediction.dryShrubGrass", "partyPrediction.eastForest", "partyPrediction.westForest")], max),
 # #       across(partyPrediction.dryShrubGrass:partyPrediction.westForest, ~.x == partyPrediction)) %>%
-# #     select(c("precip_driestMonth_meanAnnAvg_30yr"  ,   "PrecipTempCorr_meanAnnAvg_30yr"      ,
-# #              "T_warmestMonth_meanAnnAvg_30yr"    ,"avgOrganicCarbonPerc_0_3cm" ,    
-# #              "vp_meanAnnAvg_30yr", "prcp_meanAnnTotal_30yr", 
-# #              "swe_meanAnnAvg_30yr", "partyPrediction", "partyPrediction_prob")) %>% 
+# #     select(c("precip_driestMonth_meanAnnAvg_CLIM"  ,   "PrecipTempCorr_meanAnnAvg_CLIM"      ,
+# #              "T_warmestMonth_meanAnnAvg_CLIM"    ,"avgOrganicCarbonPerc_0_3cm" ,    
+# #              "vp_meanAnnAvg_CLIM", "prcp_meanAnnTotal_CLIM", 
+# #              "swe_meanAnnAvg_CLIM", "partyPrediction", "partyPrediction_prob")) %>% 
 # #     ggplot() + 
-# #     geom_point(aes(x = swe_meanAnnAvg_30yr, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
+# #     geom_point(aes(x = swe_meanAnnAvg_CLIM, y = jitter(partyPrediction_prob, 30), color = partyPrediction), alpha = .5) + 
 # #     theme_minimal() + 
 # #     theme() + 
 # #     xlab("total annual snowpack SWE") + 
 # #     labs(color = "Ecoregion") + 
 # #     ylab("Probability") +
 # #     facet_wrap(~partyPrediction) + 
-# #     geom_smooth(aes(x = swe_meanAnnAvg_30yr,  y = partyPrediction_prob),color = "black", se = FALSE) +
+# #     geom_smooth(aes(x = swe_meanAnnAvg_CLIM,  y = partyPrediction_prob),color = "black", se = FALSE) +
 # #     ylim(c(.5, 1)))   
 # 
 # ## arrange all of the figures for this model
@@ -4274,11 +4274,11 @@ ggpubr::annotate_figure(ggarrange(
 # # # Conditional Inference Regression Tree with top 6 most important variables 
 # # ## at this point, none of the predictors are correlated anyway... 
 # # # try restricting the tree depth (too long right now)
-# # partyTree_2 <- partykit::ctree(newRegion ~  precip_driestMonth_meanAnnAvg_30yr   + PrecipTempCorr_meanAnnAvg_30yr        +
-# #                                  T_warmestMonth_meanAnnAvg_30yr    + 
-# #                                  prcp_meanAnnTotal_30yr + 
-# #                                  annVPD_max_meanAnnAvg_30yr +
-# #                                  annVPD_min_meanAnnAvg_30yr 
+# # partyTree_2 <- partykit::ctree(newRegion ~  precip_driestMonth_meanAnnAvg_CLIM   + PrecipTempCorr_meanAnnAvg_CLIM        +
+# #                                  T_warmestMonth_meanAnnAvg_CLIM    + 
+# #                                  prcp_meanAnnTotal_CLIM + 
+# #                                  annVPD_max_meanAnnAvg_CLIM +
+# #                                  annVPD_min_meanAnnAvg_CLIM 
 # #                                ,
 # #                                data = modDat_fit, control = partykit::ctree_control(maxdepth = 7))
 # # partyTree_2
@@ -4416,10 +4416,10 @@ ggpubr::annotate_figure(ggarrange(
 # ## at this point, none of the predictors are correlated anyway... 
 # ## removed vp instead of prcp (which was technically the least important), since I don't think we'll use vp in the cover models
 # # try restricting the tree depth (too long right now)
-# partyTree_3 <- partykit::ctree(newRegion ~  precip_driestMonth_meanAnnAvg_30yr   + PrecipTempCorr_meanAnnAvg_30yr        +
+# partyTree_3 <- partykit::ctree(newRegion ~  precip_driestMonth_meanAnnAvg_CLIM   + PrecipTempCorr_meanAnnAvg_CLIM        +
 #                                  avgOrganicCarbonPerc_0_3cm + 
-#                                  annVPD_max_meanAnnAvg_30yr + 
-#                                  prcp_meanAnnTotal_30yr 
+#                                  annVPD_max_meanAnnAvg_CLIM + 
+#                                  prcp_meanAnnTotal_CLIM 
 #                                ,
 #                                data = modDat_fit, control = partykit::ctree_control(maxdepth = 7))
 # partyTree_3
@@ -4427,10 +4427,10 @@ ggpubr::annotate_figure(ggarrange(
 # # look at correlation btwn predictors
 # (partyTree_3_corrPlot <- 
 #     modDat_fit %>% 
-#     select(precip_driestMonth_meanAnnAvg_30yr   , PrecipTempCorr_meanAnnAvg_30yr        ,
+#     select(precip_driestMonth_meanAnnAvg_CLIM   , PrecipTempCorr_meanAnnAvg_CLIM        ,
 #              avgOrganicCarbonPerc_0_3cm , 
-#              annVPD_max_meanAnnAvg_30yr , 
-#              prcp_meanAnnTotal_30yr) %>% 
+#              annVPD_max_meanAnnAvg_CLIM , 
+#              prcp_meanAnnTotal_CLIM) %>% 
 #       slice_sample(n = 5e4) %>% 
 #     #select(-matches("_")) %>% 
 #     ggpairs( upper = list(continuous = my_fn), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), progress = FALSE))
@@ -4568,9 +4568,9 @@ ggpubr::annotate_figure(ggarrange(
 # ## at this point, none of the predictors are correlated anyway... 
 # ## removed vp instead of prcp (which was technically the least important), since I don't think we'll use vp in the cover models
 # # try restricting the tree depth (too long right now)
-# partyTree_4 <- partykit::ctree(newRegion ~   precip_driestMonth_meanAnnAvg_30yr   + PrecipTempCorr_meanAnnAvg_30yr        +
+# partyTree_4 <- partykit::ctree(newRegion ~   precip_driestMonth_meanAnnAvg_CLIM   + PrecipTempCorr_meanAnnAvg_CLIM        +
 #                                  avgOrganicCarbonPerc_0_3cm + 
-#                                  annVPD_max_meanAnnAvg_30yr   ,
+#                                  annVPD_max_meanAnnAvg_CLIM   ,
 #                                
 #                                data = modDat_fit, control = partykit::ctree_control(maxdepth = 7))
 # partyTree_4
@@ -4707,9 +4707,9 @@ ggpubr::annotate_figure(ggarrange(
 # ## at this point, none of the predictors are correlated anyway... 
 # ## removed vp instead of prcp (which was technically the least important), since I don't think we'll use vp in the cover models
 # # try restricting the tree depth (too long right now)
-# partyTree_5 <- partykit::ctree(newRegion ~   precip_driestMonth_meanAnnAvg_30yr   + PrecipTempCorr_meanAnnAvg_30yr        +
+# partyTree_5 <- partykit::ctree(newRegion ~   precip_driestMonth_meanAnnAvg_CLIM   + PrecipTempCorr_meanAnnAvg_CLIM        +
 #                                  avgOrganicCarbonPerc_0_3cm + 
-#                                  annVPD_max_meanAnnAvg_30yr  ,
+#                                  annVPD_max_meanAnnAvg_CLIM  ,
 #                                data = modDat_fit, control = partykit::ctree_control(maxdepth = 6))
 # partyTree_5
 # 
