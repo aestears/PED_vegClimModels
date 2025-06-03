@@ -137,6 +137,16 @@ tempNames <- str_replace_all(tempNames, pattern = "prcp ",
                                               round(scaleParams$prcp_s$`scaled:center`,4), ") / ", 
                                               round(scaleParams$prcp_s$`scaled:scale`,4), ") "))
 
+tempNames <- str_replace_all(tempNames, pattern = "prcp^", 
+                         replacement = paste0("((prcp - ", 
+                                              round(scaleParams$prcp_s$`scaled:center`,4), ") / ", 
+                                              round(scaleParams$prcp_s$`scaled:scale`,4), ")^"))
+
+tempNames <- str_replace_all(tempNames, pattern = "prcp:", 
+                         replacement = paste0("((prcp - ", 
+                                              round(scaleParams$prcp_s$`scaled:center`,4), ") / ", 
+                                              round(scaleParams$prcp_s$`scaled:scale`,4), "):"))
+
 tempNames <- str_replace_all(tempNames, pattern = "prcpTempCorr ", 
                          replacement = paste0("((prcpTempCorr - ", 
                                               round(scaleParams$prcpTempCorr_s$`scaled:center`,4), ") / ", 
@@ -197,6 +207,11 @@ tempNames <- str_replace_all(tempNames, pattern = "annWatDef ",
                                               round(scaleParams$annWatDef_s$`scaled:center`,4), ") / ", 
                                               round(scaleParams$annWatDef_s$`scaled:scale`,4), ")"))
 
+tempNames <- str_replace_all(tempNames, pattern = "annWatDef:", 
+                         replacement = paste0("((annWatDef - ", 
+                                              round(scaleParams$annWatDef_s$`scaled:center`,4), ") / ", 
+                                              round(scaleParams$annWatDef_s$`scaled:scale`,4), "):"))
+
 tempNames <- str_replace_all(tempNames, pattern = "prcp_seasonality:", 
                          replacement = paste0("((prcp_seasonality - ", 
                                               round(scaleParams$prcp_seasonality_s$`scaled:center`,4), ") / ", 
@@ -216,6 +231,27 @@ tempNames <- str_replace_all(tempNames, pattern = "prcp_seasonality ",
                          replacement = paste0("((prcp_seasonality - ", 
                                               round(scaleParams$prcp_seasonality_s$`scaled:center`,4), ") / ", 
                                               round(scaleParams$prcp_seasonality_s$`scaled:scale`,4), ") "))
+
+tempNames <- str_replace_all(tempNames, pattern = "prcp_seasonality_anom", 
+                         replacement = paste0("((prcp_seasonality_anom - ", 
+                                              round(scaleParams$prcp_seasonality_anom_s$`scaled:center`,4), ") / ", 
+                                              round(scaleParams$prcp_seasonality_anom_s$`scaled:scale`,4), ") "))
+
+tempNames <- str_replace_all(tempNames, pattern = "prcpTempCorr_anom", 
+                         replacement = paste0("((prcpTempCorr_anom - ", 
+                                              round(scaleParams$prcpTempCorr_anom_s$`scaled:center`,4), ") / ", 
+                                              round(scaleParams$prcpTempCorr_anom_s$`scaled:scale`,4), ") "))
+
+tempNames <- str_replace_all(tempNames, pattern = "annWatDef_anom", 
+                         replacement = paste0("((annWatDef_anom - ", 
+                                              round(scaleParams$annWatDef_anom_s$`scaled:center`,4), ") / ", 
+                                              round(scaleParams$annWatDef_anom_s$`scaled:scale`,4), ") "))
+
+tempNames <- str_replace_all(tempNames, pattern = "isothermality_anom", 
+                         replacement = paste0("((isothermality_anom - ", 
+                                              round(scaleParams$isothermality_anom_s$`scaled:center`,4), ") / ", 
+                                              round(scaleParams$isothermality_anom_s$`scaled:scale`,4), ") "))
+
 
 ## print scaled model statement
 
@@ -364,7 +400,7 @@ kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 climDat <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Data_processed/EcoRegion_climSoilData.rds")
 # rename
 climDat <- climDat %>% 
-  select(tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_3yrAnom, NA_L1CODE, 
+  dplyr::select(tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_3yrAnom, NA_L1CODE, 
          NA_L1NAME, NA_L1KEY, newRegion, x, y, soilDepth:totalAvailableWaterHoldingCapacity) %>% 
 rename("tmin" = tmin_meanAnnAvg_CLIM, 
      "tmax" = tmax_meanAnnAvg_CLIM, #1 
@@ -418,7 +454,7 @@ rename("tmin" = tmin_meanAnnAvg_CLIM,
     frostFreeDays_5_anom = durationFrostFreeDays_5percentile_3yrAnom, #35 
       frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_3yrAnom #36
   ) %>% 
-  select(-c(tmin_meanAnnAvg_3yr:Start_3yr))
+  dplyr::select(-c(tmin_meanAnnAvg_3yr:Start_3yr))
 
 ```
 
@@ -426,12 +462,12 @@ Get the scaling factors for the data used to fit the models (scaling is done to 
 ```{r fig.width= 12, fig.height = 12}
 # get the scaling factors 
 scaleParams <- modDat_1_s %>% 
-  select(tmin_s:AWHC_s) %>% 
+  dplyr::select(tmin_s:AWHC_s) %>% 
   reframe(across(all_of(names(.)), attributes)) 
 
 # apply the scaling factors to the contemporary climate data 
 namesToScale <- climDat %>% 
-  select(tmin:frostFreeDays, tmean_anom:frostFreeDays_anom, soilDepth:AWHC) %>% 
+  dplyr::select(tmin:frostFreeDays, tmean_anom:frostFreeDays_anom, soilDepth:AWHC) %>% 
   names()
 
 climDat_scaled <- map(namesToScale, .f = function(x) {
@@ -442,12 +478,12 @@ climDat_scaled <- map(namesToScale, .f = function(x) {
 names(climDat_scaled) <- paste0(namesToScale, "_s")
 
 climDatPred <- climDat %>% 
-  select(NA_L1CODE:y) %>% 
+  dplyr::select(NA_L1CODE:y) %>% 
   cbind(climDat_scaled)
 names(climDatPred)[7:56] <- str_remove(names(climDatPred)[7:56], pattern = "_s$")
 
 prednames_s <-  modDat_1_s %>%
-  select(tmin_s:AWHC_s) %>%
+  dplyr::select(tmin_s:AWHC_s) %>%
   names()
 prednames <- str_replace(prednames_s, pattern = "_s$", replacement = "")
 
@@ -456,12 +492,12 @@ climDat_long <- climDatPred %>%
   rename_with(.cols = any_of(c(prednames, "tmin", "tmax")), .fn = ~paste0(.x, "_s")) %>% 
   pivot_longer(cols = c(tmin_s:AWHC_s), names_to = "variableName", values_to = "values") %>% 
   mutate(source = "climDat") %>% 
-  select(x, y, variableName, values, source)
+  dplyr::select(x, y, variableName, values, source)
 modDat_long <- modDat_1_s %>% 
   pivot_longer(cols = c(tmin_s:AWHC_s), names_to = "variableName", values_to = "values") %>% 
   mutate(source = "modDat") %>% 
   rename(x = x, y = y) %>% 
-  select(x, y, variableName, values, source)
+  dplyr::select(x, y, variableName, values, source)
 allDat_long <- climDat_long %>% 
   rbind(modDat_long)
 
@@ -945,7 +981,7 @@ names(annMeans_3yrs)[3:24] <- paste0(names(annMeans_3yrs)[3:24], "_3yr")
 annMeans_3yrs$End_3yr <- 2099
 ## add lagged data to the main climate value data.frame
 test <- climVar_1 %>% 
-  select(-c(tmin_C_1:prcp_mm_12)) %>% 
+  dplyr::select(-c(tmin_C_1:prcp_mm_12)) %>% 
   filter(Year == 2099) %>% 
   #filter(year == 2020) %>% 
   #slice(1:100) %>% 
@@ -1048,7 +1084,7 @@ climDat <- cbind(test,
 # sample raster to get values for the points in the cover dataset
 
 soils_df <- soilRast %>% 
-  terra::extract(y = pointsSamp #%>% dplyr::select(-x,-y)
+  terra::extract(y = pointsSamp #%>% dplyr::dplyr::select(-x,-y)
                  , xy = TRUE, bind = TRUE) %>% 
   as.data.frame()
 
@@ -1256,7 +1292,7 @@ soils_df <- soilRast %>%
 
 # remove unnecessary soils variables 
   soils_final <- soils_new %>% 
-    select(-c(clayPerc_2cm:organicCarbonPerc_176cm)) %>% 
+    dplyr::select(-c(clayPerc_2cm:organicCarbonPerc_176cm)) %>% 
     filter(!is.nan(x))
   
   # ggplot() +
@@ -1494,7 +1530,7 @@ names(annMeans_3yrs)[3:24] <- paste0(names(annMeans_3yrs)[3:24], "_3yr")
 annMeans_3yrs$End_3yr <- 2099
 ## add lagged data to the main climate value data.frame
 test <- climVar_2 %>% 
-  select(-c(tmin_C_1:prcp_mm_12)) %>% 
+  dplyr::select(-c(tmin_C_1:prcp_mm_12)) %>% 
   filter(Year == 2099) %>% 
   #filter(year == 2020) %>% 
   #slice(1:100) %>% 
@@ -1610,7 +1646,7 @@ forecastClimSoilsDat_1$y <- st_coordinates(forecastClimSoilsDat_1)[,2]
 # rename
 forecastClimSoilsDat_1 <- forecastClimSoilsDat_1 %>% 
   st_drop_geometry() %>% 
-  select(x, y, Year, tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM, 
+  dplyr::select(x, y, Year, tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM, 
          tmean_meanAnnAvg_3yrAnom:durationFrostFreeDays_meanAnnAvg_3yrAnom,
           soilDepth:totalAvailableWaterHoldingCapacity, newRegion) %>% 
 rename("tmin" = tmin_meanAnnAvg_CLIM, 
@@ -1678,7 +1714,7 @@ forecastClimSoilsDat_2$newRegion <- NA
 # rename
 forecastClimSoilsDat_2 <- forecastClimSoilsDat_2 %>% 
   st_drop_geometry() %>% 
-  select(x, y, Year, tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM, 
+  dplyr::select(x, y, Year, tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM, 
          tmean_meanAnnAvg_3yrAnom:durationFrostFreeDays_meanAnnAvg_3yrAnom,
           soilDepth:totalAvailableWaterHoldingCapacity, newRegion) %>% 
 rename("tmin" = tmin_meanAnnAvg_CLIM, 
@@ -1739,13 +1775,13 @@ rename("tmin" = tmin_meanAnnAvg_CLIM,
 ```{r fig.width= 12, fig.height = 12}
 # get the scaling factors 
 scaleParams <- modDat_1_s %>% 
-  select(tmin_s:AWHC_s) %>% 
+  dplyr::select(tmin_s:AWHC_s) %>% 
   reframe(across(all_of(names(.)), attributes)) 
 
 ## For first climate model
 # apply the scaling factors to the contemporary climate data 
 namesToScale_1 <- forecastClimSoilsDat_1 %>% 
-  select(tmin:frostFreeDays, tmean_anom:frostFreeDays_anom, soilDepth:AWHC) %>% 
+  dplyr::select(tmin:frostFreeDays, tmean_anom:frostFreeDays_anom, soilDepth:AWHC) %>% 
   names()
 
 forecastClimSoilsDat_scaled_1 <- map(namesToScale_1, .f = function(x) {
@@ -1756,12 +1792,12 @@ forecastClimSoilsDat_scaled_1 <- map(namesToScale_1, .f = function(x) {
 names(forecastClimSoilsDat_scaled_1) <- paste0(namesToScale_1, "_s")
 
 forecastClimSoilsDatPred_1 <- forecastClimSoilsDat_1 %>% 
-  select(x:Year, newRegion) %>% 
+  dplyr::select(x:Year, newRegion) %>% 
   cbind(forecastClimSoilsDat_scaled_1)
 names(forecastClimSoilsDatPred_1)[5:54] <- str_remove(names(forecastClimSoilsDatPred_1)[5:54], pattern = "_s$")
 
 prednames_s <-  modDat_1_s %>%
-  select(tmin_s:AWHC_s) %>%
+  dplyr::select(tmin_s:AWHC_s) %>%
   names()
 prednames <- str_replace(prednames_s, pattern = "_s$", replacement = "")
 
@@ -1770,12 +1806,12 @@ forecastClimSoilsDat_long_1 <- forecastClimSoilsDatPred_1 %>%
   rename_with(.cols = any_of(c(prednames)), .fn = ~paste0(.x, "_s")) %>% 
   pivot_longer(cols = c(tmin_s:AWHC_s), names_to = "variableName", values_to = "values") %>% 
   mutate(source = "forecastClimSoilsDat") %>% 
-  select(x, y, variableName, values, source)
+  dplyr::select(x, y, variableName, values, source)
 modDat_long <- modDat_1_s %>% 
   pivot_longer(cols = c(tmin_s:AWHC_s), names_to = "variableName", values_to = "values") %>% 
   mutate(source = "modDat") %>% 
   rename(x = x, y = y) %>% 
-  select(x, y, variableName, values, source)
+  dplyr::select(x, y, variableName, values, source)
 allDat_long_1 <- forecastClimSoilsDat_long_1 %>% 
   rbind(modDat_long)
 
@@ -1788,7 +1824,7 @@ allDat_long_1 <- forecastClimSoilsDat_long_1 %>%
 ## For first climate model
 # apply the scaling factors to the contemporary climate data 
 namesToScale_2 <- forecastClimSoilsDat_2 %>% 
-  select(tmin:frostFreeDays, tmean_anom:frostFreeDays_anom, soilDepth:AWHC) %>% 
+  dplyr::select(tmin:frostFreeDays, tmean_anom:frostFreeDays_anom, soilDepth:AWHC) %>% 
   names()
 
 forecastClimSoilsDat_scaled_2 <- map(namesToScale_2, .f = function(x) {
@@ -1799,7 +1835,7 @@ forecastClimSoilsDat_scaled_2 <- map(namesToScale_2, .f = function(x) {
 names(forecastClimSoilsDat_scaled_2) <- paste0(namesToScale_2, "_s")
 
 forecastClimSoilsDatPred_2 <- forecastClimSoilsDat_2 %>% 
-  select(x:Year, newRegion) %>% 
+  dplyr::select(x:Year, newRegion) %>% 
   cbind(forecastClimSoilsDat_scaled_2)
 names(forecastClimSoilsDatPred_2)[5:54] <- str_remove(names(forecastClimSoilsDatPred_2)[5:54], pattern = "_s$")
 
@@ -1807,12 +1843,12 @@ forecastClimSoilsDat_long_2 <- forecastClimSoilsDatPred_2 %>%
   rename_with(.cols = any_of(c(prednames)), .fn = ~paste0(.x, "_s")) %>% 
   pivot_longer(cols = c(tmin_s:AWHC_s), names_to = "variableName", values_to = "values") %>% 
   mutate(source = "forecastClimSoilsDat") %>% 
-  select(x, y, variableName, values, source)
+  dplyr::select(x, y, variableName, values, source)
 modDat_long <- modDat_1_s %>% 
   pivot_longer(cols = c(tmin_s:AWHC_s), names_to = "variableName", values_to = "values") %>% 
   mutate(source = "modDat") %>% 
   rename(x = x, y = y) %>% 
-  select(x, y, variableName, values, source)
+  dplyr::select(x, y, variableName, values, source)
 allDat_long_2 <- forecastClimSoilsDat_long_2 %>% 
   rbind(modDat_long)
 
@@ -1854,7 +1890,7 @@ allDat_long_2 <- forecastClimSoilsDat_long_2 %>%
 Read in the best lambda model object
 ```{r}
 # read in model objects (is the trim anomaly version)
- bestLambdaMod <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/TotalHerbaceousCover_shrubGrassnoTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+bestLambdaMod_GS_totHerb <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/TotalHerbaceousCover_shrubGrass_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
 
 ModelSpec_bestLambda <- getModelStatement(coefficientTable = grassShrub_totalHerb_trimAnoms,
                                                     modelName <- "coefficientValue_bestLambda", 
@@ -1874,17 +1910,17 @@ This is the **Best Lambda** model equation if the inputs are *not* scaled:
 Now, predict with contemporary and future climate data 
 ```{r fig.width = 16, fig.height = 18, message = FALSE}
 # predict w/ best SE lambda model
-bestLambda_predict <- makePredictions(predictionDF = climDatPred, 
-                                                           modelObject = bestLambdaMod)
+bestLambda_GS_totHerb_predict <- makePredictions(predictionDF = climDatPred, 
+                                                           modelObject = bestLambdaMod_GS_totHerb)
 # predict with best SE lambda model w/ forecasted climate data
-bestLambda_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
-                                                           modelObject = bestLambdaMod)
+bestLambda_GS_totHerb_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
+                                                           modelObject = bestLambdaMod_GS_totHerb)
 # predict with best SE lambda model w/ forecasted climate data
-bestLambda_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
-                                                           modelObject = bestLambdaMod)
+bestLambda_GS_totHerb_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
+                                                           modelObject = bestLambdaMod_GS_totHerb)
 
 # predict w/ best model
-plotObs <- bestLambda_predict %>% 
+plotObs_GS_totHerb <- bestLambda_GS_totHerb_predict %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -1896,15 +1932,15 @@ plotObs <- bestLambda_predict %>%
   #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
 
 # get the extent of this particular raster, and crop it accordingly
-tempExt <- crds(plotObs, na.rm = TRUE)
+tempExt <- crds(plotObs_GS_totHerb, na.rm = TRUE)
 
-plotObs_2 <- plotObs %>% 
+plotObs_GS_totHerb_2 <- plotObs_GS_totHerb %>% 
   crop(ext(min(tempExt[,1]), max(tempExt[,1]),
            min(tempExt[,2]), max(tempExt[,2])) 
        )
 
 ## map best SE lambda predictions for the future model #1
-plotObs_bestLambdaFuture1 <- bestLambda_predictFuture_1 %>% 
+plotObs_GS_totHerb_bestLambdaFuture1 <- bestLambda_GS_totHerb_predictFuture_1 %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -1913,12 +1949,12 @@ plotObs_bestLambdaFuture1 <- bestLambda_predictFuture_1 %>%
                      field = "modelPreds", 
                    fun = mean, na.rm = TRUE)
 
-plotObs_bestLambdaFuture1_2 <- plotObs_bestLambdaFuture1 %>% 
+plotObs_GS_totHerb_bestLambdaFuture1_2 <- plotObs_GS_totHerb_bestLambdaFuture1 %>% 
   crop(ext(min(tempExt[,1]), max(tempExt[,1]),
            min(tempExt[,2]), max(tempExt[,2])) 
        )
 ## map best SE lambda predictions for the future model #2
-plotObs_bestLambdaFuture2 <- bestLambda_predictFuture_2 %>% 
+plotObs_GS_totHerb_bestLambdaFuture2 <- bestLambda_GS_totHerb_predictFuture_2 %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -1927,13 +1963,13 @@ plotObs_bestLambdaFuture2 <- bestLambda_predictFuture_2 %>%
                      field = "modelPreds", 
                    fun = mean, na.rm = TRUE)
 
-plotObs_bestLambdaFuture2_2 <- plotObs_bestLambdaFuture2 %>% 
+plotObs_GS_totHerb_bestLambdaFuture2_2 <- plotObs_GS_totHerb_bestLambdaFuture2 %>% 
   crop(ext(min(tempExt[,1]), max(tempExt[,1]),
            min(tempExt[,2]), max(tempExt[,2])) 
        )
 
 # get plot of observations
-plotObservations <- modDat_1_s %>% 
+plotObservations_GS_totHerb <- modDat_1_s %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("Long", "Lat")) %>% 
@@ -1942,15 +1978,15 @@ plotObservations <- modDat_1_s %>%
                      field = "TotalHerbaceousCover", 
                    fun = mean, na.rm = TRUE)
 
-plotObservations_2 <- plotObservations %>% 
+plotObservations_GS_totHerb_2 <- plotObservations_GS_totHerb %>% 
   crop(ext(min(tempExt[,1]), max(tempExt[,1]),
            min(tempExt[,2]), max(tempExt[,2])) 
        )
 # make figures
-map <- ggplot() +
-geom_spatraster(data = plotObs_2) + 
+map_bestLambda_GS_totHerb <- ggplot() +
+geom_spatraster(data = plotObs_GS_totHerb_2) + 
   geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_GS_totHerb_2)),fill=NA ) +
 labs(title = paste0("Predictions of totalHerbaceousCover in the 
                     grass/shrub ecoregion 
                     using contemporary climate data"),
@@ -1959,13 +1995,13 @@ labs(title = paste0("Predictions of totalHerbaceousCover in the
                        mid = "wheat" ,
                        high = "darkgreen" , 
                        midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
-  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_2)[c(2,4)])
+  xlim(st_bbox(plotObs_GS_totHerb_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_GS_totHerb_2)[c(2,4)])
 
-map_bestlambda_future1 <- ggplot() +
-geom_spatraster(data = plotObs_bestLambdaFuture1_2) + 
+map_bestLambda_GS_totHerb_future1 <- ggplot() +
+geom_spatraster(data = plotObs_GS_totHerb_bestLambdaFuture1_2) + 
   geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_GS_totHerb_2)),fill=NA ) +
 labs(title = paste0("Predictions of totalHerbaceousCover in the 
                     grass/shrub ecoregion
                     using modeled climate data from BNU-ESM model"),
@@ -1974,13 +2010,13 @@ labs(title = paste0("Predictions of totalHerbaceousCover in the
                        mid = "wheat" ,
                        high = "darkgreen" , 
                        midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
-  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_2)[c(2,4)])
+  xlim(st_bbox(plotObs_GS_totHerb_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_GS_totHerb_2)[c(2,4)])
 
-map_bestlambda_future2 <- ggplot() +
-geom_spatraster(data = plotObs_bestLambdaFuture2_2) + 
+map_bestLambda_GS_totHerb_future2 <- ggplot() +
+geom_spatraster(data = plotObs_GS_totHerb_bestLambdaFuture2_2) + 
   geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_GS_totHerb_2)),fill=NA ) +
 labs(title = paste0("Predictions of totalHerbaceousCover in the 
                     grass/shrub ecoregion
                     using modeled climate data from IPSL-CM5A-MR model"),
@@ -1989,39 +2025,39 @@ labs(title = paste0("Predictions of totalHerbaceousCover in the
                        mid = "wheat" ,
                        high = "darkgreen" , 
                        midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
-  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_2)[c(2,4)])
+  xlim(st_bbox(plotObs_GS_totHerb_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_GS_totHerb_2)[c(2,4)])
 
 map_obs <- ggplot() +
-  geom_spatraster(data = plotObservations) + 
+  geom_spatraster(data = plotObservations_GS_totHerb) + 
   geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_GS_totHerb_2)),fill=NA ) +
 labs(title = paste0("Observations of totalHerbaceousCover in the 
                     grass/shrub ecoregion")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
                        midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
-  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_2)[c(2,4)])
+  xlim(st_bbox(plotObs_GS_totHerb_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_GS_totHerb_2)[c(2,4)])
 
-hist <- ggplot(bestLambda_predict) + 
+hist <- ggplot(bestLambda_GS_totHerb_predict) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
-  geom_density(data = bestLambda_predict[bestLambda_predict$newRegion == "dryShrubGrass",],
+  geom_density(data = bestLambda_GS_totHerb_predict[bestLambda_GS_totHerb_predict$newRegion == "dryShrubGrass",],
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
   ylab("frequency")
 
-hist_bestlambdaFuture1 <-  ggplot(bestLambda_predictFuture_1) + 
+hist_bestlambdaFuture1 <-  ggplot(bestLambda_GS_totHerb_predictFuture_1) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
-  geom_density(data = bestLambda_predictFuture_1[bestLambda_predictFuture_1$newRegion == "dryShrubGrass",],
+  geom_density(data = bestLambda_GS_totHerb_predictFuture_1[bestLambda_GS_totHerb_predictFuture_1$newRegion == "dryShrubGrass",],
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
   ylab("frequency")
 
-hist_bestlambdaFuture2 <-  ggplot(bestLambda_predictFuture_2) + 
+hist_bestlambdaFuture2 <-  ggplot(bestLambda_GS_totHerb_predictFuture_2) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
-  geom_density(data = bestLambda_predictFuture_2[bestLambda_predictFuture_2$newRegion == "dryShrubGrass",],
+  geom_density(data = bestLambda_GS_totHerb_predictFuture_2[bestLambda_GS_totHerb_predictFuture_2$newRegion == "dryShrubGrass",],
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
   ylab("frequency")
@@ -2037,7 +2073,7 @@ hist_obs <- ggplot(modDat_1_s) +
 
 ## calculate residuals for contemporary prediction
 # (observed - predicted)
-resids <-  plotObservations_2 - plotObs_2 
+resids <-  plotObservations_GS_totHerb_2 - plotObs_GS_totHerb_2 
 map_resids_trimAnoms <- ggplot() +
 geom_spatraster(data = resids) + 
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(resids)),fill=NA )  + 
@@ -2062,7 +2098,7 @@ hist_trimAnoms_resids <-  ggplot(resids) +
   geom_vline(aes(xintercept = mean(terra::values(resids$mean), na.rm = TRUE)))
 
 # calculate deltas from model 1(future model predictions - contemporary model predictions)
-predDeltas_model1 <-  plotObs_bestLambdaFuture1_2 - plotObs_2 
+predDeltas_model1 <-  plotObs_GS_totHerb_bestLambdaFuture1_2 - plotObs_GS_totHerb_2 
 
 map_deltas_model1 <- ggplot() +
 geom_spatraster(data = predDeltas_model1) + 
@@ -2086,7 +2122,7 @@ hist_deltas_model1 <-  ggplot(predDeltas_model1) +
   ylab("frequency") 
 
 # calculate deltas from model 1(future model predictions - contemporary model predictions)
-predDeltas_model2 <-  plotObs_bestLambdaFuture2_2 - plotObs_2 
+predDeltas_model2 <-  plotObs_GS_totHerb_bestLambdaFuture2_2 - plotObs_GS_totHerb_2 
 
 map_deltas_model2 <- ggplot() +
 geom_spatraster(data = predDeltas_model2) + 
@@ -2114,7 +2150,7 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
   ggarrange(map_obs, hist_obs, heights = c(3,1), ncol = 1, nrow  = 2)
 
   # plot model forecasts with model that does not exclude anomalies
-       ggarrange(map, map_bestlambda_future1, map_bestlambda_future2,
+       ggarrange(map_bestLambda_GS_totHerb, map_bestLambda_GS_totHerb_future1, map_bestLambda_GS_totHerb_future2,
               hist, hist_bestlambdaFuture1, hist_bestlambdaFuture2, 
             map_resids_trimAnoms, map_deltas_model1, map_deltas_model2,
             hist_trimAnoms_resids, hist_deltas_model1, hist_deltas_model2,
@@ -2126,9 +2162,9 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
 ```{r}
 
 # read in model objects (is the trim anomaly version)
-  oneSELambdaMod <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/TotalTreeCover_shrubGrass_noTLP_FALSE_trimAnom_halfSELambdaGLM.rds")
+  oneSELambdaMod_GS_totTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/TotalTreeCover_shrubGrass_noTLP_FALSE_trimAnom_halfSELambdaGLM.rds")
 
-ModelSpec_oneSElambda <- getModelStatement(coefficientTable = grassShrub_totalTree_trimAnoms,
+ModelSpec_oneSElambda_GS_totTree <- getModelStatement(coefficientTable = grassShrub_totalTree_trimAnoms,
                                                     modelName <- "coefficientValue_halfseLambda", 
                                                     responseVar <- "TotalTreeCover")
 
@@ -2137,28 +2173,28 @@ ModelSpec_oneSElambda <- getModelStatement(coefficientTable = grassShrub_totalTr
 
 This is the **1/2 SE Lambda** model equation if the inputs *are* scaled: 
 ```{r}
-(ModelSpec_oneSElambda$scaledInputVars_ModelStatement)
+(ModelSpec_oneSElambda_GS_totTree$scaledInputVars_ModelStatement)
 ```
 
 This is the **1/2 SE Lambda** model equation if the inputs are *not* scaled: 
 ```{r}
-(ModelSpec_oneSElambda$unscaledInputVars_scaledModelStatement)
+(ModelSpec_oneSElambda_GS_totTree$unscaledInputVars_scaledModelStatement)
 ```
 
 Predict with model specification for grass/shrub total tree cover
 ```{r fig.width = 16, fig.height = 18, message = FALSE}
 # predict w/ best SE lambda model
-bestLambda_predict <- makePredictions(predictionDF = climDatPred, 
-                                                           modelObject = oneSELambdaMod)
+bestLambda_GS_totTree_predict <- makePredictions(predictionDF = climDatPred, 
+                                                           modelObject = oneSELambdaMod_GS_totTree)
 # predict with best SE lambda model w/ forecasted climate data
-bestLambda_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
-                                                           modelObject = oneSELambdaMod)
+bestLambda_GS_totTree_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
+                                                           modelObject = oneSELambdaMod_GS_totTree)
 # predict with best SE lambda model w/ forecasted climate data
-bestLambda_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
-                                                           modelObject = oneSELambdaMod)
+bestLambda_GS_totTree_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
+                                                           modelObject = oneSELambdaMod_GS_totTree)
 
 # predict w/ best model
-plotObs <- bestLambda_predict %>% 
+plotObs <- bestLambda_GS_totTree_predict %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -2178,7 +2214,7 @@ plotObs_2 <- plotObs %>%
        )
 
 ## map best SE lambda predictions for the future model #1
-plotObs_bestLambdaFuture1 <- bestLambda_predictFuture_1 %>% 
+plotObs_bestLambdaFuture1 <- bestLambda_GS_totTree_predictFuture_1 %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -2192,7 +2228,7 @@ plotObs_bestLambdaFuture1_2 <- plotObs_bestLambdaFuture1 %>%
            min(tempExt[,2]), max(tempExt[,2])) 
        )
 ## map best SE lambda predictions for the future model #2
-plotObs_bestLambdaFuture2 <- bestLambda_predictFuture_2 %>% 
+plotObs_bestLambdaFuture2 <- bestLambda_GS_totTree_predictFuture_2 %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -2279,23 +2315,23 @@ labs(title = paste0("Observations of TotalTreeCover in the
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
-hist <- ggplot(bestLambda_predict) + 
+hist <- ggplot(bestLambda_GS_totTree_predict) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
-  geom_density(data = bestLambda_predict[bestLambda_predict$newRegion == "dryShrubGrass",],
+  geom_density(data = bestLambda_GS_totTree_predict[bestLambda_GS_totTree_predict$newRegion == "dryShrubGrass",],
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
   ylab("frequency")
 
-hist_bestlambdaFuture1 <-  ggplot(bestLambda_predictFuture_1) + 
+hist_bestlambdaFuture1 <-  ggplot(bestLambda_GS_totTree_predictFuture_1) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
-  geom_density(data = bestLambda_predictFuture_1[bestLambda_predictFuture_1$newRegion == "dryShrubGrass",],
+  geom_density(data = bestLambda_GS_totTree_predictFuture_1[bestLambda_GS_totTree_predictFuture_1$newRegion == "dryShrubGrass",],
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
   ylab("frequency")
 
-hist_bestlambdaFuture2 <-  ggplot(bestLambda_predictFuture_2) + 
+hist_bestlambdaFuture2 <-  ggplot(bestLambda_GS_totTree_predictFuture_2) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
-  geom_density(data = bestLambda_predictFuture_2[bestLambda_predictFuture_2$newRegion == "dryShrubGrass",],
+  geom_density(data = bestLambda_GS_totTree_predictFuture_2[bestLambda_GS_totTree_predictFuture_2$newRegion == "dryShrubGrass",],
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
   ylab("frequency")
@@ -2401,38 +2437,38 @@ library(ggpubr)
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
- bestLambdaMod <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/TotalHerbaceousCover_forest_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+ bestLambdaMod_F_totHerb <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/TotalHerbaceousCover_forest_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
 
-ModelSpec_bestLambda <- getModelStatement(coefficientTable = forest_totalHerb_trimAnoms,
+ModelSpec_bestLambda_F_totHerb <- getModelStatement(coefficientTable = forest_totalHerb_trimAnoms,
                                                     modelName <- "coefficientValue_bestLambda", 
                                                     responseVar <- "TotalTreeCover")
 ```
 
 This is the **best Lambda** model equation if the inputs *are* scaled: 
 ```{r}
-(ModelSpec_bestLambda$scaledInputVars_ModelStatement)
+(ModelSpec_bestLambda_F_totHerb$scaledInputVars_ModelStatement)
 ```
 
 This is the **best Lambda** model equation if the inputs are *not* scaled: 
 ```{r}
-(ModelSpec_bestLambda$unscaledInputVars_scaledModelStatement)
+(ModelSpec_bestLambda_F_totHerb$unscaledInputVars_scaledModelStatement)
 ```
 
 
 Predict
 ```{r fig.width = 16, fig.height = 18, message = FALSE}
 # predict w/ best SE lambda model
-bestLambda_predict <- makePredictions(predictionDF = climDatPred, 
-                                                           modelObject = bestLambdaMod)
+bestLambda_F_totHerb_predict <- makePredictions(predictionDF = climDatPred, 
+                                                           modelObject = bestLambdaMod_F_totHerb)
 # predict with best SE lambda model w/ forecasted climate data
-bestLambda_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
-                                                           modelObject = bestLambdaMod)
+bestLambda_F_totHerb_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
+                                                           modelObject = bestLambdaMod_F_totHerb)
 # predict with best SE lambda model w/ forecasted climate data
-bestLambda_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
-                                                           modelObject = bestLambdaMod)
+bestLambda_F_totHerb_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
+                                                           modelObject = bestLambdaMod_F_totHerb)
 
 # predict w/ best model
-plotObs <- bestLambda_predict %>% 
+plotObs <- bestLambda_F_totHerb_predict %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -2452,7 +2488,7 @@ plotObs_2 <- plotObs %>%
        )
 
 ## map best SE lambda predictions for the future model #1
-plotObs_bestLambdaFuture1 <- bestLambda_predictFuture_1 %>% 
+plotObs_bestLambdaFuture1 <- bestLambda_F_totHerb_predictFuture_1 %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -2466,7 +2502,7 @@ plotObs_bestLambdaFuture1_2 <- plotObs_bestLambdaFuture1 %>%
            min(tempExt[,2]), max(tempExt[,2])) 
        )
 ## map best SE lambda predictions for the future model #2
-plotObs_bestLambdaFuture2 <- bestLambda_predictFuture_2 %>% 
+plotObs_bestLambdaFuture2 <- bestLambda_F_totHerb_predictFuture_2 %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -2553,23 +2589,23 @@ labs(title = paste0("Observations of TotalHerbaceousCover in the
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
-hist <- ggplot(bestLambda_predict) + 
+hist <- ggplot(bestLambda_F_totHerb_predict) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
-  geom_density(data = bestLambda_predict[bestLambda_predict$newRegion %in% c("westForest", "eastForest"),],
+  geom_density(data = bestLambda_F_totHerb_predict[bestLambda_F_totHerb_predict$newRegion %in% c("westForest", "eastForest"),],
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
   ylab("frequency")
 
-hist_bestlambdaFuture1 <-  ggplot(bestLambda_predictFuture_1) + 
+hist_bestlambdaFuture1 <-  ggplot(bestLambda_F_totHerb_predictFuture_1) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
-  geom_density(data = bestLambda_predictFuture_1[bestLambda_predictFuture_1$newRegion == "Forest",],
+  geom_density(data = bestLambda_F_totHerb_predictFuture_1[bestLambda_F_totHerb_predictFuture_1$newRegion == "Forest",],
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
   ylab("frequency")
 
-hist_bestlambdaFuture2 <-  ggplot(bestLambda_predictFuture_2) + 
+hist_bestlambdaFuture2 <-  ggplot(bestLambda_F_totHerb_predictFuture_2) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
-  geom_density(data = bestLambda_predictFuture_2[bestLambda_predictFuture_2$newRegion == "Forest",],
+  geom_density(data = bestLambda_F_totHerb_predictFuture_2[bestLambda_F_totHerb_predictFuture_2$newRegion == "Forest",],
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
   ylab("frequency")
@@ -2674,9 +2710,9 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
- bestLambdaMod <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/TotalTreeCover_forest_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+ bestLambdaMod_F_totTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/TotalTreeCover_forest_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
 
-ModelSpec_bestLambda <- getModelStatement(coefficientTable = forest_totalTree_trimAnoms,
+ModelSpec_bestLambda_F_totTree <- getModelStatement(coefficientTable = forest_totalTree_trimAnoms,
                                                     modelName <- "coefficientValue_bestLambda", 
                                                     responseVar <- "TotalTreeCover")
 
@@ -2684,29 +2720,29 @@ ModelSpec_bestLambda <- getModelStatement(coefficientTable = forest_totalTree_tr
 
 This is the **best Lambda** model equation if the inputs *are* scaled: 
 ```{r}
-(ModelSpec_bestLambda$scaledInputVars_ModelStatement)
+(ModelSpec_bestLambda_F_totTree$scaledInputVars_ModelStatement)
 ```
 
 This is the **best Lambda** model equation if the inputs are *not* scaled: 
 ```{r}
-(ModelSpec_bestLambda$unscaledInputVars_scaledModelStatement)
+(ModelSpec_bestLambda_F_totTree$unscaledInputVars_scaledModelStatement)
 ```
 
 
 Predict
 ```{r fig.width = 16, fig.height = 18, message = FALSE}
 # predict w/ best SE lambda model
-bestLambda_predict <- makePredictions(predictionDF = climDatPred, 
-                                                           modelObject = bestLambdaMod)
+bestLambda_F_totTree_predict <- makePredictions(predictionDF = climDatPred, 
+                                                           modelObject = bestLambdaMod_F_totTree)
 # predict with best SE lambda model w/ forecasted climate data
-bestLambda_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
-                                                           modelObject = bestLambdaMod)
+bestLambda_F_totTree_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
+                                                           modelObject = bestLambdaMod_F_totTree)
 # predict with best SE lambda model w/ forecasted climate data
-bestLambda_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
-                                                           modelObject = bestLambdaMod)
+bestLambda_F_totTree_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
+                                                           modelObject = bestLambdaMod_F_totTree)
 
 # predict w/ best model
-plotObs <- bestLambda_predict %>% 
+plotObs <- bestLambda_F_totTree_predict %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -2726,7 +2762,7 @@ plotObs_2 <- plotObs %>%
        )
 
 ## map best SE lambda predictions for the future model #1
-plotObs_bestLambdaFuture1 <- bestLambda_predictFuture_1 %>% 
+plotObs_bestLambdaFuture1 <- bestLambda_F_totTree_predictFuture_1 %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -2740,7 +2776,7 @@ plotObs_bestLambdaFuture1_2 <- plotObs_bestLambdaFuture1 %>%
            min(tempExt[,2]), max(tempExt[,2])) 
        )
 ## map best SE lambda predictions for the future model #2
-plotObs_bestLambdaFuture2 <- bestLambda_predictFuture_2 %>% 
+plotObs_bestLambdaFuture2 <- bestLambda_F_totTree_predictFuture_2 %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -2827,23 +2863,23 @@ labs(title = paste0("Observations of TotalTreeCover in the
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
-hist <- ggplot(bestLambda_predict) + 
+hist <- ggplot(bestLambda_F_totTree_predict) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
-  geom_density(data = bestLambda_predict[bestLambda_predict$newRegion %in% c("westForest", "eastForest"),],
+  geom_density(data = bestLambda_F_totTree_predict[bestLambda_F_totTree_predict$newRegion %in% c("westForest", "eastForest"),],
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
   ylab("frequency")
 
-hist_bestlambdaFuture1 <-  ggplot(bestLambda_predictFuture_1) + 
+hist_bestlambdaFuture1 <-  ggplot(bestLambda_F_totTree_predictFuture_1) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
-  geom_density(data = bestLambda_predictFuture_1[bestLambda_predictFuture_1$newRegion == "Forest",],
+  geom_density(data = bestLambda_F_totTree_predictFuture_1[bestLambda_F_totTree_predictFuture_1$newRegion == "Forest",],
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
   ylab("frequency")
 
-hist_bestlambdaFuture2 <-  ggplot(bestLambda_predictFuture_2) + 
+hist_bestlambdaFuture2 <-  ggplot(bestLambda_F_totTree_predictFuture_2) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
-  geom_density(data = bestLambda_predictFuture_2[bestLambda_predictFuture_2$newRegion == "Forest",],
+  geom_density(data = bestLambda_F_totTree_predictFuture_2[bestLambda_F_totTree_predictFuture_2$newRegion == "Forest",],
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
   ylab("frequency")
@@ -2948,37 +2984,37 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
-   bestLambdaMod <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/CAMCover_CONUS_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+   bestLambdaMod_CONUS_CAM <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/CAMCover_CONUS_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
 
-ModelSpec_bestLambda <- getModelStatement(coefficientTable = CONUS_cam_trimAnoms,
+ModelSpec_bestLambda_CONUS_CAM <- getModelStatement(coefficientTable = CONUS_cam_trimAnoms,
                                                     modelName <- "coefficientValue_bestLambda", 
                                                     responseVar <- "CAMcover")
 ```
 
 This is the **best Lambda** model equation if the inputs *are* scaled: 
 ```{r}
-(ModelSpec_bestLambda$scaledInputVars_ModelStatement)
+(ModelSpec_bestLambda_CONUS_CAM$scaledInputVars_ModelStatement)
 ```
 
 This is the **best Lambda** model equation if the inputs are *not* scaled: 
 ```{r}
-(ModelSpec_bestLambda$unscaledInputVars_scaledModelStatement)
+(ModelSpec_bestLambda_CONUS_CAM$unscaledInputVars_scaledModelStatement)
 ```
 
 Predict
 ```{r fig.width = 16, fig.height = 18, message = FALSE}
 # predict w/ best SE lambda model
-bestLambda_predict <- makePredictions(predictionDF = climDatPred, 
-                                                           modelObject = bestLambdaMod)
+bestLambda_CONUS_CAM_predict <- makePredictions(predictionDF = climDatPred, 
+                                                           modelObject = bestLambdaMod_CONUS_CAM)
 # predict with best SE lambda model w/ forecasted climate data
-bestLambda_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
-                                                           modelObject = bestLambdaMod)
+bestLambda_CONUS_CAM_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
+                                                           modelObject = bestLambdaMod_CONUS_CAM)
 # predict with best SE lambda model w/ forecasted climate data
-bestLambda_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
-                                                           modelObject = bestLambdaMod)
+bestLambda_CONUS_CAM_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
+                                                           modelObject = bestLambdaMod_CONUS_CAM)
 
 # predict w/ best model
-plotObs <- bestLambda_predict %>% 
+plotObs <- bestLambda_CONUS_CAM_predict %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -2998,7 +3034,7 @@ plotObs_2 <- plotObs %>%
        )
 
 ## map best SE lambda predictions for the future model #1
-plotObs_bestLambdaFuture1 <- bestLambda_predictFuture_1 %>% 
+plotObs_bestLambdaFuture1 <- bestLambda_CONUS_CAM_predictFuture_1 %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -3012,7 +3048,7 @@ plotObs_bestLambdaFuture1_2 <- plotObs_bestLambdaFuture1 %>%
            min(tempExt[,2]), max(tempExt[,2])) 
        )
 ## map best SE lambda predictions for the future model #2
-plotObs_bestLambdaFuture2 <- bestLambda_predictFuture_2 %>% 
+plotObs_bestLambdaFuture2 <- bestLambda_CONUS_CAM_predictFuture_2 %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -3099,17 +3135,17 @@ labs(title = paste0("Observations of CAMCover in the
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
-hist <- ggplot(bestLambda_predict) + 
+hist <- ggplot(bestLambda_CONUS_CAM_predict) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
    xlab("Predicted Value") + 
   ylab("frequency")
 
-hist_bestlambdaFuture1 <-  ggplot(bestLambda_predictFuture_1) + 
+hist_bestlambdaFuture1 <-  ggplot(bestLambda_CONUS_CAM_predictFuture_1) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
    xlab("Predicted Value") + 
   ylab("frequency")
 
-hist_bestlambdaFuture2 <-  ggplot(bestLambda_predictFuture_2) + 
+hist_bestlambdaFuture2 <-  ggplot(bestLambda_CONUS_CAM_predictFuture_2) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
    xlab("Predicted Value") + 
   ylab("frequency")
@@ -3213,37 +3249,37 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
- bestLambdaMod <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/ShrubCover_CONUS_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+ bestLambdaMod_CONUS_shrub <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/ShrubCover_CONUS_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
 
-ModelSpec_bestLambda <- getModelStatement(coefficientTable = CONUS_shrub_trimAnoms,
+ModelSpec_bestLambda_CONUS_shrub <- getModelStatement(coefficientTable = CONUS_shrub_trimAnoms,
                                                     modelName <- "coefficientValue_bestLambda", 
                                                     responseVar <- "ShrubCover")
 ```
 
 This is the **best Lambda** model equation if the inputs *are* scaled: 
 ```{r}
-(ModelSpec_bestLambda$scaledInputVars_ModelStatement)
+(ModelSpec_bestLambda_CONUS_shrub$scaledInputVars_ModelStatement)
 ```
 
 This is the **best Lambda** model equation if the inputs are *not* scaled: 
 ```{r}
-(ModelSpec_bestLambda$unscaledInputVars_scaledModelStatement)
+(ModelSpec_bestLambda_CONUS_shrub$unscaledInputVars_scaledModelStatement)
 ```
 
 Predict
 ```{r fig.width = 16, fig.height = 18, message = FALSE}
 # predict w/ best SE lambda model
-bestLambda_predict <- makePredictions(predictionDF = climDatPred, 
-                                                           modelObject = bestLambdaMod)
+bestLambda_CONUS_shrub_predict <- makePredictions(predictionDF = climDatPred, 
+                                                           modelObject = bestLambdaMod_CONUS_shrub)
 # predict with best SE lambda model w/ forecasted climate data
-bestLambda_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
-                                                           modelObject = bestLambdaMod)
+bestLambda_CONUS_shrub_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
+                                                           modelObject = bestLambdaMod_CONUS_shrub)
 # predict with best SE lambda model w/ forecasted climate data
-bestLambda_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
-                                                           modelObject = bestLambdaMod)
+bestLambda_CONUS_shrub_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
+                                                           modelObject = bestLambdaMod_CONUS_shrub)
 
 # predict w/ best model
-plotObs <- bestLambda_predict %>% 
+plotObs <- bestLambda_CONUS_shrub_predict %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -3263,7 +3299,7 @@ plotObs_2 <- plotObs %>%
        )
 
 ## map best SE lambda predictions for the future model #1
-plotObs_bestLambdaFuture1 <- bestLambda_predictFuture_1 %>% 
+plotObs_bestLambdaFuture1 <- bestLambda_CONUS_shrub_predictFuture_1 %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -3277,7 +3313,7 @@ plotObs_bestLambdaFuture1_2 <- plotObs_bestLambdaFuture1 %>%
            min(tempExt[,2]), max(tempExt[,2])) 
        )
 ## map best SE lambda predictions for the future model #2
-plotObs_bestLambdaFuture2 <- bestLambda_predictFuture_2 %>% 
+plotObs_bestLambdaFuture2 <- bestLambda_CONUS_shrub_predictFuture_2 %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -3364,17 +3400,17 @@ labs(title = paste0("Observations of ShrubCover in the
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
-hist <- ggplot(bestLambda_predict) + 
+hist <- ggplot(bestLambda_CONUS_shrub_predict) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
    xlab("Predicted Value") + 
   ylab("frequency")
 
-hist_bestlambdaFuture1 <-  ggplot(bestLambda_predictFuture_1) + 
+hist_bestlambdaFuture1 <-  ggplot(bestLambda_CONUS_shrub_predictFuture_1) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
    xlab("Predicted Value") + 
   ylab("frequency")
 
-hist_bestlambdaFuture2 <-  ggplot(bestLambda_predictFuture_2) + 
+hist_bestlambdaFuture2 <-  ggplot(bestLambda_CONUS_shrub_predictFuture_2) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
    xlab("Predicted Value") + 
   ylab("frequency")
@@ -3478,37 +3514,37 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
- oneSELambdaMod <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/BareGroundCover_CONUS_noTLP_FALSE_trimAnom_oneSELambdaGLM.rds")
+ oneSELambdaMod_CONUS_bareGround <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/BareGroundCover_CONUS_noTLP_FALSE_trimAnom_oneSELambdaGLM.rds")
 
-ModelSpec_bestLambda <- getModelStatement(coefficientTable = CONUS_bareGround_trimAnoms,
+ModelSpec_oneSELambdaMod_CONUS_bareGround <- getModelStatement(coefficientTable = CONUS_bareGround_trimAnoms,
                                                     modelName <- "coefficientValue_1seLambda", 
                                                     responseVar <- "BareGroundCover")
 ```
 
 This is the **best Lambda** model equation if the inputs *are* scaled: 
 ```{r}
-(ModelSpec_bestLambda$scaledInputVars_ModelStatement)
+(ModelSpec_oneSELambdaMod_CONUS_bareGround$scaledInputVars_ModelStatement)
 ```
 
 This is the **best Lambda** model equation if the inputs are *not* scaled: 
 ```{r}
-(ModelSpec_bestLambda$unscaledInputVars_scaledModelStatement)
+(ModelSpec_oneSELambdaMod_CONUS_bareGround$unscaledInputVars_scaledModelStatement)
 ```
 
 Predict
 ```{r fig.width = 16, fig.height = 18, message = FALSE}
 # predict w/ best SE lambda model
-bestLambda_predict <- makePredictions(predictionDF = climDatPred, 
-                                                           modelObject = oneSELambdaMod)
+bestLambda_CONUS_bareGround_predict <- makePredictions(predictionDF = climDatPred, 
+                                                           modelObject = oneSELambdaMod_CONUS_bareGround)
 # predict with best SE lambda model w/ forecasted climate data
-bestLambda_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
-                                                           modelObject = oneSELambdaMod)
+bestLambda_CONUS_bareGround_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
+                                                           modelObject = oneSELambdaMod_CONUS_bareGround)
 # predict with best SE lambda model w/ forecasted climate data
-bestLambda_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
-                                                           modelObject = oneSELambdaMod)
+bestLambda_CONUS_bareGround_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
+                                                           modelObject = oneSELambdaMod_CONUS_bareGround)
 
 # predict w/ best model
-plotObs <- bestLambda_predict %>% 
+plotObs <- bestLambda_CONUS_bareGround_predict %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -3528,7 +3564,7 @@ plotObs_2 <- plotObs %>%
        )
 
 ## map best SE lambda predictions for the future model #1
-plotObs_bestLambdaFuture1 <- bestLambda_predictFuture_1 %>% 
+plotObs_bestLambdaFuture1 <- bestLambda_CONUS_bareGround_predictFuture_1 %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -3542,7 +3578,7 @@ plotObs_bestLambdaFuture1_2 <- plotObs_bestLambdaFuture1 %>%
            min(tempExt[,2]), max(tempExt[,2])) 
        )
 ## map best SE lambda predictions for the future model #2
-plotObs_bestLambdaFuture2 <- bestLambda_predictFuture_2 %>% 
+plotObs_bestLambdaFuture2 <- bestLambda_CONUS_bareGround_predictFuture_2 %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
@@ -3629,17 +3665,17 @@ labs(title = paste0("Observations of BareGroundCover in the
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
-hist <- ggplot(bestLambda_predict) + 
+hist <- ggplot(bestLambda_CONUS_bareGround_predict) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
    xlab("Predicted Value") + 
   ylab("frequency")
 
-hist_bestlambdaFuture1 <-  ggplot(bestLambda_predictFuture_1) + 
+hist_bestlambdaFuture1 <-  ggplot(bestLambda_CONUS_bareGround_predictFuture_1) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
    xlab("Predicted Value") + 
   ylab("frequency")
 
-hist_bestlambdaFuture2 <-  ggplot(bestLambda_predictFuture_2) + 
+hist_bestlambdaFuture2 <-  ggplot(bestLambda_CONUS_bareGround_predictFuture_2) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
    xlab("Predicted Value") + 
   ylab("frequency")
@@ -3737,3 +3773,528 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
             heights = c(3,1), ncol = 3, nrow = 4) %>% 
   annotate_figure(fig.lab = "Model Predictions of BareGroundCover with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
 ```
+
+## Now, predict using the entire hierarchy of models, starting with ecoregion  ecoregion model 
+### These are predictions of ecoregion classification using contemporary and modeled future climate data 
+```{r}
+ecoMod <- readRDS("../../ecoregionClassification/ModelFitting/ModelObjects/EcoregionClassificationModel.rds")
+
+## print out model statement
+coefficientTable <- data.frame(coefficients(ecoMod))
+responseVar <- "P(forest)"
+coefficientTable$coefficientName <- rownames(coefficientTable)
+coefficientTable$coefficients.ecoMod. <- round(coefficientTable$coefficients.ecoMod., 4)
+  
+  # print out coefficients w/ coefficient names
+tempNames <- paste0(
+  apply(coefficientTable, MARGIN = 1, FUN = function(x) {
+    if (x["coefficientName"] == "(Intercept)") {
+      paste0(x["coefficients.ecoMod."])
+    } else {  
+      paste0(x["coefficients.ecoMod."], "*", x["coefficientName"])
+    }
+    }
+  ),
+  collapse = " + "
+)
+
+# print the unscaled model statement
+  unscaledModelName <- paste0(responseVar, "~ 1/ (1 + exp(-(", tempNames,")))")
+ print(unscaledModelName)
+```
+ 
+ Here are maps of the ecoregion model predictions with both contemporary and modeled future climate data 
+```{r fig.width = 16, fig.height = 10, message = FALSE}
+## get model data used for ecoregion fitting
+modDat_ecoregionFit <- readRDS("../../../Data_processed/EcoRegion_climSoilData.rds")
+
+modDat_ecoregionFit <- modDat_ecoregionFit %>% 
+  rename("Long" = x, "Lat" = y) %>% 
+  dplyr::select(c(newRegion, #swe_meanAnnAvg_CLIM:
+                  tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM,
+                                         soilDepth                  , surfaceClay_perc          ,                
+                                         avgSandPerc_acrossDepth    ,  avgCoarsePerc_acrossDepth,                 
+                                         avgOrganicCarbonPerc_0_3cm ,  totalAvailableWaterHoldingCapacity,
+                                         Long, Lat)) %>% 
+  mutate(newRegion = as.factor(newRegion)) %>% 
+  drop_na()
+
+# get climate data from dayMet (d.f. is "climDatPred_unscaled")
+climDatPred_unscaled <- climDat
+names(climDatPred_unscaled)[c(5, 6, 7, 13, 10, 12, 52, 54, 55, 56)] <- c("T_warmestMonth_meanAnnAvg_CLIM", "T_coldestMonth_meanAnnAvg_CLIM", "precip_wettestMonth_meanAnnAvg_CLIM", "annWaterDeficit_meanAnnAvg_CLIM", "PrecipTempCorr_meanAnnAvg_CLIM", "isothermality_meanAnnAvg_CLIM", "soilDepth", "avgSandPerc_acrossDepth", "avgCoarsePerc_acrossDepth", "avgOrganicCarbonPerc_0_3cm")
+
+# predict with contemporary climate data 
+preds_byHand <- climDatPred_unscaled %>% 
+  mutate(pred = 1/(1 + exp(-( 9.8726 + -0.2999*T_warmestMonth_meanAnnAvg_CLIM +  0.2456*T_coldestMonth_meanAnnAvg_CLIM +  0.0106*precip_wettestMonth_meanAnnAvg_CLIM + -0.0621*annWaterDeficit_meanAnnAvg_CLIM + -2.7863*PrecipTempCorr_meanAnnAvg_CLIM +  0.0540*isothermality_meanAnnAvg_CLIM + -0.0076*soilDepth +  0.0335*avgSandPerc_acrossDepth +  0.0310*avgCoarsePerc_acrossDepth +  0.2726*avgOrganicCarbonPerc_0_3cm))))
+#predictionsModel <- predict(object = ecoMod, type = "response", newdata = climDatPred_unscaled)
+
+# predict with modeled future climate data v1
+names(forecastClimSoilsDat_1)[c(8, 9, 10, 16, 13, 15, 48, 50, 51, 52)] <- c("T_warmestMonth_meanAnnAvg_CLIM", "T_coldestMonth_meanAnnAvg_CLIM", "precip_wettestMonth_meanAnnAvg_CLIM", "annWaterDeficit_meanAnnAvg_CLIM", "PrecipTempCorr_meanAnnAvg_CLIM", "isothermality_meanAnnAvg_CLIM", "soilDepth", "avgSandPerc_acrossDepth", "avgCoarsePerc_acrossDepth", "avgOrganicCarbonPerc_0_3cm")
+preds_future1_byHand <- forecastClimSoilsDat_1 %>% 
+  mutate(pred = 1/(1 + exp(-( 9.8726 + -0.2999*T_warmestMonth_meanAnnAvg_CLIM +  0.2456*T_coldestMonth_meanAnnAvg_CLIM +  0.0106*precip_wettestMonth_meanAnnAvg_CLIM + -0.0621*annWaterDeficit_meanAnnAvg_CLIM + -2.7863*PrecipTempCorr_meanAnnAvg_CLIM +  0.0540*isothermality_meanAnnAvg_CLIM + -0.0076*soilDepth +  0.0335*avgSandPerc_acrossDepth +  0.0310*avgCoarsePerc_acrossDepth +  0.2726*avgOrganicCarbonPerc_0_3cm))))
+
+# predict with modeled future climate data v2
+names(forecastClimSoilsDat_2)[c(8, 9, 10, 16, 13, 15, 48, 50, 51, 52)] <- c("T_warmestMonth_meanAnnAvg_CLIM", "T_coldestMonth_meanAnnAvg_CLIM", "precip_wettestMonth_meanAnnAvg_CLIM", "annWaterDeficit_meanAnnAvg_CLIM", "PrecipTempCorr_meanAnnAvg_CLIM", "isothermality_meanAnnAvg_CLIM", "soilDepth", "avgSandPerc_acrossDepth", "avgCoarsePerc_acrossDepth", "avgOrganicCarbonPerc_0_3cm")
+preds_future2_byHand <- forecastClimSoilsDat_2 %>% 
+  mutate(pred = 1/(1 + exp(-( 9.8726 + -0.2999*T_warmestMonth_meanAnnAvg_CLIM +  0.2456*T_coldestMonth_meanAnnAvg_CLIM +  0.0106*precip_wettestMonth_meanAnnAvg_CLIM + -0.0621*annWaterDeficit_meanAnnAvg_CLIM + -2.7863*PrecipTempCorr_meanAnnAvg_CLIM +  0.0540*isothermality_meanAnnAvg_CLIM + -0.0076*soilDepth +  0.0335*avgSandPerc_acrossDepth +  0.0310*avgCoarsePerc_acrossDepth +  0.2726*avgOrganicCarbonPerc_0_3cm))))
+
+
+## Plot predictions with contemporary data
+# make into a raster
+plotObs <- preds_byHand %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "pred", 
+                   fun = mean, na.rm = TRUE) #%>% 
+   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
+  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+
+# get the extent of this particular raster, and crop it accordingly
+tempExt <- crds(plotObs, na.rm = TRUE)
+
+plotObs_2 <- plotObs %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+map_ecoRegion_current <- ggplot() +
+  geom_spatraster(data = plotObs_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("Ecoregion classification predictions using 
+                    contemporary dayMet data")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+# for future v1
+plotObs_future1 <- preds_future1_byHand %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "pred", 
+                   fun = mean, na.rm = TRUE) #%>% 
+   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
+  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+
+# get the extent of this particular raster, and crop it accordingly
+tempExt <- crds(plotObs_future1, na.rm = TRUE)
+
+plotObs_future1_2 <- plotObs_future1 %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+map_ecoRegion_future1 <- ggplot() +
+  geom_spatraster(data = plotObs_future1_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_future1_2)),fill=NA ) +
+labs(title = paste0("Ecoregion classification predictions using future 
+climate data from the BNU-ESM model")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_future1_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_future1_2)[c(2,4)])
+
+# for future v2
+plotObs_future2 <- preds_future2_byHand %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "pred", 
+                   fun = mean, na.rm = TRUE) #%>% 
+   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
+  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+
+# get the extent of this particular raster, and crop it accordingly
+tempExt <- crds(plotObs_future2, na.rm = TRUE)
+
+plotObs_future2_2 <- plotObs_future2 %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+map_ecoRegion_future2 <- ggplot() +
+  geom_spatraster(data = plotObs_future2_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_future2_2)),fill=NA ) +
+labs(title = paste0("Ecoregion classification predictions using future 
+climate data from the IPSL-CM5A-MR model")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_future2_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_future2_2)[c(2,4)])
+
+## Plot the maps together
+  ggarrange(map_ecoRegion_current, map_ecoRegion_future1, map_ecoRegion_future2, nrow = 1) %>% 
+  annotate_figure(fig.lab = "Model Predictions of Ecoregion Classification with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
+```
+ 
+### Show "synthetic" predictions for first tier of cover models -- using *scaled* climate predictors
+```{r fig.width = 10, fig.height=10}
+# rename climate data.frame to work with model specifications
+## grass/shrub total herbaceous - best lambda model (bestLambdaMod_GS_totHerb)
+# predict with contemporary data
+#bestLambda_GS_totHerb_predict
+names(bestLambda_GS_totHerb_predict)[57] <- "predContemp_GS_totHerb"
+# predict with modeled future climate data v1
+#bestLambda_GS_totHerb_predictFuture_1
+names(bestLambda_GS_totHerb_predictFuture_1)[55] <- "predFuture1_GS_totHerb"
+# predict with modeled future climate data v2
+#bestLambda_GS_totHerb_predictFuture_2
+names(bestLambda_GS_totHerb_predictFuture_2)[55] <- "predFuture2_GS_totHerb"
+
+
+# grass/shrub total tree - 1/2 SE lambda model (oneSELambdaMod_GS_totTree)
+# predict with contemporary data
+#bestLambda_GS_totTree_predict
+names(bestLambda_GS_totTree_predict)[57] <- "predContemp_GS_totTree"
+# predict with modeled future climate data v1
+#bestLambda_GS_totTree_predictFuture_1
+names(bestLambda_GS_totTree_predictFuture_1)[55] <- "predFuture1_GS_totTree"
+# predict with modeled future climate data v2
+#bestLambda_GS_totTree_predictFuture_2
+names(bestLambda_GS_totTree_predictFuture_2)[55] <- "predFuture2_GS_totTree"
+
+
+# forest total herbaceous - best lambda model (bestLambdaMod_F_totHerb)
+# predict with contemporary data
+#bestLambda_F_totHerb_predict
+names(bestLambda_F_totHerb_predict)[57] <- "predContemp_F_totHerb"
+# predict with modeled future climate data v1
+#bestLambda_F_totHerb_predictFuture_1
+names(bestLambda_F_totHerb_predictFuture_1)[55] <- "predFuture1_F_totHerb"
+# predict with modeled future climate data v2
+#bestLambda_F_totHerb_predictFuture_2
+names(bestLambda_F_totHerb_predictFuture_2)[55] <- "predFuture2_F_totHerb"
+
+
+# forest total tree - best lambda model (bestLambdaMod_F_totTree)
+# predict with contemporary data
+#bestLambda_F_totTree_predict
+names(bestLambda_F_totTree_predict)[57] <- "predContemp_F_totTree"
+# predict with modeled future climate data v1
+#bestLambda_F_totTree_predictFuture_1
+names(bestLambda_F_totTree_predictFuture_1)[55] <- "predFuture1_F_totTree"
+# predict with modeled future climate data v2
+#bestLambda_F_totTree_predictFuture_2
+names(bestLambda_F_totTree_predictFuture_2)[55] <- "predFuture2_F_totTree"
+
+# CONUS CAM - best lambda model  (bestLambdaMod_CONUS_CAM)
+# predict with contemporary data
+#bestLambda_CONUS_CAM_predict
+names(bestLambda_CONUS_CAM_predict)[57] <- "predContemp_CONUS_CAM"
+# predict with modeled future climate data v1
+#bestLambda_CONUS_CAM_predictFuture_1
+names(bestLambda_CONUS_CAM_predictFuture_1)[55] <- "predFuture1_CONUS_CAM"
+# predict with modeled future climate data v2
+#bestLambda_CONUS_CAM_predictFuture_2
+names(bestLambda_CONUS_CAM_predictFuture_2)[55] <- "predFuture2_CONUS_CAM"
+
+# CONUS shrub - best lambda model (bestLambdaMod_CONUS_shrub)
+# predict with contemporary data
+#bestLambda_CONUS_shrub_predict
+names(bestLambda_CONUS_shrub_predict)[57] <- "predContemp_CONUS_shrub"
+# predict with modeled future climate data v1
+#bestLambda_CONUS_shrub_predictFuture_1
+names(bestLambda_CONUS_shrub_predictFuture_1)[55] <- "predFuture1_CONUS_shrub"
+# predict with modeled future climate data v2
+#bestLambda_CONUS_shrub_predictFuture_2
+names(bestLambda_CONUS_shrub_predictFuture_2)[55] <- "predFuture2_CONUS_shrub"
+
+# CONUS bare ground - 1 SE lambda model (oneSELambdaMod_CONUS_bareGround)
+# predict with contemporary data
+#bestLambda_CONUS_bareGround_predict
+names(bestLambda_CONUS_bareGround_predict)[57] <- "predContemp_CONUS_bareGround"
+# predict with modeled future climate data v1
+#bestLambda_CONUS_bareGround_predictFuture_1
+names(bestLambda_CONUS_bareGround_predictFuture_1)[55] <- "predFuture1_CONUS_bareGround"
+# predict with modeled future climate data v2
+#bestLambda_CONUS_bareGround_predictFuture_2
+names(bestLambda_CONUS_bareGround_predictFuture_2)[55] <- "predFuture2_CONUS_bareGround"
+
+### add all of the predictions for each time interval together
+preds_contemp_cover1 <- bestLambda_GS_totHerb_predict %>% 
+  left_join(bestLambda_GS_totTree_predict) %>% 
+  left_join(bestLambda_F_totHerb_predict) %>% 
+  left_join(bestLambda_F_totTree_predict)  %>% 
+  left_join(bestLambda_CONUS_CAM_predict)  %>% 
+  left_join(bestLambda_CONUS_shrub_predict) %>% 
+  left_join(bestLambda_CONUS_bareGround_predict) 
+
+
+preds_future_1_cover1 <-  bestLambda_GS_totHerb_predictFuture_1 %>% 
+  left_join(bestLambda_GS_totTree_predictFuture_1) %>% 
+  left_join(bestLambda_F_totHerb_predictFuture_1) %>% 
+  left_join(bestLambda_F_totTree_predictFuture_1)  %>% 
+  left_join(bestLambda_CONUS_CAM_predictFuture_1)  %>% 
+  left_join(bestLambda_CONUS_shrub_predictFuture_1) %>% 
+  left_join(bestLambda_CONUS_bareGround_predictFuture_1) 
+
+preds_future_2_cover1 <- bestLambda_GS_totHerb_predictFuture_2 %>% 
+  left_join(bestLambda_GS_totTree_predictFuture_2) %>% 
+  left_join(bestLambda_F_totHerb_predictFuture_2) %>% 
+  left_join(bestLambda_F_totTree_predictFuture_2)  %>% 
+  left_join(bestLambda_CONUS_CAM_predictFuture_2)  %>% 
+  left_join(bestLambda_CONUS_shrub_predictFuture_2) %>% 
+  left_join(bestLambda_CONUS_bareGround_predictFuture_2) 
+
+### add ecoregion-level predictions to these data frames
+names(preds_byHand)[58] <- "prob_forest"
+preds_byHand$prob_GrassShrub <- 1 - preds_byHand$prob_forest
+
+names(preds_future1_byHand)[55] <- "prob_forest"
+preds_future1_byHand$prob_GrassShrub <- 1 - preds_future1_byHand$prob_forest
+
+names(preds_future2_byHand)[55] <- "prob_forest"
+preds_future2_byHand$prob_GrassShrub <- 1 - preds_future2_byHand$prob_forest
+
+preds_contemp <- preds_contemp_cover1 %>% 
+ left_join(preds_byHand %>% select(x:y, prob_forest, prob_GrassShrub))
+
+preds_future_1 <- preds_future_1_cover1 %>% 
+ left_join(preds_future1_byHand %>% select(x:y, prob_forest, prob_GrassShrub))
+
+preds_future_2 <- preds_future_2_cover1 %>% 
+ left_join(preds_future2_byHand %>% select(x:y, prob_forest, prob_GrassShrub))
+
+## make the predictions scale according to ecoregion
+preds_contemp <- preds_contemp %>% 
+  mutate(totHerb_synth = ((prob_GrassShrub * predContemp_GS_totHerb) + (prob_forest * predContemp_F_totHerb)),
+         totTree_synth = ((prob_GrassShrub * predContemp_GS_totTree) + (prob_forest * predContemp_F_totTree)))
+preds_future_1 <- preds_future_1 %>% 
+  mutate(totHerb_synth = ((prob_GrassShrub * predFuture1_GS_totHerb) + (prob_forest * predFuture1_F_totHerb)),
+         totTree_synth = ((prob_GrassShrub * predFuture1_GS_totTree) + (prob_forest * predFuture1_F_totTree)))
+preds_future_2 <- preds_future_2 %>% 
+  mutate(totHerb_synth = ((prob_GrassShrub * predFuture2_GS_totHerb) + (prob_forest * predFuture2_F_totHerb)),
+         totTree_synth = ((prob_GrassShrub * predFuture2_GS_totTree) + (prob_forest * predFuture2_F_totTree)))
+
+
+### make maps
+## Plot predictions with contemporary data
+# total Herbaceous
+  # make into a raster
+plotPreds_totHerbaceous <- preds_contemp %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "totHerb_synth", 
+                   fun = mean, na.rm = TRUE) #%>% 
+   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
+  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+
+# get the extent of this particular raster, and crop it accordingly
+tempExt <- crds(plotPreds_totHerbaceous, na.rm = TRUE)
+
+plotPreds_totHerbaceous_2 <- plotPreds_totHerbaceous %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+map_preds_totHerbaceous <- ggplot() +
+  geom_spatraster(data = plotPreds_totHerbaceous_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("'Synthetic' prediction of total herbaceous cover with 
+                    contemporary climate data")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+# total Tree
+  # make into a raster
+plotPreds_totTree <- preds_contemp %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "totTree_synth", 
+                   fun = mean, na.rm = TRUE) #%>% 
+   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
+  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+
+# get the extent of this particular raster, and crop it accordingly
+tempExt <- crds(plotPreds_totTree, na.rm = TRUE)
+
+plotPreds_totTree_2 <- plotPreds_totTree %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+map_preds_totTree <- ggplot() +
+  geom_spatraster(data = plotPreds_totTree_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("'Synthetic' prediction of total Tree cover with 
+                    contemporary climate data")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+## Plot predictions with future 1 data
+# total Herbaceous
+  # make into a raster
+plotPreds_totHerbaceous_future1 <- preds_future_1 %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "totHerb_synth", 
+                   fun = mean, na.rm = TRUE) #%>% 
+   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
+  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+
+# get the extent of this particular raster, and crop it accordingly
+tempExt <- crds(plotPreds_totHerbaceous_future1, na.rm = TRUE)
+
+plotPreds_totHerbaceous_future1_2 <- plotPreds_totHerbaceous_future1 %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+map_preds_totHerbaceous_future1 <- ggplot() +
+  geom_spatraster(data = plotPreds_totHerbaceous_future1_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("'Synthetic' prediction of total herbaceous cover with 
+                    future climate data - first model")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+# total Tree
+  # make into a raster
+plotPreds_totTree_future1 <- preds_future_1 %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "totTree_synth", 
+                   fun = mean, na.rm = TRUE) #%>% 
+   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
+  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+
+# get the extent of this particular raster, and crop it accordingly
+tempExt <- crds(plotPreds_totTree_future1, na.rm = TRUE)
+
+plotPreds_totTree_future1_2 <- plotPreds_totTree_future1 %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+map_preds_totTree_future1 <- ggplot() +
+  geom_spatraster(data = plotPreds_totTree_future1_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("'Synthetic' prediction of total Tree cover with 
+                    future climate data - first model")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+## Plot predictions with future 1 data
+# total Herbaceous
+  # make into a raster
+plotPreds_totHerbaceous_future2 <- preds_future_2 %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "totHerb_synth", 
+                   fun = mean, na.rm = TRUE) #%>% 
+   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
+  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+
+# get the extent of this particular raster, and crop it accordingly
+tempExt <- crds(plotPreds_totHerbaceous_future2, na.rm = TRUE)
+
+plotPreds_totHerbaceous_future2_2 <- plotPreds_totHerbaceous_future2 %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+map_preds_totHerbaceous_future2 <- ggplot() +
+  geom_spatraster(data = plotPreds_totHerbaceous_future2_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("'Synthetic' prediction of total herbaceous cover with 
+                    future climate data - second model")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+# total Tree
+  # make into a raster
+plotPreds_totTree_future2 <- preds_future_2 %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "totTree_synth", 
+                   fun = mean, na.rm = TRUE) #%>% 
+   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
+  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+
+# get the extent of this particular raster, and crop it accordingly
+tempExt <- crds(plotPreds_totTree_future2, na.rm = TRUE)
+
+plotPreds_totTree_future2_2 <- plotPreds_totTree_future2 %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+map_preds_totTree_future2 <- ggplot() +
+  geom_spatraster(data = plotPreds_totTree_future2_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("'Synthetic' prediction of total Tree cover with 
+                    future climate data - second model")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+ggarrange(map_preds_totHerbaceous, map_preds_totTree, 
+          map_preds_totHerbaceous_future1, map_preds_totTree_future1, 
+          map_preds_totHerbaceous_future2, map_preds_totTree_future2, ncol = 2, nrow = 3)
+```
+### Now, scale all of the first tier of cover models to sum to 100% 
+### Add in second tier of cover models to break up total herbaceous cover into C3/C4/Forb and total tree cover into broad-leaved tree/needle-leaved tree

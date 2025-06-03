@@ -8,11 +8,11 @@ output:
     df_print: paged
     code_folding: hide
 params:
-  run: FALSE      
+  run: TRUE      
   test_run: FALSE
   save_figs: FALSE
-  ecoregion:   forest         
-  response: BareGroundCover
+  ecoregion: CONUS         
+  response: C4GramCover_prop
   removeTexasLouisianaPlain: FALSE
   trimAnomalies: TRUE
   autoKfold: FALSE
@@ -87,37 +87,26 @@ modDat[is.infinite(modDat$annWetDegDays_5percentile_3yrAnom), "annWetDegDays_5pe
 ## same, but for annual water deficit 95th percentile 
 modDat[is.infinite(modDat$annWaterDeficit_95percentile_3yrAnom), "annWaterDeficit_95percentile_3yrAnom"] <- -600
 
-# # Convert total cover variables into proportions (for later use in beta regression models) ... proportions are already scaled from zero to 1
-# modDat <- modDat %>%
-#   mutate(TotalTreeCover = TotalTreeCover/100,
-#          CAMCover = CAMCover/100,
-#          TotalHerbaceousCover = TotalHerbaceousCover/100,
-#          BareGroundCover = BareGroundCover/100,
-#          ShrubCover = ShrubCover/100
-#          )
-# For all response variables, make sure there are no 0s add or subtract .0001 from each, since the Gamma model framework can't handle that
+# For all response variables, make sure there are no 0s add  .0001 from each, since the Gamma model framework can't handle that
 modDat[modDat$TotalTreeCover == 0 & !is.na(modDat$TotalTreeCover), "TotalTreeCover"] <- 0.0001
 modDat[modDat$CAMCover == 0 & !is.na(modDat$CAMCover), "CAMCover"] <- 0.0001
 modDat[modDat$TotalHerbaceousCover == 0  & !is.na(modDat$TotalHerbaceousCover), "TotalHerbaceousCover"] <- 0.0001
 modDat[modDat$BareGroundCover == 0 & !is.na(modDat$BareGroundCover), "BareGroundCover"] <- 0.0001
 modDat[modDat$ShrubCover == 0 & !is.na(modDat$ShrubCover), "ShrubCover"] <- 0.0001
-modDat[modDat$BroadleavedTreeCover_prop == 0 & !is.na(modDat$BroadleavedTreeCover_prop), "BroadleavedTreeCover_prop"] <- 0.0001
-modDat[modDat$NeedleLeavedTreeCover_prop == 0 & !is.na(modDat$NeedleLeavedTreeCover_prop), "NeedleLeavedTreeCover_prop"] <- 0.0001
-modDat[modDat$C4Cover_prop == 0 & !is.na(modDat$C4Cover_prop), "C4Cover_prop"] <- 0.0001
-modDat[modDat$C3Cover_prop == 0 & !is.na(modDat$C3Cover_prop), "C3Cover_prop"] <- 0.0001
-modDat[modDat$ForbCover_prop == 0 & !is.na(modDat$ForbCover_prop), "ForbCover_prop"] <- 0.0001
-# 
-# modDat[modDat$TotalTreeCover ==1& !is.na(modDat$TotalTreeCover), "TotalTreeCover"] <- 0.999
-# modDat[modDat$CAMCover ==1& !is.na(modDat$CAMCover), "CAMCover"] <- 0.999
-# modDat[modDat$TotalHerbaceousCover ==1 & !is.na(modDat$TotalHerbaceousCover), "TotalHerbaceousCover"] <- 0.999
-# modDat[modDat$BareGroundCover ==1& !is.na(modDat$BareGroundCover), "BareGroundCover"] <- 0.999
-# modDat[modDat$ShrubCover ==1& !is.na(modDat$ShrubCover), "ShrubCover"] <- 0.999
-# modDat[modDat$BroadleavedTreeCover_prop ==1& !is.na(modDat$BroadleavedTreeCover_prop), "BroadleavedTreeCover_prop"] <- 0.999
-# modDat[modDat$NeedleLeavedTreeCover_prop ==1& !is.na(modDat$NeedleLeavedTreeCover_prop), "NeedleLeavedTreeCover_prop"] <- 0.999
-# modDat[modDat$C4Cover_prop ==1& !is.na(modDat$C4Cover_prop), "C4Cover_prop"] <- 0.999
-# modDat[modDat$C3Cover_prop ==1& !is.na(modDat$C3Cover_prop), "C3Cover_prop"] <- 0.999
-# modDat[modDat$ForbCover_prop ==1& !is.na(modDat$ForbCover_prop), "ForbCover_prop"] <- 0.999
 
+# for proportions, change to percentage scale (rather than proportion)
+modDat$AngioTreeCover_prop <- modDat$AngioTreeCover_prop * 100
+modDat$ConifTreeCover_prop <- modDat$ConifTreeCover_prop * 100
+modDat$C4GramCover_prop <- modDat$C4GramCover_prop * 100
+modDat$C3GramCover_prop <- modDat$C3GramCover_prop * 100
+modDat$ForbCover_prop <- modDat$ForbCover_prop * 100
+
+#change 0s to .000001 so model will run
+modDat[modDat$AngioTreeCover_prop == 0 & !is.na(modDat$AngioTreeCover_prop), "AngioTreeCover_prop"] <- 0.0001
+modDat[modDat$ConifTreeCover_prop == 0 & !is.na(modDat$ConifTreeCover_prop), "ConifTreeCover_prop"] <- 0.0001
+modDat[modDat$C4GramCover_prop == 0 & !is.na(modDat$C4GramCover_prop), "C4GramCover_prop"] <- 0.0001
+modDat[modDat$C3GramCover_prop == 0 & !is.na(modDat$C3GramCover_prop), "C3GramCover_prop"] <- 0.0001
+modDat[modDat$ForbCover_prop == 0 & !is.na(modDat$ForbCover_prop), "ForbCover_prop"] <- 0.0001
 ```
 
 
@@ -183,7 +172,7 @@ modDat_1 <- modDat %>%
     frostFreeDays_5_anom = durationFrostFreeDays_5percentile_3yrAnom, #35 
       frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_3yrAnom #36
   ) %>% 
-  select(-c(tmin_meanAnnAvg_3yr:durationFrostFreeDays_meanAnnAvg_3yr))
+  dplyr::select(-c(tmin_meanAnnAvg_3yr:durationFrostFreeDays_meanAnnAvg_3yr))
 
 # small dataset for if testing the data
 if(test_run) {
@@ -204,23 +193,6 @@ names(modDat_1)[names(modDat_1) == "response_transformed"] <- paste0(response, "
 ecoregion <- params$ecoregion
 response <- params$response
 print(paste0("In this model run, the ecoregion is ", ecoregion," and the response variable is ",response))
-```
-
-## Currently, subsampling data from the "Texas Coastal Plain", since it's quite different from other regions and is really messing with model fit 
-```{r}
-if (removeTLP == TRUE) {
-  modDat_1 <- modDat_1 %>% 
-    filter(NA_L2NAME != "TEXAS-LOUISIANA COASTAL PLAIN")
-} else {
- modDat_1_noLA <- modDat_1 %>% 
-  filter(NA_L2NAME != "TEXAS-LOUISIANA COASTAL PLAIN")
-modDat_1_LA <- modDat_1 %>% 
-  filter(NA_L2NAME == "TEXAS-LOUISIANA COASTAL PLAIN")
-# sample points 
-modDat_1 <- modDat_1_LA %>% 
-  slice_sample(n = round(nrow(modDat_1_LA)*.3)) %>% 
-  rbind(modDat_1_noLA)  
-}
 ```
 
 
@@ -267,7 +239,7 @@ response_t <- paste0(response, "_transformed")
 ## Scale the predictor variables for the model-fitting process
 ```{r scaling predictors, fig.height=7, fig.width=10}
 allPreds <- modDat_1 %>% 
-  select(tmin:frostFreeDays,tmean_anom:frostFreeDays_anom, soilDepth:AWHC) %>% 
+  dplyr::select(tmin:frostFreeDays,tmean_anom:frostFreeDays_anom, soilDepth:AWHC) %>% 
   names()
 modDat_1_s <- modDat_1 %>% 
   mutate(across(all_of(allPreds), base::scale, .names = "{.col}_s")) 
@@ -560,7 +532,10 @@ modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-AP
  if (response == "CAMCover") {
    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN PIEDMONT", "SEMIARID PLAIN AND PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES AND PIEDMONT"
    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MEDITERRANEAN PIEDMONT", "SEMIARID PLAIN AND PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES AND PIEDMONT"
- }  
+ } else if (response %in% c("C4GramCover_prop", "C3GramCover_prop")) {
+     modDat_1_s[modDat_1_s$NA_L2NAME %in% c("SEMIARID PLAIN AND PRAIRIES", "TEMPERATE PRAIRIES"), "NA_L2NAME"] <- "SEMIARID AND TEMPERATE PRAIRIES"
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("SEMIARID PLAIN AND PRAIRIES", "TEMPERATE PRAIRIES"), "NA_L2NAME"] <- "SEMIARID AND TEMPERATE PRAIRIES" 
+ }
 
 } else if (ecoregion == "CONUS") {
   
@@ -589,6 +564,12 @@ modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-AP
    
   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("SOUTH CENTRAL SEMIARID PRAIRIES", "TEXAS-LOUISIANA COASTAL PLAIN"), "NA_L2NAME"] <- "SOUTH CENTRAL SEMIARID PRAIRIES"
   
+  if (response %in% c("C4GramCover_prop")) {
+    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("CENTRAL USA PLAINS", "TEMPERATE PRAIRIES", "SOUTHEASTERN AND MIXED WOOD PLAINS", "ATLANTIC HIGHLANDS", "MIXED WOOD SHIELD"), "NA_L2NAME"] <- "EASTERN AND MIXED WOOD PLAINS AND FOREST"
+  #///
+  
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in%c("CENTRAL USA PLAINS", "TEMPERATE PRAIRIES", "SOUTHEASTERN AND MIXED WOOD PLAINS", "ATLANTIC HIGHLANDS", "MIXED WOOD SHIELD"), "NA_L2NAME"] <- "EASTERN AND MIXED WOOD PLAINS AND FOREST"
+  }
 } else if (ecoregion == "forest"  & response != "CAMCover") {
    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "EVERGLADES"), "NA_L2NAME"] <- "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS	AND EVERGLADES"
    
@@ -624,6 +605,16 @@ modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-AP
               st_coordinates(modDat_1_sf)[,1] < -966595#-1773969
                 , ]$NA_L2NAME <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"
   modDat_1_sf[modDat_1_sf$NA_L2NAME == "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS", "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 2"
+  
+  if (response %in% c("C3GramCover_prop", "C4GramCover_prop") ) {
+     modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"
+     modDat_1_s[modDat_1_s$NA_L2NAME %in% c("CENTRAL AND MIXED WOOD PLAINS AND MIXED WOOD SHIELD", "HIGHLANDS AND APPALACHIAN FORESTS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOODS AND HIGHLANDS FORESTS"
+     #//
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("CENTRAL AND MIXED WOOD PLAINS AND MIXED WOOD SHIELD", "HIGHLANDS AND APPALACHIAN FORESTS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOODS AND HIGHLANDS FORESTS" 
+  
+  }
+  
 } else if (ecoregion == "forest" & response == "CAMCover") {
   
   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
@@ -1853,11 +1844,11 @@ if (length(prednames_fig) == 0) {
 } else {
 
 # publication quality version
-g3 <- decile_dotplot_pq(pred_glm1_deciles, response = response, IQR = TRUE
-                        #CI = TRUE
+g3 <- decile_dotplot_pq(df = pred_glm1_deciles, response = response, IQR = TRUE,
+                        CI = FALSE
                         ) + ggtitle("Decile Plot")
 
-g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles, dfRaw = pred_glm1, add_smooth = TRUE, deciles = FALSE)
+g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles, response = response, dfRaw = pred_glm1, add_smooth = TRUE, deciles = FALSE)
 
   
 if(save_figs) {
@@ -1881,7 +1872,7 @@ if (length(prednames_secondBestMod) == 0) {
 # publication quality version
 g3 <- decile_dotplot_pq(pred_glm1_deciles_1se, response = response, IQR = TRUE) + ggtitle("Decile Plot")
 
-g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles_1se, dfRaw = pred_glm1_1se, add_smooth = TRUE, deciles = FALSE)
+g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles_1se, response = response, dfRaw = pred_glm1_1se, add_smooth = TRUE, deciles = FALSE)
 
   
 if(save_figs) {
@@ -1921,7 +1912,7 @@ pred_glm1_deciles_filt <- predvars2deciles( pred_glm1,
                          filter_vars = prednames_fig,
                          cut_points = seq(0, 1, 0.005)) 
 
-decile_dotplot_filtered_pq(pred_glm1_deciles_filt, xvars = prednames_fig)
+decile_dotplot_filtered_pq(pred_glm1_deciles_filt, xvars = prednames_fig, response = response)
 #decile_dotplot_filtered_pq(pred_glm1_deciles_filt)
 
 }
@@ -1941,7 +1932,7 @@ pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1,
                          add_mid = TRUE,
                          cut_points = seq(0, 1, 0.005))
 
-g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt_mid, xvars = prednames_fig)
+g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt_mid, response = response, xvars = prednames_fig)
 g
 
 if(save_figs) {x

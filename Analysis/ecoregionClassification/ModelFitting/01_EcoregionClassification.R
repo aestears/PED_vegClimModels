@@ -1707,7 +1707,7 @@ ggpubr::annotate_figure(ggarrange(
     slice_sample(n = 5e4) %>% 
     ggpairs(upper = list(continuous = my_fn), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), progress = FALSE))
 
-# w/out VPD and precip driest month replaced with ann water deficit: Fit a simple regression w/ two ecoregions ----------------
+#THIS ONE w/out VPD and precip driest month replaced with ann water deficit: Fit a simple regression w/ two ecoregions ----------------
 
 modDat_fitNew <- modDat_fit %>% 
   mutate(newRegion = str_replace(newRegion, "eastForest", "forest"),
@@ -2016,6 +2016,8 @@ ggpubr::annotate_figure(ggarrange(
     filename = "./Figures/EcoRegionModelFigures/Model_REPLACESPrecipDriestMonth_withAnnWatDef/ContemporaryModelResults.pdf",
     width = 15, height = 45)
 
+## save model object 
+saveRDS(testMod_5, file = "./Analysis/ecoregionClassification/ModelFitting/ModelObjects/EcoregionClassificationModel.rds")
 # w/out VPD and precip driest month replaced with ann water deficit: Investigate Interactions ----------------
 
 # make null model  (use testMod_2 as the full model )
