@@ -58,6 +58,8 @@ Figures/
 *.html
 
 # model output files
+/Analysis/ecoregionClassification/ModelFitting/ModelObjects/
+./Analysis/ecoregionClassification/ModelFitting/ModelObjects/
 ./Analysis/VegComposition/ModelFitting/models/
 ./Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_C3GramCover_n50000.RDS
 ./Analysis/VegComposition/ModelFitting/models/glm_beta_model_FirstPass_C4GramCover_n50000.RDS
