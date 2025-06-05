@@ -461,7 +461,7 @@ test5 <- test5 %>%
   rename(Lon = x, Lat = y) %>% 
   sf::st_as_sf(coords = c("Lon", "Lat"), crs = st_crs(dat2)) #%>%
   #st_transform(crs(test)) 
-st_crs(test5) <- st_crs(test)
+st_crs(test5) == st_crs(test)
 
 plot(climSF$geometry)
 points(test5$geometry, col = "red")
@@ -476,7 +476,7 @@ test7 <- test5 %>%
 #   st_transform(crs(test)) %>% 
   mutate(x = st_coordinates(.)[,1],
          y = st_coordinates(.)[,2]) %>% 
-  st_buffer(400) %>% 
+  #st_buffer(400) %>% 
   sf::st_join(climSF, join = st_nearest_feature)
 
 # test8 <- test7 %>%
@@ -501,10 +501,10 @@ saveRDS(st_drop_geometry(allDat_avg), "./Data_processed/CoverData/DataForModels_
 #   st_drop_geometry() %>% 
 #   filter(!is.na(TotalHerbaceousCover)) %>% 
 allDat_avg %>% 
-  #filter(Year == 2012) %>% 
+  #filter(Year == 2013) %>% 
   ggplot() +
-  #facet_wrap(~Year) +
-  geom_point(aes(x = x, y = y, color = TotalHerbaceousCover))
+  facet_wrap(~Year) +
+  geom_point(aes(x = x, y = y, color = prcp_annTotal))
   #geom_point(aes(x = Long, y = Lat))
 
 # allDat_avg <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_NoSf.rds")

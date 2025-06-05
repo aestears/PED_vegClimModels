@@ -18,18 +18,18 @@ library(terra)
 
 modDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_sf.rds")
 modDat %>% 
-  st_drop_geometry() %>% 
+  #st_drop_geometry() %>% 
   filter(!is.na(TotalHerbaceousCover)) %>% 
   ggplot() + 
   facet_wrap(~Year) + 
-  geom_point(aes(Long, Lat))
+  geom_point(aes(x, y))
 # get level 1 ecoregions shapefiles
 #regions <- sf::st_read(dsn = "./Data_raw/Level1Ecoregions/", layer = "NA_CEC_Eco_Level1")
 # get level 1 and 2 ecoregion shapefiles
 regions <- sf::st_read(dsn = "./Data_raw/Level2Ecoregions/", layer = "NA_CEC_Eco_Level2") 
-
+# 
 # ggplot(regions[200:400,]) +
-#   geom_sf(aes(col = NA_L1NAME)) + 
+#   geom_sf(aes(col = NA_L1NAME)) +
 #   geom_point(data = modDat, aes(x, y))
 # ensure projections are the same -----------------------------------------
 # want them both to have this same crs as below
@@ -45,7 +45,7 @@ modDat_2 <- st_transform(modDat, crs = st_crs(test_rast))
 
 crs(regions_2) == crs(modDat_2)
 
-mapview(regions_2 %>% slice_sample(n = 10000)) + mapview(modDat_2 %>% slice_sample(n = 10000))
+mapview(regions_2 %>% slice_sample(n = 10000)) + mapview(modDat %>% slice_sample(n = 10000))
 
 
 ## drop those values that don't have any climate data (pre-1980)
@@ -79,14 +79,14 @@ newDat <- modDat_3_noDups %>%
   left_join(ecoReg_lu) %>% 
   mutate(newRegion = as.factor(newRegion)) 
 # 
-# ggplot(newDat[1:100000,]) + 
-#   geom_sf(aes(fill = newRegion))
+ggplot(newDat[1:100000,]) +
+  geom_sf(aes(fill = newRegion))
 
 # Save Data for further analysis ------------------------------------------
 saveRDS(newDat, "./Data_processed/CoverData/DataForModels_withEcoregion.rds")
-
-# newDat %>% 
-#   st_drop_geometry() %>% 
-#   ggplot() + 
+# 
+# newDat %>%
+#   st_drop_geometry() %>%
+#   ggplot() +
 #   facet_wrap(~Year) +
-#   geom_point(aes(x = Long, y = Lat))
+#   geom_point(aes(x = Long, y = Lat, col = NA_L1NAME))

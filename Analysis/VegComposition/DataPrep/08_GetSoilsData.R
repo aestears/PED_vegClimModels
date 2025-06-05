@@ -402,12 +402,12 @@ temp <- vegSoils_new %>%
     filter(!is.na(durationFrostFreeDays_meanAnnAvg_3yrAnom))
  
   
-  # add back in CAM cover spatially averaged data from previous analysis -----------------------
-   CAMcoverDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_sf.rds") %>% 
-    st_drop_geometry() %>% 
-    st_as_sf(coords = c("Long.x", "Lat.x")) %>% 
-    st_set_crs(value = crs(vegDat)) %>% 
-    filter(!is.na(CAMCover)) 
+  # # add back in CAM cover spatially averaged data from previous analysis -----------------------
+  #  CAMcoverDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_sf.rds") %>% 
+  #   st_drop_geometry() %>% 
+  #   st_as_sf(coords = c("Long.x", "Lat.x")) %>% 
+  #   st_set_crs(value = crs(vegDat)) %>% 
+  #   filter(!is.na(CAMCover)) 
 
   vegSoils_final <- 
     vegSoils_final %>% 
@@ -425,8 +425,8 @@ temp <- vegSoils_new %>%
   uniqueID_dups <- duplicated(test$uniqueID)
   test <- test[!uniqueID_dups,]
   
-  newFinalDat <- vegSoils_final %>% 
-    dplyr::left_join(test %>% st_drop_geometry() %>% select(CAMCover, uniqueID), by = "uniqueID")
+  newFinalDat <- vegSoils_final #%>% 
+    #dplyr::left_join(test %>% st_drop_geometry() %>% select(CAMCover, uniqueID), by = "uniqueID")
   
   
   # save data  --------------------------------------------------------------

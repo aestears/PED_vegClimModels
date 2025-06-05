@@ -4297,4 +4297,146 @@ ggarrange(map_preds_totHerbaceous, map_preds_totTree,
           map_preds_totHerbaceous_future2, map_preds_totTree_future2, ncol = 2, nrow = 3)
 ```
 ### Now, scale all of the first tier of cover models to sum to 100% 
+```{r fig.width = 10, fig.height=12}
+## contemporary climate data
+preds_contemp <- preds_contemp %>% 
+  mutate(totalCover =  predContemp_CONUS_CAM + predContemp_CONUS_shrub + predContemp_CONUS_bareGround + totHerb_synth + totTree_synth)  %>% # calculate total cover "%" in a location
+  # scale so that the cover classes sum to 100 
+  mutate(CAM_cover_finalScaled = predContemp_CONUS_CAM/totalCover * 100,
+         shrub_cover_finalScaled = predContemp_CONUS_shrub/totalCover * 100,
+         bareGround_cover_finalScaled = predContemp_CONUS_bareGround/totalCover * 100, 
+         totalHerb_cover_finalScaled = totHerb_synth/totalCover * 100, 
+         totalTree_cover_finalScaled = totTree_synth/totalCover * 100)
+
+## future climate data model 1
+preds_future_1 <- preds_future_1 %>% 
+  mutate(totalCover =  predFuture1_CONUS_CAM + predFuture1_CONUS_shrub + predFuture1_CONUS_bareGround + totHerb_synth + totTree_synth)  %>% # calculate total cover "%" in a location
+  # scale so that the cover classes sum to 100 
+  mutate(CAM_cover_finalScaled = predFuture1_CONUS_CAM/totalCover * 100,
+         shrub_cover_finalScaled = predFuture1_CONUS_shrub/totalCover * 100,
+         bareGround_cover_finalScaled = predFuture1_CONUS_bareGround/totalCover * 100, 
+         totalHerb_cover_finalScaled = totHerb_synth/totalCover * 100, 
+         totalTree_cover_finalScaled = totTree_synth/totalCover * 100)
+
+## future climate data model 2
+preds_future_2 <- preds_future_2 %>% 
+  mutate(totalCover =  predFuture2_CONUS_CAM + predFuture2_CONUS_shrub + predFuture2_CONUS_bareGround + totHerb_synth + totTree_synth)  %>% # calculate total cover "%" in a location
+  # scale so that the cover classes sum to 100 
+  mutate(CAM_cover_finalScaled = predFuture2_CONUS_CAM/totalCover * 100,
+         shrub_cover_finalScaled = predFuture2_CONUS_shrub/totalCover * 100,
+         bareGround_cover_finalScaled = predFuture2_CONUS_bareGround/totalCover * 100, 
+         totalHerb_cover_finalScaled = totHerb_synth/totalCover * 100, 
+         totalTree_cover_finalScaled = totTree_synth/totalCover * 100)
+
+### make figures
+# for contemporary climate 
+contempScaledPreds_maps <- map(c("CAM_cover_finalScaled", "shrub_cover_finalScaled",
+         "bareGround_cover_finalScaled",  "totalHerb_cover_finalScaled", 
+         "totalTree_cover_finalScaled"), .f = function(x) {
+           # make the raster
+           rast_1 <- preds_contemp %>% 
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = x, 
+                   fun = mean, na.rm = TRUE) %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])))
+           
+           # make map 
+           map_1  <- ggplot() +
+  geom_spatraster(data = rast_1) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
+labs(title = paste0("'Scaled' prediction of ", x, " with 
+                    contemporary climate data")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(rast_1)[c(1,3)]) + 
+  ylim(st_bbox(rast_1)[c(2,4)])
+           
+           return(map_1)
+         }
+         )
+
+# for future climate model 1
+future1ScaledPreds_maps <- map(c("CAM_cover_finalScaled", "shrub_cover_finalScaled",
+         "bareGround_cover_finalScaled",  "totalHerb_cover_finalScaled", 
+         "totalTree_cover_finalScaled"), .f = function(x) {
+           # make the raster
+           rast_1 <- preds_future_1 %>% 
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = x, 
+                   fun = mean, na.rm = TRUE) %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])))
+           
+           # make map 
+           map_1  <- ggplot() +
+  geom_spatraster(data = rast_1) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
+labs(title = paste0("'Scaled' prediction of ", x, " with 
+                    contemporary climate data")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(rast_1)[c(1,3)]) + 
+  ylim(st_bbox(rast_1)[c(2,4)])
+           
+           return(map_1)
+         }
+         )
+
+# for future climate model 2
+future2ScaledPreds_maps <- map(c("CAM_cover_finalScaled", "shrub_cover_finalScaled",
+         "bareGround_cover_finalScaled",  "totalHerb_cover_finalScaled", 
+         "totalTree_cover_finalScaled"), .f = function(x) {
+           # make the raster
+           rast_1 <- preds_future_2 %>% 
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = x, 
+                   fun = mean, na.rm = TRUE) %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])))
+           
+           # make map 
+           map_1  <- ggplot() +
+  geom_spatraster(data = rast_1) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
+labs(title = paste0("'Scaled' prediction of ", x, " with 
+                    contemporary climate data")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(rast_1)[c(1,3)]) + 
+  ylim(st_bbox(rast_1)[c(2,4)])
+           
+           return(map_1)
+         }
+         )
+
+
+ggarrange(contempScaledPreds_maps[[4]], contempScaledPreds_maps[[5]], contempScaledPreds_maps[[1]], contempScaledPreds_maps[[2]], contempScaledPreds_maps[[3]], common.legend = TRUE, ncol = 3, nrow = 2)  %>% 
+  annotate_figure(fig.lab = "Scaled model predictions of 'level 1' cover variables with contemporary data ", fig.lab.size = 20)
+
+
+ggarrange(future1ScaledPreds_maps[[4]], future1ScaledPreds_maps[[5]], future1ScaledPreds_maps[[1]], future1ScaledPreds_maps[[2]], future1ScaledPreds_maps[[3]], common.legend = TRUE, ncol = 3, nrow = 2)  %>% 
+  annotate_figure(fig.lab = "Scaled model predictions of 'level 1' cover variables with future climate data - model 1", fig.lab.size = 20)
+
+
+ggarrange(future2ScaledPreds_maps[[4]], future2ScaledPreds_maps[[5]], future2ScaledPreds_maps[[1]], future2ScaledPreds_maps[[2]], future2ScaledPreds_maps[[3]], common.legend = TRUE, ncol = 3, nrow = 2)  %>% 
+  annotate_figure(fig.lab = "Scaled model predictions of 'level 1' cover variables with future climate data - model 2", fig.lab.size = 20)
+  
+```
+
 ### Add in second tier of cover models to break up total herbaceous cover into C3/C4/Forb and total tree cover into broad-leaved tree/needle-leaved tree

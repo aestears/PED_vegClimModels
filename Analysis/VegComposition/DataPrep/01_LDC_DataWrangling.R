@@ -330,7 +330,7 @@ treeCover_final <- treeDat %>%
   filter(!is.na(total_speciesCover_n))
   
   
-# calculate CAM species ---------------------------------------------------
+# calculate shrub species ---------------------------------------------------
 # data.frame that has species-level data as well as species names (speciesDat_new)
 # speciesDat_new
 # # get family information 
@@ -345,27 +345,29 @@ treeCover_final <- treeDat %>%
 #                        "Didiereaceae", "Halophytaceae", "Basellaceae"))
 
 # remove observations for weird species names w/ % cover less than 10%
-CAM_species <- speciesDat_new %>% 
-  filter(GrowthHabitSub == "Succulent")
+shrub_species <- speciesDat_new %>% 
+  filter(GrowthHabitSub  %in% c(#"Succulent", 
+    "Shrub", #"SubShrub", "Sub-Shrub", "Subshrub", 
+                                "Shrub-Shrub"))
 
 # remove observations that have no cover associated with them (not sure why these observations were included? )
-CAM_species <- CAM_species %>% 
+shrub_species <- shrub_species %>% 
   filter(!is.na(AH_SpeciesCover))
 
-CAM_species <- CAM_species %>% 
+shrub_species <- shrub_species %>% 
   group_by(PrimaryKey, Year) %>% 
-  summarize(CAM_n_hits = sum(AH_SpeciesCover_n)) %>% 
-  filter(!is.na(CAM_n_hits))
+  summarize(shrub_n_hits = sum(AH_SpeciesCover_n)) %>% 
+  filter(!is.na(shrub_n_hits))
 
 ## get total #n for all plots
 totalSpecies_nDat <- speciesDat %>% 
   group_by(PrimaryKey, Year) %>% 
   summarize("total_speciesCover_n" = sum(AH_SpeciesCover_n, na.rm = TRUE))
 # add this information to the C3/C4 count data
-camCover_final <- CAM_species  %>% 
+shrubCover_final <- shrub_species  %>% 
   left_join(totalSpecies_nDat) %>% 
   ## calculate the percentage of hits that are C3 vs C4
-  mutate(cam_hits_proportionOfAllSpp = CAM_n_hits/total_speciesCover_n) %>% 
+  mutate(shrub_hits_proportionOfAllSpp = shrub_n_hits/total_speciesCover_n) %>% 
   # drop data afor plots that don't have total plot 'n' values
   filter(!is.na(total_speciesCover_n))
 
@@ -379,7 +381,7 @@ test <- grassCover_final %>%
   full_join(treeCover_final, by = c("PrimaryKey", "Year")) %>% 
   #full_join(forbAnnPenCover, by = c("PrimaryKey", "Year")) %>% 
   #full_join(gramAnnPenCover, by = c("PrimaryKey", "Year")) %>% 
-  full_join(camCover_final, by = c("PrimaryKey", "Year"))
+  full_join(shrubCover_final, by = c("PrimaryKey", "Year"))
 
 ## add in shrub and forb data from "Indicators" d.f
 datAll <- indicatorDat %>% 

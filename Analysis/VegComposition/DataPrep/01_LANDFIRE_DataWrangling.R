@@ -536,6 +536,9 @@ datLF_use <- datAll  %>%
          LFShrubCovAdj, LFHerbCovAdj, LFTreeCovAdj, C3_LFRelCov, C4_LFRelCov, AngioTree_LFRelCov, ConifTree_LFRelCov, 
          Gram_Peren_LFRelCov, Gram_Ann_LFRelCov, Forb_Peren_LFRelCov, Forb_Ann_LFRelCov, Forb_LFRelCov, CAM_LFRelCov)
 
+## add the CAM and shrub together
+#datLF_use <- datLF_use %>% 
+  mutate(LFShrubCovAdj_USE = LFShrubCovAdj + CAM_LFRelCov)
 # # remove rows for plots that don't have all functional groups measured (can figure out by finding which have NAs in the 'dat' data frame)
 # goodPlots <- datAll %>% 
 #  filter(!is.na(LFTreeCov) & 
@@ -555,6 +558,8 @@ datLF_use <- datAll  %>%
 
 #save data to file 
 write.csv(datAll,"./Data_raw/LANDFIRE_LFRDB/coverDat_USE.csv", row.names = FALSE)
+
+# ggplot(data = datLF_use[!is.na(datLF_use$LFShrubCovAdj_USE),]) + geom_point(aes(Long, Lat, col = LFShrubCovAdj_USE))
 
 # ggplot(datLF_use) +
 #   geom_density(aes(ConifTree_LFAbsCov), col = "darkgreen") +
