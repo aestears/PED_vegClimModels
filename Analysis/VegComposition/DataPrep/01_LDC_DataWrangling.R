@@ -330,43 +330,101 @@ treeCover_final <- treeDat %>%
   filter(!is.na(total_speciesCover_n))
   
   
-# calculate shrub species ---------------------------------------------------
+# calculate shrub and CAM species ---------------------------------------------------
 # data.frame that has species-level data as well as species names (speciesDat_new)
 # speciesDat_new
-# # get family information 
-# speciesDat_families <- taxonlookup::lookup_table(species_list = unique(speciesDat_new$ScientificName), by_species = TRUE)
-# speciesDat_families$Species <- row.names(speciesDat_families)
-# speciesDat_new <- left_join(speciesDat_new, speciesDat_families, by = c("ScientificName" = "Species"))
-# # narrow down to families that are likely to be CAM 
-# # source (first pass): https://doi.org/10.1093/aob/mcad135
-# CAM_species <- speciesDat_new %>% 
-#   filter(family %in% c("Crassulaceae", "Bromeliaceae", "Cactaceae", 
-#                        "Anacampserotaceae", "Portulacaceae", "Talinaceae", 
-#                        "Didiereaceae", "Halophytaceae", "Basellaceae"))
+# get family information
+speciesDat_families <- taxonlookup::lookup_table(species_list = unique(speciesDat_new$ScientificName), by_species = TRUE)
+speciesDat_families$Species <- row.names(speciesDat_families)
+speciesDat_new <- left_join(speciesDat_new, speciesDat_families, by = c("ScientificName" = "Species"))
+# narrow down to families that are likely to be CAM
+# source (first pass): https://doi.org/10.1093/aob/mcad135
+CAM_species <- speciesDat_new %>%
+  filter(family %in% c("Crassulaceae", "Bromeliaceae", "Cactaceae",
+                       "Anacampserotaceae", "Portulacaceae", "Talinaceae",
+                       "Didiereaceae", "Halophytaceae", "Basellaceae")) %>% 
+  mutate(PrimaryKey_Year = paste(PrimaryKey, Year))
+# %>% 
+  #filter(!is.na(AH_SpeciesCover))
+# if there are NAs in the AH_SpeciesCover column, remove observations for that plot 
+badPlots_cam <- CAM_species %>% 
+  #filter(is.na(AH_SpeciesCover)) %>% 
+ # select(PrimaryKey, DBKey, Year) %>% 
+  group_by(PrimaryKey, DBKey, Year) %>% 
+  summarize(n_NAs = sum(is.na(AH_SpeciesCover_n)),
+            n_NotNAs = sum(!is.na(AH_SpeciesCover_n))) %>% 
+  mutate(percentNAs = n_NAs/(n_NAs + n_NotNAs)) %>% 
+  filter(percentNAs > .33333) %>% 
+  select(PrimaryKey, DBKey, Year) %>% 
+  unique() %>% 
+  mutate(PrimaryKey_Year = paste(PrimaryKey, Year))
 
-# remove observations for weird species names w/ % cover less than 10%
-shrub_species <- speciesDat_new %>% 
-  filter(GrowthHabitSub  %in% c(#"Succulent", 
-    "Shrub", #"SubShrub", "Sub-Shrub", "Subshrub", 
-                                "Shrub-Shrub"))
+CAM_species <- CAM_species %>% 
+  filter(!(PrimaryKey_Year %in% badPlots_cam$PrimaryKey_Year))
 
-# remove observations that have no cover associated with them (not sure why these observations were included? )
-shrub_species <- shrub_species %>% 
-  filter(!is.na(AH_SpeciesCover))
-
-shrub_species <- shrub_species %>% 
+# calculate the number of hits for CAM species in each plot 
+CAM_species <- CAM_species %>% 
   group_by(PrimaryKey, Year) %>% 
-  summarize(shrub_n_hits = sum(AH_SpeciesCover_n)) %>% 
-  filter(!is.na(shrub_n_hits))
+  summarize(CAM_n_hits = sum(AH_SpeciesCover_n)) %>% 
+  filter(!is.na(CAM_n_hits)) %>% 
+left_join(indicatorDat %>% select(PrimaryKey, DBKey, Latitude_NAD83, Longitude_NAD83))
 
-## get total #n for all plots
+# get total #n for all plots
 totalSpecies_nDat <- speciesDat %>% 
   group_by(PrimaryKey, Year) %>% 
   summarize("total_speciesCover_n" = sum(AH_SpeciesCover_n, na.rm = TRUE))
 # add this information to the C3/C4 count data
-shrubCover_final <- shrub_species  %>% 
+CAMCover_final <- CAM_species  %>% 
   left_join(totalSpecies_nDat) %>% 
   ## calculate the percentage of hits that are C3 vs C4
+  mutate(CAM_hits_proportionOfAllSpp = CAM_n_hits/total_speciesCover_n) %>% 
+  # drop data afor plots that don't have total plot 'n' values
+  filter(!is.na(total_speciesCover_n))
+
+
+# ggplot() + 
+#   geom_point(data = indicatorDat, aes(Longitude_NAD83, Latitude_NAD83), col = "grey") + 
+#   geom_point(data = CAMCover_final,  aes(Longitude_NAD83, Latitude_NAD83, col = CAM_hits_proportionOfAllSpp))
+
+## shrubs
+# get shrub species names 
+shrub_species <- speciesDat_new %>% 
+  filter(GrowthHabitSub  %in% c(#"Succulent", 
+    "Shrub", "SubShrub", "Sub-Shrub", "Subshrub", 
+                                "Shrub-Shrub")) %>% 
+    filter(!(family %in% c("Crassulaceae", "Bromeliaceae", "Cactaceae",
+                         "Anacampserotaceae", "Portulacaceae", "Talinaceae",
+                         "Didiereaceae", "Halophytaceae", "Basellaceae"))) %>% 
+  mutate(PrimaryKey_Year = paste(PrimaryKey, Year))
+# %>% 
+#filter(!is.na(AH_SpeciesCover))
+# if there are NAs in the AH_SpeciesCover column, remove observations for that plot 
+badPlots_shrub <- shrub_species %>% 
+  #filter(is.na(AH_SpeciesCover)) %>% 
+  # select(PrimaryKey, DBKey, Year) %>% 
+  group_by(PrimaryKey, DBKey, Year) %>% 
+  summarize(n_NAs = sum(is.na(AH_SpeciesCover_n)),
+            n_NotNAs = sum(!is.na(AH_SpeciesCover_n))) %>% 
+  mutate(percentNAs = n_NAs/(n_NAs + n_NotNAs)) %>% 
+  filter(percentNAs > .33) %>% 
+  select(PrimaryKey, DBKey, Year) %>% 
+  unique() %>% 
+  mutate(PrimaryKey_Year = paste(PrimaryKey, Year))
+
+shrub_species <- shrub_species %>% 
+  filter(!(shrub_species$PrimaryKey_Year %in% badPlots_shrub$PrimaryKey_Year))
+
+# calculate the number of hits for shrub species in each plot 
+shrub_species <- shrub_species %>% 
+  group_by(PrimaryKey, Year) %>% 
+  summarize(shrub_n_hits = sum(AH_SpeciesCover_n)) %>% 
+  filter(!is.na(shrub_n_hits)) %>% 
+  left_join(indicatorDat %>% select(PrimaryKey, DBKey, Latitude_NAD83, Longitude_NAD83))# select(PrimaryKey, DBKey, Year) %>% 
+  
+# add this information to the shrub count data
+shrubCover_final <- shrub_species  %>% 
+  left_join(totalSpecies_nDat) %>% 
+  ## calculate the percentage of hits that are shrub
   mutate(shrub_hits_proportionOfAllSpp = shrub_n_hits/total_speciesCover_n) %>% 
   # drop data afor plots that don't have total plot 'n' values
   filter(!is.na(total_speciesCover_n))
@@ -374,13 +432,11 @@ shrubCover_final <- shrub_species  %>%
 ## assume that if there are no species of a group recorded in a plot, the cover for that group is 0 
 
 # Add all data pieces together  -------------------------------------------
-
-
 # add together 
 test <- grassCover_final %>% 
   full_join(treeCover_final, by = c("PrimaryKey", "Year")) %>% 
   #full_join(forbAnnPenCover, by = c("PrimaryKey", "Year")) %>% 
-  #full_join(gramAnnPenCover, by = c("PrimaryKey", "Year")) %>% 
+  full_join(CAMCover_final, by = c("PrimaryKey", "Year")) %>% 
   full_join(shrubCover_final, by = c("PrimaryKey", "Year"))
 
 ## add in shrub and forb data from "Indicators" d.f
@@ -393,6 +449,15 @@ datAll <- indicatorDat %>%
          FH_WoodyLitterCover, Year) %>% 
   full_join(test, by = c("PrimaryKey","Year") )
 
+## for trees, CAM, shrub, and grass (calculated by species), we have the proportion of hits that are each given type.... want to convert to the amount of the total cover (rather than relative % of hits)
+datAll <- datAll %>% 
+  mutate(C3_coverByHand = C3_hits_proportionOfAllSpecies * TotalFoliarCover, 
+         C4_coverByHand = C4_hits_proportionOfAllSpecies * TotalFoliarCover, 
+         ConifTree_coverByHand = Conif_hits_proportionOfAllSpp * TotalFoliarCover, 
+         AngioTree_coverByHand = Angio_hits_proportionOfAllSpp * TotalFoliarCover, 
+         CAM_coverByHand = CAM_hits_proportionOfAllSpp* TotalFoliarCover, 
+         Shrub_coverByHand = shrub_hits_proportionOfAllSpp * TotalFoliarCover
+  )
 
 # save data to file 
 write.csv(datAll, 
