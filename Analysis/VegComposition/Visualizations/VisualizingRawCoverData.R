@@ -319,25 +319,25 @@ herbaceousCover_rast <- coverDat %>%
     ggtitle("LANDFIRE", subtitle = "Total Herb. % Cover"))
 
 
-# CAM data -
-# rasterize data
-camCover_rast <- coverDat %>% 
-  filter(Source == "LANDFIRE") %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
-  #terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y =test_rast, # terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-                   field = "CAMCovr", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(camCover_plot_LF <- ggplot() + 
-    geom_spatraster(data = camCover_rast, aes(fill = mean), na.rm = TRUE) +
-    theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
-    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
-                         limits = c(0,100)) +
-    ggtitle("LANDFIRE", subtitle = "CAM species % cover"))
+# # CAM data -
+# # rasterize data
+# camCover_rast <- coverDat %>% 
+#   filter(Source == "LANDFIRE") %>% 
+#   #slice_sample(n = 5e4) %>%
+#   terra::vect() %>% 
+#   #terra::set.crs(crs(test_rast)) %>% 
+#   terra::rasterize(y =test_rast, # terra::aggregate(test_rast, fact = 2, fun = "mean"), 
+#                    field = "CAMCovr", 
+#                    fun = mean, na.rm = TRUE) %>% 
+#   terra::crop(ext(-135, -60, 20, 55))
+# (camCover_plot_LF <- ggplot() + 
+#     geom_spatraster(data = camCover_rast, aes(fill = mean), na.rm = TRUE) +
+#     theme_minimal() + 
+#     xlim(c(-130, -65)) + 
+#     ylim(c(25, 50))+
+#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,100)) +
+#     ggtitle("LANDFIRE", subtitle = "CAM species % cover"))
 
 # For FIA data ------------------------------------------------------------
 # total tree cover data 
@@ -628,25 +628,25 @@ herbaceousCover_rast <- coverDat %>%
     ggtitle("FIA", subtitle = "Total Herb. % Cover"))
 
 
-# CAM data -
-# rasterize data
-camCover_rast <- coverDat %>% 
-  filter(Source == "FIA") %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
-  #terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y =test_rast, # terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-                   field = "CAMCovr", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(camCover_plot_FIA <- ggplot() + 
-    geom_spatraster(data = camCover_rast, aes(fill = mean), na.rm = TRUE) +
-    theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
-    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
-                         limits = c(0,100)) +
-    ggtitle("FIA", subtitle = "CAM species % cover"))
+# # CAM data -
+# # rasterize data
+# camCover_rast <- coverDat %>% 
+#   filter(Source == "FIA") %>% 
+#   #slice_sample(n = 5e4) %>%
+#   terra::vect() %>% 
+#   #terra::set.crs(crs(test_rast)) %>% 
+#   terra::rasterize(y =test_rast, # terra::aggregate(test_rast, fact = 2, fun = "mean"), 
+#                    field = "CAMCovr", 
+#                    fun = mean, na.rm = TRUE) %>% 
+#   terra::crop(ext(-135, -60, 20, 55))
+# (camCover_plot_FIA <- ggplot() + 
+#     geom_spatraster(data = camCover_rast, aes(fill = mean), na.rm = TRUE) +
+#     theme_minimal() + 
+#     xlim(c(-130, -65)) + 
+#     ylim(c(25, 50))+
+#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,100)) +
+#     ggtitle("FIA", subtitle = "CAM species % cover"))
 
 # For AIM/LDC Data --------------------------------------------------------
 # total tree cover data 
@@ -937,25 +937,25 @@ herbaceousCover_rast <- coverDat %>%
     ggtitle("AIM", subtitle = "Total Herb. % Cover"))
 
 
-# CAM data -
-# rasterize data
-camCover_rast <- coverDat %>% 
-  filter(Source == "LDC") %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
-  #terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y =test_rast, # terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-                   field = "CAMCovr", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(camCover_plot_AIM <- ggplot() + 
-    geom_spatraster(data = camCover_rast, aes(fill = mean), na.rm = TRUE) +
-    theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
-    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
-                         limits = c(0,100)) +
-    ggtitle("AIM", subtitle = "CAM species % cover"))
+# # CAM data -
+# # rasterize data
+# camCover_rast <- coverDat %>% 
+#   filter(Source == "LDC") %>% 
+#   #slice_sample(n = 5e4) %>%
+#   terra::vect() %>% 
+#   #terra::set.crs(crs(test_rast)) %>% 
+#   terra::rasterize(y =test_rast, # terra::aggregate(test_rast, fact = 2, fun = "mean"), 
+#                    field = "CAMCovr", 
+#                    fun = mean, na.rm = TRUE) %>% 
+#   terra::crop(ext(-135, -60, 20, 55))
+# (camCover_plot_AIM <- ggplot() + 
+#     geom_spatraster(data = camCover_rast, aes(fill = mean), na.rm = TRUE) +
+#     theme_minimal() + 
+#     xlim(c(-130, -65)) + 
+#     ylim(c(25, 50))+
+#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,100)) +
+#     ggtitle("AIM", subtitle = "CAM species % cover"))
 
 # For RAP data ------------------------------------------------------------
 # total tree cover data 
@@ -1246,25 +1246,25 @@ herbaceousCover_rast <- coverDat %>%
     ggtitle("RAP", subtitle = "Total Herb. % Cover"))
 
 
-# CAM data -
-# rasterize data
-camCover_rast <- coverDat %>% 
-  filter(Source == "RAP") %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
-  #terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y =test_rast, # terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-                   field = "CAMCovr", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(camCover_plot_RAP <- ggplot() + 
-    geom_spatraster(data = camCover_rast, aes(fill = mean), na.rm = TRUE) +
-    theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
-    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
-                         limits = c(0,100)) +
-    ggtitle("RAP", subtitle = "CAM species % cover"))
+# # CAM data -
+# # rasterize data
+# camCover_rast <- coverDat %>% 
+#   filter(Source == "RAP") %>% 
+#   #slice_sample(n = 5e4) %>%
+#   terra::vect() %>% 
+#   #terra::set.crs(crs(test_rast)) %>% 
+#   terra::rasterize(y =test_rast, # terra::aggregate(test_rast, fact = 2, fun = "mean"), 
+#                    field = "CAMCovr", 
+#                    fun = mean, na.rm = TRUE) %>% 
+#   terra::crop(ext(-135, -60, 20, 55))
+# (camCover_plot_RAP <- ggplot() + 
+#     geom_spatraster(data = camCover_rast, aes(fill = mean), na.rm = TRUE) +
+#     theme_minimal() + 
+#     xlim(c(-130, -65)) + 
+#     ylim(c(25, 50))+
+#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,100)) +
+#     ggtitle("RAP", subtitle = "CAM species % cover"))
 
 
 # For data averaged across each grid cell ---------------------------------
@@ -1343,22 +1343,22 @@ herbCover_rast <- coverDatAvg %>%
                          limits = c(0,100)) +
     ggtitle("Averaged Data", subtitle = "Total Herb. % cover" ))
 
-# total CAM cover data 
-# rasterize data
-camCover_rast <- coverDatAvg %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
-  #terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "CAMCover", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-128, -65, 23, 51))
-(camCover_plot_AVG <- ggplot() + 
-    geom_spatraster(data = camCover_rast, aes(fill = mean), na.rm = TRUE) +
-    theme_minimal() + 
-    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
-                         limits = c(0,100)) +
-    ggtitle("Averaged Data", subtitle = "CAM species % cover" ))
+# # total CAM cover data 
+# # rasterize data
+# camCover_rast <- coverDatAvg %>% 
+#   #slice_sample(n = 5e4) %>%
+#   terra::vect() %>% 
+#   #terra::set.crs(crs(test_rast)) %>% 
+#   terra::rasterize(y = test_rast, 
+#                    field = "CAMCover", 
+#                    fun = mean, na.rm = TRUE) %>% 
+#   terra::crop(ext(-128, -65, 23, 51))
+# (camCover_plot_AVG <- ggplot() + 
+#     geom_spatraster(data = camCover_rast, aes(fill = mean), na.rm = TRUE) +
+#     theme_minimal() + 
+#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,100)) +
+#     ggtitle("Averaged Data", subtitle = "CAM species % cover" ))
 
 
 # conifer cover proportion data 
@@ -1481,8 +1481,8 @@ ggarrange(
   ggarrange(herbaceousCover_plot_AIM, herbaceousCover_plot_FIA, herbaceousCover_plot_LF, herbaceousCover_plot_RAP, herbCover_plot_AVG, nrow = 1, common.legend = TRUE),
   ggarrange(forbCover_plot_AIM, forbCover_plot_FIA, forbCover_plot_LF, forbCover_plot_RAP , NA, nrow = 1, common.legend = TRUE),
   ggarrange(forbProportion_plot_AIM, forbProportion_plot_FIA, forbProportion_plot_LF, forbProportion_plot_RAP, forbCoverProp_prop_AVG,  nrow = 1, common.legend = TRUE),
-  ggarrange(camCover_plot_AIM, camCover_plot_FIA, camCover_plot_LF, camCover_plot_RAP,nrow = 1, camCover_plot_AVG, common.legend = TRUE),
-  nrow = 5, ncol = 1) %>% 
+  #ggarrange(camCover_plot_AIM, camCover_plot_FIA, camCover_plot_LF, camCover_plot_RAP,nrow = 1, camCover_plot_AVG, common.legend = TRUE),
+  nrow = 4, ncol = 1) %>% 
   ggexport(
     filename = "./Figures/coverDatFigures/ForbHerbaceousCamShrubFigures.pdf",
     width = 14, height = 17)

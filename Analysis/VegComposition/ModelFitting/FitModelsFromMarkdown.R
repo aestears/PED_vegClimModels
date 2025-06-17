@@ -40,18 +40,18 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFittin
                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
                   output_file = "GrassShrub_ShrubCover_trimAnoms_LASSO_gammaLogLink.html")
 
-#CAM cover
-rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd",
-                  params = list(  run= TRUE,
-                                  test_run = FALSE,
-                                  save_figs = FALSE,
-                                  trimAnomalies = TRUE,
-                                  ecoregion = "shrubGrass",
-                                  response = "CAMCover",
-                                  removeTexasLouisianaPlain = FALSE),
-                  output_format = "html_document",
-                  output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-                  output_file = "GrassShrub_CAMCover_trimAnoms_LASSO_gammaLogLink.html")
+# #CAM cover
+# rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd",
+#                   params = list(  run= TRUE,
+#                                   test_run = FALSE,
+#                                   save_figs = FALSE,
+#                                   trimAnomalies = TRUE,
+#                                   ecoregion = "shrubGrass",
+#                                   response = "CAMCover",
+#                                   removeTexasLouisianaPlain = FALSE),
+#                   output_format = "html_document",
+#                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
+#                   output_file = "GrassShrub_CAMCover_trimAnoms_LASSO_gammaLogLink.html")
 
 #bare ground cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
@@ -167,18 +167,18 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFittin
                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
                   output_file = "forest_ShrubCover_trimAnoms_LASSO_gammaLogLink.html")
 
-#CAM cover
-rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd",
-                  params = list(  run= TRUE,
-                                  test_run = FALSE,
-                                  save_figs = FALSE,
-                                  trimAnomalies = TRUE,
-                                  ecoregion = "forest",
-                                  response = "CAMCover",
-                                  removeTexasLouisianaPlain = FALSE),
-                  output_format = "html_document",
-                  output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-                  output_file = "forest_CAMCover_trimAnoms_LASSO_gammaLogLink.html")
+# #CAM cover
+# rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd",
+#                   params = list(  run= TRUE,
+#                                   test_run = FALSE,
+#                                   save_figs = FALSE,
+#                                   trimAnomalies = TRUE,
+#                                   ecoregion = "forest",
+#                                   response = "CAMCover",
+#                                   removeTexasLouisianaPlain = FALSE),
+#                   output_format = "html_document",
+#                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
+#                   output_file = "forest_CAMCover_trimAnoms_LASSO_gammaLogLink.html")
 
 #bare ground cover
 # rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
@@ -256,18 +256,17 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFittin
 
 # CONUS-wide models; yes trim anomalies- ------------------------------------------------
 
-
-#CAM cover
-rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
-                  params = list(  run = TRUE, 
-                                  test_run = FALSE,
-                                  save_figs = FALSE,
-                                  trimAnomalies = TRUE,
-                                  ecoregion = "CONUS",
-                                  response = "CAMCover"), 
-                  output_format = "html_document", 
-                  output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-                  output_file = "CONUS_CAMCover_trimAnoms_LASSO_gammaLogLink.html")
+# #CAM cover
+# rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
+#                   params = list(  run = TRUE, 
+#                                   test_run = FALSE,
+#                                   save_figs = FALSE,
+#                                   trimAnomalies = TRUE,
+#                                   ecoregion = "CONUS",
+#                                   response = "CAMCover"), 
+#                   output_format = "html_document", 
+#                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
+#                   output_file = "CONUS_CAMCover_trimAnoms_LASSO_gammaLogLink.html")
 
 # # total herbaceous cover
 # rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
@@ -464,18 +463,18 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFittin
                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
                   output_file = "GrassShrub_ShrubCover_NoTrimAnoms_LASSO_gammaLogLink.html")
 
-#CAM cover
-rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd",
-                  params = list(  run = FALSE,
-                                  test_run = FALSE,
-                                  save_figs = FALSE,
-                                  trimAnomalies = FALSE,
-                                  ecoregion = "shrubGrass",
-                                  response = "CAMCover",
-                                  removeTexasLouisianaPlain = FALSE),
-                  output_format = "html_document",
-                  output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-                  output_file = "GrassShrub_CAMCover_NoTrimAnoms_LASSO_gammaLogLink.html")
+# #CAM cover
+# rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd",
+#                   params = list(  run = FALSE,
+#                                   test_run = FALSE,
+#                                   save_figs = FALSE,
+#                                   trimAnomalies = FALSE,
+#                                   ecoregion = "shrubGrass",
+#                                   response = "CAMCover",
+#                                   removeTexasLouisianaPlain = FALSE),
+#                   output_format = "html_document",
+#                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
+#                   output_file = "GrassShrub_CAMCover_NoTrimAnoms_LASSO_gammaLogLink.html")
 
 #bare ground cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
@@ -590,18 +589,18 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFittin
                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
                   output_file = "forest_ShrubCover_NoTrimAnoms_LASSO_gammaLogLink.html")
 
-#CAM cover
-rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd",
-                  params = list(  run = FALSE,
-                                  test_run = FALSE,
-                                  save_figs = FALSE,
-                                  trimAnomalies = FALSE,
-                                  ecoregion = "forest",
-                                  response = "CAMCover",
-                                  removeTexasLouisianaPlain = FALSE),
-                  output_format = "html_document",
-                  output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-                  output_file = "forest_CAMCover_NoTrimAnoms_LASSO_gammaLogLink.html")
+# #CAM cover
+# rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd",
+#                   params = list(  run = FALSE,
+#                                   test_run = FALSE,
+#                                   save_figs = FALSE,
+#                                   trimAnomalies = FALSE,
+#                                   ecoregion = "forest",
+#                                   response = "CAMCover",
+#                                   removeTexasLouisianaPlain = FALSE),
+#                   output_format = "html_document",
+#                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
+#                   output_file = "forest_CAMCover_NoTrimAnoms_LASSO_gammaLogLink.html")
 
 # #bare ground cover
 # rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
@@ -680,17 +679,17 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFittin
 # CONUS-wide models; no trim anomalies- ------------------------------------------------
 
 
-#CAM cover
-rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
-                  params = list(  run = FALSE, 
-                                  test_run = FALSE,
-                                  save_figs = FALSE,
-                                  trimAnomalies = FALSE,
-                                  ecoregion = "CONUS",
-                                  response = "CAMCover"), 
-                  output_format = "html_document", 
-                  output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-                  output_file = "CONUS_CAMCover_NoTrimAnoms_LASSO_gammaLogLink.html")
+# #CAM cover
+# rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
+#                   params = list(  run = FALSE, 
+#                                   test_run = FALSE,
+#                                   save_figs = FALSE,
+#                                   trimAnomalies = FALSE,
+#                                   ecoregion = "CONUS",
+#                                   response = "CAMCover"), 
+#                   output_format = "html_document", 
+#                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
+#                   output_file = "CONUS_CAMCover_NoTrimAnoms_LASSO_gammaLogLink.html")
 
 # # total herbaceous cover
 # rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 

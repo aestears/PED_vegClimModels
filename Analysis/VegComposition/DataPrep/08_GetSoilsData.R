@@ -415,13 +415,13 @@ temp <- vegSoils_new %>%
   
   test <- vegSoils_final %>% 
     #slice_sample(n = 1000) %>% 
-    st_as_sf(coords = c("Long", "Lat"), crs = st_crs(vegDat)) %>% 
+    st_as_sf(coords = c("Long", "Lat"), crs = st_crs(vegDat)) #%>% 
     #st_drop_geometry() %>% 
-    st_buffer(50) %>% 
-      sf::st_join(CAMcoverDat %>% select(CAMCover, Year.x, geometry) %>% st_buffer(100), by = c("Year" = "Year.x"))
+    #st_buffer(50) %>% 
+     # sf::st_join(CAMcoverDat %>% select(CAMCover, Year.x, geometry) %>% st_buffer(100), by = c("Year" = "Year.x"))
   
-  test <- test %>% 
-    filter(Year == Year.x)
+  #test <- test %>% 
+    #filter(Year == Year.x)
   uniqueID_dups <- duplicated(test$uniqueID)
   test <- test[!uniqueID_dups,]
   

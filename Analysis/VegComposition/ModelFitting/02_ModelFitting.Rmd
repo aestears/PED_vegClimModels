@@ -12,7 +12,7 @@ params:
   test_run: FALSE
   save_figs: FALSE
   ecoregion: CONUS         
-  response: C4GramCover_prop
+  response: ShrubCover
   removeTexasLouisianaPlain: FALSE
   trimAnomalies: TRUE
   autoKfold: FALSE
@@ -82,14 +82,9 @@ Data compiled in the `prepDataForModels.R` script
 ```{r}
 here::i_am("Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd")
 modDat <- readRDS( here("Data_processed", "CoverData", "DataForModels_spatiallyAveraged_withSoils_noSf.rds"))
-## there are some values of the annual wet degree days 5th percentile that have -Inf?? change to lowest value for now? 
-modDat[is.infinite(modDat$annWetDegDays_5percentile_3yrAnom), "annWetDegDays_5percentile_3yrAnom"] <- -47.8
-## same, but for annual water deficit 95th percentile 
-modDat[is.infinite(modDat$annWaterDeficit_95percentile_3yrAnom), "annWaterDeficit_95percentile_3yrAnom"] <- -600
 
 # For all response variables, make sure there are no 0s add  .0001 from each, since the Gamma model framework can't handle that
 modDat[modDat$TotalTreeCover == 0 & !is.na(modDat$TotalTreeCover), "TotalTreeCover"] <- 0.0001
-modDat[modDat$CAMCover == 0 & !is.na(modDat$CAMCover), "CAMCover"] <- 0.0001
 modDat[modDat$TotalHerbaceousCover == 0  & !is.na(modDat$TotalHerbaceousCover), "TotalHerbaceousCover"] <- 0.0001
 modDat[modDat$BareGroundCover == 0 & !is.na(modDat$BareGroundCover), "BareGroundCover"] <- 0.0001
 modDat[modDat$ShrubCover == 0 & !is.na(modDat$ShrubCover), "ShrubCover"] <- 0.0001
@@ -1912,7 +1907,8 @@ pred_glm1_deciles_filt <- predvars2deciles( pred_glm1,
                          filter_vars = prednames_fig,
                          cut_points = seq(0, 1, 0.005)) 
 
-decile_dotplot_filtered_pq(pred_glm1_deciles_filt, xvars = prednames_fig, response = response)
+decile_dotplot_filtered_pq(pred_glm1_deciles_filt, xvars = prednames_fig#, response = response
+                           )
 #decile_dotplot_filtered_pq(pred_glm1_deciles_filt)
 
 }
@@ -1932,7 +1928,8 @@ pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1,
                          add_mid = TRUE,
                          cut_points = seq(0, 1, 0.005))
 
-g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt_mid, response = response, xvars = prednames_fig)
+g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt_mid, #response = response, 
+                                xvars = prednames_fig)
 g
 
 if(save_figs) {x
@@ -2309,6 +2306,7 @@ map(outList, .f = function(x) {
 kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 }
 ```
+
 ```{r figures of CV for 1 SE lambda model}
 if (length(prednames_secondBestMod) == 0) {
   print("The model only contains one predictor (an intercept), so cross validation isn't practical")

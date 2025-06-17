@@ -344,6 +344,8 @@ CAM_species <- speciesDat_new %>%
                        "Anacampserotaceae", "Portulacaceae", "Talinaceae",
                        "Didiereaceae", "Halophytaceae", "Basellaceae")) %>% 
   mutate(PrimaryKey_Year = paste(PrimaryKey, Year))
+
+
 # %>% 
   #filter(!is.na(AH_SpeciesCover))
 # if there are NAs in the AH_SpeciesCover column, remove observations for that plot 

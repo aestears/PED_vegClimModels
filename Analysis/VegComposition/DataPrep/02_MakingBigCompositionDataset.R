@@ -156,7 +156,7 @@ LDC_all <- LDC_veg %>%
             Year = lubridate::year(DateVisited),
             Lat = Latitude_NAD83,
             Lon = Longitude_NAD83,
-            ShrubCover = Shrub_coverByHand + CAM_coverByHand, ## combining shrubs and CAM species 
+            ShrubCover = AH_ShrubCover, 
             ForbCover = AH_ForbCover, 
             AnnualHerbGramCover = NA,
             PerennialHerbGramCover = NA,
