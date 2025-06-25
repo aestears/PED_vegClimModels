@@ -65,7 +65,7 @@ transform_funs$convert_poly2log10 <- function(x) {
 flatten_rename <- function(x) {
   out <- purrr::flatten(x) # flatten list
   top_names <- names(x) # names of top level of list
-  n_lower <- map_dbl(x, length)
+  n_lower <- purrr::map_dbl(x, length)
   n_top <- length(x)
   # repeat the name of the highest list level, for each
   # component of the sublist
@@ -92,7 +92,7 @@ transform_preds <- function(preds) {
     !is.null(names(preds)), # needs to be a named vector
     is.list(transform_funs) # list of functions created above
   )
-  out <- map(transform_funs, function(f) {
+  out <- purrr::map(transform_funs, function(f) {
     stopifnot(
       is.function(f)
     )
@@ -288,7 +288,8 @@ longdf2deciles <- function(df, response_vars, filter_var = FALSE,
     nest() %>% 
     # empirical cdf
     # calculate the percentile of each data point based on the ecdf
-    mutate(percentile = map(data, function(df) ecdf(df$value)(df$value))) %>% 
+    mutate(percentile = purrr::map(data, function(df) ecdf(df$value)(df$value)
+                            )) %>% 
     # as_tibble() %>% 
     unnest(cols = c("data", "percentile")) %>% 
     group_by(across(all_of(group_vars))) %>% 
@@ -365,17 +366,17 @@ filter_by_climate <- function(df, add_mid = FALSE,
   
   # fitting empirical cdf's so that percentiles of the climate variables
   # can be computed
-  ecdf_list <- map(df[filter_vars], ecdf)
+  ecdf_list <- purrr::map(df[filter_vars], ecdf)
   
   # dataframe, where each column provides the percentiles of a climate variable
   # percentiles correspond to rows in df
-  percentiles <- map_dfc(filter_vars, function(var) {
+  percentiles <- purrr::map_dfc(filter_vars, function(var) {
     ecdf_list[[var]](df[[var]])
   })
   names(percentiles) <- filter_vars
   
   # only keep rows falling in the low or high category, for each climate var
-  df_filtered <- map_dfr(filter_vars, function(var) {
+  df_filtered <- purrr::map_dfr(filter_vars, function(var) {
     df_low <- df[percentiles[[var]] < low, ]
     if (nrow(df_low)>0) {
       df_low$percentile_category <- paste0("<", low*100, "th")

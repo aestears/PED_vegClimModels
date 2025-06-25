@@ -802,24 +802,3 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFittin
                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
                   output_file = "CONUS_ForbCover_NoTrimAnoms_LASSO_gammaLogLink.html")
 
-
-
-# predictors --------------------------------------------------------------
-
-preds <- c("Tmean", "prcpTempCorr", "isothermality", "annWatDef", "sand", "coarse", "AWHC", 
-"prcpTempCorr", "isothermality", "coarse", "tmean", "sand", "AWHC", "annWatDef", 
-"Prcp", "isothermality", "annWatDef", "coarse", "tmean", "prcpTempCorr", "sand", 
-"Prcp", "prcp_seasonality", "annWatDef", "sand", "AWHC", "prcpTempCorr", "prcpTempCorr_anom", 
-"Tmean", "prcpTempCorr", "isothermality", "annWatDef", "sand", "AWHC", "coarse", 
-"Tmean", "prcp", "prcp_dry", "isothermality", "clay", "sand", "AWHC", "prcip_dry_anom", "prcpTempCorr", "carbon", "coarse", 
-"Tmean", "prcp", "prcp_dry", "clay", "AWHC", "annWatDef_anom", "annWetDegDays_anom", "sand", "isothermality", "prcpTempCorr", "coarse", "carbon", 
-"Tmean", "prcp", "prcp_dry", "prcpTempCorr", "sand", "coarse", "isothermality", "prcp_dry_anom", "AWHC", "carbon", "clay", 
-"Tmean", "prcp", "prcp_dry", "isothermality", "annWatDef", "clay", "sand", "coarse", "carbon", "AWHC", 
-"Tmean", "isothermality", "coarse", "AWHC", "prcpTempCorr", "prcp") %>% 
-  unique()
-
-preds
-
-
-
-

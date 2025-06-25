@@ -876,7 +876,7 @@ anomDat_3yr <- testNew %>%
     PrecipTempCorr_meanAnnAvg_3yrAnom = PrecipTempCorr_meanAnnAvg_CLIM - PrecipTempCorr_meanAnnAvg_3yr,
     # above Freezing month as absolute difference
     aboveFreezing_month_meanAnnAvg_3yrAnom = aboveFreezing_month_meanAnnAvg_CLIM - aboveFreezing_month_meanAnnAvg_3yr,
-    # isothermailty as % difference
+    # isothermailty as absolute difference
     isothermality_meanAnnAvg_3yrAnom = isothermality_meanAnnAvg_CLIM - isothermality_meanAnnAvg_3yr,    
     # annual water deficit as % difference
     annWaterDeficit_meanAnnAvg_3yrAnom = ((annWaterDeficit_meanAnnAvg_CLIM+.0001) - annWaterDeficit_meanAnnAvg_3yr)/(annWaterDeficit_meanAnnAvg_CLIM+.0001),
@@ -912,6 +912,13 @@ climDatNew <- climDat[climDat$year > 1999,]
 
 climDatNew[climDatNew$precip_driestMonth_meanAnnAvg_3yr == climDatNew$precip_driestMonth_meanAnnAvg_CLIM, 
            c("precip_driestMonth_meanAnnAvg_3yrAnom")] <- 0
+
+library(patchwork)
+#ggplot(data = climDat[1:100000,]) + geom_point(aes(x = Long, Lat, col = precip_Seasonality_meanAnnAvg_CLIM)) +
+  #ggplot(data = climDat[1:100000,]) + geom_point(aes(x = Long, Lat, col = precip_Seasonality_meanAnnAvg_3yr)) + 
+  ggplot(data = climDat[1:100000,]) + geom_point(aes(x = Long, Lat, col = precip_Seasonality_meanAnnAvg_3yrAnom)) + 
+    
+    ggplot(data = climDat[1:100000,]) + geom_point(aes(x = Long, Lat, col = precip_Seasonality_meanAnnAvg_CLIM - precip_Seasonality_meanAnnAvg_3yr))
 
 # # visualize anomalies
 # climDat %>% 

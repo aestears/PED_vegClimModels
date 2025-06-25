@@ -11,8 +11,8 @@ params:
   run: TRUE      
   test_run: FALSE
   save_figs: FALSE
-  ecoregion: CONUS         
-  response: ShrubCover
+  ecoregion: CONUS 
+  response: C3GramCover_prop
   removeTexasLouisianaPlain: FALSE
   trimAnomalies: TRUE
   autoKfold: FALSE
@@ -1046,6 +1046,7 @@ if (trimAnom == TRUE) {
   bestLamb_all <- bestLambda_coef$VariableName %>% #[str_detect(bestLambda_coef$VariableName, pattern = "_anom_s")] %>% 
     str_remove(pattern = "I\\(") %>% 
     str_remove(pattern = "\\^2\\)") %>% 
+    str_remove(pattern = "\\^2\\)") %>% 
     str_split(pattern = ":", simplify = TRUE) 
   if (ncol(bestLamb_all) == 1) {
     bestLamb_all <- unique(bestLamb_all)
@@ -1078,6 +1079,7 @@ if (trimAnom == TRUE) {
   seLamb_all <- seLambda_coef$VariableName %>% #[str_detect(seLambda_coef$VariableName, pattern = "_anom_s")] %>% 
     str_remove(pattern = "I\\(") %>% 
     str_remove(pattern = "_s\\^2\\)") %>% 
+    str_remove(pattern = "\\^2\\)") %>% 
     str_split(pattern = ":", simplify = TRUE) 
   if (ncol(seLamb_all) == 1) {
     seLamb_all <- unique(seLamb_all)
@@ -1889,7 +1891,7 @@ g4
 ```{r}
 df <- pred_glm1[, prednames_fig] #%>% 
   #mutate(MAT = MAT - 273.15) # k to c
-quantiles <- map(df, quantile, probs = c(0.2, 0.8), na.rm = TRUE)
+quantiles <- purrr::map(df, quantile, probs = c(0.2, 0.8), na.rm = TRUE)
 ```
 
 Filtered 'Decile' plots of data. These plots show each vegetation variable,
@@ -2083,7 +2085,7 @@ y_cv <- as.matrix(modDat_1_s[,response_t])
 ### Below are the RMSE and bias values for predictions made for each holdout level II ecoregion, compared to predictions from the global model for that same ecoregion
 ```{r metrics output table for best lambda CV}
 # table of model performance
-map(outList, .f = function(x) {
+purrr::map(outList, .f = function(x) {
   cbind(data.frame("holdout region" = x$testRegion),  x$performanceMetrics)
 }
 ) %>% 
@@ -2295,7 +2297,7 @@ if (length(prednames_secondBestMod) == 0) {
   print("The model only contains one predictor (an intercept), so cross validation isn't practical")
 } else {
 # table of model performance
-map(outList, .f = function(x) {
+purrr::map(outList, .f = function(x) {
   cbind(data.frame("holdout region" = x$testRegion),  x$performanceMetrics)
 }
 ) %>% 

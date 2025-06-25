@@ -373,6 +373,11 @@ CONUS_forb_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_CONUS_ForbC
 CONUS_broadLeavedTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_CONUS_AngioTreeCover_prop.rds")
 CONUS_needleLeavedTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_CONUS_ConifTreeCover_prop.rds")
 
+forest_broadLeavedTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_forest_AngioTreeCover_prop.rds")
+forest_needleLeavedTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_forest_ConifTreeCover_prop.rds")
+grassShrub_broadLeavedTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_shrubGrass_AngioTreeCover_prop.rds")
+grassShrub_needleLeavedTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_shrubGrass_ConifTreeCover_prop.rds")
+
 # read in model metrics
 # no reduction of anomalies 
 modMetrics_grassShrub_totalHerb <- readRDS("./models/modelMetrics_shrubGrass_TotalHerbaceousCover.rds")
@@ -402,6 +407,10 @@ modMetrics_CONUS_C4_trimAnom <- readRDS("./models/modelMetrics_trimAnom_CONUS_C4
 modMetrics_CONUS_forb_trimAnom <- readRDS("./models/modelMetrics_trimAnom_CONUS_ForbCover_prop.rds")
 modMetrics_CONUS_broadLeavedTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_CONUS_AngioTreeCover_prop.rds")
 modMetrics_CONUS_needleLeavedTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_CONUS_ConifTreeCover_prop.rds")
+modMetrics_forest_broadLeavedTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_forest_AngioTreeCover_prop.rds")
+modMetrics_forest_needleLeavedTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_forest_ConifTreeCover_prop.rds")
+modMetrics_grassShrub_broadLeavedTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_shrubGrass_AngioTreeCover_prop.rds")
+modMetrics_grassShrub_needleLeavedTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_shrubGrass_ConifTreeCover_prop.rds")
 ```
   
 Now, show the different model performance metrics for each group (for now, only showing models that remove anomalies whose corresponding weather variables aren't present in the LASSO model)
@@ -3687,72 +3696,141 @@ bestLambda_CONUS_forb_predictFuture_2 <- makePredictions(predictionDF = forecast
 modelObject = oneSELambdaMod_CONUS_forb)
 ```
 
-## needle-leaved tree as proportion of total tree, CONUS-wide - best lambda model
+## needle-leaved tree as proportion of total tree, forest - best lambda model
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
- bestLambdaMod_CONUS_needleLeavedTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/ConifTreeCover_prop_CONUS_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+ bestLambdaMod_forest_needleLeavedTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/ConifTreeCover_prop_forest_noTLP_FALSE_bestLambdaGLM.rds")
 
-ModelSpec_bestLambdaMod_CONUS_needleLeavedTree <- getModelStatement(coefficientTable = CONUS_needleLeavedTree_trimAnoms,
+ModelSpec_bestLambdaMod_forest_needleLeavedTree <- getModelStatement(coefficientTable = forest_needleLeavedTree_trimAnoms,
                                                     modelName <- "coefficientValue_bestLambda", 
                                                     responseVar <- "needleLeavedTree cover percentage")
 ```
 
 This is the **best Lambda** model equation if the inputs *are* scaled: 
 ```{r}
-(ModelSpec_bestLambdaMod_CONUS_needleLeavedTree$scaledInputVars_ModelStatement)
+(ModelSpec_bestLambdaMod_forest_needleLeavedTree$scaledInputVars_ModelStatement)
 ```
 
 This is the **best Lambda** model equation if the inputs are *not* scaled: 
 ```{r}
-(ModelSpec_bestLambdaMod_CONUS_needleLeavedTree$unscaledInputVars_scaledModelStatement)
+(ModelSpec_bestLambdaMod_forest_needleLeavedTree$unscaledInputVars_scaledModelStatement)
 ```
 
 Predict
 ```{r fig.width = 16, fig.height = 18, message = FALSE}
 # predict w/ best SE lambda model
-bestLambda_CONUS_needleLeavedTree_predict <- makePredictions(predictionDF = climDatPred, 
-                                                           modelObject = bestLambdaMod_CONUS_needleLeavedTree)
+bestLambda_forest_needleLeavedTree_predict <- makePredictions(predictionDF = climDatPred, 
+                                                           modelObject = bestLambdaMod_forest_needleLeavedTree)
 # predict with best SE lambda model w/ forecasted climate data
-bestLambda_CONUS_needleLeavedTree_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
-                                                           modelObject = bestLambdaMod_CONUS_needleLeavedTree)
+bestLambda_forest_needleLeavedTree_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
+                                                           modelObject = bestLambdaMod_forest_needleLeavedTree)
 # predict with best SE lambda model w/ forecasted climate data
-bestLambda_CONUS_needleLeavedTree_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
-modelObject = bestLambdaMod_CONUS_needleLeavedTree)
+bestLambda_forest_needleLeavedTree_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
+modelObject = bestLambdaMod_forest_needleLeavedTree)
 ```
 
-## broad-leaved tree as proportion of total tree, CONUS-wide - best lambda model
+
+## needle-leaved tree as proportion of total tree, grass/shrub - best lambda model
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
- bestLambdaMod_CONUS_broadLeavedTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/AngioTreeCover_prop_CONUS_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+ bestLambdaMod_grassShrub_needleLeavedTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/ConifTreeCover_prop_shrubGrass_noTLP_FALSE_bestLambdaGLM.rds")
 
-ModelSpec_bestLambdaMod_CONUS_broadLeavedTree <- getModelStatement(coefficientTable = CONUS_broadLeavedTree_trimAnoms,
+ModelSpec_bestLambdaMod_grassShrub_needleLeavedTree <- getModelStatement(coefficientTable = grassShrub_needleLeavedTree_trimAnoms,
+                                                    modelName <- "coefficientValue_bestLambda", 
+                                                    responseVar <- "needleLeavedTree cover percentage")
+```
+
+This is the **best Lambda** model equation if the inputs *are* scaled: 
+```{r}
+(ModelSpec_bestLambdaMod_grassShrub_needleLeavedTree$scaledInputVars_ModelStatement)
+```
+
+This is the **best Lambda** model equation if the inputs are *not* scaled: 
+```{r}
+(ModelSpec_bestLambdaMod_grassShrub_needleLeavedTree$unscaledInputVars_scaledModelStatement)
+```
+
+Predict
+```{r fig.width = 16, fig.height = 18, message = FALSE}
+# predict w/ best SE lambda model
+bestLambda_grassShrub_needleLeavedTree_predict <- makePredictions(predictionDF = climDatPred, 
+                                                           modelObject = bestLambdaMod_grassShrub_needleLeavedTree)
+# predict with best SE lambda model w/ forecasted climate data
+bestLambda_grassShrub_needleLeavedTree_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
+                                                           modelObject = bestLambdaMod_grassShrub_needleLeavedTree)
+# predict with best SE lambda model w/ forecasted climate data
+bestLambda_grassShrub_needleLeavedTree_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
+modelObject = bestLambdaMod_grassShrub_needleLeavedTree)
+```
+
+## broad-leaved tree as proportion of total tree, forest - best lambda model
+Read in the objects
+```{r}
+# read in model objects (is the trim anomaly version)
+ bestLambdaMod_forest_broadLeavedTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/AngioTreeCover_prop_forest_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+
+ModelSpec_bestLambdaMod_forest_broadLeavedTree <- getModelStatement(coefficientTable = forest_broadLeavedTree_trimAnoms,
                                                     modelName <- "coefficientValue_bestLambda", 
                                                     responseVar <- "broadLeavedTree cover percentage")
 ```
 
 This is the **best Lambda** model equation if the inputs *are* scaled: 
 ```{r}
-(ModelSpec_bestLambdaMod_CONUS_broadLeavedTree$scaledInputVars_ModelStatement)
+(ModelSpec_bestLambdaMod_forest_broadLeavedTree$scaledInputVars_ModelStatement)
 ```
 
 This is the **best Lambda** model equation if the inputs are *not* scaled: 
 ```{r}
-(ModelSpec_bestLambdaMod_CONUS_broadLeavedTree$unscaledInputVars_scaledModelStatement)
+(ModelSpec_bestLambdaMod_forest_broadLeavedTree$unscaledInputVars_scaledModelStatement)
 ```
 
 Predict
 ```{r fig.width = 16, fig.height = 18, message = FALSE}
 # predict w/ best SE lambda model
-bestLambda_CONUS_broadLeavedTree_predict <- makePredictions(predictionDF = climDatPred, 
-                                                           modelObject = bestLambdaMod_CONUS_broadLeavedTree)
+bestLambda_forest_broadLeavedTree_predict <- makePredictions(predictionDF = climDatPred, 
+                                                           modelObject = bestLambdaMod_forest_broadLeavedTree)
 # predict with best SE lambda model w/ forecasted climate data
-bestLambda_CONUS_broadLeavedTree_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
-                                                           modelObject = bestLambdaMod_CONUS_broadLeavedTree)
+bestLambda_forest_broadLeavedTree_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
+                                                           modelObject = bestLambdaMod_forest_broadLeavedTree)
 # predict with best SE lambda model w/ forecasted climate data
-bestLambda_CONUS_broadLeavedTree_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
-modelObject = bestLambdaMod_CONUS_broadLeavedTree)
+bestLambda_forest_broadLeavedTree_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
+modelObject = bestLambdaMod_forest_broadLeavedTree)
+```
+
+## broad-leaved tree as proportion of total tree, grassShrub - best lambda model
+Read in the objects
+```{r}
+# read in model objects (is the trim anomaly version)
+ bestLambdaMod_grassShrub_broadLeavedTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/AngioTreeCover_prop_shrubGrass_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+
+ModelSpec_bestLambdaMod_grassShrub_broadLeavedTree <- getModelStatement(coefficientTable = grassShrub_broadLeavedTree_trimAnoms,
+                                                    modelName <- "coefficientValue_bestLambda", 
+                                                    responseVar <- "broadLeavedTree cover percentage")
+```
+
+This is the **best Lambda** model equation if the inputs *are* scaled: 
+```{r}
+(ModelSpec_bestLambdaMod_grassShrub_broadLeavedTree$scaledInputVars_ModelStatement)
+```
+
+This is the **best Lambda** model equation if the inputs are *not* scaled: 
+```{r}
+(ModelSpec_bestLambdaMod_grassShrub_broadLeavedTree$unscaledInputVars_scaledModelStatement)
+```
+
+Predict
+```{r fig.width = 16, fig.height = 18, message = FALSE}
+# predict w/ best SE lambda model
+bestLambda_grassShrub_broadLeavedTree_predict <- makePredictions(predictionDF = climDatPred, 
+                                                           modelObject = bestLambdaMod_grassShrub_broadLeavedTree)
+# predict with best SE lambda model w/ forecasted climate data
+bestLambda_grassShrub_broadLeavedTree_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
+                                                           modelObject = bestLambdaMod_grassShrub_broadLeavedTree)
+# predict with best SE lambda model w/ forecasted climate data
+bestLambda_grassShrub_broadLeavedTree_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
+modelObject = bestLambdaMod_grassShrub_broadLeavedTree)
 ```
 
 ## Combine the level 2 cover variables (combine and scale to sum to 100 - for both total herbaceous and total tree cover)
@@ -3761,70 +3839,91 @@ modelObject = bestLambdaMod_CONUS_broadLeavedTree)
 names(bestLambda_CONUS_C3_predict)[57] <- "C3_percentage_pred"
 names(bestLambda_CONUS_C4_predict)[57] <- "C4_percentage_pred"
 names(bestLambda_CONUS_forb_predict)[57] <- "forb_percentage_pred"
-names(bestLambda_CONUS_broadLeavedTree_predict)[57] <- "broadLeavedTree_percentage_pred"
-names(bestLambda_CONUS_needleLeavedTree_predict)[57] <- "needleLeavedTree_percentage_pred"
+names(bestLambda_grassShrub_broadLeavedTree_predict)[57] <- "broadLeavedTree_grassShrub_percentage_pred"
+names(bestLambda_forest_broadLeavedTree_predict)[57] <- "broadLeavedTree_forest_percentage_pred"
+names(bestLambda_grassShrub_needleLeavedTree_predict)[57] <- "needleLeavedTree_grassShrub_percentage_pred"
+names(bestLambda_forest_needleLeavedTree_predict)[57] <- "needleLeavedTree_forest_percentage_pred"
 
 level2_cover_preds_contemp <- bestLambda_CONUS_C3_predict %>% 
   left_join(bestLambda_CONUS_C4_predict) %>% 
   left_join(bestLambda_CONUS_forb_predict) %>% 
-  left_join(bestLambda_CONUS_broadLeavedTree_predict) %>% 
-  left_join(bestLambda_CONUS_needleLeavedTree_predict) 
+  left_join(bestLambda_grassShrub_broadLeavedTree_predict) %>% 
+  left_join(bestLambda_forest_broadLeavedTree_predict) %>% 
+  left_join(bestLambda_grassShrub_needleLeavedTree_predict) %>% 
+  left_join(bestLambda_forest_needleLeavedTree_predict) 
 
 level2_cover_preds_contemp <- level2_cover_preds_contemp %>% 
   mutate("sumFromModels_totalHerbaceousCover" = C3_percentage_pred +  C4_percentage_pred + forb_percentage_pred, 
-         "sumFromModels_totalTreeCover" = broadLeavedTree_percentage_pred + needleLeavedTree_percentage_pred) %>% 
+         "sumFromModels_forest_totalTreeCover" = broadLeavedTree_forest_percentage_pred + needleLeavedTree_forest_percentage_pred,  
+         "sumFromModels_grassShrub_totalTreeCover" = broadLeavedTree_grassShrub_percentage_pred + needleLeavedTree_grassShrub_percentage_pred) %>% 
   mutate(C3_percentage_scaled = (C3_percentage_pred/sumFromModels_totalHerbaceousCover)*100,
          C4_percentage_scaled = (C4_percentage_pred/sumFromModels_totalHerbaceousCover)*100,
          forb_percentage_scaled = (forb_percentage_pred/sumFromModels_totalHerbaceousCover)*100,
-         broadLeavedTree_percentage_scaled = (broadLeavedTree_percentage_pred/sumFromModels_totalTreeCover)*100,
-         needleLeavedTree_percentage_scaled = (needleLeavedTree_percentage_pred/sumFromModels_totalTreeCover)*100)
+         broadLeavedTree_forest_percentage_scaled = (broadLeavedTree_forest_percentage_pred/sumFromModels_forest_totalTreeCover)*100,
+         needleLeavedTree_forest_percentage_scaled = (needleLeavedTree_forest_percentage_pred/sumFromModels_forest_totalTreeCover)*100,
+         broadLeavedTree_grassShrub_percentage_scaled = (broadLeavedTree_grassShrub_percentage_pred/sumFromModels_grassShrub_totalTreeCover)*100,
+         needleLeavedTree_grassShrub_percentage_scaled = (needleLeavedTree_grassShrub_percentage_pred/sumFromModels_grassShrub_totalTreeCover)*100)
   
-# for model 1
+# for future model 1
 names(bestLambda_CONUS_C3_predictFuture_1)[55] <- "C3_percentage_pred"
 names(bestLambda_CONUS_C4_predictFuture_1)[55] <- "C4_percentage_pred"
 names(bestLambda_CONUS_forb_predictFuture_1)[55] <- "forb_percentage_pred"
-names(bestLambda_CONUS_broadLeavedTree_predictFuture_1)[55] <- "broadLeavedTree_percentage_pred"
-names(bestLambda_CONUS_needleLeavedTree_predictFuture_1)[55] <- "needleLeavedTree_percentage_pred"
+names(bestLambda_grassShrub_broadLeavedTree_predictFuture_1)[55] <- "broadLeavedTree_grassShrub_percentage_pred"
+names(bestLambda_forest_broadLeavedTree_predictFuture_1)[55] <- "broadLeavedTree_forest_percentage_pred"
+names(bestLambda_grassShrub_needleLeavedTree_predictFuture_1)[55] <- "needleLeavedTree_grassShrub_percentage_pred"
+names(bestLambda_forest_needleLeavedTree_predictFuture_1)[55] <- "needleLeavedTree_forest_percentage_pred"
 
 level2_cover_preds_future1 <- bestLambda_CONUS_C3_predictFuture_1 %>% 
   left_join(bestLambda_CONUS_C4_predictFuture_1) %>% 
   left_join(bestLambda_CONUS_forb_predictFuture_1) %>% 
-  left_join(bestLambda_CONUS_broadLeavedTree_predictFuture_1) %>% 
-  left_join(bestLambda_CONUS_needleLeavedTree_predictFuture_1) 
+  left_join(bestLambda_grassShrub_broadLeavedTree_predictFuture_1) %>% 
+  left_join(bestLambda_forest_broadLeavedTree_predictFuture_1) %>% 
+  left_join(bestLambda_grassShrub_needleLeavedTree_predictFuture_1) %>% 
+  left_join(bestLambda_forest_needleLeavedTree_predictFuture_1) 
 
 level2_cover_preds_future1 <- level2_cover_preds_future1 %>% 
   mutate("sumFromModels_totalHerbaceousCover" = C3_percentage_pred +  C4_percentage_pred + forb_percentage_pred, 
-         "sumFromModels_totalTreeCover" = broadLeavedTree_percentage_pred + needleLeavedTree_percentage_pred) %>% 
+         "sumFromModels_forest_totalTreeCover" = broadLeavedTree_forest_percentage_pred + needleLeavedTree_forest_percentage_pred,  
+         "sumFromModels_grassShrub_totalTreeCover" = broadLeavedTree_grassShrub_percentage_pred + needleLeavedTree_grassShrub_percentage_pred) %>% 
   mutate(C3_percentage_scaled = (C3_percentage_pred/sumFromModels_totalHerbaceousCover)*100,
          C4_percentage_scaled = (C4_percentage_pred/sumFromModels_totalHerbaceousCover)*100,
          forb_percentage_scaled = (forb_percentage_pred/sumFromModels_totalHerbaceousCover)*100,
-         broadLeavedTree_percentage_scaled = (broadLeavedTree_percentage_pred/sumFromModels_totalTreeCover)*100,
-         needleLeavedTree_percentage_scaled = (needleLeavedTree_percentage_pred/sumFromModels_totalTreeCover)*100)
+         broadLeavedTree_forest_percentage_scaled = (broadLeavedTree_forest_percentage_pred/sumFromModels_forest_totalTreeCover)*100,
+         needleLeavedTree_forest_percentage_scaled = (needleLeavedTree_forest_percentage_pred/sumFromModels_forest_totalTreeCover)*100,
+         broadLeavedTree_grassShrub_percentage_scaled = (broadLeavedTree_grassShrub_percentage_pred/sumFromModels_grassShrub_totalTreeCover)*100,
+         needleLeavedTree_grassShrub_percentage_scaled = (needleLeavedTree_grassShrub_percentage_pred/sumFromModels_grassShrub_totalTreeCover)*100)
   
 # for model 2
 names(bestLambda_CONUS_C3_predictFuture_2)[55] <- "C3_percentage_pred"
 names(bestLambda_CONUS_C4_predictFuture_2)[55] <- "C4_percentage_pred"
 names(bestLambda_CONUS_forb_predictFuture_2)[55] <- "forb_percentage_pred"
-names(bestLambda_CONUS_broadLeavedTree_predictFuture_2)[55] <- "broadLeavedTree_percentage_pred"
-names(bestLambda_CONUS_needleLeavedTree_predictFuture_2)[55] <- "needleLeavedTree_percentage_pred"
+names(bestLambda_grassShrub_broadLeavedTree_predictFuture_2)[55] <- "broadLeavedTree_grassShrub_percentage_pred"
+names(bestLambda_forest_broadLeavedTree_predictFuture_2)[55] <- "broadLeavedTree_forest_percentage_pred"
+names(bestLambda_grassShrub_needleLeavedTree_predictFuture_2)[55] <- "needleLeavedTree_grassShrub_percentage_pred"
+names(bestLambda_forest_needleLeavedTree_predictFuture_2)[55] <- "needleLeavedTree_forest_percentage_pred"
 
 level2_cover_preds_future2 <- bestLambda_CONUS_C3_predictFuture_2 %>% 
   left_join(bestLambda_CONUS_C4_predictFuture_2) %>% 
   left_join(bestLambda_CONUS_forb_predictFuture_2) %>% 
-  left_join(bestLambda_CONUS_broadLeavedTree_predictFuture_2) %>% 
-  left_join(bestLambda_CONUS_needleLeavedTree_predictFuture_2) 
+  left_join(bestLambda_grassShrub_broadLeavedTree_predictFuture_2) %>% 
+  left_join(bestLambda_forest_broadLeavedTree_predictFuture_2) %>% 
+  left_join(bestLambda_grassShrub_needleLeavedTree_predictFuture_2) %>% 
+  left_join(bestLambda_forest_needleLeavedTree_predictFuture_2) 
 
 level2_cover_preds_future2 <- level2_cover_preds_future2 %>% 
   mutate("sumFromModels_totalHerbaceousCover" = C3_percentage_pred +  C4_percentage_pred + forb_percentage_pred, 
-         "sumFromModels_totalTreeCover" = broadLeavedTree_percentage_pred + needleLeavedTree_percentage_pred) %>% 
+         "sumFromModels_forest_totalTreeCover" = broadLeavedTree_forest_percentage_pred + needleLeavedTree_forest_percentage_pred,  
+         "sumFromModels_grassShrub_totalTreeCover" = broadLeavedTree_grassShrub_percentage_pred + needleLeavedTree_grassShrub_percentage_pred) %>% 
   mutate(C3_percentage_scaled = (C3_percentage_pred/sumFromModels_totalHerbaceousCover)*100,
          C4_percentage_scaled = (C4_percentage_pred/sumFromModels_totalHerbaceousCover)*100,
          forb_percentage_scaled = (forb_percentage_pred/sumFromModels_totalHerbaceousCover)*100,
-         broadLeavedTree_percentage_scaled = (broadLeavedTree_percentage_pred/sumFromModels_totalTreeCover)*100,
-         needleLeavedTree_percentage_scaled = (needleLeavedTree_percentage_pred/sumFromModels_totalTreeCover)*100)
+         broadLeavedTree_forest_percentage_scaled = (broadLeavedTree_forest_percentage_pred/sumFromModels_forest_totalTreeCover)*100,
+         needleLeavedTree_forest_percentage_scaled = (needleLeavedTree_forest_percentage_pred/sumFromModels_forest_totalTreeCover)*100,
+         broadLeavedTree_grassShrub_percentage_scaled = (broadLeavedTree_grassShrub_percentage_pred/sumFromModels_grassShrub_totalTreeCover)*100,
+         needleLeavedTree_grassShrub_percentage_scaled = (needleLeavedTree_grassShrub_percentage_pred/sumFromModels_grassShrub_totalTreeCover)*100)
 ```
 
-## visualize the scaled level 2 predictions
+## visualize the *scaled* level 2 predictions
 
 ### C3 cover
 ```{r fig.width = 16, fig.height = 12}
@@ -4537,7 +4636,7 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
   annotate_figure(fig.lab = "Model Predictions of forb cover with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
 ```
 
-### broad-leaved tree cover
+### broad-leaved tree cover -- forest
 ```{r fig.width = 16, fig.height = 12}
 # predict w/ best model
 plotObs <- level2_cover_preds_contemp %>% 
@@ -4546,7 +4645,7 @@ plotObs <- level2_cover_preds_contemp %>%
   terra::vect(geom = c("x", "y")) %>% 
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "broadLeavedTree_percentage_scaled", 
+                   field = "broadLeavedTree_forest_percentage_scaled", 
                    fun = mean, na.rm = TRUE)
 # get the extent of this particular raster, and crop it accordingly
 
@@ -4562,7 +4661,7 @@ plotObs_bestLambdaFuture1 <- level2_cover_preds_future1 %>%
   terra::vect(geom = c("x", "y")) %>% 
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                     field = "broadLeavedTree_percentage_scaled", 
+                     field = "broadLeavedTree_forest_percentage_scaled", 
                    fun = mean, na.rm = TRUE)
 
 plotObs_bestLambdaFuture1_2 <- plotObs_bestLambdaFuture1 %>% 
@@ -4576,7 +4675,7 @@ plotObs_bestLambdaFuture2 <- level2_cover_preds_future2 %>%
   terra::vect(geom = c("x", "y")) %>% 
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                     field = "broadLeavedTree_percentage_scaled", 
+                     field = "broadLeavedTree_forest_percentage_scaled", 
                    fun = mean, na.rm = TRUE)
 
 plotObs_bestLambdaFuture2_2 <- plotObs_bestLambdaFuture2 %>% 
@@ -4585,7 +4684,7 @@ plotObs_bestLambdaFuture2_2 <- plotObs_bestLambdaFuture2 %>%
        )
 
 # get plot of observations
-plotObservations_broadLeaved_proportion <- modDat_1_s %>% 
+plotObservations_broadLeaved_forest_proportion <- modDat_1_s %>% 
          #drop_na(paste(response)) %>% 
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("Long", "Lat")) %>% 
@@ -4594,7 +4693,7 @@ plotObservations_broadLeaved_proportion <- modDat_1_s %>%
                      field = "AngioTreeCover_prop", 
                    fun = mean, na.rm = TRUE)
 
-plotObservations_broadLeaved_proportion_2 <- plotObservations_broadLeaved_proportion %>% 
+plotObservations_broadLeaved_forest_proportion_2 <- plotObservations_broadLeaved_forest_proportion %>% 
   crop(ext(min(tempExt[,1]), max(tempExt[,1]),
            min(tempExt[,2]), max(tempExt[,2])) 
        )
@@ -4604,7 +4703,7 @@ geom_spatraster(data = plotObs_2) +
   geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
 labs(title = paste0("Scaled Predictions of Broad-leaved tree cover in the 
-                    CONUS ecoregion 
+                    forest ecoregion 
                     using contemporary climate data"),
       subtitle = "bestLambda model") +
   scale_fill_gradient2(low = "brown",
@@ -4619,7 +4718,7 @@ geom_spatraster(data = plotObs_bestLambdaFuture1_2) +
   geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
 labs(title = paste0("Scaled Predictions of Broad-leaved tree cover in the 
-                    CONUS ecoregion
+                    forest ecoregion
                     using modeled climate data from BNU-ESM model"),
       subtitle = "best Lambda model") +
   scale_fill_gradient2(low = "brown",
@@ -4634,7 +4733,7 @@ geom_spatraster(data = plotObs_bestLambdaFuture2_2) +
   geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
 labs(title = paste0("Scaled Predictions of Broad-leaved tree cover in the 
-                    CONUS ecoregion
+                    forest ecoregion
                     using modeled climate data from IPSL-CM5A-MR model"),
       subtitle = "best Lambda model") +
   scale_fill_gradient2(low = "brown",
@@ -4644,8 +4743,8 @@ labs(title = paste0("Scaled Predictions of Broad-leaved tree cover in the
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
-map_obs_CONUS_broadLeavedTree <- ggplot() +
-  geom_spatraster(data = plotObservations_broadLeaved_proportion_2) + 
+map_obs_forest_broadLeavedTree <- ggplot() +
+  geom_spatraster(data = plotObservations_broadLeaved_forest_proportion_2) + 
   geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
 labs(title = paste0("Observations of the proportion of total tree cover that is Broad-leaved tree")) +
@@ -4657,17 +4756,17 @@ labs(title = paste0("Observations of the proportion of total tree cover that is 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
 hist <- ggplot(level2_cover_preds_contemp) + 
-  geom_density(aes(broadLeavedTree_percentage_scaled), fill = "lightgrey", col = "darkgrey") + 
+  geom_density(aes(broadLeavedTree_forest_percentage_scaled), fill = "lightgrey", col = "darkgrey") + 
    xlab("Predicted Value") + 
   ylab("frequency")
 
 hist_bestlambdaFuture1 <-  ggplot(level2_cover_preds_future1) + 
-  geom_density(aes(broadLeavedTree_percentage_scaled), fill = "lightgrey", col = "darkgrey") + 
+  geom_density(aes(broadLeavedTree_forest_percentage_scaled), fill = "lightgrey", col = "darkgrey") + 
    xlab("Predicted Value") + 
   ylab("frequency")
 
 hist_bestlambdaFuture2 <-  ggplot(level2_cover_preds_future1) + 
-  geom_density(aes(broadLeavedTree_percentage_scaled), fill = "lightgrey", col = "darkgrey") + 
+  geom_density(aes(broadLeavedTree_forest_percentage_scaled), fill = "lightgrey", col = "darkgrey") + 
    xlab("Predicted Value") + 
   ylab("frequency")
 
@@ -4680,13 +4779,13 @@ hist_obs <- ggplot(modDat_1_s) +
 
 ## calculate residuals for contemporary prediction
 # (observed - predicted)
-resids <-  plotObservations_broadLeaved_proportion_2 - plotObs_2 
+resids <-  plotObservations_broadLeaved_forest_proportion_2 - plotObs_2 
 map_resids_trimAnoms <- ggplot() +
 geom_spatraster(data = resids) + 
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(resids)),fill=NA )  + 
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
   labs(title = paste0("Resids. (obs. - pred.) from the 
-                      CONUS-wide model of broad-leaved tree cover"),
+                     forest model of broad-leaved tree cover"),
      subtitle = "using predictions from the Trim Anomalies 
      bestLambda model with contemporary climate data") +
   scale_fill_gradient2(low = "red",
@@ -4712,7 +4811,7 @@ geom_spatraster(data = predDeltas_model1) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(predDeltas_model1)),fill=NA )  + 
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
   labs(title = paste0("Future Climate Model Deltas for 
-                      CONUS-wide model of broad-leaved tree covver; (models with 
+                      forest model of broad-leaved tree covver; (models with 
                       predictions with modeled climate data from model BNU-ESM 
                       model - models with predictions from 
                       contemporary climate data)"),
@@ -4740,7 +4839,7 @@ geom_spatraster(data = predDeltas_model2) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(predDeltas_model2)),fill=NA )  + 
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
   labs(title = paste0("Future Climate Model Deltas for
-  CONUS-wide model of broad-leaved tree covver; 
+  forest model of broad-leaved tree covver; 
   (models with predictions with modeled 
   climate data from model IPSL-CM5A-MR 
   model- models with predictions from 
@@ -4763,7 +4862,7 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
 
 ## conglomerate figure
 
-  ggarrange(map_obs_CONUS_broadLeavedTree, hist_obs, heights = c(3,1), ncol = 1, nrow  = 2)
+  ggarrange(map_obs_forest_broadLeavedTree, hist_obs, heights = c(3,1), ncol = 1, nrow  = 2)
 
   # plot model forecasts with model that does not exclude anomalies
        ggarrange(map, map_bestlambda_future1, map_bestlambda_future2,
@@ -4771,10 +4870,10 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
             map_resids_trimAnoms, map_deltas_model1, map_deltas_model2,
             hist_trimAnoms_resids, hist_deltas_model1, hist_deltas_model2,
             heights = c(3,1), ncol = 3, nrow = 4) %>% 
-  annotate_figure(fig.lab = "Model Predictions of broadLeavedTree with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
+  annotate_figure(fig.lab = "Model Predictions of broadLeavedTree in forests with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
 ```
 
-### needle-leaved tree cover
+### needle-leaved tree cover -- forest
 ```{r fig.width = 16, fig.height = 12}
 # predict w/ best model
 plotObs <- level2_cover_preds_contemp %>% 
@@ -4783,7 +4882,7 @@ plotObs <- level2_cover_preds_contemp %>%
   terra::vect(geom = c("x", "y")) %>% 
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "needleLeavedTree_percentage_scaled", 
+                   field = "needleLeavedTree_forest_percentage_scaled", 
                    fun = mean, na.rm = TRUE)
 # get the extent of this particular raster, and crop it accordingly
 
@@ -4799,7 +4898,7 @@ plotObs_bestLambdaFuture1 <- level2_cover_preds_future1 %>%
   terra::vect(geom = c("x", "y")) %>% 
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                     field = "needleLeavedTree_percentage_scaled", 
+                     field = "needleLeavedTree_forest_percentage_scaled", 
                    fun = mean, na.rm = TRUE)
 
 plotObs_bestLambdaFuture1_2 <- plotObs_bestLambdaFuture1 %>% 
@@ -4813,7 +4912,7 @@ plotObs_bestLambdaFuture2 <- level2_cover_preds_future2 %>%
   terra::vect(geom = c("x", "y")) %>% 
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                     field = "needleLeavedTree_percentage_scaled", 
+                     field = "needleLeavedTree_forest_percentage_scaled", 
                    fun = mean, na.rm = TRUE)
 
 plotObs_bestLambdaFuture2_2 <- plotObs_bestLambdaFuture2 %>% 
@@ -4841,7 +4940,7 @@ geom_spatraster(data = plotObs_2) +
   geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
 labs(title = paste0("Scaled Predictions of needle-leaved tree cover in the 
-                    CONUS ecoregion 
+                    forest ecoregion 
                     using contemporary climate data"),
       subtitle = "bestLambda model") +
   scale_fill_gradient2(low = "brown",
@@ -4856,7 +4955,7 @@ geom_spatraster(data = plotObs_bestLambdaFuture1_2) +
   geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
 labs(title = paste0("Scaled Predictions of needle-leaved tree cover in the 
-                    CONUS ecoregion
+                    forest ecoregion
                     using modeled climate data from BNU-ESM model"),
       subtitle = "best Lambda model") +
   scale_fill_gradient2(low = "brown",
@@ -4871,7 +4970,7 @@ geom_spatraster(data = plotObs_bestLambdaFuture2_2) +
   geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
 labs(title = paste0("Scaled Predictions of needle-leaved tree cover in the 
-                    CONUS ecoregion
+                    forest ecoregion
                     using modeled climate data from IPSL-CM5A-MR model"),
       subtitle = "best Lambda model") +
   scale_fill_gradient2(low = "brown",
@@ -4894,17 +4993,17 @@ labs(title = paste0("Observations of the proportion of total tree cover that is 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
 hist <- ggplot(level2_cover_preds_contemp) + 
-  geom_density(aes(needleLeavedTree_percentage_scaled), fill = "lightgrey", col = "darkgrey") + 
+  geom_density(aes(needleLeavedTree_forest_percentage_scaled), fill = "lightgrey", col = "darkgrey") + 
    xlab("Predicted Value") + 
   ylab("frequency")
 
 hist_bestlambdaFuture1 <-  ggplot(level2_cover_preds_future1) + 
-  geom_density(aes(needleLeavedTree_percentage_scaled), fill = "lightgrey", col = "darkgrey") + 
+  geom_density(aes(needleLeavedTree_forest_percentage_scaled), fill = "lightgrey", col = "darkgrey") + 
    xlab("Predicted Value") + 
   ylab("frequency")
 
 hist_bestlambdaFuture2 <-  ggplot(level2_cover_preds_future1) + 
-  geom_density(aes(needleLeavedTree_percentage_scaled), fill = "lightgrey", col = "darkgrey") + 
+  geom_density(aes(needleLeavedTree_forest_percentage_scaled), fill = "lightgrey", col = "darkgrey") + 
    xlab("Predicted Value") + 
   ylab("frequency")
 
@@ -4923,7 +5022,7 @@ geom_spatraster(data = resids) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(resids)),fill=NA )  + 
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
   labs(title = paste0("Resids. (obs. - pred.) from the 
-                      CONUS-wide model of needle-leaved tree cover"),
+                      forest model of needle-leaved tree cover"),
      subtitle = "using predictions from the Trim Anomalies 
      bestLambda model with contemporary climate data") +
   scale_fill_gradient2(low = "red",
@@ -4949,7 +5048,7 @@ geom_spatraster(data = predDeltas_model1) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(predDeltas_model1)),fill=NA )  + 
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
   labs(title = paste0("Future Climate Model Deltas for 
-                      CONUS-wide model of needle-leaved tree covver; (models with 
+                      forest model of needle-leaved tree covver; (models with 
                       predictions with modeled climate data from model BNU-ESM 
                       model - models with predictions from 
                       contemporary climate data)"),
@@ -4977,7 +5076,7 @@ geom_spatraster(data = predDeltas_model2) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(predDeltas_model2)),fill=NA )  + 
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
   labs(title = paste0("Future Climate Model Deltas for
-  CONUS-wide model of needle-leaved tree cover; 
+  forest model of needle-leaved tree cover; 
   (models with predictions with modeled 
   climate data from model IPSL-CM5A-MR 
   model- models with predictions from 
@@ -5008,7 +5107,481 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
             map_resids_trimAnoms, map_deltas_model1, map_deltas_model2,
             hist_trimAnoms_resids, hist_deltas_model1, hist_deltas_model2,
             heights = c(3,1), ncol = 3, nrow = 4) %>% 
-  annotate_figure(fig.lab = "Model Predictions of needleLeavedTree with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
+  annotate_figure(fig.lab = "Model Predictions of needleLeavedTree with Forest Model using Contemporary and Forecasted Climate Data", fig.lab.size = 20)
+```
+
+### broad-leaved tree cover -- grass/shrub
+```{r fig.width = 16, fig.height = 12}
+# predict w/ best model
+plotObs <- level2_cover_preds_contemp %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "broadLeavedTree_grassShrub_percentage_scaled", 
+                   fun = mean, na.rm = TRUE)
+# get the extent of this particular raster, and crop it accordingly
+
+plotObs_2 <- plotObs %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+## map best SE lambda predictions for the future model #1
+plotObs_bestLambdaFuture1 <- level2_cover_preds_future1 %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                     field = "broadLeavedTree_grassShrub_percentage_scaled", 
+                   fun = mean, na.rm = TRUE)
+
+plotObs_bestLambdaFuture1_2 <- plotObs_bestLambdaFuture1 %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+## map best SE lambda predictions for the future model #2
+plotObs_bestLambdaFuture2 <- level2_cover_preds_future2 %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                     field = "broadLeavedTree_grassShrub_percentage_scaled", 
+                   fun = mean, na.rm = TRUE)
+
+plotObs_bestLambdaFuture2_2 <- plotObs_bestLambdaFuture2 %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+# get plot of observations
+plotObservations_broadLeaved_grassShrub_proportion <- modDat_1_s %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                     field = "AngioTreeCover_prop", 
+                   fun = mean, na.rm = TRUE)
+
+plotObservations_broadLeaved_grassShrub_proportion_2 <- plotObservations_broadLeaved_grassShrub_proportion %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+# make figures
+map <- ggplot() +
+geom_spatraster(data = plotObs_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("Scaled Predictions of Broad-leaved tree cover in the 
+                    grass/shrub ecoregion 
+                    using contemporary climate data"),
+      subtitle = "bestLambda model") +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+map_bestlambda_future1 <- ggplot() +
+geom_spatraster(data = plotObs_bestLambdaFuture1_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("Scaled Predictions of Broad-leaved tree cover in the 
+                    grass/shrub ecoregion
+                    using modeled climate data from BNU-ESM model"),
+      subtitle = "best Lambda model") +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+map_bestlambda_future2 <- ggplot() +
+geom_spatraster(data = plotObs_bestLambdaFuture2_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("Scaled Predictions of Broad-leaved tree cover in the 
+                    grass/shrub ecoregion
+                    using modeled climate data from IPSL-CM5A-MR model"),
+      subtitle = "best Lambda model") +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+map_obs_grassShrub_broadLeavedTree <- ggplot() +
+  geom_spatraster(data = plotObservations_broadLeaved_grassShrub_proportion_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("Observations of the proportion of total tree cover that is Broad-leaved tree")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+hist <- ggplot(level2_cover_preds_contemp) + 
+  geom_density(aes(broadLeavedTree_grassShrub_percentage_scaled), fill = "lightgrey", col = "darkgrey") + 
+   xlab("Predicted Value") + 
+  ylab("frequency")
+
+hist_bestlambdaFuture1 <-  ggplot(level2_cover_preds_future1) + 
+  geom_density(aes(broadLeavedTree_grassShrub_percentage_scaled), fill = "lightgrey", col = "darkgrey") + 
+   xlab("Predicted Value") + 
+  ylab("frequency")
+
+hist_bestlambdaFuture2 <-  ggplot(level2_cover_preds_future1) + 
+  geom_density(aes(broadLeavedTree_grassShrub_percentage_scaled), fill = "lightgrey", col = "darkgrey") + 
+   xlab("Predicted Value") + 
+  ylab("frequency")
+
+hist_obs <- ggplot(modDat_1_s) + 
+  geom_density(aes(AngioTreeCover_prop), fill = "lightgrey", col = "darkgrey") + 
+   xlab("Predicted Value") + 
+  ggtitle("Pink = predictions within 
+          the focal ecoregion") +
+  ylab("frequency")
+
+## calculate residuals for contemporary prediction
+# (observed - predicted)
+resids <-  plotObservations_broadLeaved_grassShrub_proportion_2 - plotObs_2 
+map_resids_trimAnoms <- ggplot() +
+geom_spatraster(data = resids) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(resids)),fill=NA )  + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  labs(title = paste0("Resids. (obs. - pred.) from the 
+                     grass/shrub model of broad-leaved tree cover"),
+     subtitle = "using predictions from the Trim Anomalies 
+     bestLambda model with contemporary climate data") +
+  scale_fill_gradient2(low = "red",
+                       mid = "white" ,
+                       high = "blue" , 
+                       midpoint = 0,   na.value = "grey20",
+                       limits = c(-100,100)
+                       ) + 
+  xlim(st_bbox(resids)[c(1,3)]) + 
+  ylim(st_bbox(resids)[c(2,4)])
+
+hist_trimAnoms_resids <-  ggplot(resids) + 
+  geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
+  xlab("Predicted Value") + 
+  ylab("frequency") + 
+  geom_vline(aes(xintercept = mean(terra::values(resids$mean), na.rm = TRUE)))
+
+# calculate deltas from model 1(future model predictions - contemporary model predictions)
+predDeltas_model1 <-  plotObs_bestLambdaFuture1_2 - plotObs_2 
+
+map_deltas_model1 <- ggplot() +
+geom_spatraster(data = predDeltas_model1) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(predDeltas_model1)),fill=NA )  + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  labs(title = paste0("Future Climate Model Deltas for 
+                      grass/shrub model of broad-leaved tree covver; (models with 
+                      predictions with modeled climate data from model BNU-ESM 
+                      model - models with predictions from 
+                      contemporary climate data)"),
+     subtitle = "using predictions from the Trim Anomalies 
+     bestLambda model") +
+  scale_fill_gradient2(low = "orange",
+                       mid = "white" ,
+                       high = "purple" , 
+                       midpoint = 0,   na.value = "grey20",
+                       limits = c(-100,100)
+                       ) + 
+  xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
+  ylim(st_bbox(predDeltas_model1)[c(2,4)])
+
+hist_deltas_model1 <-  ggplot(predDeltas_model1) + 
+  geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
+  xlab("Predicted Value") + 
+  ylab("frequency") 
+
+# calculate deltas from model 1(future model predictions - contemporary model predictions)
+predDeltas_model2 <-  plotObs_bestLambdaFuture2_2 - plotObs_2 
+
+map_deltas_model2 <- ggplot() +
+geom_spatraster(data = predDeltas_model2) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(predDeltas_model2)),fill=NA )  + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  labs(title = paste0("Future Climate Model Deltas for
+  grass/shrub model of broad-leaved tree covver; 
+  (models with predictions with modeled 
+  climate data from model IPSL-CM5A-MR 
+  model- models with predictions from 
+  contemporary climate data)"),
+     subtitle = "using predictions from the Trim Anomalies 
+     bestLambda model") +
+  scale_fill_gradient2(low = "orange",
+                       mid = "white" ,
+                       high = "purple" , 
+                       midpoint = 0,   na.value = "grey20",
+                       limits = c(-100,100)
+                       ) + 
+  xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
+  ylim(st_bbox(predDeltas_model2)[c(2,4)])
+
+hist_deltas_model2 <-  ggplot(predDeltas_model2) + 
+  geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
+  xlab("Predicted Value") + 
+  ylab("frequency") 
+
+## conglomerate figure
+
+  ggarrange(map_obs_grassShrub_broadLeavedTree, hist_obs, heights = c(3,1), ncol = 1, nrow  = 2)
+
+  # plot model forecasts with model that does not exclude anomalies
+       ggarrange(map, map_bestlambda_future1, map_bestlambda_future2,
+              hist, hist_bestlambdaFuture1, hist_bestlambdaFuture2, 
+            map_resids_trimAnoms, map_deltas_model1, map_deltas_model2,
+            hist_trimAnoms_resids, hist_deltas_model1, hist_deltas_model2,
+            heights = c(3,1), ncol = 3, nrow = 4) %>% 
+  annotate_figure(fig.lab = "Model Predictions of broadLeavedTree in grass/shrub with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
+```
+
+### needle-leaved tree cover -- grass/shrub
+```{r fig.width = 16, fig.height = 12}
+# predict w/ best model
+plotObs <- level2_cover_preds_contemp %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "needleLeavedTree_grassShrub_percentage_scaled", 
+                   fun = mean, na.rm = TRUE)
+# get the extent of this particular raster, and crop it accordingly
+
+plotObs_2 <- plotObs %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+## map best SE lambda predictions for the future model #1
+plotObs_bestLambdaFuture1 <- level2_cover_preds_future1 %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                     field = "needleLeavedTree_grassShrub_percentage_scaled", 
+                   fun = mean, na.rm = TRUE)
+
+plotObs_bestLambdaFuture1_2 <- plotObs_bestLambdaFuture1 %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+## map best SE lambda predictions for the future model #2
+plotObs_bestLambdaFuture2 <- level2_cover_preds_future2 %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                     field = "needleLeavedTree_grassShrub_percentage_scaled", 
+                   fun = mean, na.rm = TRUE)
+
+plotObs_bestLambdaFuture2_2 <- plotObs_bestLambdaFuture2 %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+# get plot of observations
+plotObservations_needleLeaved_proportion <- modDat_1_s %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                     field = "ConifTreeCover_prop", 
+                   fun = mean, na.rm = TRUE)
+
+plotObservations_needleLeaved_proportion_2 <- plotObservations_needleLeaved_proportion %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+# make figures
+map <- ggplot() +
+geom_spatraster(data = plotObs_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("Scaled Predictions of needle-leaved tree cover in the 
+                    grass/shrub ecoregion 
+                    using contemporary climate data"),
+      subtitle = "bestLambda model") +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+map_bestlambda_future1 <- ggplot() +
+geom_spatraster(data = plotObs_bestLambdaFuture1_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("Scaled Predictions of needle-leaved tree cover in the 
+                    grass/shrub ecoregion
+                    using modeled climate data from BNU-ESM model"),
+      subtitle = "best Lambda model") +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+map_bestlambda_future2 <- ggplot() +
+geom_spatraster(data = plotObs_bestLambdaFuture2_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("Scaled Predictions of needle-leaved tree cover in the 
+                    grass/shrub ecoregion
+                    using modeled climate data from IPSL-CM5A-MR model"),
+      subtitle = "best Lambda model") +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+map_obs_CONUS_needleLeavedTree <- ggplot() +
+  geom_spatraster(data = plotObservations_needleLeaved_proportion) + 
+  geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("Observations of the proportion of total tree cover that is needle-leaved")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+hist <- ggplot(level2_cover_preds_contemp) + 
+  geom_density(aes(needleLeavedTree_grassShrub_percentage_scaled), fill = "lightgrey", col = "darkgrey") + 
+   xlab("Predicted Value") + 
+  ylab("frequency")
+
+hist_bestlambdaFuture1 <-  ggplot(level2_cover_preds_future1) + 
+  geom_density(aes(needleLeavedTree_grassShrub_percentage_scaled), fill = "lightgrey", col = "darkgrey") + 
+   xlab("Predicted Value") + 
+  ylab("frequency")
+
+hist_bestlambdaFuture2 <-  ggplot(level2_cover_preds_future1) + 
+  geom_density(aes(needleLeavedTree_grassShrub_percentage_scaled), fill = "lightgrey", col = "darkgrey") + 
+   xlab("Predicted Value") + 
+  ylab("frequency")
+
+hist_obs <- ggplot(modDat_1_s) + 
+  geom_density(aes(ConifTreeCover_prop), fill = "lightgrey", col = "darkgrey") + 
+   xlab("Predicted Value") + 
+  ggtitle("Pink = predictions within 
+          the focal ecoregion") +
+  ylab("frequency")
+
+## calculate residuals for contemporary prediction
+# (observed - predicted)
+resids <-  plotObservations_needleLeaved_proportion_2 - plotObs_2 
+map_resids_trimAnoms <- ggplot() +
+geom_spatraster(data = resids) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(resids)),fill=NA )  + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  labs(title = paste0("Resids. (obs. - pred.) from the 
+                      grass/shrub model of needle-leaved tree cover"),
+     subtitle = "using predictions from the Trim Anomalies 
+     bestLambda model with contemporary climate data") +
+  scale_fill_gradient2(low = "red",
+                       mid = "white" ,
+                       high = "blue" , 
+                       midpoint = 0,   na.value = "grey20",
+                       limits = c(-100,100)
+                       ) + 
+  xlim(st_bbox(resids)[c(1,3)]) + 
+  ylim(st_bbox(resids)[c(2,4)])
+
+hist_trimAnoms_resids <-  ggplot(resids) + 
+  geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
+  xlab("Predicted Value") + 
+  ylab("frequency") + 
+  geom_vline(aes(xintercept = mean(terra::values(resids$mean), na.rm = TRUE)))
+
+# calculate deltas from model 1(future model predictions - contemporary model predictions)
+predDeltas_model1 <-  plotObs_bestLambdaFuture1_2 - plotObs_2 
+
+map_deltas_model1 <- ggplot() +
+geom_spatraster(data = predDeltas_model1) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(predDeltas_model1)),fill=NA )  + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  labs(title = paste0("Future Climate Model Deltas for 
+                      grass/shrub model of needle-leaved tree covver; (models with 
+                      predictions with modeled climate data from model BNU-ESM 
+                      model - models with predictions from 
+                      contemporary climate data)"),
+     subtitle = "using predictions from the Trim Anomalies 
+     bestLambda model") +
+  scale_fill_gradient2(low = "orange",
+                       mid = "white" ,
+                       high = "purple" , 
+                       midpoint = 0,   na.value = "grey20",
+                       limits = c(-100,100)
+                       ) + 
+  xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
+  ylim(st_bbox(predDeltas_model1)[c(2,4)])
+
+hist_deltas_model1 <-  ggplot(predDeltas_model1) + 
+  geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
+  xlab("Predicted Value") + 
+  ylab("frequency") 
+
+# calculate deltas from model 1(future model predictions - contemporary model predictions)
+predDeltas_model2 <-  plotObs_bestLambdaFuture2_2 - plotObs_2 
+
+map_deltas_model2 <- ggplot() +
+geom_spatraster(data = predDeltas_model2) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(predDeltas_model2)),fill=NA )  + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  labs(title = paste0("Future Climate Model Deltas for
+  grass/shrub model of needle-leaved tree cover; 
+  (models with predictions with modeled 
+  climate data from model IPSL-CM5A-MR 
+  model- models with predictions from 
+  contemporary climate data)"),
+     subtitle = "using predictions from the Trim Anomalies 
+     bestLambda model") +
+  scale_fill_gradient2(low = "orange",
+                       mid = "white" ,
+                       high = "purple" , 
+                       midpoint = 0,   na.value = "grey20",
+                       limits = c(-100,100)
+                       ) + 
+  xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
+  ylim(st_bbox(predDeltas_model2)[c(2,4)])
+
+hist_deltas_model2 <-  ggplot(predDeltas_model2) + 
+  geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
+  xlab("Predicted Value") + 
+  ylab("frequency") 
+
+## conglomerate figure
+
+  ggarrange(map_obs_CONUS_needleLeavedTree, hist_obs, heights = c(3,1), ncol = 1, nrow  = 2)
+
+  # plot model forecasts with model that does not exclude anomalies
+       ggarrange(map, map_bestlambda_future1, map_bestlambda_future2,
+              hist, hist_bestlambdaFuture1, hist_bestlambdaFuture2, 
+            map_resids_trimAnoms, map_deltas_model1, map_deltas_model2,
+            hist_trimAnoms_resids, hist_deltas_model1, hist_deltas_model2,
+            heights = c(3,1), ncol = 3, nrow = 4) %>% 
+  annotate_figure(fig.lab = "Model Predictions of needleLeavedTree with grass/shrub Model using Contemporary and Forecasted Climate Data", fig.lab.size = 20)
 ```
 
 
@@ -5262,7 +5835,6 @@ preds_contemp_cover1 <- bestLambda_GS_totHerb_predict %>%
   left_join(bestLambda_CONUS_bareGround_predict) %>% 
   left_join(level2_cover_preds_contemp)
 
-
 preds_future_1_cover1 <-  bestLambda_GS_totHerb_predictFuture_1 %>% 
   left_join(bestLambda_GS_totTree_predictFuture_1) %>% 
   left_join(bestLambda_F_totHerb_predictFuture_1) %>% 
@@ -5290,13 +5862,13 @@ names(preds_future2_byHand)[55] <- "prob_forest"
 preds_future2_byHand$prob_GrassShrub <- 1 - preds_future2_byHand$prob_forest
 
 preds_contemp <- preds_contemp_cover1 %>% 
- left_join(preds_byHand %>% select(x:y, prob_forest, prob_GrassShrub))
+ cbind(preds_byHand %>% select( prob_forest, prob_GrassShrub))
 
 preds_future_1 <- preds_future_1_cover1 %>% 
- left_join(preds_future1_byHand %>% select(x:y, prob_forest, prob_GrassShrub))
+ cbind(preds_future1_byHand %>% select(prob_forest, prob_GrassShrub))
 
 preds_future_2 <- preds_future_2_cover1 %>% 
- left_join(preds_future2_byHand %>% select(x:y, prob_forest, prob_GrassShrub))
+ cbind(preds_future2_byHand %>% select( prob_forest, prob_GrassShrub))
 
 ## make the predictions scale according to ecoregion
 preds_contemp <- preds_contemp %>% 
@@ -5308,8 +5880,30 @@ preds_future_1 <- preds_future_1 %>%
 preds_future_2 <- preds_future_2 %>% 
   mutate(totHerb_synth = ((prob_GrassShrub * predFuture2_GS_totHerb) + (prob_forest * predFuture2_F_totHerb)),
          totTree_synth = ((prob_GrassShrub * predFuture2_GS_totTree) + (prob_forest * predFuture2_F_totTree)))
+## make the level 2 tree proportion scale according to ecoregion
+# add ecoregion predictions to level 2 cover predictions
 
+level2_cover_preds_contemp <- level2_cover_preds_contemp %>% 
+ cbind(preds_byHand %>% select(
+   prob_forest, prob_GrassShrub)) %>% 
+  mutate(needleLeavedTree_perc_scaled_synth = ((prob_GrassShrub * needleLeavedTree_grassShrub_percentage_scaled) + (prob_forest * needleLeavedTree_forest_percentage_scaled)), 
+         broadLeavedTree_perc_scaled_synth = ((prob_GrassShrub * broadLeavedTree_grassShrub_percentage_scaled) + (prob_forest * broadLeavedTree_forest_percentage_scaled))) 
+## but maybe need to scale to sum to 100 *after* multiplying by ecoregion probability?? this first pass is scaling **before** the multiplication -- it turns out that the multiplication works out either way...  this version, the synthetic values still sum to 100
+# for future model 1
+level2_cover_preds_future1 <- level2_cover_preds_future1 %>% 
+ cbind(preds_future1_byHand %>% select(
+   prob_forest, prob_GrassShrub)) %>% 
+  mutate(needleLeavedTree_perc_scaled_synth = ((prob_GrassShrub * needleLeavedTree_grassShrub_percentage_scaled) + (prob_forest * needleLeavedTree_forest_percentage_scaled)), 
+         broadLeavedTree_perc_scaled_synth = ((prob_GrassShrub * broadLeavedTree_grassShrub_percentage_scaled) + (prob_forest * broadLeavedTree_forest_percentage_scaled))) 
+# for future model 2
+level2_cover_preds_future2 <- level2_cover_preds_future2 %>% 
+ cbind(preds_future2_byHand %>% select(
+   prob_forest, prob_GrassShrub)) %>% 
+  mutate(needleLeavedTree_perc_scaled_synth = ((prob_GrassShrub * needleLeavedTree_grassShrub_percentage_scaled) + (prob_forest * needleLeavedTree_forest_percentage_scaled)), 
+         broadLeavedTree_perc_scaled_synth = ((prob_GrassShrub * broadLeavedTree_grassShrub_percentage_scaled) + (prob_forest * broadLeavedTree_forest_percentage_scaled))) 
+```
 
+```{r fig.width = 10, fig.height=10}
 ### make maps
 ## Plot predictions with contemporary data
 # total Herbaceous
@@ -5517,6 +6111,194 @@ ggarrange(map_preds_totHerbaceous, map_preds_totTree,
           map_preds_totHerbaceous_future2, map_preds_totTree_future2, ncol = 2, nrow = 3)
 ```
 
+### Show "synthetic" predictions for the second tier of cover models (only for needle leaved/broad leaved trees, since other models are CONUS-wide)
+
+```{r fig.width = 10, fig.height=10}
+# broad leaved tree contemp
+  # make into a raster
+plotPreds_broadLeavedSynth_contemp <- level2_cover_preds_contemp %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "broadLeavedTree_perc_scaled_synth", 
+                   fun = mean, na.rm = TRUE)
+
+plotPreds_broadLeavedSynth_contemp_2 <- plotPreds_broadLeavedSynth_contemp %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+map_preds_broadLeavedSynth_contemp <- ggplot() +
+  geom_spatraster(data = plotPreds_broadLeavedSynth_contemp_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("'Synthetic' prediction of proportion of tree cover that is 
+broad leaved with 
+contemporary climate data")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+# broad leaved tree future 1
+  # make into a raster
+plotPreds_broadLeavedSynth_future1 <- level2_cover_preds_future1 %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "broadLeavedTree_perc_scaled_synth", 
+                   fun = mean, na.rm = TRUE)
+
+plotPreds_broadLeavedSynth_future1_2 <- plotPreds_broadLeavedSynth_future1 %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+map_preds_broadLeavedSynth_future1 <- ggplot() +
+  geom_spatraster(data = plotPreds_broadLeavedSynth_future1_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("'Synthetic' prediction of proportion of tree cover that is 
+broad leaved with 
+future climate data - first model")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+# broad leaved tree future 2
+  # make into a raster
+plotPreds_broadLeavedSynth_future2 <- level2_cover_preds_future2 %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "broadLeavedTree_perc_scaled_synth", 
+                   fun = mean, na.rm = TRUE)
+
+plotPreds_broadLeavedSynth_future2_2 <- plotPreds_broadLeavedSynth_future2 %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+map_preds_broadLeavedSynth_future2 <- ggplot() +
+  geom_spatraster(data = plotPreds_broadLeavedSynth_future2_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("'Synthetic' prediction of proportion of tree cover that is 
+broad leaved with 
+future climate data - second model")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+# needle leaved tree contemp
+  # make into a raster
+plotPreds_needleLeavedSynth_contemp <- level2_cover_preds_contemp %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "needleLeavedTree_perc_scaled_synth", 
+                   fun = mean, na.rm = TRUE)
+
+plotPreds_needleLeavedSynth_contemp_2 <- plotPreds_needleLeavedSynth_contemp %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+map_preds_needleLeavedSynth_contemp <- ggplot() +
+  geom_spatraster(data = plotPreds_needleLeavedSynth_contemp_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("'Synthetic' prediction of proportion of tree cover that is 
+needle leaved with 
+contemporary climate data")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+# needle leaved tree future 1
+  # make into a raster
+plotPreds_needleLeavedSynth_future1 <- level2_cover_preds_future1 %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "needleLeavedTree_perc_scaled_synth", 
+                   fun = mean, na.rm = TRUE)
+
+plotPreds_needleLeavedSynth_future1_2 <- plotPreds_needleLeavedSynth_future1 %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+map_preds_needleLeavedSynth_future1 <- ggplot() +
+  geom_spatraster(data = plotPreds_needleLeavedSynth_future1_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("'Synthetic' prediction of proportion of tree cover that is 
+needle leaved with 
+future climate data - first model")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+# needle leaved tree future 2
+  # make into a raster
+plotPreds_needleLeavedSynth_future2 <- level2_cover_preds_future2 %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "needleLeavedTree_perc_scaled_synth", 
+                   fun = mean, na.rm = TRUE)
+
+plotPreds_needleLeavedSynth_future2_2 <- plotPreds_needleLeavedSynth_future2 %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+map_preds_needleLeavedSynth_future2 <- ggplot() +
+  geom_spatraster(data = plotPreds_needleLeavedSynth_future2_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("'Synthetic' prediction of proportion of tree cover that is 
+needle leaved with 
+future climate data - second model")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+ggarrange(map_preds_broadLeavedSynth_contemp, map_preds_needleLeavedSynth_contemp, 
+          map_preds_broadLeavedSynth_future1, map_preds_needleLeavedSynth_future1, 
+          map_preds_broadLeavedSynth_future2, map_preds_needleLeavedSynth_future2, ncol = 2, nrow = 3)
+```
+
 ### Now, scale all of the first tier of cover models to sum to 100% 
 ```{r fig.width = 15, fig.height=12}
 ## contemporary climate data
@@ -5671,28 +6453,31 @@ names(future2ScaledPreds_maps) <- c("shrub_cover_finalScaled",
 
 ```{r fig.width = 15, fig.height=12}
 ## for contemporary data, multiply the synthetic and scaled level-1 cover predictions by the scaled level-2 percentages
-preds_contemp <- preds_contemp %>% 
+preds_contemp  <- preds_contemp  %>% 
+  left_join(level2_cover_preds_contemp) %>% 
  mutate(C3_cover_finalScaled = totalHerb_cover_finalScaled *(C3_percentage_scaled/100),
         C4_cover_finalScaled = totalHerb_cover_finalScaled *(C4_percentage_scaled/100),
         forb_cover_finalScaled = totalHerb_cover_finalScaled *(forb_percentage_scaled/100),
-        broadLeaved_cover_finalScaled = totalTree_cover_finalScaled *(broadLeavedTree_percentage_scaled/100),
-        needleLeaved_cover_finalScaled = totalTree_cover_finalScaled *(needleLeavedTree_percentage_scaled/100)) 
+        broadLeaved_cover_finalScaled = totalTree_cover_finalScaled *(broadLeavedTree_perc_scaled_synth/100),
+        needleLeaved_cover_finalScaled = totalTree_cover_finalScaled *(needleLeavedTree_perc_scaled_synth/100)) 
 
 ## for future 1 data, multiply the synthetic and scaled level-1 cover predictions by the scaled level-2 percentages
 preds_future_1 <- preds_future_1 %>% 
+  left_join(level2_cover_preds_future1) %>% 
  mutate(C3_cover_finalScaled = totalHerb_cover_finalScaled *(C3_percentage_scaled/100),
         C4_cover_finalScaled = totalHerb_cover_finalScaled *(C4_percentage_scaled/100),
         forb_cover_finalScaled = totalHerb_cover_finalScaled *(forb_percentage_scaled/100),
-        broadLeaved_cover_finalScaled = totalTree_cover_finalScaled *(broadLeavedTree_percentage_scaled/100),
-        needleLeaved_cover_finalScaled = totalTree_cover_finalScaled *(needleLeavedTree_percentage_scaled/100)) 
+        broadLeaved_cover_finalScaled = totalTree_cover_finalScaled *(broadLeavedTree_perc_scaled_synth/100),
+        needleLeaved_cover_finalScaled = totalTree_cover_finalScaled *(needleLeavedTree_perc_scaled_synth/100)) 
 
 ## for future 2 data, multiply the synthetic and scaled level-1 cover predictions by the scaled level-2 percentages
 preds_future_2 <- preds_future_2 %>% 
+  left_join(level2_cover_preds_future2) %>% 
  mutate(C3_cover_finalScaled = totalHerb_cover_finalScaled *(C3_percentage_scaled/100),
         C4_cover_finalScaled = totalHerb_cover_finalScaled *(C4_percentage_scaled/100),
         forb_cover_finalScaled = totalHerb_cover_finalScaled *(forb_percentage_scaled/100),
-        broadLeaved_cover_finalScaled = totalTree_cover_finalScaled *(broadLeavedTree_percentage_scaled/100),
-        needleLeaved_cover_finalScaled = totalTree_cover_finalScaled *(needleLeavedTree_percentage_scaled/100)) 
+        broadLeaved_cover_finalScaled = totalTree_cover_finalScaled *(broadLeavedTree_perc_scaled_synth/100),
+        needleLeaved_cover_finalScaled = totalTree_cover_finalScaled *(needleLeavedTree_perc_scaled_synth/100)) 
 
 
 # make maps for level 2 cover w/ contemporary climate data
@@ -5897,7 +6682,7 @@ ggarrange( contempScaledPreds_maps[[3]]$map, map_obs_F_totHerb, mapResids_final_
 plotObservations_C3_actualCover <-  plotObservations_F_totHerb_2 * (plotObservations_C3_proportion_2/100)
 plotObservations_C4_actualCover <-  plotObservations_F_totHerb_2 * (plotObservations_C4_proportion_2/100)
 plotObservations_forb_actualCover <-  plotObservations_F_totHerb_2 * (plotObservations_forb_proportion_2/100)
-plotObservations_broadLeaved_actualCover <-  plotObservations_F_totTree_2 * (plotObservations_broadLeaved_proportion_2/100)
+plotObservations_broadLeaved_actualCover <-  plotObservations_F_totTree_2 * (plotObservations_broadLeaved_forest_proportion_2/100)
 plotObservations_needleLeaved_actualCover <-  plotObservations_F_totTree_2 * (plotObservations_needleLeaved_proportion_2/100)
 
 # make maps of observations (not proportion, but actual values)
@@ -6054,3 +6839,240 @@ ggarrange(contemp_cover2_ScaledPreds_maps[[1]]$map, map_obs_C3_actualCover, mapR
   annotate_figure(fig.lab = "Final scaled and Relativized predictions, observations, and residuals for 'level 2' cover classes with contemporary climate data", fig.lab.size = 20)
 
 ```
+
+## Finally, make a map of total cover (the summed predicted cover of total trees, total herbaceous, shrubs, and bare ground, prior to scaling)
+```{r}
+rast_1 <- preds_contemp %>% 
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "totalCover", 
+                   fun = mean, na.rm = TRUE) %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])))
+           
+           # make map 
+           (map_totalCover  <- ggplot() +
+  geom_spatraster(data = rast_1) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
+labs(title = paste0("Total, unscaled cover with 
+                    contemporary climate data")) +
+  scale_fill_gradient2(low = "white",
+                       high = "purple" , 
+                       #midpoint = 0, 
+                       limits = c(0,250),  
+                       na.value = "lightgrey") + 
+  xlim(st_bbox(rast_1)[c(1,3)]) + 
+  ylim(st_bbox(rast_1)[c(2,4)]))
+           
+```
+
+## compare prediction of level 1, relativized cover to cover from former SOILWAT version, but only within the sagebrush biome 
+```{r fig.width=18, fig.height=22}
+## read in data from Daniel w/ former SOILWAT output 
+bareGroundCover_ds <- terra::rast("../../../Data_raw/vegCoverOutputFromDaniel_sagebrushBiome/veg_SageGrouseClimate-MACAv2.nc", 
+                                      drivers = "NETCDF", 
+                                      subds = "fcover_bg"
+                                      ) %>% 
+  terra::project(test_rast) %>% 
+  resample(test_rast) %>% 
+  crop(contempScaledPreds_maps[[3]]$rast)
+
+forbCover_ds <- terra::rast("../../../Data_raw/vegCoverOutputFromDaniel_sagebrushBiome/veg_SageGrouseClimate-MACAv2.nc", 
+                                      drivers = "NETCDF", 
+                                      subds = "fcover_forbs"
+                                      )%>% 
+  terra::project(test_rast)%>% 
+  resample(test_rast) %>% 
+  crop(contempScaledPreds_maps[[3]]$rast)
+
+grassCover_ds <- terra::rast("../../../Data_raw/vegCoverOutputFromDaniel_sagebrushBiome/veg_SageGrouseClimate-MACAv2.nc", 
+                                      drivers = "NETCDF", 
+                                      subds = "fcover_grasses"
+                                      )%>% 
+  terra::project(test_rast)%>% 
+  resample(test_rast) %>% 
+  crop(contempScaledPreds_maps[[3]]$rast)
+
+shrubsCover_ds <- terra::rast("../../../Data_raw/vegCoverOutputFromDaniel_sagebrushBiome/veg_SageGrouseClimate-MACAv2.nc", 
+                                      drivers = "NETCDF", 
+                                      subds = "fcover_shrubs"
+                                      )%>% 
+  terra::project(test_rast) %>% 
+  resample(test_rast) %>% 
+  crop(contempScaledPreds_maps[[3]]$rast)
+
+treeCover_ds <- terra::rast("../../../Data_raw/vegCoverOutputFromDaniel_sagebrushBiome/veg_SageGrouseClimate-MACAv2.nc", 
+                                      drivers = "NETCDF", 
+                                      subds = "fcover_trees"
+                                      )%>% 
+  terra::project(test_rast) %>% 
+  resample(test_rast) %>% 
+  crop(contempScaledPreds_maps[[3]]$rast)
+
+
+## now, compare the projected values from this dataset to the values we predicted. 
+# contemporary predictions from my models 
+# total herb
+#contempScaledPreds_maps[[3]]$rast
+# total tree
+#contempScaledPreds_maps[[4]]$rast
+# shrub
+#contempScaledPreds_maps[[1]]$rast
+# bare ground
+#contempScaledPreds_maps[[2]]$rast
+## use the data from Daniel as a mask to trim my model outputs to the sagebrush biome
+totHerb_as <- 
+contempScaledPreds_maps[[3]]$rast %>% 
+  crop(y = treeCover_ds, mask = TRUE)
+
+totTree_as <- 
+contempScaledPreds_maps[[4]]$rast %>% 
+  crop(y = treeCover_ds, mask = TRUE)
+
+shrub_as <- 
+contempScaledPreds_maps[[1]]$rast %>% 
+  crop(y = treeCover_ds, mask = TRUE)
+
+bareGround_as <- 
+contempScaledPreds_maps[[2]]$rast %>% 
+  crop(y = treeCover_ds, mask = TRUE)
+
+# plot shrub preds from my model vs old SOILWAT output
+shrubMap_as <- ggplot() +
+  geom_spatraster(data = shrub_as) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
+labs(title = paste0("Final shrub fractional cover from our current model")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(c(-1956750, 3250)) + 
+  ylim(c(-883500, 952500))
+shrubMap_ds <- ggplot() +
+  geom_spatraster(data = shrubsCover_ds*100) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
+labs(title = paste0("Final shrub fractional cover from previous SOILWAT run")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(c(-1956750, 3250)) + 
+  ylim(c(-883500, 952500))
+shrubCompareMap <- ggplot() +
+  geom_spatraster(data = shrub_as - shrubsCover_ds*100) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
+labs(title = paste0("diffs: current model Shrub preds - previous SOILWAT preds")) +
+  scale_fill_gradient2(low = "red",
+                       mid = "white" ,
+                       high = "blue" , 
+                       midpoint = 0, limits = c(-100,100),  na.value = "lightgrey") + 
+  xlim(c(-1956750, 3250)) + 
+  ylim(c(-883500, 952500))
+
+# plot tree preds from my model vs old SOILWAT output
+treeMap_as <- ggplot() +
+  geom_spatraster(data = totTree_as) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
+labs(title = paste0("Final tree fractional cover from our current model")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(c(-1956750, 3250)) + 
+  ylim(c(-883500, 952500))
+treeMap_ds <- ggplot() +
+    geom_spatraster(data = treeCover_ds*100) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
+labs(title = paste0("Final tree fractional cover from previous SOILWAT run")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(c(-1956750, 3250)) + 
+  ylim(c(-883500, 952500))
+treeCompareMap <- ggplot() +
+  geom_spatraster(data = totTree_as - treeCover_ds*100) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
+labs(title = paste0("diffs: current model tree preds - previous SOILWAT preds")) +
+  scale_fill_gradient2(low = "red",
+                       mid = "white" ,
+                       high = "blue" , 
+                       midpoint = 0, limits = c(-100,100),  na.value = "lightgrey") + 
+  xlim(c(-1956750, 3250)) + 
+  ylim(c(-883500, 952500))
+
+# plot herbaceous preds from my model vs old SOILWAT output
+herbMap_as <- ggplot() +
+  geom_spatraster(data = totHerb_as) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
+labs(title = paste0("Final total herbaceous fractional cover from our current model")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(c(-1956750, 3250)) + 
+  ylim(c(-883500, 952500))
+herbMap_ds <- ggplot() +
+    geom_spatraster(data = (grassCover_ds + forbCover_ds)*100) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
+labs(title = paste0("Final herbaceous fractional cover from previous SOILWAT run")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(c(-1956750, 3250)) + 
+  ylim(c(-883500, 952500))
+herbCompareMap <- ggplot() +
+  geom_spatraster(data = totHerb_as - (grassCover_ds + forbCover_ds)*100) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
+labs(title = paste0("diffs: current model herbaceous preds - previous SOILWAT preds")) +
+  scale_fill_gradient2(low = "red",
+                       mid = "white" ,
+                       high = "blue" , 
+                       midpoint = 0, limits = c(-100,100),  na.value = "lightgrey") + 
+  xlim(c(-1956750, 3250)) + 
+  ylim(c(-883500, 952500))
+
+# plot bare ground preds from my model vs old SOILWAT output
+bareGroundMap_as <- ggplot() +
+  geom_spatraster(data = bareGround_as) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
+labs(title = paste0("Final total bare ground fractional cover from our current model")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(c(-1956750, 3250)) + 
+  ylim(c(-883500, 952500))
+bareGroundMap_ds <- ggplot() +
+    geom_spatraster(data = (bareGroundCover_ds)*100) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
+labs(title = paste0("Final herbaceous fractional cover from previous SOILWAT run")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+  xlim(c(-1956750, 3250)) + 
+  ylim(c(-883500, 952500))
+bareGroundCompareMap <- ggplot() +
+  geom_spatraster(data = bareGround_as - (bareGroundCover_ds)*100) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
+labs(title = paste0("diffs: current model bare ground preds - previous SOILWAT preds")) +
+  scale_fill_gradient2(low = "red",
+                       mid = "white" ,
+                       high = "blue" , 
+                       midpoint = 0, limits = c(-100,100),  na.value = "lightgrey") + 
+  xlim(c(-1956750, 3250)) + 
+  ylim(c(-883500, 952500))
+
+## show all predictions together
+ggarrange(herbMap_as, herbMap_ds, herbCompareMap, 
+          treeMap_as, treeMap_ds, treeCompareMap, 
+          shrubMap_as, shrubMap_ds, shrubCompareMap, 
+          bareGroundMap_as, bareGroundMap_ds, bareGroundCompareMap, 
+          ncol = 3, nrow = 4) %>% 
+  annotate_figure(fig.lab = "Comparing relativized predictions from current models to previous SOILWAT data", fig.lab.size = 20)
+```
+
