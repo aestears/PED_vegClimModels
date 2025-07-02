@@ -28,7 +28,7 @@ knitr::opts_chunk$set(echo = TRUE, warning=FALSE,
 
 # Dependencies 
 
-User defined parameters
+Set user defined parameters
 
 ```{r}
 print(params)
@@ -45,7 +45,7 @@ run <- params$run
 autoKfold <- params$autoKfold
 ```
 
-
+Load packages 
 ```{r warning=FALSE, message=FALSE}
 # set option so resampled dataset created here reproduces earlier runs of this code with dplyr 1.0.10
 source("../../../Functions/glmTransformsIterates.R")
@@ -75,7 +75,7 @@ library(glmnet)
 library(USA.state.boundaries)
 ```
 
-# read in data
+# Read in data
 
 Data compiled in the `prepDataForModels.R` script
 

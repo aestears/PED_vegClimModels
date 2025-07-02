@@ -123,7 +123,7 @@ knitr::kable(format = "html", data.frame("Variable" =
                  "% difference", 
                  "absolute difference",
                  "absolute difference",
-                 "% difference", 
+                 "absolute difference", 
                  "% difference", 
                  "% difference", 
                  "absolute difference",

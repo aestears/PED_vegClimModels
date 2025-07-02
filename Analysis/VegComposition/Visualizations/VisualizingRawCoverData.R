@@ -319,6 +319,24 @@ herbaceousCover_rast <- coverDat %>%
     ggtitle("LANDFIRE", subtitle = "Total Herb. % Cover"))
 
 
+# bare ground coverdata 
+# rasterize data
+bareGroundCover_rast <- coverDat %>% 
+  filter(Source == "LANDFIRE") %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect() %>% 
+  #terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "BrGrndC", 
+                   fun = mean, na.rm = TRUE) %>% 
+  terra::crop(ext(-130, -65, 25, 50))
+(bareGround_plot_LF <- ggplot() + 
+    geom_spatraster(data = bareGroundCover_rast, aes(fill = mean), na.rm = TRUE) +
+    theme_minimal() + 
+    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+                         limits = c(0,100)) +
+    ggtitle("LANDFIRE", subtitle = "Bare Ground % cover" ))
+
 # # CAM data -
 # # rasterize data
 # camCover_rast <- coverDat %>% 
@@ -627,6 +645,23 @@ herbaceousCover_rast <- coverDat %>%
                          limits = c(0,100)) +
     ggtitle("FIA", subtitle = "Total Herb. % Cover"))
 
+# bare ground coverdata 
+# rasterize data
+bareGroundCover_rast <- coverDat %>% 
+  filter(Source == "FIA") %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect() %>% 
+  #terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "BrGrndC", 
+                   fun = mean, na.rm = TRUE) %>% 
+  terra::crop(ext(-130, -65, 25, 50))
+(bareGround_plot_FIA <- ggplot() + 
+    geom_spatraster(data = bareGroundCover_rast, aes(fill = mean), na.rm = TRUE) +
+    theme_minimal() + 
+    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+                         limits = c(0,100)) +
+    ggtitle("FIA", subtitle = "Bare Ground % cover" ))
 
 # # CAM data -
 # # rasterize data
@@ -937,6 +972,24 @@ herbaceousCover_rast <- coverDat %>%
     ggtitle("AIM", subtitle = "Total Herb. % Cover"))
 
 
+# bare ground coverdata 
+# rasterize data
+bareGroundCover_rast <- coverDat %>% 
+  filter(Source == "LDC") %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect() %>% 
+  #terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "BrGrndC", 
+                   fun = mean, na.rm = TRUE) %>% 
+  terra::crop(ext(-130, -65, 25, 50))
+(bareGround_plot_AIM <- ggplot() + 
+    geom_spatraster(data = bareGroundCover_rast, aes(fill = mean), na.rm = TRUE) +
+    theme_minimal() + 
+    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+                         limits = c(0,100)) +
+    ggtitle("AIM", subtitle = "Bare Ground % cover" ))
+
 # # CAM data -
 # # rasterize data
 # camCover_rast <- coverDat %>% 
@@ -1246,6 +1299,23 @@ herbaceousCover_rast <- coverDat %>%
     ggtitle("RAP", subtitle = "Total Herb. % Cover"))
 
 
+# bare ground coverdata 
+# rasterize data
+bareGroundCover_rast <- coverDat %>% 
+  filter(Source == "RAP") %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect() %>% 
+  #terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "BrGrndC", 
+                   fun = mean, na.rm = TRUE) %>% 
+  terra::crop(ext(-130, -65, 25, 50))
+(bareGround_plot_RAP <- ggplot() + 
+    geom_spatraster(data = bareGroundCover_rast, aes(fill = mean), na.rm = TRUE) +
+    theme_minimal() + 
+    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+                         limits = c(0,100)) +
+    ggtitle("RAP", subtitle = "Bare Ground % cover" ))
 # # CAM data -
 # # rasterize data
 # camCover_rast <- coverDat %>% 
