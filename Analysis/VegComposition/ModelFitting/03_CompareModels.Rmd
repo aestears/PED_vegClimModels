@@ -2533,7 +2533,7 @@ Read in the objects
 
 ModelSpec_bestLambda_F_totHerb <- getModelStatement(coefficientTable = forest_totalHerb_trimAnoms,
                                                     modelName <- "coefficientValue_bestLambda", 
-                                                    responseVar <- "TotalTreeCover")
+                                                    responseVar <- "TotalHerbaceousCover")
 ```
 
 This is the **best Lambda** model equation if the inputs *are* scaled: 

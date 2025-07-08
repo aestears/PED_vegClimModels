@@ -1,0 +1,704 @@
+---
+title: "A Summary of the models used to predict vegetation cover by functional group from climate, weather, and soils information"
+format:
+  html:
+    toc: false
+    number-sections: true
+    colorlinks: true
+---
+# Calculate predictor variables 
+
+```{=html}
+<table style="border: none;border-collapse: collapse;width: 812px;">
+    <tbody>
+        <tr>
+            <td style="width: 76pt;border: 1pt solid windowtext;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><strong><span style='font-family:"Calibri",sans-serif;'>Equation Name</span></strong></p>
+            </td>
+            <td style="width: 85.5pt;border-top: 1pt solid windowtext;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-image: initial;border-left: none;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><strong><span style='font-family:"Calibri",sans-serif;'>Predictor</span></strong></p>
+            </td>
+            <td style="width: 49.2pt;border-top: 1pt solid windowtext;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-image: initial;border-left: none;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><strong><span style='font-family:"Calibri",sans-serif;'>units</span></strong></p>
+            </td>
+            <td style="width: 128.6pt;border-top: 1pt solid windowtext;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-image: initial;border-left: none;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><strong><span style='font-family:"Calibri",sans-serif;'>Scaling&nbsp;in cover models</span></strong></p>
+            </td>
+            <td style="width: 269.75pt;border-top: 1pt solid windowtext;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-image: initial;border-left: none;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><strong><span style='font-family:"Calibri",sans-serif;'>description</span></strong></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Tmean_CLIM</span></p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Mean annual temperature &ndash; mean across previous 30 years</span></p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Degrees C.&nbsp;</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(Tmean_CLIM &ndash; 10.32994)/5.020431</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Mean across 30 years [mean across year(monthly mean temps.)]</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>precipTempCorr_CLIM</span></p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Precipitation Temperature correlation &ndash; mean across previous 30 years</span></p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>correlation</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precipTempCorr_CLIM + 0.1002) / 0.4113</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Mean across 30 years[correlation(each month&rsquo;s tmax, each month&rsquo;s tmin)]</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Isothermality_CLIM</span></p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Isothermality &ndash; mean across previous 30 years</span></p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>unitless</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(isothermality_CLIM - 37.4115) / 5.283</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;color:black;background:white;'>&nbsp;Mean across 30 years[(Mean of monthly (max temp - min temp))</span><span style='font-family:"Calibri",sans-serif;'>/(max temp. of warmest month &ndash; min. temp of coldest month) x 100]</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>annWatDef_CLIM</span></p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Annual water deficit &ndash; mean across previous 30 years</span></p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>mm of water/</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>degrees C</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(annWatDef_CLIM - 81.8091) / 82.3426</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Mean across 30 years[ sum across year(monthly mean*2 &ndash; monthly total precip)] &nbsp;*Note: only sum monthly water deficit values that are &gt;0</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>precip_CLIM</span></p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Total annual precipitation &ndash; mean across previous 30 years&nbsp;</span></p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>mm</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precip_CLIM - 742.8552) / 534.1832</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Mean across 30 years(annual total precip)</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>precipSeasonality_CLIM</span></p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Precipitation seasonality &ndash; mean across previous 30 years</span></p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>mm</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precipSeasonality_CLIM - 0.8537) / 0.2588</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Mean across 30 years (coefficient of variation of monthly total precip within a year)</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>precipDry_CLIM</span></p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Precipitation of the driest month &ndash; mean across previous 30 years&nbsp;</span></p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>mm</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precipDry_CLIM - 9.1611) / 12.4921</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Mean across 30 years (total precip of the driest month in the year)</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>annWetDegDays_CLIM</p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>Annual wet degree days &ndash; mean across previous 30 years</p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Degree days</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(annWetDegDays_CLIM - 1762.9775) / 1160.2076</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Mean of annual wet degree days across the previous 30 years&nbsp;</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>twarm_CLIM</p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>Temp. of the warmest month &ndash; mean across previous 30 years</p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Deg. C</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>n/a</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Maximum temperature of the warmest month in a year, averaged across previous 30 years&nbsp;</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>tcold_COLD</p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>Temp. of the coldest &nbsp; &nbsp; month &ndash; mean across previous 30 years</p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Deg. C</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>n/a</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Minimum temperature of the warmest month in a year, averaged across previous 30 years&nbsp;</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>precipWet_CLIM</p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>Precip. of the wettest month &ndash; mean across previous 30 years</p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>mm</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>n/a</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Precip in mm of the wettest month in a year, averaged across previous 30 years&nbsp;</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>soilDepth</p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>soilDepth</p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>cm</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>n/a</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Depth of soil in the grid cell in cm&nbsp;</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>precipSeasonality_WEATH</p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>Precip. Seasonality &ndash; anomaly of mean across previous 3 years relative to the 30 year mean</p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>% difference</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precipSeasonality_WEATH - -0.0257) / 0.133</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(30 year mean of precip seasonality &ndash;3 year mean of precip seasonality)/30 year mean of precip seasonality</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>precip_WEATH</p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>Precip. - anomaly of mean across previous 3 years relative to the 30 year mean</p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>% difference</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precip_WEATH - 0.0303) / 0.1688</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(30 year mean of precip &ndash;3 year mean of precip)/30 year mean of precip</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>annWetDegDays_WEATH</p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>Annual wet degree days - anomaly of mean across previous 3 years relative to the 30 year mean</p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>% difference</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(annWetDegDays_WEATH - 0.0299) / 0.2434</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(30 year mean of annual wet degree days &ndash;3 year mean of annual wet degree days)/30 year mean of annual wet degree days</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>annWatDef_WEATH</p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>Annual water deficit - anomaly of mean across previous 3 years relative to the 30 year mean</p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>% difference</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(annWatDef_WEATH - -0.1196) / 0.4244</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(30 year mean of annual water deficit &ndash;3 year mean of annual water deficit)/30 year mean of annual water deficit</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;height: 128.15pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>isothermality_WEATH</p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;height: 128.15pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>Isothermality - anomaly of mean across previous 3 years relative to the 30 year mean</p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;height: 128.15pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Absolute difference</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;height: 128.15pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(isothermality_WEATH - 0.5388) / 1.4224</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;height: 128.15pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>30 year mean of isothermality &ndash; 3 year mean of isothermality</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>&nbsp;</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'>annWetDegDays_WEATH</p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'>Annual wet degree days &ndash; anomaly of mean across previous 3 years relative &nbsp;the 30 year mean</p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>% difference</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(annWetDegDays_WEATH - 0.0299)a / 0.2434</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(30 year mean of annual wet degree days &ndash;3 year mean of annual wet degree days)/30 year mean of annual wet degree days</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>sand</span></p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>% Sand across the soil profile</span></p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>%</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(sand - 47.3713) / 17.1672</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Average % of sand across the soil profile, weighted by the width of each soil layer</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>coarse</span></p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>% Coarse fragments across the soil profile</span></p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>%</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(coarse - 12.6309) / 11.3496</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Average % of coarse fragments across the soil profile, weighted by the width of each soil layer</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>AWHC</span></p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Total soil available water holding capacity</span></p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>&nbsp;</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(AWHC - 14.1547) / 5.2346</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Calculated via following code: soils &lt;- rSOILWAT2::swSoils_Layers(rSOILWAT2::sw_exampleData)</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>p &lt;- rSOILWAT2::ptf_estimate( sand = soils[, sand_frac], &nbsp; &nbsp;clay = soils[, clay_frac], fcoarse = soils[, gravel_content], &nbsp; &nbsp;swrc_name = Campbell1974, &nbsp; &nbsp;ptf_name = Cosby1984)</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>&nbsp;</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>tmp &lt;- rSOILWAT2::swrc_swp_to_vwc( c(-1.5, -0.033), &nbsp; &nbsp;fcoarse = soils[, gravel_content], swrc = list(name = Campbell1974, swrcp = p) )</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>&nbsp;</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>awc &lt;- diff(c(0, soils[, depth_cm])) * as.vector(diff(tmp))</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>clay</span></p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>% Clay in the soil surface</span></p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>%</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(clay - 17.4992) / 8.4203</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>% of clay in the first 3 cm of the soil profile</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>carbon</span></p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>% organic matter in the soil surface</span></p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>%</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(carbon - 4.4195) / 7.1196</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>% of organic matter in the first 3 cm of the soil profile</span></p>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>&nbsp;</p>
+```
+ 
+# Predict 'raw' model outputs from climate, weather, and soils data
+
+## Ecoregion classification model
+
+$$
+\begin{array}{cl}
+P(forest) \sim  &1/ (1 + exp(-( 9.8726 + -0.2999*twarm\_CLIM +  0.2456*tcold\_CLIM + \\
+&0.0106*precipWet\_CLIM + -0.0621*annWatDef\_CLIM +\\
+&-2.7863*PrecipTempCorr\_CLIM +  0.0540*isothermality\_CLIM +\\
+&-0.0076*soilDepth +  0.0335*sand +  0.0310*coarse +  0.2726*carbon)))
+&\end{array}
+$$
+
+## "Level 1" functional group cover models
+
+### Total Herbaceous Cover -- non-forest: 
+
+$$
+\begin{array}{cl}
+TotalHerbaceousCover\sim &exp\big\{ 3.276 + 0.334*\frac{(tmean\_CLIM - 10.2752)}{4.9123}  + 
+0.003*\frac{(precipSeasonality\_CLIM - 0.9232)}{0.246}  + \\
+&-0.096*\frac{(Isothermality\_CLIM- 38.1201)}{5.0195} + -0.404*\frac{(annWatDef\_CLIM- 99.6312)}{85.9418} + -0.102*\frac{(sand - 47.7065)}{16.7309} + \\
+&-0.060*\frac{(coarse - 12.7993)}{11.3325} + 0.098*\frac{(AWHC - 13.6714)}{5.1558} + 0.014*\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396} + \\
+&-0.011*\frac{(isothermality\_WEATH - 0.5388)}{1.4224}  +  0.036*\frac{(annWatDef\_WEATH - -0.1196)}{0.4244} + \\
+&-0.217*\left(\frac{(precip\_CLIM- 613.9001)}{502.1877}\right)  ^2 +  0.367*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right)^2 + \\
+&-0.032*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right)^2 +  -0.002*\left(\frac{(precipSeasonality\_WEATH - -0.0257)}{0.133}\right) ^2 + \\
+&-0.023*\left(\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right)^2 +  0.015*\left(\frac{(sand - 47.7065)}{16.7309}\right)^2 + \\
+&0.026*\left(\frac{(coarse - 12.7993)}{11.3325}\right)^2 +  0.062*\left(\frac{(carbon - 3.6819)}{6.4053}\right)^2 + -0.048*\left(\frac{(AWHC - 13.6714)}{5.1558}\right)^2 +  \\
+&0.002*\left(\frac{(annWatDef\_CLIM- 99.6312)}{85.9418}:\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right) +  0.015*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}:\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}\right)  + \\ 
+&-0.051*\left(\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}:\frac{(precip\_CLIM- 613.9001)}{502.1877}\right) +   0.039*\left(\frac{(precipSeasonality\_CLIM - 0.9232)}{0.246}:\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}\right)  + \\ 
+&-0.010*\left(\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}:\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}\right)  +   0.288*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}:\frac{(precip\_CLIM- 613.9001)}{502.1877}\right) +  \\
+&0.079*\left(\frac{(precipSeasonality\_CLIM - 0.9232)}{0.246}:\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right) +  0.134*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) + \\
+&-0.009*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}:\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right) +  0.066*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right) + \\
+&0.021*\left(\frac{(precipSeasonality\_CLIM - 0.9232)}{0.246}:\frac{(isothermality\_WEATH - 0.5388)}{1.4224}\right)  + 0.240*\left(\frac{(precip\_CLIM- 613.9001)}{502.1877}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) + \\ 
+&0.010*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}:\frac{(precipSeasonality\_WEATH - -0.0257)}{0.133}\right)  +  0.012*\left(\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}:\frac{(precipSeasonality\_WEATH - -0.0257)}{0.133}\right)  + \\
+&-0.187*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) +  \\
+&0.042*\left(\frac{(sand - 47.7065)}{16.7309}:\frac{(AWHC - 13.6714)}{5.1558}\right) +  -0.015*\left(\frac{(sand - 47.7065)}{16.7309}:\frac{(coarse - 12.7993)}{11.3325}\right) \big\} - 2
+\end{array}
+$$
+\*Note: If the predicted value for *TotalHerbaceousCover* is >100, curtail the value to 100
+
+### Total Herbaceous Cover -- forest
+
+$$
+\begin{array}{cl}
+TotalHerbaceousCover \sim &exp\big\{3.172 + -0.125*\frac{(precip\_CLIM- 613.9001)}{502.1877} +  0.119*\frac{(precipDry\_CLIM - 5.0003)}{8.2054} + \\ &0.065*\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107} + -0.223*\frac{(Isothermality\_CLIM- 38.1201)}{5.0195} +  0.062*\frac{(clay - 18.4894)}{9.0787} + \\
+&-0.138*\frac{(sand - 47.7065)}{16.7309} +  0.016*\frac{(coarse - 12.7993)}{11.3325} +  0.090*\frac{(AWHC - 13.6714)}{5.1558} + \\ &-0.081*\frac{(isothermality\_WEATH - 0.5388)}{1.4224}  + -0.024*\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}  +  0.071*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right)^2 + \\ 
+&0.031*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right)^2 +  0.011*\left(\frac{(isothermality\_WEATH - 0.5388)}{1.4224}\right)^2 + -0.001*\left(\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}\right)^2 + \\
+&0.074*\left(\frac{(sand - 47.7065)}{16.7309}\right)^2 +  0.073*\left(\frac{(AWHC - 13.6714)}{5.1558}\right)^2 +  \\
+&0.019*\left(\frac{(isothermality\_WEATH - 0.5388)}{1.4224}:\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}\right)  +  -0.014*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}:\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}\right)  + \\
+&-0.012*\left(\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}:\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right) +   0.088*\left(\frac{(precip\_CLIM- 613.9001)}{502.1877}:\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right) +  \\
+&0.015*\left(\frac{(precip\_CLIM- 613.9001)}{502.1877}:\frac{(isothermality\_WEATH - 0.5388)}{1.4224}\right)  +  0.020*\left(\frac{(isothermality\_WEATH - 0.5388)}{1.4224}:\frac{(precip\_WEATH - 0.0303)}{0.1688}\right)  + \\
+&-0.007*\left(\frac{(precipDry\_CLIM - 5.0003)}{8.2054}:\frac{(isothermality\_WEATH - 0.5388)}{1.4224}\right)  +  -0.011*\left(\frac{(isothermality\_WEATH - 0.5388)}{1.4224}:\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right) + \\
+&-0.069*\left(\frac{(isothermality\_WEATH - 0.5388)}{1.4224}:\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right) + -0.011*\left(\frac{(precip\_CLIM- 613.9001)}{502.1877}:\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right) + \\
+&0.031*\left(\frac{(precipDry\_CLIM - 5.0003)}{8.2054}:\frac{(precip\_WEATH - 0.0303)}{0.1688}\right)  + 0.000*\left(\frac{(precip\_WEATH - 0.0303)}{0.1688}:\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right) + \\
+&0.029*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}):\frac{(precip\_WEATH - 0.0303)}{0.1688}\right)  +  -0.082*\left(\frac{(precipDry\_CLIM - 5.0003)}{8.2054}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) + \\
+&-0.037*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}:\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right) +   0.035*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}:\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right) + \\
+&-0.020*\left(\frac{(AWHC - 13.6714)}{5.1558}:\frac{(carbon - 3.6819)}{6.4053}\right) +  0.071*\left(\frac{(clay - 18.4894)}{9.0787}):\frac{(AWHC - 13.6714)}{5.1558}\right) +  \\
+&0.090*\left(\frac{(coarse - 12.7993)}{11.3325}:\frac{(AWHC - 13.6714)}{5.1558}\right) +  0.180*\left(\frac{(sand - 47.7065)}{16.7309}:\frac{(AWHC - 13.6714)}{5.1558}\right) + \\
+&-0.027*\left(\frac{(coarse - 12.7993)}{11.3325}:\frac{(carbon - 3.6819)}{6.4053}\right) +  -0.038*\left(\frac{(sand - 47.7065)}{16.7309}:\frac{(carbon - 3.6819)}{6.4053}\right)\big\} - 2
+\end{array}
+$$
+\*Note: If the predicted value for *TotalHerbaceousCover* is >100, curtail the value to 100
+
+### Total Tree Cover -- non-forest
+
+$$
+\begin{array}{cl}
+TotalTreeCover\sim &exp\big\{ 2.622 +  1.241*\frac{(precip\_CLIM- 613.9001)}{502.1877} + -0.165*\frac{(precipSeasonality\_CLIM - 0.9232)}{0.246} + \\ 
+&0.053*\frac{(annWatDef\_CLIM- 99.6312)}{85.9418} + -0.071*\frac{(sand - 47.7065)}{16.7309} + -0.321*\frac{(AWHC - 13.6714)}{5.1558}\big\} - 2
+\end{array}
+$$
+\*Note: If the predicted value for *TotalTreeCover* is >100, curtail the value to 100
+
+### Total Tree Cover -- forest
+
+$$
+\begin{array}{cl}
+TotalTreeCover\sim &exp\big\{3.288 +  0.102*\frac{(tmean\_CLIM - 10.2752)}{4.9123} +  0.070*\frac{(precip\_CLIM- 613.9001)}{502.1877} + \\
+&0.123*\frac{(precipDry\_CLIM - 5.0003)}{8.2054} +  0.029*\frac{(carbon - 3.6819)}{6.4053} +  0.066*\frac{(AWHC - 13.6714)}{5.1558} + \\ &-0.180*\frac{(precip\_WEATH - 0.0303)}{0.1688} + -0.030*\left(\frac{(isothermality\_WEATH - 0.5388)}{1.4224}\right)^2 + -0.043*\left(\frac{(clay - 18.4894)}{9.0787}\right)^2 +  \\
+&0.117*\left(\frac{(precip\_CLIM- 613.9001)}{502.1877}:\frac{(isothermality\_WEATH - 0.5388)}{1.4224}\right)  +  0.110*\left(\frac{(precipDry\_CLIM - 5.0003)}{8.2054}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) + \\
+&0.020*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(precipDry\_CLIM - 5.0003)}{8.2054}\right) +  -0.162*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) + \\
+&-0.031*\left(\frac{(carbon - 3.6819)}{6.4053}:\frac{(clay - 18.4894)}{9.0787}\right) + 
+0.049*\left(\frac{(carbon - 3.6819)}{6.4053}:\frac{(coarse - 12.7993)}{11.3325}\right)\big\} - 2
+\end{array}
+$$
+\*Note: If the predicted value for *TotalTreeCover* is >100, curtail the value to 100
+
+### shrub cover -- CONUS-wide
+
+$$
+\begin{array}{cl}
+ShrubCover\sim &exp\big\{2.939 +  0.145*\frac{(precip\_CLIM- 613.9001)}{502.1877} + -0.106*\frac{(precipSeasonality\_CLIM- 0.9232)}{0.246} + \\
+&-0.217*\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107} +  0.092*\frac{(sand - 47.7065)}{16.7309} +  0.008*\frac{(coarse - 12.7993)}{11.3325} + \\
+&-0.083*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right)^2 + -0.056*\left(\frac{(sand - 47.7065)}{16.7309}\right)^2 + -0.007*\left(\frac{(AWHC - 13.6714)}{5.1558}\right)^2 +  \\
+&0.048*\left(\frac{(annWetDegDays\_CLIM - 1762.9775)}{1160.2076}:\frac{(isothermality\_WEATH - 0.5388)}{1.4224}\right)  +  -0.031*\left(\frac{(isothermality\_WEATH - 0.5388)}{1.4224}):\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right) + \\
+&0.118*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}:\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right) +  0.038*\left(\frac{(precip\_CLIM- 613.9001)}{502.1877}:\frac{(precipSeasonality\_WEATH - -0.0257)}{0.133}\right)  +  \\
+&0.046*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}:\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right)\big\} - 2
+\end{array}
+$$
+\*Note: If the predicted value for *ShrubCover* is >100, curtail the value to 100
+
+### bare ground cover -- CONUS-wide
+
+$$
+\begin{array}{cl}
+BareGroundCover \sim &exp\big\{2.852 +  0.313*\frac{(tmean\_CLIM - 10.2752)}{4.9123} +  0.109*\frac{(Isothermality\_CLIM- 38.1201)}{5.0195} + \\ &-0.724*\frac{(annWetDegDays\_CLIM - 1762.9775)}{1160.2076} + -0.265*\frac{(coarse - 12.7993)}{11.3325} + -0.064*\frac{(isothermality\_WEATH - 0.5388)}{1.4224}  + \\
+&0.042*\frac{(annWetDegDays\_WEATH - 0.0299)}{0.2434} + -0.074*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right)^2 + -0.004*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right)^2 + \\
+&-0.116*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}:\frac{(precipSeasonality\_CLIM- 0.9232)}{0.246}\right) +  -0.058*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right)^2 + \\
+&-0.003*\left(\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}\right)^2 + -0.017*\frac{(precip\_CLIM- 613.9001)}{502.1877} + 0.007*\left(\frac{(annWetDegDays\_WEATH - 0.0299)}{0.2434}\right)^2 + \\
+&-0.069*\left(\frac{(annWetDegDays\_CLIM - 1762.9775)}{1160.2076}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) +  0.099*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right)\big\} - 2
+\end{array}
+$$
+\*Note: If the predicted value for *BareGroundCover* is >100, curtail the value to 100
+
+## "Level 2" functional group cover models
+### The proportion of total herbaceous that is C3 grass -- CONUS-wide 
+$$
+\begin{array}{cl}
+C3grassCoverPercentage \sim~ &exp\big\{3.904 + -0.285*\frac{(tmean\_CLIM - 10.2752)}{4.9123} + -0.387*\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107} + \\
+&-0.265*\frac{(Isothermality\_CLIM- 38.1201)}{5.0195} + -0.169*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right)^2 + \\
+&-0.294*\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}:\frac{(Isothermality\_CLIM- 38.1201)}{5.0195} + 
+-0.010*\frac{(annWetDegDays_CLIM - 1762.9775)}{1160.2076}\big\} - 2
+\end{array}
+$$
+\*Note: Do *not* curtail values to 100
+
+### The proportion of total herbaceous that is C4 grass -- CONUS-wide 
+$$
+\begin{array}{cl}
+C4grassCoverPercentage \sim &exp\big\{2.411 + 0.484*\frac{(tmean\_CLIM - 10.2752)}{4.9123} + 1.020*\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107} + \\
+& 0.543*\frac{(Isothermality\_CLIM- 38.1201)}{5.0195} + 0.052*\left(\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right)^2\big\} - 2
+\end{array}
+$$
+\*Note: Do *not* curtail values to 100
+
+
+### The proportion of total herbaceous that is forbs -- CONUS-wide 
+$$
+\begin{array}{cl}
+forbCoverPercentage \sim &exp\big\{3.514 + 0.248*\frac{(precip\_CLIM- 613.9001)}{502.1877} + -0.052*\frac{(precipSeasonality\_CLIM - 0.9232)}{0.246} + \\
+&-0.050*\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107} + -0.021*\frac{(Isothermality\_CLIM- 38.1201)}{5.0195} +  0.042*\frac{(sand - 47.7065)}{16.7309} +  \\
+&0.060*\frac{(coarse - 12.7993)}{11.3325} + -0.036*\frac{(precipSeasonality\_WEATH - -0.0257)}{0.133}  +  0.052*\left(\frac{(precipSeasonality\_CLIM - 0.9232)}{0.246}\right)^2 + \\ 
+&0.014*\left(\frac{(precipSeasonality\_WEATH - -0.0257)}{0.133}\right)^2 +  0.005*\left(\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right)^2 +\\
+&-0.038*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(annWetDegDays_CLIM - 1762.9775)}{1160.2076}\right) +  -0.041*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}:\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right) + \\
+&0.060*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}:\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right) +  -0.092*\left(\frac{(sand - 47.7065)}{16.7309}:\frac{(AWHC - 13.6714)}{5.1558}\right) + \\
+&-0.053*\left(\frac{(sand - 47.7065)}{16.7309}:\frac{(coarse - 12.7993)}{11.3325}\right) + 0.023*\left(\frac{(precipSeasonality\_CLIM - 0.9232)}{0.246}:\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right) + \\
+&0.005*\left(\frac{(isothermality\_WEATH - 0.5388)}{1.4224}\right)^2 +  0.011*\left(\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}:\frac{(annWetDegDays\_WEATH - 0.0299)}{0.2434}\right)\big\} - 2
+\end{array}
+$$
+\*Note: Do *not* curtail values to 100
+
+### The proportion of total tree that is broad-leaved -- forest
+$$
+\begin{array}{cl}
+broadLeavedTreeCoverPercentage \sim &exp\big\{ 3.408 +  0.125*\frac{(tmean\_CLIM - 10.2752)}{4.9123} +  0.253*\frac{(precipDry\_CLIM - 5.0003)}{8.2054} + \\
+&0.419*\frac{(clay - 18.4894)}{9.0787}) +  0.005*\frac{(sand - 47.7065)}{16.7309} + -0.115*\frac{(carbon - 3.6819)}{6.4053} +  \\
+&0.215*\frac{(AWHC - 13.6714)}{5.1558} +  0.125*\frac{(precip\_WEATH - 0.0303)}{0.1688}  + -0.027*\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396} +\\
+&-0.139*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right)^2 + -0.221*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}:\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right) + \\
+&-0.016*\left(\frac{(precip\_CLIM- 613.9001)}{502.1877}:\frac{(isothermality\_WEATH - 0.5388)}{1.4224}\right)  +  -0.083*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(precip\_WEATH - 0.0303)}{0.1688}\right)  + \\
+&-0.003*\left(\frac{(precipDry\_CLIM - 5.0003)}{8.2054}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) + -0.111*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) + \\
+&0.059*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(precipTempCorr\_WEATH -0.0122)}{0.1396}\right) + -0.084*\left(\frac{(carbon - 3.6819)}{6.4053}:\frac{(AWHC - 13.6714)}{5.1558}\right) + \\
+&-0.011*\left(\frac{(carbon - 3.6819)}{6.4053}:\frac{(coarse - 12.7993)}{11.3325}\right) +  0.130*\left(\frac{(clay - 18.4894)}{9.0787}):\frac{(coarse - 12.7993)}{11.3325}\right) + \\
+&-0.248*\left(\frac{(sand - 47.7065)}{16.7309}:\frac{(coarse - 12.7993)}{11.3325}\right)\big\} - 2
+\end{array}
+$$
+\*Note: Do *not* curtail values to 100
+
+### The proportion of total tree that is needle-leaved -- forest
+$$
+\begin{array}{cl}
+needleLeavedTreeCoverPercentage\sim &exp\big\{ 4.372 + -0.213*\frac{(precipDry\_CLIM - 5.0003)}{8.2054} +  0.120*\frac{(sand - 47.7065)}{16.7309} + \\
+&0.080*\frac{(carbon - 3.6819)}{6.4053} +  0.036*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right)^2 +  0.067*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}:\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right) +\\
+&-0.087*\left(\frac{(precipDry\_CLIM - 5.0003)}{8.2054}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) + -0.042*\left(\frac{(precipDry\_CLIM - 5.0003)}{8.2054}:\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right)\big\} - 2
+\end{array}
+$$
+\*Note: Do *not* curtail values to 100
+
+### The proportion of total tree that is broad-leaved -- non-forest
+$$
+\begin{array}{cl}
+broadLeavedTreeCoverPercentage\sim &exp\big\{ 3.103 +  0.282*\frac{(tmean\_CLIM - 10.2752)}{4.9123} +  0.805*\frac{(precip\_CLIM- 613.9001)}{502.1877} + \\
+&0.052*\frac{(AWHC - 13.6714)}{5.1558} + -0.036*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right)^2 + -0.068*\left(\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right)^2 + \\
+&0.186*\left(\frac{(sand - 47.7065)}{16.7309}\right)^2 +  0.528*\left(frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right) + \\
+&-0.301*\left(\frac{(AWHC - 13.6714)}{5.1558}:\frac{(coarse - 12.7993)}{11.3325}\right)\big\} - 2
+\end{array}
+$$
+\*Note: Do *not* curtail values to 100
+
+### The proportion of total tree that is needle-leaved -- non-forest
+$$
+\begin{array}{cl}
+needleLeavedTreeCoverPercentage\sim &exp\big\{ 4.523 + -0.190*\frac{(tmean\_CLIM - 10.2752)}{4.9123} + -0.131*\frac{(AWHC - 13.6714)}{5.1558} + \\
+&-0.032*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right)^2 + -0.252*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(annWatDef\_CLIM- 99.6312)}{85.9418} / 85.9418)\right) + \\
+&-0.244*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right) + -0.324*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right)\big\} - 2
+\end{array}
+$$
+\*Note: Do *not* curtail values to 100
+
+# Scale predictions of level 2 cover variables so each grouping sums to 100
+
+## For components of total herbaceous cover
+
+###
+*Scaled C3 grass percentage* $= \frac{ eqn. 2.3.1}{(eqn. 2.3.1 + eqn. 2.3.2 + eqn. 2.3.3)}$
+
+###
+*Scaled C4 grass percentage* $= \frac{ eqn. 2.3.2}{(eqn. 2.3.1 + eqn. 2.3.2 + eqn. 2.3.3)}$
+
+###
+*Scaled forb grass percentage* $= \frac{ eqn. 2.3.3}{(eqn. 2.3.1 + eqn. 2.3.2 + eqn. 2.3.3)}$
+
+## For components of total tree cover -- forest
+
+###
+*Scaled broad-leaved tree percentage* $= \frac{ eqn. 2.3.4}{(eqn. 2.3.4 + eqn. 2.3.5)}$
+
+###
+*Scaled needle-leaved tree percentage* $= \frac{ eqn. 2.3.5}{(eqn. 2.3.4 + eqn. 2.3.5)}$
+
+## For components of total tree cover -- non-forest
+
+###
+*Scaled broad-leaved tree percentage* $= \frac{ eqn. 2.3.6}{(eqn. 2.3.6 + eqn. 2.3.7)}$
+
+###
+*Scaled needle-leaved tree percentage* $= \frac{ eqn. 2.3.7}{(eqn. 2.3.6 + eqn. 2.3.7)}$
+
+# Where relevant, "relativize" the model predictions according to predicted ecoregion percentage
+
+## Level 1-- Total Tree Cover 
+*Relativized total tree cover* $= (eqn. 2.2.4 * eqn.2.1) + (eqn. 2.2.3 * (1-eqn.2.1))$
+
+## Level 1-- Total Herbaceous Cover
+*Relativized total herbaceous cover* $= (eqn. 2.2.2 * eqn.2.1) + (eqn. 2.2.1 * (1-eqn.2.1))$
+
+## Level 2-- Broad-leaved tree percentage
+*Relativized and scaled broad-leaved tree percentage* $= (eqn. 3.2.1 * eqn.2.1) + (eqn.3.3.1 * (1-eqn.2.1))$
+
+## Level 2-- Needle-leaved tree percentage
+*Relativized and scaled needle-leaved tree percentage* $= (eqn. 3.2.2 * eqn.2.1) + (eqn.3.3.2 * (1-eqn.2.1))$
+
+# Scale relativized predictions of level 1 cover variables to sum to 100, **resulting in final predictions of level 1 cover variables**
+## 
+*final Total Herbaceous Cover* $= \frac{ eqn. 4.2}{(eqn. 4.2 + eqn. 4.1 + eqn. 2.2.5 + eqn. 2.2.6)}$
+
+##
+*final Total Tree Cover* $= \frac{ eqn. 4.1}{(eqn. 4.2 + eqn. 4.1 + eqn. 2.2.5 + eqn. 2.2.6)}$
+
+##
+*final Shrub Cover* $= \frac{ eqn. 2.2.5}{(eqn. 4.2 + eqn. 4.1 + eqn. 2.2.5 + eqn. 2.2.6)}$
+
+##
+*final Bare Ground Cover* $= \frac{ eqn. 2.2.6}{(eqn. 4.2 + eqn. 4.1 + eqn. 2.2.5 + eqn. 2.2.6)}$
+
+# Multiply scaled (and relativized, where applicable) predictions of level 2 cover variables by scaled and relativized level 1 cover variable predictions,  **resulting in final predictions of level 2 cover variables**
+## 
+*final C4 grass cover* $= \frac{eqn.3.1.1}{100} * eqn. 5.1$
+
+## 
+*final C3 grass cover*$= \frac{eqn.3.1.2}{100} * eqn. 5.1$
+
+## 
+*final forb cover* $= \frac{eqn.3.1.3}{100} * eqn. 5.1$
+
+## 
+*final broad-leaved tree cover* $= \frac{eqn.4.3}{100} * eqn. 5.2$
+
+## 
+*final needle-leaved tree cover* $= \frac{eqn.4.4}{100} * eqn. 5.2$
+
