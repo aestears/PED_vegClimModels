@@ -67,7 +67,7 @@ cropped_states <- suppressMessages(state_boundaries_wgs84 %>%
   dplyr::filter(NAME!="Commonwealth of the Northern Mariana Islands") %>%
   dplyr::filter(NAME!="United States Virgin Islands") %>%
   sf::st_sf() %>%
-  sf::st_transform(sf::st_crs(test_rast))) #%>%
+  sf::st_transform(sf::st_crs(test_rast))) 
   #sf::st_crop(sf::st_bbox(modDat_1_sf)+c(-1,-1,1,1))
 
 ## add ecoregion boundaries (for our ecoregion level model)
@@ -331,7 +331,7 @@ makePredictions <- function(predictionDF, modelObject) {
     cbind(modelPreds)
   
   # truncate all predictions to max out at 100 
-  predictionDF[predictionDF$modelPreds>100 & !is.na(predictionDF$modelPreds),"modelPreds"] <- 100
+  #predictionDF[predictionDF$modelPreds>100 & !is.na(predictionDF$modelPreds),"modelPreds"] <- 100
 predictionDF[predictionDF$modelPreds < 0 & !is.na(predictionDF$modelPreds),"modelPreds"] <- 0
 
   # print predicted data
@@ -1176,7 +1176,7 @@ climDat <- cbind(test,
 # sample raster to get values for the points in the cover dataset
 
 soils_df <- soilRast %>% 
-  terra::extract(y = pointsSamp #%>% dplyr::dplyr::select(-x,-y)
+  terra::extract(y = pointsSamp  dplyr::dplyr::select(-x,-y)
                  , xy = TRUE, bind = TRUE) %>% 
   as.data.frame()
 
@@ -1300,7 +1300,7 @@ soils_df <- soilRast %>%
            coarsePerc_70cm = coarsePerc_70cm/100,
            coarsePerc_90cm = coarsePerc_90cm/100,
            coarsePerc_125cm = coarsePerc_125cm/100,
-           coarsePerc_176cm = coarsePerc_176cm/100) #%>% 
+           coarsePerc_176cm = coarsePerc_176cm/100)  
   #slice(1:3) 
   # calculate # # intermediate value 'p' 
   vegSoil_p <- pmap(.l = temp[,c("sandPerc_2cm", "sandPerc_7cm", "sandPerc_15cm", 
@@ -2022,9 +2022,9 @@ plotObs_GS_totHerb <- bestLambda_GS_totHerb_predict %>%
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "modelPreds", 
-                   fun = mean, na.rm = TRUE) #%>% 
-   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+                   fun = mean, na.rm = TRUE)  
+    
+  
 
 # get the extent of this particular raster, and crop it accordingly
 tempExt <- crds(plotObs_GS_totHerb, na.rm = TRUE)
@@ -2089,7 +2089,7 @@ labs(title = paste0("Predictions of totalHerbaceousCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,200),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_GS_totHerb_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_GS_totHerb_2)[c(2,4)])
 
@@ -2104,7 +2104,7 @@ labs(title = paste0("Predictions of totalHerbaceousCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,200),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_GS_totHerb_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_GS_totHerb_2)[c(2,4)])
 
@@ -2119,7 +2119,7 @@ labs(title = paste0("Predictions of totalHerbaceousCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,200),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_GS_totHerb_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_GS_totHerb_2)[c(2,4)])
 
@@ -2131,7 +2131,7 @@ labs(title = paste0("Observations of totalHerbaceousCover")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,200),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_GS_totHerb_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_GS_totHerb_2)[c(2,4)])
 
@@ -2180,7 +2180,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-150,150)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -2205,7 +2205,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-150,150)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -2229,7 +2229,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-150,150)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -2295,9 +2295,9 @@ plotObs <- bestLambda_GS_totTree_predict %>%
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "modelPreds", 
-                   fun = mean, na.rm = TRUE) #%>% 
-   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+                   fun = mean, na.rm = TRUE)  
+    
+  
 
 # get the extent of this particular raster, and crop it accordingly
 
@@ -2361,7 +2361,7 @@ labs(title = paste0("Predictions of TotalTreeCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2376,7 +2376,7 @@ labs(title = paste0("Predictions of TotalTreeCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2391,7 +2391,7 @@ labs(title = paste0("Predictions of TotalTreeCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2403,7 +2403,7 @@ labs(title = paste0("Observations of TotalTreeCover")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2452,7 +2452,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-150,150)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -2477,7 +2477,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-150,150)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -2501,7 +2501,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-150,150)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -2567,9 +2567,9 @@ plotObs <- bestLambda_F_totHerb_predict %>%
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "modelPreds", 
-                   fun = mean, na.rm = TRUE) #%>% 
-   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+                   fun = mean, na.rm = TRUE)  
+    
+  
 
 
 plotObs_2 <- plotObs %>% 
@@ -2632,7 +2632,7 @@ labs(title = paste0("Predictions of TotalHerbaceousCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2647,7 +2647,7 @@ labs(title = paste0("Predictions of TotalHerbaceousCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2662,7 +2662,7 @@ labs(title = paste0("Predictions of TotalHerbaceousCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2674,7 +2674,7 @@ labs(title = paste0("Observations of TotalHerbaceousCover")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2723,7 +2723,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-150,150)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -2748,7 +2748,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-150,150)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -2772,7 +2772,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-150,150)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -2838,9 +2838,9 @@ plotObs <- bestLambda_F_totTree_predict %>%
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "modelPreds", 
-                   fun = mean, na.rm = TRUE) #%>% 
-   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+                   fun = mean, na.rm = TRUE)  
+    
+  
 
 # get the extent of this particular raster, and crop it accordingly
 
@@ -2904,7 +2904,7 @@ labs(title = paste0("Predictions of TotalTreeCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2919,7 +2919,7 @@ labs(title = paste0("Predictions of TotalTreeCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2934,7 +2934,7 @@ labs(title = paste0("Predictions of TotalTreeCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2946,7 +2946,7 @@ labs(title = paste0("Observations of TotalTreeCover")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2995,7 +2995,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-150,150)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -3020,7 +3020,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-150,150)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -3044,7 +3044,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-150,150)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -3108,10 +3108,8 @@ plotObs <- bestLambda_CONUS_shrub_predict %>%
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "modelPreds", 
-                   fun = mean, na.rm = TRUE) #%>% 
-   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
-
+                   fun = mean, na.rm = TRUE)  
+    
 # get the extent of this particular raster, and crop it accordingly
 
 plotObs_2 <- plotObs %>% 
@@ -3174,7 +3172,7 @@ labs(title = paste0("Predictions of ShrubCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -3189,7 +3187,7 @@ labs(title = paste0("Predictions of ShrubCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -3204,7 +3202,7 @@ labs(title = paste0("Predictions of ShrubCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -3216,7 +3214,7 @@ labs(title = paste0("Observations of ShrubCover")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -3257,7 +3255,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-150,150)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -3282,7 +3280,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-150,150)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -3306,7 +3304,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-150,150)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -3371,10 +3369,7 @@ plotObs <- bestLambda_CONUS_bareGround_predict %>%
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "modelPreds", 
-                   fun = mean, na.rm = TRUE) #%>% 
-   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
-
+                   fun = mean, na.rm = TRUE)
 # get the extent of this particular raster, and crop it accordingly
 
 plotObs_2 <- plotObs %>% 
@@ -3437,7 +3432,7 @@ labs(title = paste0("Predictions of BareGroundCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -3452,7 +3447,7 @@ labs(title = paste0("Predictions of BareGroundCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -3467,7 +3462,7 @@ labs(title = paste0("Predictions of BareGroundCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -3479,7 +3474,7 @@ labs(title = paste0("Observations of BareGroundCover")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -3520,7 +3515,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-150,150)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -3545,7 +3540,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-150,150)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -3569,7 +3564,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-150,150)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -5659,9 +5654,7 @@ plotObs <- preds_byHand %>%
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "pred", 
-                   fun = mean, na.rm = TRUE) #%>% 
-   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+                   fun = mean, na.rm = TRUE) 
 
 # get the extent of this particular raster, and crop it accordingly
 
@@ -5691,9 +5684,9 @@ plotObs_future1 <- preds_future1_byHand %>%
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "pred", 
-                   fun = mean, na.rm = TRUE) #%>% 
-   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+                   fun = mean, na.rm = TRUE)  
+    
+  
 
 # get the extent of this particular raster, and crop it accordingly
 
@@ -5723,9 +5716,9 @@ plotObs_future2 <- preds_future2_byHand %>%
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "pred", 
-                   fun = mean, na.rm = TRUE) #%>% 
-   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+                   fun = mean, na.rm = TRUE)  
+    
+  
 
 # get the extent of this particular raster, and crop it accordingly
 
@@ -5915,9 +5908,9 @@ plotPreds_totHerbaceous <- preds_contemp %>%
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "totHerb_synth", 
-                   fun = mean, na.rm = TRUE) #%>% 
-   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+                   fun = mean, na.rm = TRUE)  
+    
+  
 
 # get the extent of this particular raster, and crop it accordingly
 
@@ -5948,9 +5941,9 @@ plotPreds_totTree <- preds_contemp %>%
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "totTree_synth", 
-                   fun = mean, na.rm = TRUE) #%>% 
-   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+                   fun = mean, na.rm = TRUE)  
+    
+  
 
 # get the extent of this particular raster, and crop it accordingly
 
@@ -5982,9 +5975,9 @@ plotPreds_totHerbaceous_future1 <- preds_future_1 %>%
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "totHerb_synth", 
-                   fun = mean, na.rm = TRUE) #%>% 
-   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+                   fun = mean, na.rm = TRUE)  
+    
+  
 
 # get the extent of this particular raster, and crop it accordingly
 
@@ -6015,9 +6008,9 @@ plotPreds_totTree_future1 <- preds_future_1 %>%
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "totTree_synth", 
-                   fun = mean, na.rm = TRUE) #%>% 
-   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+                   fun = mean, na.rm = TRUE)  
+    
+  
 
 # get the extent of this particular raster, and crop it accordingly
 
@@ -6049,9 +6042,9 @@ plotPreds_totHerbaceous_future2 <- preds_future_2 %>%
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "totHerb_synth", 
-                   fun = mean, na.rm = TRUE) #%>% 
-   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+                   fun = mean, na.rm = TRUE)  
+    
+  
 
 # get the extent of this particular raster, and crop it accordingly
 
@@ -6082,9 +6075,9 @@ plotPreds_totTree_future2 <- preds_future_2 %>%
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "totTree_synth", 
-                   fun = mean, na.rm = TRUE) #%>% 
-   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+                   fun = mean, na.rm = TRUE)  
+    
+  
 
 # get the extent of this particular raster, and crop it accordingly
 
