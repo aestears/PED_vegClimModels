@@ -9,7 +9,6 @@ output:
     code_folding: hide
 params:
   run: TRUE      
-  test_run: FALSE
   save_figs: FALSE
   ecoregion: CONUS 
   response: C3GramCover_prop
@@ -168,11 +167,6 @@ modDat_1 <- modDat %>%
       frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_3yrAnom #36
   ) %>% 
   dplyr::select(-c(tmin_meanAnnAvg_3yr:durationFrostFreeDays_meanAnnAvg_3yr))
-
-# small dataset for if testing the data
-if(test_run) {
-  modDat_1 <- slice_sample(modDat_1, n = 1e5)
-}
 
 ```
 

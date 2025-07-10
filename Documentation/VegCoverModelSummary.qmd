@@ -9,7 +9,7 @@ format:
 # Calculate predictor variables 
 
 ```{=html}
-<table style="border: none;border-collapse: collapse;width: 812px;">
+<table style="border: none;border-collapse: collapse;width: 812px;" class="fr-table-selection-hover">
     <tbody>
         <tr>
             <td style="width: 76pt;border: 1pt solid windowtext;padding: 0in;vertical-align: top;">
@@ -39,7 +39,7 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Degrees C.&nbsp;</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(Tmean_CLIM &ndash; 10.32994)/5.020431</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(Tmean_CLIM &ndash; 10.275203571)/</span><span style='font-size:13px;font-family:"Calibri",sans-serif;'>4.912309147</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Mean across 30 years [mean across year(monthly mean temps.)]</span></p>
@@ -56,7 +56,7 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>correlation</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precipTempCorr_CLIM + 0.1002) / 0.4113</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precipTempCorr_CLIM - -0.120988193) / 0.410662268</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Mean across 30 years[correlation(each month&rsquo;s tmax, each month&rsquo;s tmin)]</span></p>
@@ -73,7 +73,7 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>unitless</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(isothermality_CLIM - 37.4115) / 5.283</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(isothermality_CLIM - 38.120111845) / 5.019479015</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;color:black;background:white;'>&nbsp;Mean across 30 years[(Mean of monthly (max temp - min temp))</span><span style='font-family:"Calibri",sans-serif;'>/(max temp. of warmest month &ndash; min. temp of coldest month) x 100]</span></p>
@@ -91,7 +91,7 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>degrees C</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(annWatDef_CLIM - 81.8091) / 82.3426</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(annWatDef_CLIM - 99.631248729) / 85.941823498</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Mean across 30 years[ sum across year(monthly mean*2 &ndash; monthly total precip)] &nbsp;*Note: only sum monthly water deficit values that are &gt;0</span></p>
@@ -108,7 +108,7 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>mm</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precip_CLIM - 742.8552) / 534.1832</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precip_CLIM - 613.900118155) / 502.187690606</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Mean across 30 years(annual total precip)</span></p>
@@ -125,7 +125,7 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>mm</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precipSeasonality_CLIM - 0.8537) / 0.2588</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precipSeasonality_CLIM - 0.923249309) / 0.245954382</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Mean across 30 years (coefficient of variation of monthly total precip within a year)</span></p>
@@ -142,7 +142,7 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>mm</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precipDry_CLIM - 9.1611) / 12.4921</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precipDry_CLIM - 5.000260635) / 8.205443958</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Mean across 30 years (total precip of the driest month in the year)</span></p>
@@ -159,7 +159,7 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Degree days</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(annWetDegDays_CLIM - 1762.9775) / 1160.2076</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(annWetDegDays_CLIM - 1762.977520092) / 1160.20756048</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Mean of annual wet degree days across the previous 30 years&nbsp;</span></p>
@@ -184,7 +184,7 @@ format:
         </tr>
         <tr>
             <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>tcold_COLD</p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>tcold_CLIM</p>
             </td>
             <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:115%;font-size:16px;font-family:"Aptos",sans-serif;'>Temp. of the coldest &nbsp; &nbsp; month &ndash; mean across previous 30 years</p>
@@ -244,7 +244,7 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>% difference</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precipSeasonality_WEATH - -0.0257) / 0.133</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precipSeasonality_WEATH - -0.025697534) / 0.132964252</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(30 year mean of precip seasonality &ndash;3 year mean of precip seasonality)/30 year mean of precip seasonality</span></p>
@@ -261,7 +261,7 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>% difference</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precip_WEATH - 0.0303) / 0.1688</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precip_WEATH - 0.030312573) / 0.168767355</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(30 year mean of precip &ndash;3 year mean of precip)/30 year mean of precip</span></p>
@@ -278,7 +278,7 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>% difference</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(annWetDegDays_WEATH - 0.0299) / 0.2434</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(annWetDegDays_WEATH - 0.02989113) / 0.243425185</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(30 year mean of annual wet degree days &ndash;3 year mean of annual wet degree days)/30 year mean of annual wet degree days</span></p>
@@ -295,7 +295,7 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>% difference</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(annWatDef_WEATH - -0.1196) / 0.4244</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(annWatDef_WEATH --0.119596687) / 0.424434636</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(30 year mean of annual water deficit &ndash;3 year mean of annual water deficit)/30 year mean of annual water deficit</span></p>
@@ -312,7 +312,7 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Absolute difference</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;height: 128.15pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(isothermality_WEATH - 0.5388) / 1.4224</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(isothermality_WEATH - 0.538807833) / 1.422356333</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;height: 128.15pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>30 year mean of isothermality &ndash; 3 year mean of isothermality</span></p>
@@ -324,16 +324,33 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'>annWetDegDays_WEATH</p>
             </td>
             <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'>Annual wet degree days &ndash; anomaly of mean across previous 3 years relative &nbsp;the 30 year mean</p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'>Annual wet degree days &ndash; anomaly of mean across previous 3 years relative to &nbsp;the 30 year mean</p>
             </td>
             <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>% difference</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(annWetDegDays_WEATH - 0.0299)a / 0.2434</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(annWetDegDays_WEATH - 0.02989113) / 0.243425185</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(30 year mean of annual wet degree days &ndash;3 year mean of annual wet degree days)/30 year mean of annual wet degree days</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 76pt;border-right: 1pt solid windowtext;border-bottom: 1pt solid windowtext;border-left: 1pt solid windowtext;border-image: initial;border-top: none;padding: 0in;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>precipTempCorr_WEATH</span></p>
+            </td>
+            <td style="width: 85.5pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Precipitation Temperature correlation &ndash; anomaly of mean across previous 3 years relative to the 30 year mean</span></p>
+            </td>
+            <td style="width: 49.2pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Absolute difference</span></p>
+            </td>
+            <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(precipTempCorr_WEATH - 0.012171065) / 0.139613922</span></p>
+            </td>
+            <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>30 year mean of precipTempCorr &ndash; 3 year mean of precipTempCorr</span></p>
             </td>
         </tr>
         <tr>
@@ -347,7 +364,7 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>%</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(sand - 47.3713) / 17.1672</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(sand - 47.706485501) / 16.730875594</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Average % of sand across the soil profile, weighted by the width of each soil layer</span></p>
@@ -364,7 +381,7 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>%</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(coarse - 12.6309) / 11.3496</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(coarse - 12.799273363) / 11.332548324</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Average % of coarse fragments across the soil profile, weighted by the width of each soil layer</span></p>
@@ -381,7 +398,7 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>&nbsp;</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(AWHC - 14.1547) / 5.2346</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(AWHC - 13.671423701) / 5.155757156</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>Calculated via following code: soils &lt;- rSOILWAT2::swSoils_Layers(rSOILWAT2::sw_exampleData)</span></p>
@@ -403,7 +420,7 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>%</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(clay - 17.4992) / 8.4203</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(clay - 18.489433548) / 9.078669938</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>% of clay in the first 3 cm of the soil profile</span></p>
@@ -420,7 +437,7 @@ format:
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>%</span></p>
             </td>
             <td style="width: 128.6pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
-                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(carbon - 4.4195) / 7.1196</span></p>
+                <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>(carbon - 3.681945502) / 6.405262851</span></p>
             </td>
             <td style="width: 269.75pt;border-top: none;border-left: none;border-bottom: 1pt solid windowtext;border-right: 1pt solid windowtext;padding: 0in 5.4pt;vertical-align: top;">
                 <p style='margin-top:0in;margin-right:0in;margin-bottom:0in;margin-left:0in;line-height:normal;font-size:16px;font-family:"Aptos",sans-serif;'><span style='font-family:"Calibri",sans-serif;'>% of organic matter in the first 3 cm of the soil profile</span></p>
@@ -432,17 +449,19 @@ format:
 ```
  
 # Predict 'raw' model outputs from climate, weather, and soils data
+\*Note that for all of these models, the input variables are un-scaled. Centering and scaling, when applied, is included in the equation. There is no centering or scaling of variables in the ecoregion classificaiton model, but all other models include centering and scaling. The centering and scaling factors are included in the table above for reference. 
 
 ## Ecoregion classification model
-
 $$
 \begin{array}{cl}
-P(forest) \sim  &1/ (1 + exp(-( 9.8726 + -0.2999*twarm\_CLIM +  0.2456*tcold\_CLIM + \\
-&0.0106*precipWet\_CLIM + -0.0621*annWatDef\_CLIM +\\
-&-2.7863*PrecipTempCorr\_CLIM +  0.0540*isothermality\_CLIM +\\
-&-0.0076*soilDepth +  0.0335*sand +  0.0310*coarse +  0.2726*carbon)))
+P(forest) \sim  &1/ (1 + exp(-( 9.872597456 + -0.299906791*twarm\_CLIM +  0.245551132*tcold\_CLIM + \\
+&0.010607279*precipWet\_CLIM + -0.062058523*annWatDef\_CLIM +\\
+&-2.786336969*PrecipTempCorr\_CLIM +  0.054028905*isothermality\_CLIM +\\
+&-0.007599899*soilDepth +  0.033478424*sand +  0.031037682*coarse +  0.272601351*carbon)))
 &\end{array}
 $$
+AKA: 
+P(forest) ~ 1/(1 + exp(-( 9.872597456 + -0.299906791\*twarm_CLIM +  0.245551132\*tcold_CLIM + 0.010607279\*precipWet_CLIM + -0.062058523\*annWatDef_CLIM + -2.786336969\*PrecipTempCorr_CLIM +  0.054028905\*isothermality_CLIM + -0.007599899\*soilDepth +  0.033478424\*sand +  0.031037682\*coarse +  0.272601351\*carbon)))
 
 ## "Level 1" functional group cover models
 
@@ -450,185 +469,311 @@ $$
 
 $$
 \begin{array}{cl}
-TotalHerbaceousCover\sim &exp\big\{ 3.276 + 0.334*\frac{(tmean\_CLIM - 10.2752)}{4.9123}  + 
-0.003*\frac{(precipSeasonality\_CLIM - 0.9232)}{0.246}  + \\
-&-0.096*\frac{(Isothermality\_CLIM- 38.1201)}{5.0195} + -0.404*\frac{(annWatDef\_CLIM- 99.6312)}{85.9418} + -0.102*\frac{(sand - 47.7065)}{16.7309} + \\
-&-0.060*\frac{(coarse - 12.7993)}{11.3325} + 0.098*\frac{(AWHC - 13.6714)}{5.1558} + 0.014*\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396} + \\
-&-0.011*\frac{(isothermality\_WEATH - 0.5388)}{1.4224}  +  0.036*\frac{(annWatDef\_WEATH - -0.1196)}{0.4244} + \\
-&-0.217*\left(\frac{(precip\_CLIM- 613.9001)}{502.1877}\right)  ^2 +  0.367*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right)^2 + \\
-&-0.032*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right)^2 +  -0.002*\left(\frac{(precipSeasonality\_WEATH - -0.0257)}{0.133}\right) ^2 + \\
-&-0.023*\left(\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right)^2 +  0.015*\left(\frac{(sand - 47.7065)}{16.7309}\right)^2 + \\
-&0.026*\left(\frac{(coarse - 12.7993)}{11.3325}\right)^2 +  0.062*\left(\frac{(carbon - 3.6819)}{6.4053}\right)^2 + -0.048*\left(\frac{(AWHC - 13.6714)}{5.1558}\right)^2 +  \\
-&0.002*\left(\frac{(annWatDef\_CLIM- 99.6312)}{85.9418}:\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right) +  0.015*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}:\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}\right)  + \\ 
-&-0.051*\left(\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}:\frac{(precip\_CLIM- 613.9001)}{502.1877}\right) +   0.039*\left(\frac{(precipSeasonality\_CLIM - 0.9232)}{0.246}:\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}\right)  + \\ 
-&-0.010*\left(\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}:\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}\right)  +   0.288*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}:\frac{(precip\_CLIM- 613.9001)}{502.1877}\right) +  \\
-&0.079*\left(\frac{(precipSeasonality\_CLIM - 0.9232)}{0.246}:\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right) +  0.134*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) + \\
-&-0.009*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}:\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right) +  0.066*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right) + \\
-&0.021*\left(\frac{(precipSeasonality\_CLIM - 0.9232)}{0.246}:\frac{(isothermality\_WEATH - 0.5388)}{1.4224}\right)  + 0.240*\left(\frac{(precip\_CLIM- 613.9001)}{502.1877}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) + \\ 
-&0.010*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}:\frac{(precipSeasonality\_WEATH - -0.0257)}{0.133}\right)  +  0.012*\left(\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}:\frac{(precipSeasonality\_WEATH - -0.0257)}{0.133}\right)  + \\
-&-0.187*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) +  \\
-&0.042*\left(\frac{(sand - 47.7065)}{16.7309}:\frac{(AWHC - 13.6714)}{5.1558}\right) +  -0.015*\left(\frac{(sand - 47.7065)}{16.7309}:\frac{(coarse - 12.7993)}{11.3325}\right) \big\} - 2
+&TotalHerbaceousCover\sim exp\big\{ 3.276248186 + 
+0.333755104*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}  + 
+0.000988410*\frac{(precipSeasonality\_CLIM - 0.923249309)}{0.245954382}  + \\
+&-0.093566592*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015} + 
+-0.401713218*\frac{(annWatDef\_CLIM- 99.631248729)}{85.941823498} + 
+-0.101054822*\frac{(sand - 47.706485501)}{16.730875594} + \\
+&-0.059075423*\frac{(coarse - 12.799273363)}{11.332548324} + 
+0.097488751*\frac{(AWHC - 13.671423701)}{5.155757156} + \\
+&-0.011392877*\frac{(isothermality\_WEATH - 0.538807833)}{1.422356333}  +  
+0.035960786*\frac{(annWatDef\_WEATH - -0.119596687)}{0.424434636} + \\
+&-0.217970279*\left(\frac{(precip\_CLIM- 613.900118155)}{502.187690606}\right)  ^2 +  
+0.367790702*\left(\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right)^2 + \\
+&-0.031527015*\left(\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}\right)^2 +  
+-0.001997141*\left(\frac{(precipSeasonality\_WEATH - -0.025697534)}{0.132964252}\right) ^2 + \\
+&-0.022758623*\left(\frac{(precipTempCorr\_WEATH - 0.012171065)}{0.139613922}\right)^2 + 
+0.014352225*\left(\frac{(sand - 47.706485501)}{16.730875594}\right)^2 + \\
+&0.025503657*\left(\frac{(coarse - 12.799273363)}{11.332548324}\right)^2 +  
+0.062557753*\left(\frac{(carbon - 3.681945502)}{6.405262851}\right)^2 + 
+-0.048139022*\left(\frac{(AWHC - 13.671423701)}{5.155757156}\right)^2 +  \\
+&0.002192693*\left(\frac{(annWatDef\_CLIM- 99.631248729)}{85.941823498}*\frac{(precipTempCorr\_WEATH - 0.012171065)}{0.139613922}\right) +  
+0.014972237*\left(\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}*\frac{(annWatDef\_WEATH - -0.119596687)}{0.424434636}\right)  + \\ 
+&-0.051575876*\left(\frac{(annWatDef\_WEATH - -0.119596687)}{0.424434636}*\frac{(precip\_CLIM- 613.900118155)}{502.187690606}\right) +   
+0.038675358*\left(\frac{(precipSeasonality\_CLIM - 0.923249309)}{0.245954382}*\frac{(annWatDef\_WEATH - -0.119596687)}{0.424434636}\right)  + \\ 
+&-0.009761302*\left(\frac{(precipTempCorr\_WEATH - 0.012171065)}{0.139613922}*\frac{(annWatDef\_WEATH - -0.119596687)}{0.424434636}\right)  +  
+0.289340507*\left(\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}*\frac{(precip\_CLIM- 613.900118155)}{502.187690606}\right) +  \\
+&0.078632789*\left(\frac{(precipSeasonality\_CLIM - 0.923249309)}{0.245954382}*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}\right) +  
+0.132202861*\left(\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right) + \\
+&-0.009488915*\left(\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}*\frac{(precipTempCorr\_WEATH - 0.012171065)}{0.139613922}\right) + 
+0.063991677*\left(\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}\right) + \\
+&0.020965402*\left(\frac{(precipSeasonality\_CLIM - 0.923249309)}{0.245954382}*\frac{(isothermality\_WEATH - 0.538807833)}{1.422356333}\right)  + 
+0.237331817*\left(\frac{(precip\_CLIM- 613.900118155)}{502.187690606}*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right) + \\ 
+&0.009654127*\left(\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}*\frac{(precipSeasonality\_WEATH - -0.025697534)}{0.132964252}\right)  +  0.011241877*\left(\frac{(precipTempCorr\_WEATH - 0.012171065)}{0.139613922}*\frac{(precipSeasonality\_WEATH - -0.025697534)}{0.132964252}\right)  + \\
+&-0.185452900*\left(\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right) +  \\
+&0.042165264*\left(\frac{(sand - 47.706485501)}{16.730875594}*\frac{(AWHC - 13.671423701)}{5.155757156}\right) + 
+-0.014331054*\left(\frac{(sand - 47.706485501)}{16.730875594}*\frac{(coarse - 12.799273363)}{11.332548324}\right) \big\} - 2
 \end{array}
 $$
-\*Note: If the predicted value for *TotalHerbaceousCover* is >100, curtail the value to 100
+
+AKA: TotalHerbaceousCover~ exp( 3.276248186 + 0.333755104\*((tmean_CLIM- 10.275203571) / 4.912309147) +  0.000988410\*((precipSeasonality_CLIM - 0.923249309) / 0.245954382) + -0.093566592\*((isothermality_CLIM- 38.120111845) / 5.019479015) + -0.401713218\*((annWatDef_CLIM - 99.631248729) / 85.941823498) + -0.101054822\*((sand - 47.706485501) / 16.730875594) + -0.059075423\*((coarse - 12.799273363) / 11.332548324) +  0.097488751\*((AWHC - 13.671423701) / 5.155757156) +  0.013584831\*((precipTempCorr\_WEATH - 0.012171065) / 0.139613922) + -0.011392877\*((isothermality_WEATH - 0.538807833) / 1.422356333)  +  0.035960786\*((annWatDef_WEATH - -0.119596687) / 0.424434636)  + -0.217970279\*I(((precip_CLIM - 613.900118155) / 502.187690606)^2) +  0.367790702\*I(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)^2) + -0.031527015\*I(((isothermality_CLIM- 38.120111845) / 5.019479015)^2) + -0.001997141\*I(((precipSeasonality_WEATH - -0.025697534) / 0.132964252) ^2) + -0.022758623\*I(((precipTempCorr_WEATH - 0.012171065) / 0.139613922)^2) + 0.014352225\*I(((sand - 47.706485501) / 16.730875594)^2) +  0.025503657\*I(((coarse - 12.799273363) / 11.332548324)^2) +  0.062557753\*I(((carbon - 3.681945502) / 6.405262851)^2) + -0.048139022\*I(((AWHC - 13.671423701) / 5.155757156)^2) +  0.002192693\*(((annWatDef_CLIM - 99.631248729) / 85.941823498)\*((precipTempCorr\_WEATH - 0.012171065) / 0.139613922)) +  0.014972237\*(((isothermality_CLIM- 38.120111845) / 5.019479015)\*((annWatDef_WEATH - -0.119596687) / 0.424434636))  + -0.051575876\*(((annWatDef_WEATH - -0.119596687) / 0.424434636)\*((precip_CLIM - 613.900118155) / 502.187690606)) +  0.038675358\*(((precipSeasonality_CLIM - 0.923249309) / 0.245954382)\*((annWatDef_WEATH - -0.119596687) / 0.424434636))  + -0.009761302\*(((precipTempCorr\_WEATH - 0.012171065) / 0.139613922)\*((annWatDef_WEATH - -0.119596687) / 0.424434636))  +  0.289340507\*(((isothermality_CLIM- 38.120111845) / 5.019479015)\*((precip_CLIM - 613.900118155) / 502.187690606)) +  0.078632789\*(((precipSeasonality_CLIM - 0.923249309) / 0.245954382)\*((isothermality_CLIM- 38.120111845) / 5.019479015)) + 0.132202861\*(((isothermality_CLIM- 38.120111845) / 5.019479015)\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + -0.009488915\*(((isothermality_CLIM- 38.120111845) / 5.019479015)\*((precipTempCorr\_WEATH - 0.012171065) / 0.139613922)) +  0.063991677\*(((tmean_CLIM- 10.275203571) / 4.912309147)\*((isothermality_CLIM- 38.120111845) / 5.019479015)) +  0.020965402\*(((precipSeasonality_CLIM - 0.923249309) / 0.245954382)\*((isothermality_WEATH - 0.538807833) / 1.422356333))  +  0.237331817\*(((precip_CLIM - 613.900118155) / 502.187690606)\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + 0.009654127\*(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)\*((precipSeasonality_WEATH - -0.025697534) / 0.132964252))  +  0.011241877\*(((precipTempCorr\_WEATH - 0.012171065) / 0.139613922)\*((precipSeasonality_WEATH - -0.025697534) / 0.132964252))  + -0.185452900\*(((tmean_CLIM- 10.275203571) / 4.912309147)\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) +  0.042165264\*(((sand - 47.706485501) / 16.730875594)\*((AWHC - 13.671423701) / 5.155757156)) + -0.014331054\*(((sand - 47.706485501) / 16.730875594)\*((coarse - 12.799273363) / 11.332548324))) - 2
 
 ### Total Herbaceous Cover -- forest
 
 $$
 \begin{array}{cl}
-TotalHerbaceousCover \sim &exp\big\{3.172 + -0.125*\frac{(precip\_CLIM- 613.9001)}{502.1877} +  0.119*\frac{(precipDry\_CLIM - 5.0003)}{8.2054} + \\ &0.065*\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107} + -0.223*\frac{(Isothermality\_CLIM- 38.1201)}{5.0195} +  0.062*\frac{(clay - 18.4894)}{9.0787} + \\
-&-0.138*\frac{(sand - 47.7065)}{16.7309} +  0.016*\frac{(coarse - 12.7993)}{11.3325} +  0.090*\frac{(AWHC - 13.6714)}{5.1558} + \\ &-0.081*\frac{(isothermality\_WEATH - 0.5388)}{1.4224}  + -0.024*\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}  +  0.071*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right)^2 + \\ 
-&0.031*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right)^2 +  0.011*\left(\frac{(isothermality\_WEATH - 0.5388)}{1.4224}\right)^2 + -0.001*\left(\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}\right)^2 + \\
-&0.074*\left(\frac{(sand - 47.7065)}{16.7309}\right)^2 +  0.073*\left(\frac{(AWHC - 13.6714)}{5.1558}\right)^2 +  \\
-&0.019*\left(\frac{(isothermality\_WEATH - 0.5388)}{1.4224}:\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}\right)  +  -0.014*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}:\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}\right)  + \\
-&-0.012*\left(\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}:\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right) +   0.088*\left(\frac{(precip\_CLIM- 613.9001)}{502.1877}:\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right) +  \\
-&0.015*\left(\frac{(precip\_CLIM- 613.9001)}{502.1877}:\frac{(isothermality\_WEATH - 0.5388)}{1.4224}\right)  +  0.020*\left(\frac{(isothermality\_WEATH - 0.5388)}{1.4224}:\frac{(precip\_WEATH - 0.0303)}{0.1688}\right)  + \\
-&-0.007*\left(\frac{(precipDry\_CLIM - 5.0003)}{8.2054}:\frac{(isothermality\_WEATH - 0.5388)}{1.4224}\right)  +  -0.011*\left(\frac{(isothermality\_WEATH - 0.5388)}{1.4224}:\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right) + \\
-&-0.069*\left(\frac{(isothermality\_WEATH - 0.5388)}{1.4224}:\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right) + -0.011*\left(\frac{(precip\_CLIM- 613.9001)}{502.1877}:\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right) + \\
-&0.031*\left(\frac{(precipDry\_CLIM - 5.0003)}{8.2054}:\frac{(precip\_WEATH - 0.0303)}{0.1688}\right)  + 0.000*\left(\frac{(precip\_WEATH - 0.0303)}{0.1688}:\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right) + \\
-&0.029*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}):\frac{(precip\_WEATH - 0.0303)}{0.1688}\right)  +  -0.082*\left(\frac{(precipDry\_CLIM - 5.0003)}{8.2054}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) + \\
-&-0.037*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}:\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right) +   0.035*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}:\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right) + \\
-&-0.020*\left(\frac{(AWHC - 13.6714)}{5.1558}:\frac{(carbon - 3.6819)}{6.4053}\right) +  0.071*\left(\frac{(clay - 18.4894)}{9.0787}):\frac{(AWHC - 13.6714)}{5.1558}\right) +  \\
-&0.090*\left(\frac{(coarse - 12.7993)}{11.3325}:\frac{(AWHC - 13.6714)}{5.1558}\right) +  0.180*\left(\frac{(sand - 47.7065)}{16.7309}:\frac{(AWHC - 13.6714)}{5.1558}\right) + \\
-&-0.027*\left(\frac{(coarse - 12.7993)}{11.3325}:\frac{(carbon - 3.6819)}{6.4053}\right) +  -0.038*\left(\frac{(sand - 47.7065)}{16.7309}:\frac{(carbon - 3.6819)}{6.4053}\right)\big\} - 2
+&TotalHerbaceousCover \sim exp\big\{3.191837402 + 
+-0.122792350*\frac{(precip\_CLIM- 613.900118155)}{502.187690606} +
+0.116138373*\frac{(precipDry\_CLIM - 5.000260635)}{8.205443958} + \\ 
+&0.073364801*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268} + 
+-0.223502453*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015} +  
+0.059416398*\frac{(clay - 18.489433548)}{9.078669938} + \\
+&-0.143976298*\frac{(sand - 47.706485501)}{16.730875594} +  
+0.093798717*\frac{(AWHC - 13.671423701)}{5.155757156} + \\ 
+&-0.082685833*\frac{(isothermality\_WEATH - 0.538807833)}{1.422356333}  + 
+-0.026084114*\frac{(annWatDef\_WEATH - -0.119596687)}{0.424434636}  +  
+0.067376300*\left(\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right)^2 + \\ 
+&0.025575815*\left(\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}\right)^2 +  
+0.010298554*\left(\frac{(isothermality\_WEATH - 0.538807833)}{1.422356333}\right)^2 + 
+-0.001326385*\left(\frac{(annWatDef\_WEATH - -0.119596687)}{0.424434636}\right)^2 + \\
+&0.075308377*\left(\frac{(sand - 47.706485501)}{16.730875594}\right)^2 +  
+0.073306773*\left(\frac{(AWHC - 13.671423701)}{5.155757156}\right)^2 +  \\
+&0.019965778*\left(\frac{(isothermality\_WEATH - 0.538807833)}{1.422356333}*\frac{(annWatDef\_WEATH - -0.119596687)}{0.424434636}\right)  +  
+-0.016757681*\left(\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}*\frac{(annWatDef\_WEATH - -0.119596687)}{0.424434636}\right)  + \\
+&-0.010148936*\left(\frac{(annWatDef\_WEATH - -0.119596687)}{0.424434636}*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}\right) +   
+0.092170440*\left(\frac{(precip\_CLIM- 613.900118155)}{502.187690606}*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}\right) +  \\
+&0.016099673*\left(\frac{(precip\_CLIM- 613.900118155)}{502.187690606}*\frac{(isothermality\_WEATH - 0.538807833)}{1.422356333}\right)  + 
+0.019360302*\left(\frac{(isothermality\_WEATH - 0.538807833)}{1.422356333}*\frac{(precip\_WEATH - 0.030312573)}{0.168767355}\right)  + \\
+&-0.007884072*\left(\frac{(precipDry\_CLIM - 5.000260635)}{8.205443958}*\frac{(isothermality\_WEATH - 0.538807833)}{1.422356333}\right)  +  
+-0.006048882*\left(\frac{(isothermality\_WEATH - 0.538807833)}{1.422356333}*\frac{(precipTempCorr\_WEATH - 0.012171065)}{0.139613922}\right) + \\
+&-0.070468595*\left(\frac{(isothermality\_WEATH - 0.538807833)}{1.422356333}*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}\right) + 
+-0.013811905*\left(\frac{(precip\_CLIM- 613.900118155)}{502.187690606}*\frac{(precipTempCorr\_WEATH - 0.012171065)}{0.139613922}\right) + \\
+&0.030103657*\left(\frac{(precipDry\_CLIM - 5.000260635)}{8.205443958}*\frac{(precip\_WEATH - 0.030312573)}{0.168767355}\right)  +
+-0.001131342*\left(\frac{(precip\_WEATH - 0.030312573)}{0.168767355}*\frac{(precipTempCorr\_WEATH - 0.012171065)}{0.139613922}\right) + \\
+&0.029138569*\left(\frac{(tmean\_CLIM - 10.275203571)}{4.912309147})*\frac{(precip\_WEATH - 0.030312573)}{0.168767355}\right)  +  
+-0.081971171*\left(\frac{(precipDry\_CLIM - 5.000260635)}{8.205443958}*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right) + \\
+&-0.015253376*\left(\frac{(precipDry\_CLIM - 5.000260635)}{8.205443958}*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}\right) + \\
+& -0.039321175*\left(\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}*\frac{(precipTempCorr\_WEATH - 0.012171065)}{0.139613922}\right) +   
+0.042655226*\left(\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}\right) + \\
+&0.013823818*\left(\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}*\frac{(precipTempCorr\_WEATH - 0.012171065)}{0.139613922}\right) + 
+-0.020024507*\left(\frac{(AWHC - 13.671423701)}{5.155757156}*\frac{(carbon - 3.681945502)}{6.405262851}\right) +  \\
+&0.078265961*\left(\frac{(clay - 18.489433548)}{9.078669938})*\frac{(AWHC - 13.671423701)}{5.155757156}\right) +  \\
+&0.081708191*\left(\frac{(AWHC - 13.671423701)}{5.155757156}*\frac{(coarse - 12.799273363)}{11.332548324}\right) +  
+0.185762180*\left(\frac{(sand - 47.706485501)}{16.730875594}*\frac{(AWHC - 13.671423701)}{5.155757156}\right) + \\
+&-0.025554099*\left(\frac{(carbon - 3.681945502)}{6.405262851}*\frac{(coarse - 12.799273363)}{11.332548324}\right) +  
+-0.038284034*\left(\frac{(sand - 47.706485501)}{16.730875594}*\frac{(carbon - 3.681945502)}{6.405262851}\right)\big\} - 2
 \end{array}
 $$
-\*Note: If the predicted value for *TotalHerbaceousCover* is >100, curtail the value to 100
+
+AKA: 
+TotalHerbaceousCover~ exp( 3.191837402 + -0.122792350\*((precip_CLIM - 613.900118155) / 502.187690606) +  0.116138373\*((precipDry_CLIM - 5.000260635) / 8.205443958) +  0.073364801\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268) + -0.223502453\*((isothermality_CLIM- 38.120111845) / 5.019479015) + 0.059416398\*((clay - 18.489433548) / 9.078669938) + -0.143976298\*((sand - 47.706485501) / 16.730875594) +  0.093798717\*((AWHC - 13.671423701) / 5.155757156) + -0.082685833\*((isothermality_WEATH - 0.538807833) / 1.422356333)  + -0.026084114\*((annWatDef_WEATH - -0.119596687) / 0.424434636)  +  0.067376300\*I(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)^2) +  0.025575815\*I(((isothermality_CLIM- 38.120111845) / 5.019479015)^2) +  0.010298554\*I(((isothermality_WEATH - 0.538807833) / 1.422356333) ^2) + -0.001326385\*I(((annWatDef_WEATH - -0.119596687) / 0.424434636) ^2) +  0.075308377\*I(((sand - 47.706485501) / 16.730875594)^2) +  0.073306773\*I(((AWHC - 13.671423701) / 5.155757156)^2) + 0.019965778\*(((isothermality_WEATH - 0.538807833) / 1.422356333)\*((annWatDef_WEATH - -0.119596687) / 0.424434636))  + -0.016757681\*(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)\*((annWatDef_WEATH - -0.119596687) / 0.424434636))  + -0.010148936\*(((annWatDef_WEATH - -0.119596687) / 0.424434636) \*((tmean_CLIM- 10.275203571) / 4.912309147)) +  0.092170440\*(((precip_CLIM - 613.900118155) / 502.187690606)\*((isothermality_CLIM- 38.120111845) / 5.019479015)) +  0.016099673\*(((precip_CLIM - 613.900118155) / 502.187690606)\*((isothermality_WEATH - 0.538807833) / 1.422356333))  +  0.019360302\*(((isothermality_WEATH - 0.538807833) / 1.422356333) \*((precip_WEATH - 0.030312573) / 0.168767355)) + -0.007884072\*(((precipDry_CLIM - 5.000260635) / 8.205443958)\*((isothermality_WEATH - 0.538807833) / 1.422356333))  + -0.006048882\*(((isothermality_WEATH - 0.538807833) / 1.422356333) \*((precipTempCorr\_WEATH - 0.012171065) / 0.139613922)) + -0.070468595\*(((isothermality_WEATH - 0.538807833) / 1.422356333) \*((tmean_CLIM- 10.275203571) / 4.912309147)) + -0.013811905\*(((precip_CLIM - 613.900118155) / 502.187690606)\*((precipTempCorr\_WEATH - 0.012171065) / 0.139613922)) +  0.030103657\*(((precipDry_CLIM - 5.000260635) / 8.205443958)\*((precip_WEATH - 0.030312573) / 0.168767355))  + -0.001131342\*(((precip_WEATH - 0.030312573) / 0.168767355) \*((precipTempCorr\_WEATH - 0.012171065) / 0.139613922)) +  0.029138569\*(((tmean_CLIM- 10.275203571) / 4.912309147)\*((precip_WEATH - 0.030312573) / 0.168767355))  +-0.081971171\*(((precipDry_CLIM - 5.000260635) / 8.205443958)\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + -0.015253376\*(((precipDry_CLIM - 5.000260635) / 8.205443958)\*((tmean_CLIM- 10.275203571) / 4.912309147)) + -0.039321175\*(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)\*((precipTempCorr\_WEATH - 0.012171065) / 0.139613922)) +  0.042655226\*(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)\*((tmean_CLIM- 10.275203571) / 4.912309147)) +  0.013823818\*(((tmean_CLIM- 10.275203571) / 4.912309147)\*((precipTempCorr\_WEATH - 0.012171065) / 0.139613922)) + -0.020024507\*(((AWHC - 13.671423701) / 5.155757156)\*((carbon - 3.681945502) / 6.405262851)) +  0.078265961\*(((clay - 18.489433548) / 9.078669938)\*((AWHC - 13.671423701) / 5.155757156)) +  0.081708191\*(((AWHC - 13.671423701) / 5.155757156)\*((coarse - 12.799273363) / 11.332548324)) + 0.185762180\*(((sand - 47.706485501) / 16.730875594)\*((AWHC - 13.671423701) / 5.155757156)) + -0.025554099\*(((carbon - 3.681945502) / 6.405262851)\*((coarse - 12.799273363) / 11.332548324)) + -0.038284034\*(((sand - 47.706485501) / 16.730875594)\*((carbon - 3.681945502) / 6.405262851))) - 2
 
 ### Total Tree Cover -- non-forest
 
 $$
 \begin{array}{cl}
-TotalTreeCover\sim &exp\big\{ 2.622 +  1.241*\frac{(precip\_CLIM- 613.9001)}{502.1877} + -0.165*\frac{(precipSeasonality\_CLIM - 0.9232)}{0.246} + \\ 
-&0.053*\frac{(annWatDef\_CLIM- 99.6312)}{85.9418} + -0.071*\frac{(sand - 47.7065)}{16.7309} + -0.321*\frac{(AWHC - 13.6714)}{5.1558}\big\} - 2
+ &TotalTreeCover\sim exp\big\{ 2.58245786 +  
+1.14190425*\frac{(precip\_CLIM- 613.900118155)}{502.187690606} + 
+-0.15075425*\frac{(precipSeasonality\_CLIM - 0.923249309)}{0.245954382} + \\ 
+&0.03572512*\frac{(annWatDef\_CLIM- 99.631248729)}{85.941823498} + 
+-0.07413619*\frac{(sand - 47.706485501)}{16.730875594} + 
+-0.31894087*\frac{(AWHC - 13.671423701)}{5.155757156}\big\} - 2
 \end{array}
 $$
-\*Note: If the predicted value for *TotalTreeCover* is >100, curtail the value to 100
+
+AKA: 
+TotalTreeCover~ exp( 2.58245786 +  1.14190425\*((precip_CLIM - 613.900118155) / 502.187690606) + -0.15075425\*((precipSeasonality_CLIM - 0.923249309) / 0.245954382) +  0.03572512\*((annWatDef_CLIM - 99.631248729) / 85.941823498) + -0.07413619\*((sand - 47.706485501) / 16.730875594) + -0.31894087\*((AWHC - 13.671423701) / 5.155757156)) - 2
 
 ### Total Tree Cover -- forest
 
 $$
 \begin{array}{cl}
-TotalTreeCover\sim &exp\big\{3.288 +  0.102*\frac{(tmean\_CLIM - 10.2752)}{4.9123} +  0.070*\frac{(precip\_CLIM- 613.9001)}{502.1877} + \\
-&0.123*\frac{(precipDry\_CLIM - 5.0003)}{8.2054} +  0.029*\frac{(carbon - 3.6819)}{6.4053} +  0.066*\frac{(AWHC - 13.6714)}{5.1558} + \\ &-0.180*\frac{(precip\_WEATH - 0.0303)}{0.1688} + -0.030*\left(\frac{(isothermality\_WEATH - 0.5388)}{1.4224}\right)^2 + -0.043*\left(\frac{(clay - 18.4894)}{9.0787}\right)^2 +  \\
-&0.117*\left(\frac{(precip\_CLIM- 613.9001)}{502.1877}:\frac{(isothermality\_WEATH - 0.5388)}{1.4224}\right)  +  0.110*\left(\frac{(precipDry\_CLIM - 5.0003)}{8.2054}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) + \\
-&0.020*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(precipDry\_CLIM - 5.0003)}{8.2054}\right) +  -0.162*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) + \\
-&-0.031*\left(\frac{(carbon - 3.6819)}{6.4053}:\frac{(clay - 18.4894)}{9.0787}\right) + 
-0.049*\left(\frac{(carbon - 3.6819)}{6.4053}:\frac{(coarse - 12.7993)}{11.3325}\right)\big\} - 2
+TotalTreeCover\sim &exp\big\{3.28887888 +  
+0.10058372*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147} +  
+0.07165316*\frac{(precip\_CLIM- 613.900118155)}{502.187690606} + \\
+&0.12712928*\frac{(precipDry\_CLIM - 5.000260635)}{8.205443958} +  
+0.03173495*\frac{(carbon - 3.681945502)}{6.405262851} +  
+0.06648011*\frac{(AWHC - 13.671423701)}{5.155757156} + \\ 
+&-0.17846554*\frac{(precip\_WEATH - 0.030312573)}{0.168767355} + 
+-0.02914362*\left(\frac{(isothermality\_WEATH - 0.538807833)}{1.422356333}\right)^2 + 
+-0.04902481*\left(\frac{(clay - 18.489433548)}{9.078669938}\right)^2 +  \\
+&0.11841332*\left(\frac{(precip\_CLIM- 613.900118155)}{502.187690606}*\frac{(isothermality\_WEATH - 0.538807833)}{1.422356333}\right)  +  0.11243677*\left(\frac{(precipDry\_CLIM - 5.000260635)}{8.205443958}*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right) + \\
+&0.02314517*\left(\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}*\frac{(precipDry\_CLIM - 5.000260635)}{8.205443958}\right) +  
+-0.16107089*\left(\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right) + \\
+&-0.03108354*\left(\frac{(carbon - 3.681945502)}{6.405262851}*\frac{(clay - 18.489433548)}{9.078669938}\right) + 
+0.04845871*\left(\frac{(carbon - 3.681945502)}{6.405262851}*\frac{(coarse - 12.799273363)}{11.332548324}\right)\big\} - 2
 \end{array}
 $$
-\*Note: If the predicted value for *TotalTreeCover* is >100, curtail the value to 100
+
+AKA: 
+TotalTreeCover~ exp( 3.28887888 +  0.10058372\*((tmean_CLIM- 10.275203571) / 4.912309147) +  0.07165316\*((precip_CLIM - 613.900118155) / 502.187690606) +  0.12712928\*((precipDry_CLIM - 5.000260635) / 8.205443958) +  0.03173495\*((carbon - 3.681945502) / 6.405262851) + 0.06648011\*((AWHC - 13.671423701) / 5.155757156) + -0.17846554\*((precip_WEATH - 0.030312573) / 0.168767355)  + -0.02914362\*I(((isothermality_WEATH - 0.538807833) / 1.422356333) ^2) + -0.04902481\*I(((clay - 18.489433548) / 9.078669938)^2) +  0.11841332\*(((precip_CLIM - 613.900118155) / 502.187690606)\*((isothermality_WEATH - 0.538807833) / 1.422356333))  +  0.11243677\*(((precipDry_CLIM - 5.000260635) / 8.205443958)\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + 0.02314517\*(((tmean_CLIM- 10.275203571) / 4.912309147)\*((precipDry_CLIM - 5.000260635) / 8.205443958)) + -0.16107089\*(((tmean_CLIM- 10.275203571) / 4.912309147)\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + -0.03108354\*(((carbon - 3.681945502) / 6.405262851)\*((clay - 18.489433548) / 9.078669938)) +  0.04845871\*(((carbon - 3.681945502) / 6.405262851)\*((coarse - 12.799273363) / 11.332548324))) - 2
 
 ### shrub cover -- CONUS-wide
 
 $$
 \begin{array}{cl}
-ShrubCover\sim &exp\big\{2.939 +  0.145*\frac{(precip\_CLIM- 613.9001)}{502.1877} + -0.106*\frac{(precipSeasonality\_CLIM- 0.9232)}{0.246} + \\
-&-0.217*\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107} +  0.092*\frac{(sand - 47.7065)}{16.7309} +  0.008*\frac{(coarse - 12.7993)}{11.3325} + \\
-&-0.083*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right)^2 + -0.056*\left(\frac{(sand - 47.7065)}{16.7309}\right)^2 + -0.007*\left(\frac{(AWHC - 13.6714)}{5.1558}\right)^2 +  \\
-&0.048*\left(\frac{(annWetDegDays\_CLIM - 1762.9775)}{1160.2076}:\frac{(isothermality\_WEATH - 0.5388)}{1.4224}\right)  +  -0.031*\left(\frac{(isothermality\_WEATH - 0.5388)}{1.4224}):\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right) + \\
-&0.118*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}:\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right) +  0.038*\left(\frac{(precip\_CLIM- 613.9001)}{502.1877}:\frac{(precipSeasonality\_WEATH - -0.0257)}{0.133}\right)  +  \\
-&0.046*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}:\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right)\big\} - 2
+&ShrubCover\sim exp\big\{2.939339967 +  
+0.145466528*\frac{(precip\_CLIM- 613.900118155)}{502.187690606} + 
+-0.106416302*\frac{(precipSeasonality\_CLIM- 0.923249309)}{0.245954382} + \\
+&-0.216540564*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268} +  
+0.091558229*\frac{(sand - 47.706485501)}{16.730875594} +  
+0.007762789*\frac{(coarse - 12.799273363)}{11.332548324} + \\
+&-0.083296458*\left(\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right)^2 + 
+-0.056281606*\left(\frac{(sand - 47.706485501)}{16.730875594}\right)^2 + 
+-0.006510544*\left(\frac{(AWHC - 13.671423701)}{5.155757156}\right)^2 +  \\
+&0.048231968*\left(\frac{(annWetDegDays\_CLIM - 1762.977520092)}{1160.20756048}*\frac{(isothermality\_WEATH - 0.538807833)}{1.422356333}\right)  +  -0.030802083*\left(\frac{(isothermality\_WEATH - 0.538807833)}{1.422356333})*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}\right) + \\
+&0.117940292*\left(\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}\right) +  0.037905068*\left(\frac{(precip\_CLIM- 613.900118155)}{502.187690606}*\frac{(precipSeasonality\_WEATH - -0.025697534)}{0.132964252}\right)  +  \\
+&0.045575111*\left(\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}\right)\big\} - 2
 \end{array}
 $$
-\*Note: If the predicted value for *ShrubCover* is >100, curtail the value to 100
+
+AKA:
+ShrubCover ~ exp( 2.939339967 +  0.145466528\*((precip_CLIM - 613.900118155) / 502.187690606) +-0.106416302\*((precipSeasonality_CLIM - 0.923249309) / 0.245954382) +-0.216540564\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268) + 0.091558229\*((sand - 47.706485501) / 16.730875594) + 0.007762789\*((coarse - 12.799273363) / 11.332548324) + -0.083296458\*I(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)^2) + -0.056281606\*I(((sand - 47.706485501) / 16.730875594)^2) +-0.006510544\*I(((AWHC - 13.671423701) / 5.155757156)^2) +  0.048231968\*(((annWetDegDays_CLIM - 1762.977520092) / 1160.20756048)\*((isothermality_WEATH - 0.538807833) / 1.422356333))  + -0.030802083\*(((isothermality_WEATH - 0.538807833) / 1.422356333) \*((isothermality_CLIM- 38.120111845) / 5.019479015)) +  0.117940292\*(((isothermality_CLIM- 38.120111845) / 5.019479015)\*((tmean_CLIM- 10.275203571) / 4.912309147)) +0.037905068\*(((precip_CLIM - 613.900118155) / 502.187690606)\*((precipSeasonality_WEATH - -0.025697534) / 0.132964252))  +  0.045575111\*(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)\*((tmean_CLIM- 10.275203571) / 4.912309147))) - 2
 
 ### bare ground cover -- CONUS-wide
 
 $$
 \begin{array}{cl}
-BareGroundCover \sim &exp\big\{2.852 +  0.313*\frac{(tmean\_CLIM - 10.2752)}{4.9123} +  0.109*\frac{(Isothermality\_CLIM- 38.1201)}{5.0195} + \\ &-0.724*\frac{(annWetDegDays\_CLIM - 1762.9775)}{1160.2076} + -0.265*\frac{(coarse - 12.7993)}{11.3325} + -0.064*\frac{(isothermality\_WEATH - 0.5388)}{1.4224}  + \\
-&0.042*\frac{(annWetDegDays\_WEATH - 0.0299)}{0.2434} + -0.074*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right)^2 + -0.004*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right)^2 + \\
-&-0.116*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}:\frac{(precipSeasonality\_CLIM- 0.9232)}{0.246}\right) +  -0.058*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right)^2 + \\
-&-0.003*\left(\frac{(annWatDef\_WEATH - -0.1196)}{0.4244}\right)^2 + -0.017*\frac{(precip\_CLIM- 613.9001)}{502.1877} + 0.007*\left(\frac{(annWetDegDays\_WEATH - 0.0299)}{0.2434}\right)^2 + \\
-&-0.069*\left(\frac{(annWetDegDays\_CLIM - 1762.9775)}{1160.2076}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) +  0.099*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right)\big\} - 2
+&BareGroundCover \sim exp\big\{2.746284299 +  
+0.262457983*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147} + 
+0.087718972*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015} + \\ 
+&-0.715375616*\frac{(annWetDegDays\_CLIM - 1762.977520092)}{1160.20756048} + 
+-0.267155829*\frac{(coarse - 12.799273363)}{11.332548324} + 
+-0.064084039*\frac{(isothermality\_WEATH - 0.538807833)}{1.422356333}  + \\
+&0.037782133*\frac{(annWetDegDays\_WEATH - 0.02989113)}{0.243425185} + 
+-0.079708661*\left(\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}\right)^2 + 
+-0.036639124*\left(\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}\right)^2 + \\
+&-0.002739534*\left(\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right)^2 + 
+-0.076610337*\frac{(precip\_CLIM- 613.900118155)}{502.187690606} + 
+0.003781266*\left(\frac{(annWetDegDays\_WEATH - 0.02989113)}{0.243425185}\right)^2 + \\
+&0.133413710*\left(\frac{(precip\_CLIM- 613.900118155)}{502.187690606}*\frac{(annWetDegDays\_CLIM - 1762.977520092)}{1160.20756048}\right) + \\
+&-0.106746867*\left(\frac{(annWetDegDays\_CLIM - 1762.977520092)}{1160.20756048}*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right) + 
+0.125888447*\left(\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right)\big\} - 2
 \end{array}
 $$
-\*Note: If the predicted value for *BareGroundCover* is >100, curtail the value to 100
+
+AKA: 
+BareGroundCover~ exp( 2.746284299 +  0.262457983\*((tmean_CLIM- 10.275203571) / 4.912309147) +  0.087718972\*((isothermality_CLIM - 38.120111845) / 5.019479015) + -0.715375616\*((annWetDegDays_CLIM - 1762.977520092) / 1160.20756048) + -0.267155829\*((coarse - 12.799273363) / 11.332548324) + -0.064084039\*((isothermality_WEATH - 0.538807833) / 1.422356333)  + 0.037782133\*((annWetDegDays_WEATH - 0.02989113) / 0.243425185) + -0.079708661\*I(((tmean_CLIM- 10.275203571) / 4.912309147)^2) + -0.036639124\*I(((isothermality_CLIM- 38.120111845) / 5.019479015)^2) + -0.002739534\*I(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)^2) + -0.076610337\*((precip_CLIM - 613.900118155) / 502.187690606) + 0.003781266\*I(((annWetDegDays_WEATH - 0.02989113) / 0.243425185)^2) +  0.133413710\*(((precip_CLIM - 613.900118155) / 502.187690606)\*((annWetDegDays_CLIM - 1762.977520092) / 1160.20756048)) + -0.106746867\*(((annWetDegDays_CLIM - 1762.977520092) / 1160.20756048)\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) +  0.125888447\*(((isothermality_CLIM- 38.120111845) / 5.019479015)\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268))) - 2
 
 ## "Level 2" functional group cover models
 ### The proportion of total herbaceous that is C3 grass -- CONUS-wide 
 $$
 \begin{array}{cl}
-C3grassCoverPercentage \sim~ &exp\big\{3.904 + -0.285*\frac{(tmean\_CLIM - 10.2752)}{4.9123} + -0.387*\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107} + \\
-&-0.265*\frac{(Isothermality\_CLIM- 38.1201)}{5.0195} + -0.169*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right)^2 + \\
-&-0.294*\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}:\frac{(Isothermality\_CLIM- 38.1201)}{5.0195} + 
--0.010*\frac{(annWetDegDays_CLIM - 1762.9775)}{1160.2076}\big\} - 2
+&C3grassCoverPercentage \sim~ exp\big\{3.904167492 + -0.284822539*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147} + -0.387430439*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268} + \\
+&-0.264775838*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015} + -0.168662971*\left(\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}\right)^2 + \\
+&-0.294089719*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015} + 
+-0.009509765*\frac{(annWetDegDays\_CLIM - 1762.977500000)}{1160.207600000}\big\} - 2
 \end{array}
 $$
-\*Note: Do *not* curtail values to 100
+
+AKA: 
+c3 cover percentage ~ exp( 3.904167492 + -0.284822539\*((tmean_CLIM- 10.275203571) / 4.912309147) + -0.387430439\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268) + -0.264775838\*((isothermality_CLIM- 38.120111845) / 5.019479015) + -0.168662971\*I(((isothermality_CLIM- 38.120111845) / 5.019479015)^2) + -0.294089719\*(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)\*((isothermality_CLIM- 38.120111845) / 5.019479015)) + -0.009509765\*((annWetDegDays_CLIM- 1762.977500000)/1160.207600000)) - 2
 
 ### The proportion of total herbaceous that is C4 grass -- CONUS-wide 
 $$
 \begin{array}{cl}
-C4grassCoverPercentage \sim &exp\big\{2.411 + 0.484*\frac{(tmean\_CLIM - 10.2752)}{4.9123} + 1.020*\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107} + \\
-& 0.543*\frac{(Isothermality\_CLIM- 38.1201)}{5.0195} + 0.052*\left(\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right)^2\big\} - 2
+ &C4grassCoverPercentage \sim exp\big\{2.41145985 + 0.48381716*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147} + 1.02026843*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268} + \\
+& 0.54331054*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015} + 0.05180567*\left(\frac{(precipTempCorr\_WEATH - 0.012171065)}{0.139613922}\right)^2\big\} - 2
 \end{array}
 $$
-\*Note: Do *not* curtail values to 100
+
+AKA: 
+c4 cover percentage~ exp(2.41145985 + 0.48381716\*((tmean_CLIM- 10.275203571) / 4.912309147) + 1.02026843\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268) + 0.54331054\*((isothermality_CLIM- 38.120111845) / 5.019479015) + 0.05180567\*I(((precipTempCorr\_WEATH - 0.012171065) / 0.139613922)^2)) - 2
 
 
 ### The proportion of total herbaceous that is forbs -- CONUS-wide 
 $$
 \begin{array}{cl}
-forbCoverPercentage \sim &exp\big\{3.514 + 0.248*\frac{(precip\_CLIM- 613.9001)}{502.1877} + -0.052*\frac{(precipSeasonality\_CLIM - 0.9232)}{0.246} + \\
-&-0.050*\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107} + -0.021*\frac{(Isothermality\_CLIM- 38.1201)}{5.0195} +  0.042*\frac{(sand - 47.7065)}{16.7309} +  \\
-&0.060*\frac{(coarse - 12.7993)}{11.3325} + -0.036*\frac{(precipSeasonality\_WEATH - -0.0257)}{0.133}  +  0.052*\left(\frac{(precipSeasonality\_CLIM - 0.9232)}{0.246}\right)^2 + \\ 
-&0.014*\left(\frac{(precipSeasonality\_WEATH - -0.0257)}{0.133}\right)^2 +  0.005*\left(\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right)^2 +\\
-&-0.038*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(annWetDegDays_CLIM - 1762.9775)}{1160.2076}\right) +  -0.041*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}:\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right) + \\
-&0.060*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}:\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right) +  -0.092*\left(\frac{(sand - 47.7065)}{16.7309}:\frac{(AWHC - 13.6714)}{5.1558}\right) + \\
-&-0.053*\left(\frac{(sand - 47.7065)}{16.7309}:\frac{(coarse - 12.7993)}{11.3325}\right) + 0.023*\left(\frac{(precipSeasonality\_CLIM - 0.9232)}{0.246}:\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right) + \\
-&0.005*\left(\frac{(isothermality\_WEATH - 0.5388)}{1.4224}\right)^2 +  0.011*\left(\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}:\frac{(annWetDegDays\_WEATH - 0.0299)}{0.2434}\right)\big\} - 2
+&forbCoverPercentage \sim exp\big\{3.514178452 + 
+0.248393795*\frac{(precip\_CLIM- 613.900118155)}{502.187690606} + 
+-0.052267180*\frac{(precipSeasonality\_CLIM - 0.923249309)}{0.245954382} + \\
+&-0.050423003*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268} + 
+-0.020802257*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015} +  
+0.041673226*\frac{(sand - 47.706485501)}{16.730875594} +  \\
+&0.059813143*\frac{(coarse - 12.799273363)}{11.332548324} + 
+-0.035820999*\frac{(precipSeasonality\_WEATH - -0.025697534)}{0.132964252}  +  
+0.051567741*\left(\frac{(precipSeasonality\_CLIM - 0.923249309)}{0.245954382}\right)^2 + \\ 
+&0.014241935*\left(\frac{(precipSeasonality\_WEATH - -0.025697534)}{0.132964252}\right)^2 +  
+0.005274193*\left(\frac{(precipTempCorr\_WEATH - 0.012171065)}{0.139613922}\right)^2 +\\
+&-0.037700614*\left(\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}*\frac{(annWetDegDays\_CLIM - 1762.977500000)}{1160.207600000}\right) +  -0.041194253*\left(\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}\right) + \\
+&0.060107858*\left(\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}\right) + 
+-0.092114033*\left(\frac{(sand - 47.706485501)}{16.730875594}*\frac{(AWHC - 13.671423701)}{5.155757156}\right) + \\
+&-0.053246622*\left(\frac{(sand - 47.706485501)}{16.730875594}*\frac{(coarse - 12.799273363)}{11.332548324}\right) + 0.022969730*\left(\frac{(precipSeasonality\_CLIM - 0.923249309)}{0.245954382}*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}\right) + \\
+&0.004823926*\left(\frac{(isothermality\_WEATH - 0.538807833)}{1.422356333}\right)^2 +  
+0.011303772*\left(\frac{(precipTempCorr\_WEATH - 0.012171065)}{0.139613922}*\frac{(annWetDegDays\_WEATH - 0.02989113)}{0.243425185}\right)\big\} - 2
 \end{array}
 $$
-\*Note: Do *not* curtail values to 100
+
+AKA\* 
+forb cover percentage~ exp( 3.514178452 +  0.248393795\*((precip_CLIM - 613.900118155) / 502.187690606) + -0.052267180\*((precipSeasonality_CLIM - 0.923249309) / 0.245954382) + -0.050423003\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268) + -0.020802257\*((isothermality_CLIM- 38.120111845) / 5.019479015) +  0.041673226\*((sand - 47.706485501) / 16.730875594) +  0.059813143\*((coarse - 12.799273363) / 11.332548324) + -0.035820999\*((precipSeasonality_WEATH - -0.025697534) / 0.132964252)  +  0.051567741\*I(((precipSeasonality_CLIM - 0.923249309) / 0.245954382)^2) +  0.014241935\*I(((precipSeasonality_WEATH - -0.025697534) / 0.132964252) ^2) +  0.005274193\*I(((precipTempCorr\_WEATH - 0.012171065) / 0.139613922)^2) +-0.037700614\*(((tmean_CLIM- 10.275203571) / 4.912309147)\*((annWetDegDays_CLIM - 1762.977520092) / 1160.20756048)) + -0.041194253\*(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)\*((isothermality_CLIM- 38.120111845) / 5.019479015)) +  0.060107858\*(((isothermality_CLIM- 38.120111845) / 5.019479015)\*((tmean_CLIM- 10.275203571) / 4.912309147))+ -0.092114033\*(((sand - 47.706485501) / 16.730875594)\*((AWHC - 13.671423701) / 5.155757156)) + -0.053246622\*(((sand - 47.706485501) / 16.730875594)\*((coarse - 12.799273363) / 11.332548324)) +  0.022969730\*(((precipSeasonality_CLIM - 0.923249309) / 0.245954382)\*((tmean_CLIM- 10.275203571) / 4.912309147)) +  0.004823926\*I(((isothermality_WEATH - 0.538807833) / 1.422356333) ^2) +  0.011303772\*(((precipTempCorr\_WEATH - 0.012171065) / 0.139613922)\*((annWetDegDays_WEATH - 0.02989113) / 0.243425185))) - 2
 
 ### The proportion of total tree that is broad-leaved -- forest
 $$
 \begin{array}{cl}
-broadLeavedTreeCoverPercentage \sim &exp\big\{ 3.408 +  0.125*\frac{(tmean\_CLIM - 10.2752)}{4.9123} +  0.253*\frac{(precipDry\_CLIM - 5.0003)}{8.2054} + \\
-&0.419*\frac{(clay - 18.4894)}{9.0787}) +  0.005*\frac{(sand - 47.7065)}{16.7309} + -0.115*\frac{(carbon - 3.6819)}{6.4053} +  \\
-&0.215*\frac{(AWHC - 13.6714)}{5.1558} +  0.125*\frac{(precip\_WEATH - 0.0303)}{0.1688}  + -0.027*\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396} +\\
-&-0.139*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right)^2 + -0.221*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}:\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right) + \\
-&-0.016*\left(\frac{(precip\_CLIM- 613.9001)}{502.1877}:\frac{(isothermality\_WEATH - 0.5388)}{1.4224}\right)  +  -0.083*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(precip\_WEATH - 0.0303)}{0.1688}\right)  + \\
-&-0.003*\left(\frac{(precipDry\_CLIM - 5.0003)}{8.2054}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) + -0.111*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) + \\
-&0.059*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(precipTempCorr\_WEATH -0.0122)}{0.1396}\right) + -0.084*\left(\frac{(carbon - 3.6819)}{6.4053}:\frac{(AWHC - 13.6714)}{5.1558}\right) + \\
-&-0.011*\left(\frac{(carbon - 3.6819)}{6.4053}:\frac{(coarse - 12.7993)}{11.3325}\right) +  0.130*\left(\frac{(clay - 18.4894)}{9.0787}):\frac{(coarse - 12.7993)}{11.3325}\right) + \\
-&-0.248*\left(\frac{(sand - 47.7065)}{16.7309}:\frac{(coarse - 12.7993)}{11.3325}\right)\big\} - 2
+&broadLeavedTreeCoverPercentage \sim exp\big\{ 3.400837432 +  
+0.119928190*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147} +  
+0.254698982*\frac{(precipDry\_CLIM - 5.000260635)}{8.205443958} + \\
+&0.415003665*\frac{(clay - 18.489433548)}{9.078669938}) +  
+0.005289910*\frac{(sand - 47.706485501)}{16.730875594} + 
+-0.118297218*\frac{(carbon - 3.681945502)}{6.405262851} +  \\
+&0.216869470*\frac{(AWHC - 13.671423701)}{5.155757156} + 
+0.127567513*\frac{(precip\_WEATH - 0.030312573)}{0.168767355}  + 
+-0.030975228*\frac{(precipTempCorr\_WEATH - 0.012171065)}{0.139613922} +\\
+&-0.136571036*\left(\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right)^2 + 
+0.026270176*\left(\frac{(isothermality\_CLIM- 38.120111845)}{5.019479015}*\frac{(isothermality\_WEATH- 0.538807833)}{1.422356333}\right)  + 
+-0.218615897*\left(\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right) + \\
+&-0.013504372*\left(\frac{(isothermality\_WEATH - 0.538807833)}{1.422356333}*\frac{(precip\_CLIM- 613.900118155)}{502.187690606}\right)  + 
+-0.079997868*\left(\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}*\frac{(precip\_WEATH - 0.030312573)}{0.168767355}\right)  + \\
+&-0.001941377*\left(\frac{(precipDry\_CLIM - 5.000260635)}{8.205443958}*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right) + 
+-0.108094550*\left(\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right) + \\
+&0.056873963*\left(\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}*\frac{(precipTempCorr\_WEATH -0.012171065)}{0.139613922}\right) + 
+-0.084394634*\left(\frac{(carbon - 3.681945502)}{6.405262851}*\frac{(AWHC - 13.671423701)}{5.155757156}\right) + \\
+&-0.011095426*\left(\frac{(carbon - 3.681945502)}{6.405262851}*\frac{(coarse - 12.799273363)}{11.332548324}\right) +  
+0.126127030*\left(\frac{(clay - 18.489433548)}{9.078669938})*\frac{(coarse - 12.799273363)}{11.332548324}\right) + \\
+&-0.249606357*\left(\frac{(sand - 47.706485501)}{16.730875594}*\frac{(coarse - 12.799273363)}{11.332548324}\right)\big\} - 2
 \end{array}
 $$
-\*Note: Do *not* curtail values to 100
+AKA: 
+broadLeavedTree cover percentage~ exp( 3.400837432 +  0.119928190\*((tmean_CLIM- 10.275203571) / 4.912309147) +  0.254698982\*((precipDry_CLIM - 5.000260635) / 8.205443958) +  0.415003665\*((clay - 18.489433548) / 9.078669938) +  0.005289910\*((sand - 47.706485501) / 16.730875594) + -0.118297218\*((carbon - 3.681945502) / 6.405262851) +  0.216869470\*((AWHC - 13.671423701) / 5.155757156) +  0.127567513\*((precip_WEATH - 0.030312573) / 0.168767355)  + -0.030975228\*((precipTempCorr\_WEATH - 0.012171065) / 0.139613922) + -0.136571036\*I(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)^2) +  0.026270176\*(((isothermality_CLIM- 38.120111845) / 5.019479015)\*((isothermality_WEATH - 0.538807833) / 1.422356333))  + -0.218615897\*(((isothermality_CLIM- 38.120111845) / 5.019479015)\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + -0.013504372\*(((isothermality_WEATH - 0.538807833) / 1.422356333) \*((precip_CLIM - 613.900118155) / 502.187690606)) + -0.079997868\*(((tmean_CLIM- 10.275203571) / 4.912309147)\*((precip_WEATH - 0.030312573) / 0.168767355))  + -0.001941377\*(((precipDry_CLIM - 5.000260635) / 8.205443958)\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + -0.108094550\*(((tmean_CLIM- 10.275203571) / 4.912309147)\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) +  0.056873963\*(((tmean_CLIM- 10.275203571) / 4.912309147)\*((precipTempCorr\_WEATH - 0.012171065) / 0.139613922)) + -0.084394634\*(((carbon - 3.681945502) / 6.405262851)\*((AWHC - 13.671423701) / 5.155757156)) + -0.011095426\*(((carbon - 3.681945502) / 6.405262851)\*((coarse - 12.799273363) / 11.332548324)) +  0.126127030\*(((clay - 18.489433548) / 9.078669938)\*((coarse - 12.799273363) / 11.332548324)) + -0.249606357\*(((sand - 47.706485501) / 16.730875594)\*((coarse - 12.799273363) / 11.332548324))) - 2
 
 ### The proportion of total tree that is needle-leaved -- forest
 $$
 \begin{array}{cl}
-needleLeavedTreeCoverPercentage\sim &exp\big\{ 4.372 + -0.213*\frac{(precipDry\_CLIM - 5.0003)}{8.2054} +  0.120*\frac{(sand - 47.7065)}{16.7309} + \\
-&0.080*\frac{(carbon - 3.6819)}{6.4053} +  0.036*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right)^2 +  0.067*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}:\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right) +\\
-&-0.087*\left(\frac{(precipDry\_CLIM - 5.0003)}{8.2054}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right) + -0.042*\left(\frac{(precipDry\_CLIM - 5.0003)}{8.2054}:\frac{(tmean\_CLIM - 10.2752)}{4.9123}\right)\big\} - 2
+&needleLeavedTreeCoverPercentage\sim exp\big\{ 4.37205983 + 
+-0.21286237*\frac{(precipDry\_CLIM - 5.000260635)}{8.205443958} +  
+0.12039825*\frac{(sand - 47.706485501)}{16.730875594} + \\
+&0.07954909*\frac{(carbon - 3.681945502)}{6.405262851} + 
+0.03631508*\left(\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}\right)^2 +  
+0.06724832*\left(\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}\right) +\\
+&-0.08652516*\left(\frac{(precipDry\_CLIM - 5.000260635)}{8.205443958}*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right) + -0.04245934*\left(\frac{(precipDry\_CLIM - 5.000260635)}{8.205443958}*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}\right)\big\} - 2
 \end{array}
 $$
-\*Note: Do *not* curtail values to 100
+
+AKA: 
+needleLeavedTree cover percentage~ exp( 4.37205983 + -0.21286237\*((precipDry_CLIM - 5.000260635) / 8.205443958) + 0.12039825\*((sand - 47.706485501) / 16.730875594) +  0.07954909\*((carbon - 3.681945502) / 6.405262851) +  0.03631508\*I(((tmean_CLIM- 10.275203571) / 4.912309147)^2) + 0.06724832\*(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)\*((isothermality_CLIM- 38.120111845) / 5.019479015)) + -0.08652516\*(((precipDry_CLIM - 5.000260635) / 8.205443958)\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + -0.04245934\*(((precipDry_CLIM - 5.000260635) / 8.205443958)\*((tmean_CLIM- 10.275203571) / 4.912309147))) - 2
 
 ### The proportion of total tree that is broad-leaved -- non-forest
 $$
 \begin{array}{cl}
-broadLeavedTreeCoverPercentage\sim &exp\big\{ 3.103 +  0.282*\frac{(tmean\_CLIM - 10.2752)}{4.9123} +  0.805*\frac{(precip\_CLIM- 613.9001)}{502.1877} + \\
-&0.052*\frac{(AWHC - 13.6714)}{5.1558} + -0.036*\left(\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right)^2 + -0.068*\left(\frac{(precipTempCorr\_WEATH - 0.0122)}{0.1396}\right)^2 + \\
-&0.186*\left(\frac{(sand - 47.7065)}{16.7309}\right)^2 +  0.528*\left(frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right) + \\
-&-0.301*\left(\frac{(AWHC - 13.6714)}{5.1558}:\frac{(coarse - 12.7993)}{11.3325}\right)\big\} - 2
+&broadLeavedTreeCoverPercentage\sim exp\big\{ 3.10338252 +  
+0.28241315*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147} +  
+0.80500002*\frac{(precip\_CLIM- 613.900118155)}{502.187690606} + \\
+&0.05186862*\frac{(AWHC - 13.671423701)}{5.155757156} + 
+-0.03647871*\left(\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right)^2 + 
+-0.06790977*\left(\frac{(precipTempCorr\_WEATH - 0.012171065)}{0.139613922}\right)^2 + \\
+&0.18569895*\left(\frac{(sand - 47.706485501)}{16.730875594}\right)^2 +  
+0.52842267*\left(frac{(tmean\_CLIM - 10.275203571)}{4.912309147}*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}\right) + \\
+&-0.30139958*\left(\frac{(AWHC - 13.671423701)}{5.155757156}*\frac{(coarse - 12.799273363)}{11.332548324}\right)\big\} - 2
 \end{array}
 $$
-\*Note: Do *not* curtail values to 100
 
+AKA\* 
+broadLeavedTree cover percentage~ exp( 3.10338252 + 0.28241315\*((tmean_CLIM- 10.275203571) / 4.912309147) +  0.80500002\*((precip_CLIM - 613.900118155) / 502.187690606) + 0.05186862\*((AWHC - 13.671423701) / 5.155757156) + -0.03647871\*I(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)^2) + -0.06790977\*I(((precipTempCorr\_WEATH - 0.012171065) / 0.139613922)^2) +  0.18569895\*I(((sand - 47.706485501) / 16.730875594)^2) +  0.52842267\*(((tmean_CLIM- 10.275203571) / 4.912309147)\*((isothermality_CLIM- 38.120111845) / 5.019479015)) + -0.30139958\*(((AWHC - 13.671423701) / 5.155757156)\*((coarse - 12.799273363) / 11.332548324))) - 2
+ 
 ### The proportion of total tree that is needle-leaved -- non-forest
 $$
 \begin{array}{cl}
-needleLeavedTreeCoverPercentage\sim &exp\big\{ 4.523 + -0.190*\frac{(tmean\_CLIM - 10.2752)}{4.9123} + -0.131*\frac{(AWHC - 13.6714)}{5.1558} + \\
-&-0.032*\left(\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right)^2 + -0.252*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(annWatDef\_CLIM- 99.6312)}{85.9418} / 85.9418)\right) + \\
-&-0.244*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(Isothermality\_CLIM- 38.1201)}{5.0195}\right) + -0.324*\left(\frac{(tmean\_CLIM - 10.2752)}{4.9123}:\frac{(precipTempCorr\_CLIM- -0.121)}{0.4107}\right)\big\} - 2
+&needleLeavedTreeCoverPercentage\sim exp\big\{ 4.52324174 + 
+-0.18954119*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147} + 
+-0.13086877*\frac{(AWHC - 13.671423701)}{5.155757156} + \\
+&-0.03177446*\left(\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}\right)^2 + 
+-0.25163832*\left(\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}*\frac{(annWatDef\_CLIM- 99.631248729)}{85.941823498}\right) + \\
+&-0.24377773*\left(\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}\right) + -0.32422844*\left(\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}\right)\big\} - 2
 \end{array}
 $$
-\*Note: Do *not* curtail values to 100
+AKA: 
+needleLeavedTree cover percentage~ exp( 4.52324174 + -0.18954119\*((tmean_CLIM- 10.275203571) / 4.912309147) + -0.13086877\*((AWHC - 13.671423701) / 5.155757156) + -0.03177446\*I(((isothermality_CLIM- 38.120111845) / 5.019479015)^2) + -0.25163832\*(((tmean_CLIM- 10.275203571) / 4.912309147)\*((annWatDef_CLIM - 99.631248729) / 85.941823498)) + -0.24377773\*(((tmean_CLIM- 10.275203571) / 4.912309147)\*((isothermality_CLIM- 38.120111845) / 5.019479015)) + -0.32422844\*(((tmean_CLIM- 10.275203571) / 4.912309147)\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268))) - 2
 
 # Scale predictions of level 2 cover variables so each grouping sums to 100
 
