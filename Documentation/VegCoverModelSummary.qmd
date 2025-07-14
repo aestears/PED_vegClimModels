@@ -653,12 +653,12 @@ $$
 &C3grassCoverPercentage \sim~ exp\big\{3.904167492 + -0.284822539*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147} + -0.387430439*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268} + \\
 &-0.264775838*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015} + -0.168662971*\left(\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}\right)^2 + \\
 &-0.294089719*\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015} + 
--0.009509765*\frac{(annWetDegDays\_CLIM - 1762.977500000)}{1160.207600000}\big\} - 2
+-0.009509765*\frac{(annWetDegDays\_CLIM - 1762.977520092)}{1160.20756048}\big\} - 2
 \end{array}
 $$
 
 AKA: 
-c3 cover percentage ~ exp( 3.904167492 + -0.284822539\*((tmean_CLIM- 10.275203571) / 4.912309147) + -0.387430439\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268) + -0.264775838\*((isothermality_CLIM- 38.120111845) / 5.019479015) + -0.168662971\*I(((isothermality_CLIM- 38.120111845) / 5.019479015)^2) + -0.294089719\*(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)\*((isothermality_CLIM- 38.120111845) / 5.019479015)) + -0.009509765\*((annWetDegDays_CLIM- 1762.977500000)/1160.207600000)) - 2
+c3 cover percentage ~ exp( 3.904167492 + -0.284822539\*((tmean_CLIM- 10.275203571) / 4.912309147) + -0.387430439\*((precipTempCorr_CLIM - -0.120988193) / 0.410662268) + -0.264775838\*((isothermality_CLIM- 38.120111845) / 5.019479015) + -0.168662971\*I(((isothermality_CLIM- 38.120111845) / 5.019479015)^2) + -0.294089719\*(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)\*((isothermality_CLIM- 38.120111845) / 5.019479015)) + -0.009509765\*((annWetDegDays_CLIM- 1762.977520092)/1160.20756048)) - 2
 
 ### The proportion of total herbaceous that is C4 grass -- CONUS-wide 
 $$
@@ -686,7 +686,7 @@ $$
 0.051567741*\left(\frac{(precipSeasonality\_CLIM - 0.923249309)}{0.245954382}\right)^2 + \\ 
 &0.014241935*\left(\frac{(precipSeasonality\_WEATH - -0.025697534)}{0.132964252}\right)^2 +  
 0.005274193*\left(\frac{(precipTempCorr\_WEATH - 0.012171065)}{0.139613922}\right)^2 +\\
-&-0.037700614*\left(\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}*\frac{(annWetDegDays\_CLIM - 1762.977500000)}{1160.207600000}\right) +  -0.041194253*\left(\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}\right) + \\
+&-0.037700614*\left(\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}*\frac{(annWetDegDays\_CLIM - 1762.977520092)}{1160.20756048}\right) +  -0.041194253*\left(\frac{(precipTempCorr\_CLIM- -0.120988193)}{0.410662268}*\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}\right) + \\
 &0.060107858*\left(\frac{(Isothermality\_CLIM- 38.120111845)}{5.019479015}*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}\right) + 
 -0.092114033*\left(\frac{(sand - 47.706485501)}{16.730875594}*\frac{(AWHC - 13.671423701)}{5.155757156}\right) + \\
 &-0.053246622*\left(\frac{(sand - 47.706485501)}{16.730875594}*\frac{(coarse - 12.799273363)}{11.332548324}\right) + 0.022969730*\left(\frac{(precipSeasonality\_CLIM - 0.923249309)}{0.245954382}*\frac{(tmean\_CLIM - 10.275203571)}{4.912309147}\right) + \\

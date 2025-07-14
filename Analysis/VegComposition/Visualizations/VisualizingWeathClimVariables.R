@@ -61,32 +61,9 @@ climFigDat <- climFigDat %>%
       limits = c(0,4000)) +
       ggtitle("Annual Total Precip \nmean over previous 30 years - 2014"))
 
-
-# # swe \n mean over previous 30 years
-# # rasterize data
-# swe_rast <- climFigDat %>% 
-#   filter(Year == 2014) %>% 
-#   #slice_sample(n = 5e4) %>%
-#   
-#   #terra::vect() %>% 
-#   #terra::set.crs(crs(test_rast)) %>% 
-#   terra::rasterize(y = test_rast, 
-#                    field = "swe_meanAnnAvg_CLIM", 
-#                    
-#                    fun = mean, na.rm = TRUE) %>% 
-#   terra::crop(ext(-2000000, 2500000, -2000000, 1200000
-#   ))
-# (swe_CLIM_plotAll <- ggplot() + 
-#     tidyterra::geom_spatraster(data = swe_rast, aes(fill = mean), na.rm = TRUE) +
-#     theme_minimal() + 
-#     scale_fill_viridis_c(#option = "D", 
-#       guide = guide_colorbar(title = "mm")#, 
-#                         #limits = c(0,4000)
-#       ) +
-#     ggtitle("SWE  \n mean over previous 30 years - 2014"))
-
 rm(prcpTot_rast, clim_final)
 gc()
+
 # tmin \n mean over previous 30 years
 # rasterize data
 tmin_rast <-  climFigDat %>% 
@@ -111,6 +88,35 @@ tmin_rast <-  climFigDat %>%
     ggtitle("Annual T. min \n mean over previous 30 years - 2014"))
 
 rm(tmin_rast)
+gc()
+
+# precip of driest month \n mean over previous 30 years
+# rasterize data
+prcpDriest_rast <-  climFigDat %>% 
+  filter(year == 2014) %>% 
+  #slice_sample(n = 5e4) %>%
+  
+  #terra::vect() %>% 
+  #terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "precip_driestMonth_meanAnnAvg_CLIM", 
+                   
+                   fun = mean, na.rm = TRUE) %>% 
+  terra::crop(ext(-2000000, 2500000, -2000000, 1200000
+  ))
+(prcpDriest_CLIM_plotAll <- ggplot() + 
+    tidyterra::geom_spatraster(data = prcpDriest_rast, aes(fill = mean), na.rm = TRUE) +
+    theme_minimal() + 
+    scale_fill_viridis_c(#option = "D", 
+      guide = guide_colorbar(title = "mm")#, 
+      #limits = c(0,5)
+    ) +
+    ggtitle("Precip of the driest month \n mean over previous 30 years - 2014"))
+# prcpDriest_CLIM_density <- ggplot(clim_final) + 
+#   geom_density(aes(precip_driestMonth_meanAnnAvg_CLIM))
+# ggarrange(plotlist = list(prcpDriest_CLIM_plotAll, prcpDriest_CLIM_density), ncol = 1, heights = c(1,.5))
+
+rm(prcpDriest_CLIM_plotAll)
 gc()
 
 # tmax\n mean over previous 30 years

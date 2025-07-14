@@ -77,32 +77,37 @@ TREE_SubPlot <- TREE %>%
   summarize(HeightAvg_ft = mean(HT),
             DiaAvg_in = mean(DIA),
             basalAreaSum_in2 = sum(basalArea_in2, na.rm = TRUE),
-            Carbon_AG_sum = sum(CARBON_AG), # no na.rm in this or follow rows, 
+            Carbon_AG_subPlot_lbPerAcre = sum(CARBON_AG), # no na.rm in this or follow rows, 
             #since there are usually NAs for biomass values when there is not a 
             #species name... so those plots would have an incomplete plot-level 
             #sum of plot-level biomass if we were to remove NAs 
-            Carbon_BG_sum = sum(CARBON_BG), 
-            DryBio_stem_sum = sum(DRYBIO_STEM), 
-            DryBio_foliage_sum = sum(DRYBIO_FOLIAGE),
-            DryBio_branch_sum = sum(DRYBIO_BRANCH)
+            Carbon_BG_subPlot_lbPerAcre = sum(CARBON_BG)/0.0415417126, 
+            DryBio_stem_subPlot_lbPerAcre = sum(DRYBIO_STEM)/0.0415417126, # sum of biomass in a subplot: biomass in lbs per subplot (which is 1809.557 ft^2, or 0.0415417126 acres)
+            DryBio_foliage_subPlot_lbPerAcre = sum(DRYBIO_FOLIAGE)/0.0415417126, # sum of biomass in a subplot: biomass in lbs  per subplot (which is 1809.557 ft^2, or 0.0415417126 acres), so change to lbs/acre
+            DryBio_branch_subPlot_lbPerAcre = sum(DRYBIO_BRANCH)/0.0415417126 # sum of biomass in a subplot:biomass in lbs  per subplot (which is 1809.557 ft^2, or 0.0415417126 acres), so change to lbs/acre
   )
 
-# group by plot (values averaged within each plot--averages of summed values in each subplot w/in a plot--, grouped by species group)
+# group by plot (values averaged within each plot--averages of summed values in each subplot w/in a plot--, grouped by species group, units: lb/acre)
 TREE_Plot <- TREE_SubPlot %>% 
   group_by(PLT_CN, INVYR, STATECD, UNITCD, COUNTYCD, PLOT, CONDID, STATUSCD, group) %>% 
   summarize(Height_subpAvg_plotAvg_ft = mean(HeightAvg_ft),
             Dia_subpAvg_plotAvg_in = mean(DiaAvg_in),
             basalArea_subpSum_plotAvg_in2 = mean(basalAreaSum_in2, na.rm = TRUE),
-            Carbon_AG_subpSum_plotAvg = mean(Carbon_AG_sum), 
-            Carbon_BG_subpSum_plotAvg = mean(Carbon_BG_sum), 
-            DryBio_stem_subpSum_plotAvg = mean(DryBio_stem_sum), 
-            DryBio_foliage_subpSum_plotAvg = mean(DryBio_foliage_sum),
-            DryBio_branch_subpSum_plotAvg = mean(DryBio_branch_sum)
+            Carbon_AG_subpSum_plotAvg = mean(Carbon_AG_subPlot_lbPerAcre), 
+            Carbon_BG_subpSum_plotAvg = mean(Carbon_BG_subPlot_lbPerAcre), 
+            DryBio_stem_subpSum_plotAvg = mean(DryBio_stem_subPlot_lbPerAcre), 
+            DryBio_foliage_subpSum_plotAvg = mean(DryBio_foliage_subPlot_lbPerAcre),
+            DryBio_branch_subpSum_plotAvg = mean(DryBio_branch_subPlot_lbPerAcre)
   ) %>% ## add location information and filter for plots we don't want
   mutate(PLT_CN = as.double(PLT_CN)) %>% 
   left_join(COND[,c("PLT_CN", "INVYR", "STATECD", "UNITCD", "COUNTYCD", "PLOT", 
                     "CONDID", "PCTBARE_RMRS", "SLOPE", "ASPECT", "STATENAME", "LAT", "LON")]) %>% 
   filter(!is.na(LAT))
+
+TREE_Plot %>% 
+filter(INVYR == 2012 & !is.na(Carbon_AG_subpSum_plotAvg)) %>% 
+  ggplot() + 
+  geom_point(aes(x = LON, y = LAT, col = Carbon_AG_subpSum_plotAvg))
 
 ## make into a simpler format for us to use
 TREE_use <- TREE_Plot %>% 
@@ -150,7 +155,7 @@ vegDat <- readRDS(file = "./Data_processed/CoverData/DataForModels.RDS")
 biomassCoverDat <- TREE_use %>% 
   mutate(StateUnitCode =paste0(STATECD, "_", UNITCD, "_", COUNTYCD)) %>% 
     full_join((vegDat %>% filter(Source == "FIA"))
-            , by = c("StateUnitCode", "PLOT" = "Plot", "CONDID" = "PlotCondition", "INVYR" = "year")) %>% 
+            , by = c("StateUnitCode" = "SttUntC", "PLOT" = "Plot", "CONDID" = "PltCndt", "INVYR" = "Year")) %>% 
 ## get just the columns that we need for tree biomass and tree cover 
 select(UniquID, StateUnitCode, INVYR, Month, Day, Lat, Lon, 
        Carbon_AG_subpSum_plotAvg_Angiosperms, Carbon_AG_subpSum_plotAvg_Gymnosperms,
@@ -158,10 +163,11 @@ select(UniquID, StateUnitCode, INVYR, Month, Day, Lat, Lon,
        DryBio_stem_subpSum_plotAvg_Angiosperms, DryBio_stem_subpSum_plotAvg_Gymnosperms,
        DryBio_foliage_subpSum_plotAvg_Angiosperms, DryBio_foliage_subpSum_plotAvg_Gymnosperms,
        DryBio_branch_subpSum_plotAvg_Angiosperms, DryBio_branch_subpSum_plotAvg_Gymnosperms,
-       BroadLeavedTreeCover, NeedleLeavedTreeCover,
-       TotalTreeCover, burnedMoreThan20YearsAgo, annVPD_mean:geometry) %>% 
+       AngTrCv, CnfTrCv,
+       TtlTrCv, burnedMoreThan20YearsAgo, #annVPD_mean:
+       geometry) %>% 
   # remove data for any plots that don't have tree cover data (since that's what we're interested in)
-filter(!is.na(TotalTreeCover)) %>% 
+filter(!is.na(TtlTrCv)) %>% 
   # because we're working with tree data, remove data for any plots that have burned at all 
 filter(burnedMoreThan20YearsAgo == FALSE) %>% 
   mutate(Carbon_AG_trees = pmap_dbl(.[8:9], sum, na.rm = TRUE),
@@ -175,8 +181,30 @@ saveRDS(biomassCoverDat, "./Data_processed/BiomassQuantityData/TreeBiomassCover_
 biomassCoverDat <- readRDS("./Data_processed/BiomassQuantityData/TreeBiomassCover_withWeatherAndFireFiltering.rds")
 
 # Visualize the spread of the cover/biomass data --------------------------
-#rasterize to make visualizing easier
-test <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif")
+# get veg data
+biomassCoverDat <- st_sf(biomassCoverDat, crs = "GEOGCRS[\"NAD83\",\n    DATUM[\"North American Datum 1983\",\n        ELLIPSOID[\"GRS 1980\",6378137,298.257222101,\n            LENGTHUNIT[\"metre\",1]]],\n    PRIMEM[\"Greenwich\",0,\n        ANGLEUNIT[\"degree\",0.0174532925199433]],\n    CS[ellipsoidal,2],\n        AXIS[\"geodetic latitude (Lat)\",north,\n            ORDER[1],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n        AXIS[\"geodetic longitude (Lon)\",east,\n            ORDER[2],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n    ID[\"EPSG\",4269]]")
+# dayMet extent 
+test <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
+  terra::project(crs(biomassCoverDat))
+# add metData to the veg dat 
+# make veg data projection the same as raster data
+v <- vect(st_drop_geometry(biomassCoverDat)[,c("Lon", "Lat")], geom = c("Lon", "Lat"), crs=crs(biomassCoverDat))
+y <- project(v, crs(test))
+# make sure the veg data is in the appropriate projection
+biomassCoverDat <- biomassCoverDat %>%
+  #st_buffer(.01) %>%
+  #terra::vect() #%>%
+  sf::st_transform(crs(y)) %>% 
+  # st_buffer(.1)
+  st_centroid() %>% 
+  mutate("Year_char" = as.character(INVYR)) %>% 
+  select(INVYR, Year_char, UniquID, Month, Day, Lat:DryBio_branch_trees)
+
+
+# make sure the raster data is in the appropriate projection
+test <- test %>%
+  terra::project(crs(y))
+st_crs(biomassCoverDat) == st_crs(test)
 
 ## visualize above ground carbon data
 biomassCoverDat_temp <- biomassCoverDat %>% 
@@ -188,7 +216,7 @@ years <-as.matrix(unique(biomassCoverDat_temp$INVYR))
 biomassCoverDat_rast <- apply(years, MARGIN = 1, function(x) {
   rast <- terra::rasterize(terra::vect(biomassCoverDat_temp[biomassCoverDat_temp$INVYR == x,]), field = "DryBio_foliage_trees",
                    y = test, fun = mean, na.rm = TRUE) %>% 
-    terra::aggregate(fact = 64, fun = "mean", na.rm = TRUE) %>% 
+    terra::aggregate(fact = 12, fun = "mean", na.rm = TRUE) %>% 
     terra::crop(ext(-2000000, 2500000, -2000000, 1200000))
   return(rast)
 })
@@ -205,7 +233,7 @@ ggplot() +
 
 ## visualize stem + foliage + branch biomass ( a lot of plots don't have stem and branch, only foliage, which is why there are fewer data points)
 biomassDryBio_temp <- biomassCoverDat %>% 
-  mutate(DryBio_stemFoliageBranch =(DryBio_stem_subpSum_plotAvg + DryBio_foliage_subpSum_plotAvg + DryBio_branch_subpSum_plotAvg)) %>% 
+  mutate(DryBio_stemFoliageBranch =(DryBio_stem_trees + DryBio_foliage_trees + DryBio_branch_trees)) %>% 
   select(INVYR, DryBio_stemFoliageBranch, geometry) %>% 
   st_as_sf() %>% 
   st_cast("POINT")
@@ -216,7 +244,7 @@ biomassDryBio_rast <- apply(years, MARGIN = 1, function(x) {
   rast <- terra::rasterize(terra::vect(biomassDryBio_temp[biomassDryBio_temp$INVYR == x,]), 
                            field = "DryBio_stemFoliageBranch",
                            y = test, fun = mean, na.rm = TRUE) %>% 
-    terra::aggregate(fact = 64, fun = "mean", na.rm = TRUE) %>% 
+    terra::aggregate(fact = 12, fun = "mean", na.rm = TRUE) %>% 
     terra::crop(ext(-2000000, 2500000, -2000000, 1200000))
   return(rast)
 })

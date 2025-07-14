@@ -21,21 +21,21 @@ coverDat <- readRDS("./Data_processed/CoverData/DataForModels.rds") %>%
 # find plots w/ high amount of shrub cover --------------------------------
 shrubCover_temp <- coverDat %>% 
   st_drop_geometry %>% 
-  mutate(totalCoverPerc  = rowSums(.[c("ShrubCover", "TotalTreeCover", "CAMCover", "TotalHerbaceousCover")],
+  mutate(totalCoverPerc  = rowSums(.[c("ShrbCvr", "TtlTrCv", "TtlHrbC")],
                                   na.rm = TRUE)) %>% 
-  mutate(ShrubPercent = ShrubCover/totalCoverPerc*100) %>% 
+  mutate(ShrubPercent = ShrbCvr/totalCoverPerc*100) %>% 
   st_set_geometry(st_geometry(coverDat))
 
 ggplot(shrubCover_temp[1:10000,]) + 
-  geom_sf(aes(fill = ShrubCover)) + 
-  geom_point(aes(x = Lon, y = Lat, color = ShrubCover))
+  geom_sf(aes(fill = ShrbCvr)) + 
+  geom_point(aes(x = Lon, y = Lat, color = ShrbCvr))
 
 shrubCov <- shrubCover_temp[shrubCover_temp$ShrubPercent>90 & !is.na(shrubCover_temp$ShrubPercent),]
 #11,640 data points
 table(shrubCov$Source)
 
 ggplot(shrubCov) + 
-  geom_point(aes(x = Lon, y=Lat, col = ShrubCover)) + 
+  geom_point(aes(x = Lon, y=Lat, col = ShrbCvr)) + 
   facet_wrap(~Year) + 
   ggtitle("Locations with >90% absolute shrub cover by year", 
           subtitle = "56916 plots total -- FIA: 1577; LANDFIRE: 49057; AIM: 4225; RAP: 2057")
@@ -44,10 +44,10 @@ ggplot(shrubCov) +
 
 # save shrub points -------------------------------------------------------
 shrubSave <- shrubCov %>% 
-  select(Year, Lat, Lon, ShrubCover, geometry)
+  select(Year, Lat, Lon, ShrbCvr, geometry)
 
 st_write(shrubSave, dsn = "./Data_processed/BiomassQuantityData/pointsWithManyShrubs/", 
-         layer = "shrubPoints", driver = "ESRI shapefile", append = TRUE)
+         layer = "ShrbCvr", driver = "ESRI shapefile", append = TRUE)
 
 
 # based on total aboveground biomass from Spawn et al., 2020 --------------
