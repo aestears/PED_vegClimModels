@@ -258,3 +258,43 @@ ggplot() +
   scale_fill_viridis_c(option = "turbo", na.value = "white") + 
   facet_wrap(~lyr)
 
+
+
+# Get Tiled Biomass Data --------------------------------------------------
+FIAbiomass <- st_read(dsn = "./Data_raw/FIA_Forest_Biomass_Estimates_1873/data/CONUSbiohex2020/", layer = "CONUSbiohex2020")
+# get dayMet extent
+# dayMet extent 
+test <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") 
+
+# change the crs of the FIA biomass to be the same as dayMet
+FIAbiomass_2 <- FIAbiomass %>% 
+  sf::st_transform(crs = crs(test)) %>% 
+  select(#CRM_LIVE, DRYBIOT_LI, 
+         JENK_LIVE, EST_SAMPLE, AVG_INVYR) %>% 
+  # rasterize
+  terra::vect() %>% 
+  terra::rasterize(y = test, field = "JENK_LIVE", fun = "mean")
+
+FIAbiomass_years <- FIAbiomass %>% 
+  sf::st_transform(crs = crs(test)) %>% 
+  select(#CRM_LIVE, DRYBIOT_LI, 
+    JENK_LIVE, EST_SAMPLE, AVG_INVYR) %>% 
+  # rasterize
+  terra::vect() %>% 
+  terra::rasterize(y = test, field = "AVG_INVYR", fun = "mean")
+
+FIAbiomass_2 <- c(FIAbiomass_2, FIAbiomass_years)
+  
+## fields we want 
+# "CRM_LIVE"	CRM_LIVE	Mg ha-1	Aboveground biomass of live trees (≥2.54 cm diameter) on forest land per hectare of sampled area using FIA component ratio method (CRM).
+# "DRYBIOT_LI"	DRYBIOT_LIVE	Mg ha-1	Aboveground biomass of live trees (≥2.54 cm diameter) on forest land per hectare of sampled area using retired FIA regional methods.
+# "JENK_LIVE"	JENK_LIVE	Mg ha-1	Aboveground biomass of live trees (≥2.54 cm diameter) on forest land per hectare of sampled area using the Jenkins equations.
+# "EST_SAMPLE"	EST_SAMPLED_HA	ha	Sampled hectares in the hexagon.
+# "AVG_INVYR"	AVG_INVYR	year	Average of year of field sampling
+
+## I think we want the Jenkins equations?? https://research.fs.usda.gov/treesearch/42790 indicates they are better than CRM? 
+
+## save
+terra::writeRaster(FIAbiomass_2, filename = "./Data_processed/BiomassQuantityData/FIA_biomassRaster.tif")
+
+
