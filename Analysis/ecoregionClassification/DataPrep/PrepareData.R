@@ -13,8 +13,9 @@ library(tidyverse)
 # load data ---------------------------------------------------------------
 
 # load dayMet climate data that has been processed in '03_GettingWeatherData.R'
+RDS(climDat, "./Data_processed/EcoregionData/Biomass_dayMetClimateValuesForAnalysis_final.rds")
 climDat <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Data_processed/EcoregionData/ECOREGIONS_dayMetClimateValuesForAnalysis_final.rds")
-
+#readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Data_processed/EcoregionData/Biomass_dayMetClimateValuesForAnalysis_final.rds")
 # load ecoregion data
 regions <- sf::st_read(dsn = "./Data_raw/Level1Ecoregions/", layer = "NA_CEC_Eco_Level1")
 
@@ -23,7 +24,7 @@ soilRast <- readRDS("./Data_processed/SoilsRaster.rds")
 
 # add ecoregion classification to climate data  ---------------------------
 
-climDat_use <- climDat[climDat$year == 2011,]
+climDat_use <- climDat[climDat$year == 201,]
 rm(climDat)
 gc()
 

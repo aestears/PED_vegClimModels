@@ -60,6 +60,13 @@ COND <- COND_temp2 %>%
   filter(!(STATEABB %in% c("VI", "PR", "PW", "MP", "MH", "GU", "FM", "AS", "HI", "AK"))) # remove data for Alaska and islands
 
 
+COND %>% 
+  filter(!is.na(CARBON_UNDERSTORY_AG)) %>% 
+  filter(CARBON_UNDERSTORY_AG < 20 ) %>% 
+ggplot()  + 
+ # geom_density(aes(x = CARBON_UNDERSTORY_AG))
+  geom_point(aes(x = LON, y = LAT, col =  CARBON_UNDERSTORY_AG))
+
 # Get tree biomass data from the TREE table -------------------------------
 # previously generated in "./Analysis/VegComposition/DataPrep/01_FIA_DataWrangling.R"
 TREE <- readRDS(file = "./Data_raw/FIA/TREEtable.RDS")

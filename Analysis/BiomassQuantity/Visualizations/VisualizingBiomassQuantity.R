@@ -109,27 +109,7 @@ GEDIdifferenceSpawn <- GEDIBiomass_trim- spawnBiomass_trim$aboveground_biomass_h
                          midpoint = 0, #limits = c( -407,235),  
                          na.value = "lightgrey") )
 
-# Put all plots together  -------------------------------------------------
-#pdf(file = "./Figures/soilsFigDatFigures/TotalTreeFigures.pdf", width = 11, height = 3.75, compress = FALSE)
-# tree figures
-ggarrange(spawnBiomass_plot, 
-          RAPbiomass_plot, 
-          FIAbiomass_plot, leftoverBiomass_Spawn,
-          ncol = 1, 
-          nrow = 4) %>% 
-  ggexport(
-    filename = "./Figures/BiomassExplorationFigures_compareToSpawn.pdf", 
-    width = 9, height = 25)
 
-    ggarrange(GEDIBiomass_plot, 
-          RAPbiomass_plot, 
-          FIAbiomass_plot, leftoverBiomass_GEDI,
-          ncol = 1, 
-          nrow = 4) %>% 
-  ggexport(
-    filename = "./Figures/BiomassExplorationFigures_compareToGEDI.pdf", 
-    width = 9, height = 25)
-    
 
 # Comparing biomass as percentages ---------------------------------------
 # % difference between Spawn and RAP + FIA
@@ -171,5 +151,29 @@ ggarrange(spawnBiomass_plot,
                              #mid = "white" ,
                              high = "orange" ,limits = c(-100,100),  
                              na.value = "lightgrey") )
+    
+    
+    # Put all plots together  -------------------------------------------------
+    #pdf(file = "./Figures/soilsFigDatFigures/TotalTreeFigures.pdf", width = 11, height = 3.75, compress = FALSE)
+    # tree figures
+    ggarrange(spawnBiomass_plot, 
+              RAPbiomass_plot, 
+              FIAbiomass_plot, leftoverBiomass_Spawn,
+              leftoverBiomass_Spawn_percDiff,
+              ncol = 1, 
+              nrow = 5) %>% 
+      ggexport(
+        filename = "./Figures/BiomassExplorationFigures_compareToSpawn.pdf", 
+        width = 9, height = 25)
+    
+    ggarrange(GEDIBiomass_plot, 
+              RAPbiomass_plot, 
+              FIAbiomass_plot, leftoverBiomass_GEDI,
+              leftoverBiomass_GEDI_percDiff,
+              ncol = 1, 
+              nrow = 5) %>% 
+      ggexport(
+        filename = "./Figures/BiomassExplorationFigures_compareToGEDI.pdf", 
+        width = 9, height = 25)
     
     

@@ -7069,3 +7069,35 @@ ggarrange(herbMap_as, herbMap_ds, herbCompareMap,
   annotate_figure(fig.lab = "Comparing relativized predictions from current models to previous SOILWAT data", fig.lab.size = 20)
 ```
 
+# Now, save predicted data 
+```{r}
+# level 1 cover data 
+# shrub cover predicted CONUS-wide with contemporary dayMet data
+names(contempScaledPreds_maps[[1]]$rast) <- "shrubCover"
+# bare ground cover predicted CONUS-wide with contemporary dayMet data
+names(contempScaledPreds_maps[[2]]$rast) <- "bareGroundCover"
+
+# level 2 cover data
+# C3 graminoid cover
+names(contemp_cover2_ScaledPreds_maps[[1]]$rast) <- "C3GramCover"
+# C4 graminoid cover
+names(contemp_cover2_ScaledPreds_maps[[2]]$rast) <- "C4GramCover"
+# forb cover
+names(contemp_cover2_ScaledPreds_maps[[3]]$rast) <- "forbCover"
+# broad leaved tree cover
+names(contemp_cover2_ScaledPreds_maps[[4]]$rast) <- "broadLeavedTreeCover"
+# needle leaved cover 
+names(contemp_cover2_ScaledPreds_maps[[5]]$rast) <- "needleLeavedTreeCover"
+
+predictedCover_contempData <- c(contempScaledPreds_maps[[1]]$rast, 
+                                contempScaledPreds_maps[[2]]$rast,
+                                contemp_cover2_ScaledPreds_maps[[1]]$rast, 
+                                contemp_cover2_ScaledPreds_maps[[2]]$rast, 
+                                contemp_cover2_ScaledPreds_maps[[3]]$rast, 
+                                contemp_cover2_ScaledPreds_maps[[4]]$rast, 
+                                contemp_cover2_ScaledPreds_maps[[5]]$rast)
+
+terra::writeRaster(x = predictedCover_contempData, 
+                   filename = "../../../Data_processed/CoverData/ModelPredictionData/ModelPreds_ContempClimateData_dayMetScale.tif")
+```
+
