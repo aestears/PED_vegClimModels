@@ -58,6 +58,8 @@ Figures/
 *.html
 
 # model output files
+/Analysis/BiomassQuantity/Analysis/models/
+./Analysis/BiomassQuantity/Analysis/models/
 /Analysis/ecoregionClassification/ModelFitting/ModelObjects/
 ./Analysis/ecoregionClassification/ModelFitting/ModelObjects/
 ./Analysis/VegComposition/ModelFitting/models/
