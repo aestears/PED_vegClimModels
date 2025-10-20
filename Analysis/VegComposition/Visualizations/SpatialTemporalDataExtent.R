@@ -21,7 +21,7 @@ vegCovDat <- vegCovDat %>%
          ShrubCover = ShrbCvr,
          TotalTreeCover = TtlTrCv, 
          TotalHerbaceousCover = TtlHrbC, 
-         CAMCover  = CAMCovr, 
+         #CAMCover  = CAMCovr, 
          BareGroundCover = BrGrndC, 
          ForbCover_prop = FrbCvr_,
          C3Cover_prop = C3GrmC_,
@@ -51,14 +51,15 @@ vegCovDat <- vegCovDat %>%
 # scenario 1 - climate window of 10-30 years (data from 1990 onward)
 dat_s1 <- vegCovDat %>% 
   st_drop_geometry() %>% 
-  dplyr::select(Source, Year, ShrubCover, TotalTreeCover, CAMCover, TotalHerbaceousCover, BareGroundCover,
+  dplyr::select(Source, Year, ShrubCover, TotalTreeCover, #CAMCover, 
+                TotalHerbaceousCover, BareGroundCover,
                 BroadleavedTreeCover_prop, NeedleLeavedTreeCover_prop, C4Cover_prop, C3Cover_prop, ForbCover_prop) %>%
   #drop_na()  %>% 
   filter(Year >=1990)  %>% 
   group_by(Source)%>% 
   dplyr::summarize(ShrubCover = sum(!is.na(ShrubCover)) ,
                    TotalTreeCover = sum(!is.na(TotalTreeCover)),
-                   CAMCover = sum(!is.na(CAMCover)),
+                   #CAMCover = sum(!is.na(CAMCover)),
                    TotalHerbaceousCover = sum(!is.na(TotalHerbaceousCover)),
                    BareGroundCover = sum(!is.na(BareGroundCover)),
                    BroadleavedTreeCover_prop = sum(!is.na(BroadleavedTreeCover_prop)),
@@ -72,14 +73,15 @@ dat_s1 <- vegCovDat %>%
 # scenario 2 - climate window of 15-30 years (data from 1990 onward)
 dat_s2 <- vegCovDat %>% 
   st_drop_geometry() %>% 
-  dplyr::select(Source, Year, ShrubCover, TotalTreeCover, CAMCover, TotalHerbaceousCover, BareGroundCover,
+  dplyr::select(Source, Year, ShrubCover, TotalTreeCover, #CAMCover, 
+                TotalHerbaceousCover, BareGroundCover,
                 BroadleavedTreeCover_prop, NeedleLeavedTreeCover_prop, C4Cover_prop, C3Cover_prop, ForbCover_prop) %>%
   #drop_na()  %>% 
   filter(Year >=1995)  %>% 
   group_by(Source) %>% 
   dplyr::summarize(ShrubCover = sum(!is.na(ShrubCover)) ,
                    TotalTreeCover = sum(!is.na(TotalTreeCover)),
-                   CAMCover = sum(!is.na(CAMCover)),
+                   #CAMCover = sum(!is.na(CAMCover)),
                    TotalHerbaceousCover = sum(!is.na(TotalHerbaceousCover)),
                    BareGroundCover = sum(!is.na(BareGroundCover)),
                    BroadleavedTreeCover_prop = sum(!is.na(BroadleavedTreeCover_prop)),
@@ -93,14 +95,15 @@ dat_s2 <- vegCovDat %>%
 # scenario 3 - climate window of 20-30 years (data from 1990 onward)
 dat_s3 <- vegCovDat %>% 
   st_drop_geometry() %>% 
-  dplyr::select(Source, Year, ShrubCover, TotalTreeCover, CAMCover, TotalHerbaceousCover, BareGroundCover,
+  dplyr::select(Source, Year, ShrubCover, TotalTreeCover, #CAMCover, 
+                TotalHerbaceousCover, BareGroundCover,
                 BroadleavedTreeCover_prop, NeedleLeavedTreeCover_prop, C4Cover_prop, C3Cover_prop, ForbCover_prop) %>%
   #drop_na()  %>% 
   filter(Year >=2000)  %>% 
   group_by(Source) %>% 
   dplyr::summarize(ShrubCover = sum(!is.na(ShrubCover)) ,
                    TotalTreeCover = sum(!is.na(TotalTreeCover)),
-                   CAMCover = sum(!is.na(CAMCover)),
+                   #CAMCover = sum(!is.na(CAMCover)),
                    TotalHerbaceousCover = sum(!is.na(TotalHerbaceousCover)),
                    BareGroundCover = sum(!is.na(BareGroundCover)),
                    BroadleavedTreeCover_prop = sum(!is.na(BroadleavedTreeCover_prop)),
@@ -114,14 +117,15 @@ dat_s3 <- vegCovDat %>%
 # scenario 4 - climate window of 25-30 years (data from 1990 onward)
 dat_s4 <- vegCovDat %>% 
   st_drop_geometry() %>% 
-  dplyr::select(Source, Year, ShrubCover, TotalTreeCover, CAMCover, TotalHerbaceousCover, BareGroundCover,
+  dplyr::select(Source, Year, ShrubCover, TotalTreeCover, #CAMCover, 
+                TotalHerbaceousCover, BareGroundCover,
                 BroadleavedTreeCover_prop, NeedleLeavedTreeCover_prop, C4Cover_prop, C3Cover_prop, ForbCover_prop) %>%
   #drop_na()  %>% 
   filter(Year >=2005)  %>% 
   group_by(Source) %>% 
   dplyr::summarize(ShrubCover = sum(!is.na(ShrubCover)) ,
                    TotalTreeCover = sum(!is.na(TotalTreeCover)),
-                   CAMCover = sum(!is.na(CAMCover)),
+                   #CAMCover = sum(!is.na(CAMCover)),
                    TotalHerbaceousCover = sum(!is.na(TotalHerbaceousCover)),
                    BareGroundCover = sum(!is.na(BareGroundCover)),
                    BroadleavedTreeCover_prop = sum(!is.na(BroadleavedTreeCover_prop)),
@@ -179,21 +183,21 @@ ggplot() +
     theme_classic())
 
 # CAM cover 
-(camYears_s1 <- vegCovDat %>% 
-    dplyr::select(Source, Year, CAMCover) %>%
-    drop_na()  %>% 
-    filter(Year >=1990) %>% 
-    ggplot() + 
-    geom_vline(aes(xintercept = 1995), col = "orange") + 
-    geom_vline(aes(xintercept = 2000), col = "green") + 
-    geom_vline(aes(xintercept = 2005), col = "blue") + 
-    geom_text(data = dat_sAll[dat_sAll$variable == "CAMCover",], aes(x = 1997, y = 0.15, label = percRemaining_s1tos2), col = "orange") +
-    geom_text(data = dat_sAll[dat_sAll$variable == "CAMCover",], aes(x = 2002, y = 0.15, label = percRemaining_s1tos3), col = "green") +
-    geom_text(data = dat_sAll[dat_sAll$variable == "CAMCover",], aes(x = 2007, y = 0.15, label = percRemaining_s1tos4), col = "blue") +
-    geom_density(aes(Year)) + 
-    facet_wrap(~Source, ncol = 1) + 
-    ggtitle("Years when we have CAM cover data, by data source") + 
-    theme_classic())
+# (camYears_s1 <- vegCovDat %>% 
+#     dplyr::select(Source, Year, CAMCover) %>%
+#     drop_na()  %>% 
+#     filter(Year >=1990) %>% 
+#     ggplot() + 
+#     geom_vline(aes(xintercept = 1995), col = "orange") + 
+#     geom_vline(aes(xintercept = 2000), col = "green") + 
+#     geom_vline(aes(xintercept = 2005), col = "blue") + 
+#     geom_text(data = dat_sAll[dat_sAll$variable == "CAMCover",], aes(x = 1997, y = 0.15, label = percRemaining_s1tos2), col = "orange") +
+#     geom_text(data = dat_sAll[dat_sAll$variable == "CAMCover",], aes(x = 2002, y = 0.15, label = percRemaining_s1tos3), col = "green") +
+#     geom_text(data = dat_sAll[dat_sAll$variable == "CAMCover",], aes(x = 2007, y = 0.15, label = percRemaining_s1tos4), col = "blue") +
+#     geom_density(aes(Year)) + 
+#     facet_wrap(~Source, ncol = 1) + 
+#     ggtitle("Years when we have CAM cover data, by data source") + 
+#     theme_classic())
 
 # herb + grass cover
 (herbaceousYears_S1 <- vegCovDat %>% 
@@ -301,7 +305,8 @@ ggplot() +
 
 
 
-(plots <- ggarrange(ggarrange(shrubYears_s1, forestYears_s1, camYears_s1, herbaceousYears_S1, ncol = 1),
+(plots <- ggarrange(ggarrange(shrubYears_s1, forestYears_s1, #camYears_s1, 
+                              herbaceousYears_S1, ncol = 1),
                     ggarrange(
                     broadLeavedTreeYears_s1, needleLeavedTreeYears_S1, forbYears_s1, c3Years_s1, c4Years_s1, ncol = 1)
 ) %>% 
@@ -317,11 +322,28 @@ ggplot() +
 
 
 
-## save figure
+# save images -------------------------------------------------------------
+
 bitmap(file = "./Figures/CoverDatFigures/TemporalExtentOfCoverData.bmp", 
        width = 18, height = 15, res = 200)
 plots
 dev.off()
-# save images -------------------------------------------------------------
 
+
+# Make maps of data extent by source --------------------------------------
+coverDat <- 
+  readRDS( file = "./Data_processed/CoverData/DataForModels.RDS")
+
+coverDat[coverDat$Source== "LDC",]$Source <- "AIM"
+  
+library(tigris)
+
+stateShapes <- tigris::states() %>% 
+  filter(!(NAME %in% c("Alaska", "Commonwealth of the Northern Mariana Islands", "Puerto Rico", "American Samoa", "Hawaii", "Guam", "United States Virgin Islands")))
+
+ggplot() + 
+  geom_sf(data = stateShapes) +
+  geom_sf(data = coverDat, aes(col = Source)) + 
+  facet_wrap(~Source) +
+  theme_classic()
 

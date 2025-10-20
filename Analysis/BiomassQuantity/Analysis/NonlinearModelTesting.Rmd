@@ -1,0 +1,728 @@
+---
+title: "Basic testing of nonlinear model approach for total biomass"
+author: "Alice Stears"
+date: "`r lubridate::today()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+    code_folding: hide
+params:
+  readParams: TRUE
+  coverType: shrubCover
+  ecoregion: dryShrubGrassi # dryShrubGrass
+  trimPreds: TRUE
+  trimThreshold: 0.95
+  curtailResponse: FALSE
+---
+
+Set user defined parameters
+```{r}
+coverType <- params$coverType
+ecoregion <- params$ecoregion
+trimPreds <- params$trimPreds
+curtailResponse <- params$curtailResponse
+trimThreshold <- params$trimThreshold
+# print
+print(paste0("For this model run, the ecoregion is ", ecoregion," and the cover type used as a predictor is ", coverType,"."))
+if(trimPreds == TRUE) {
+  print(paste0("Also, skewed predictors (carbon, coarse, precip of wettest month and precip of driest month, precip, annual water deficit) are trimmed to remove the highest ", (1-trimThreshold)*100,"% of values"))
+}
+```
+
+Load packages and data 
+```{r}
+# load packages -----------------------------------------------------------
+library(tidyverse)
+library(gnm)
+library(terra) 
+library(tidyterra)
+library(patchwork) 
+library(sf)
+
+# source custom functions
+source("../../../Functions/glmTransformsIterates.R")
+source("../../../Functions/transformPreds.R")
+
+# set ggplot2 theme
+theme_set(theme_classic())
+# load data ---------------------------------------------------------------
+
+dat_temp <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Data_processed/BiomassQuantityData/dataForAnalysis_fireAndDevelopmentRemoved.rds")
+
+# get only total biomass from GEDI
+dat <- dat_temp %>% 
+  filter(biomassSource == "GEDI") %>% 
+  sf::st_drop_geometry() %>% 
+  drop_na(shrubCover) # remove observations from areas that have no cover values (coasts, islands, etc.)
+
+# make min. biomass value not 0
+# dat[dat$biomass_MgPerHect == 0 & !is.na(dat$biomass_MgPerHect), "biomass_MgPerHect"] <- 
+#   dat[dat$biomass_MgPerHect == 0 & !is.na(dat$biomass_MgPerHect), "biomass_MgPerHect"] + .001
+
+# # try transforming the model response
+#  dat[, "totalBiomass_MgHect"] + 2
+# log transform the extremely skewed predictors (carbon, coarse, precip of wettest month and precip of driest month, annual water deficit)
+dat <- dat %>% 
+  mutate(carbon = log(carbon+1), 
+         coarse = log(coarse+1), 
+         prcp = log(prcp+1), 
+         prcp_wet = log(prcp_wet+1),
+         prcp_dry = log(prcp_dry+1), 
+         annWatDef = log(annWatDef+1))
+
+#if relevant, trim highest 5% of predictors that are skewed after log transforming but before scaling
+if (trimPreds == TRUE) {
+   #variables to trim: carbon, coarse, precip of wettest month and precip of driest month, annual water deficit, and precip
+  dat[dat$carbon > quantile(dat$carbon, probs = trimThreshold, na.rm = TRUE) & !is.na(dat$carbon), "carbon"] <- NA
+  
+  dat[dat$coarse > quantile(dat$coarse, probs = trimThreshold, na.rm = TRUE) & !is.na(dat$coarse), "coarse"] <- NA
+  
+  dat[dat$prcp_wet > quantile(dat$prcp_wet, probs = trimThreshold, na.rm = TRUE) & !is.na(dat$prcp_wet), "prcp_wet"] <- NA
+  
+  dat[dat$prcp_dry > quantile(dat$prcp_dry, probs = trimThreshold, na.rm = TRUE) & !is.na(dat$prcp_dry), "prcp_dry"] <- NA
+  
+  dat[dat$annWatDef > quantile(dat$annWatDef, probs = trimThreshold, na.rm = TRUE) & !is.na(dat$annWatDef), "annWatDef"] <- NA
+  
+  dat[dat$prcp > quantile(dat$prcp, probs = trimThreshold, na.rm = TRUE) & !is.na(dat$prcp), "prcp"] <- NA
+
+  }
+
+dat <- dat %>% 
+  drop_na(c(tmin:frostFreeDays, soilDepth:AWHC))
+
+# scale the predictors
+name_lookup <- c(
+  tmean_s = "tmean", 
+  prcpTempCorr_s = "prcpTempCorr", 
+  isothermality_s = "isothermality",
+  annWatDef_s ="annWatDef",
+  prcp_s = "prcp", 
+  prcp_seasonality_s = "prcp_seasonality", 
+  prcp_dry_s = "prcp_dry", 
+  annWetDegDays_s = "annWetDegDays",
+  t_warm_s = "t_warm", 
+  t_cold_s = "t_cold",
+  prcp_wet_s = "prcp_wet", 
+  soilDepth_s = "soilDepth", 
+  sand_s = "sand", 
+  coarse_s = "coarse",
+  AWHC_s = "AWHC", 
+  clay_s = "clay", 
+  carbon_s = "carbon")
+
+dat_scaled <- dat %>% 
+  select(tmean, prcpTempCorr, isothermality, annWatDef,
+         prcp, prcp_seasonality, prcp_dry, annWetDegDays,
+         t_warm, t_cold, prcp_wet, soilDepth, sand, coarse, AWHC, clay, carbon) %>% 
+  dplyr::rename(all_of(name_lookup)) %>% 
+  scale() 
+
+dat <- dat %>% 
+  cbind(dat_scaled) %>% 
+  #select(1:40,43:65) %>% 
+  mutate(totalTreeCover = broadLeavedTreeCover + needleLeavedTreeCover, # calculate total tree and herbaceous cover
+         totalHerbaceousCover = C3GramCover + C4GramCover + forbCover)
+
+## fix issue with forest ecoregion naming
+levels(dat$newRegion) <- c(levels(dat$newRegion), "forest")
+dat[dat$newRegion %in% c("eastForest", "westForest"), "newRegion"] <- "forest"
+```
+
+Look at input data for climate and soils predictors
+```{r}
+scaleFigDat_1 <- dat %>% 
+  dplyr::select(c(#Long, Lat, Year, 
+    Long, Lat, tmean, prcpTempCorr, isothermality, annWatDef,
+         prcp, prcp_seasonality, prcp_dry, annWetDegDays,
+         t_warm, t_cold, prcp_wet, soilDepth, sand, coarse, AWHC, clay, carbon)) %>% 
+  pivot_longer(cols = c(tmean, prcpTempCorr, isothermality, annWatDef,
+         prcp, prcp_seasonality, prcp_dry, annWetDegDays,
+         t_warm, t_cold, prcp_wet, soilDepth, sand, coarse, AWHC, clay, carbon), 
+               names_to = "predNames", 
+               values_to = "predValues_unScaled")
+scaleFigDat_2 <- dat %>% 
+  dplyr::select(c(#Long, Lat, Year, 
+    Long, Lat, tmean_s:carbon_s)) %>% 
+  pivot_longer(cols = c(tmean_s:carbon_s), 
+               names_to = "predNames", 
+               values_to = "predValues_scaled", 
+               names_sep = ) %>% 
+  mutate(predNames = str_replace(predNames, pattern = "_s$", replacement = ""))
+
+scaleFigDat_3 <- scaleFigDat_1 %>% 
+  left_join(scaleFigDat_2)
+
+ggplot(scaleFigDat_3) + 
+  facet_wrap(~predNames, scales = "free") +
+  geom_histogram(aes(predValues_unScaled), fill = "lightgrey", col = "darkgrey") + 
+  geom_histogram(aes(predValues_scaled), fill = "lightblue", col = "blue") +
+  xlab ("predictor variable values") + 
+  ggtitle("Comparing the distribution of unscaled (grey) to scaled (blue) predictor variables") + 
+  theme_classic()
+```
+(From Daniel):
+"
+What we ultimately want from these models is information about this relationship like this: $biomass(type_i, pixel_j) \sim predictors_{ij}$
+
+However, we don't have $biomass(type_i, .)$; we do have $totalBiomass$ and $cover(type_i, .)$. Even though the relationship between cover and biomass is not ideal at high cover value as we have discussed a little while ago, it may be what is available to us. This would look like: $biomass(type_i, pixel_j) \sim biomassTotal(pixel_j) * allometricFraction(type_i, cover_i)$
+
+Instead of scouring the literature for such biomass ~ cover relationships for each of our 6 types, how would it work if we fit that relationship in the same model fitting as biomass ~ predictors? Along the lines of: $biomassTotal(pixel_j) * allometricFraction(type_i, cover_i) \sim predictors_{ij}$
+
+We probably want a saturating relationship for allometricFraction(), potentially as simple as
+$allometricFraction(type_i, cover) \sim 1e-4 + ((1 + b^2 + 100) * ( cover))/( 100 * (1 + b^2 + cover)$
+
+Potentially, we could consider separate relationships for the non-tree types in the presence of trees (or simply in our "forest" ecoregion) to separate out understory conditions from "real" grasslands/shrublands.
+"
+
+Rewritten, this equation is $biomassTotal(pixel_j) \sim predictors_{ij} *{1e-4 + (100 * (1 + b^2 + cover )) / ((1 + b^2 + 100) * ( cover  ))) }$
+
+To model this, we need to use a non-linear approach because of the nonlinear transformation of cover. Below is a basic attempt to fit a model using totalTreeCover and scaled climate and soils predictors. Because the response variable, biomass, is distributed between (0,Inf), I used a Gamma distribution with a log link as the model family. I also used the gnm R package.
+
+```{r}
+# specify model with gnm --------------------------------------------------
+#μ=(β 1⋅climate+β2⋅soils)⋅f(cover;β3,β4)
+# Here, climate and soils have linear effects (beta1, beta2) while beta3, beta4 are estimated through Nonlin().
+if (ecoregion == "CONUS") {
+  dat_cover <- dat %>% 
+  select(biomass_MgPerHect, all_of(coverType), tmean_s, prcpTempCorr_s, isothermality_s, annWatDef_s,
+         prcp_s, prcp_seasonality_s, prcp_dry_s, annWetDegDays_s,
+         t_warm_s, t_cold_s, prcp_wet_s, soilDepth_s, sand_s, coarse_s,
+         AWHC_s, clay_s, carbon_s, Long, Lat, newRegion, tmean, prcpTempCorr, isothermality, annWatDef,
+         prcp, prcp_seasonality, prcp_dry, annWetDegDays,
+         t_warm, t_cold, prcp_wet, soilDepth, sand, coarse, AWHC, clay, carbon) %>% 
+ drop_na() #%>% 
+ #  mutate(carbon_s = log(carbon_s + 20),
+ #         coarse_s = log(coarse_s + 20),
+ #         prcp_dry_s = log(prcp_dry_s + 20),
+ #         prcp_wet_s = log(prcp_wet_s + 20))
+
+} else {
+  dat_cover <- dat %>% 
+   filter(newRegion %in% #c("eastForest", "westForest")) %>% 
+            c(ecoregion)) %>%
+  select(biomass_MgPerHect, all_of(coverType), tmean_s, prcpTempCorr_s, isothermality_s, annWatDef_s,
+         prcp_s, prcp_seasonality_s, prcp_dry_s, annWetDegDays_s,
+         t_warm_s, t_cold_s, prcp_wet_s, soilDepth_s, sand_s, coarse_s,
+         AWHC_s, clay_s, carbon_s, Long, Lat, newRegion, tmean, prcpTempCorr, isothermality, annWatDef,
+         prcp, prcp_seasonality, prcp_dry, annWetDegDays,
+         t_warm, t_cold, prcp_wet, soilDepth, sand, coarse, AWHC, clay, carbon) %>% 
+ drop_na() #%>% 
+ #  mutate(carbon_s = log(carbon_s + 20),
+ #         coarse_s = log(coarse_s + 20),
+ #         prcp_dry_s = log(prcp_dry_s + 20),
+ #         prcp_wet_s = log(prcp_wet_s + 20))
+
+}
+
+# make sure that shrub cover is > 0 
+#AES this probably isn't necessary
+# if(!is.null(dat_cover[dat_cover[,coverType]==0, coverType])) {
+#   dat_cover[,coverType] <-  dat_cover[,coverType] + .1
+# }
+
+# use a transformation of total biomass so the gamma model will fit
+dat_cover[, "biomass_MgPerHect"] <- dat_cover[, "biomass_MgPerHect"] + .1
+
+# # transform the cover so that the minimum value is close to zero
+# coverOffsetFactor <- floor(min(dat_cover[,coverType]))
+#   dat_cover[,coverType] <- dat_cover[,coverType] - coverOffsetFactor
+
+# curtail the response (if params indicate) to reduce the leftward skew
+if(curtailResponse == TRUE){
+dat_cover <- dat_cover[dat_cover$biomass_MgPerHect<600,]
+}
+
+hist((dat_cover$biomass_MgPerHect), breaks = 1000)
+hist(log(dat_cover$biomass_MgPerHect), breaks = 1000)
+hist(dat_cover[,coverType], breaks = 100)
+
+# shrubFull <- ggplot(dat_temp, aes(shrubCover, biomass_MgPerHect)) + 
+#   geom_hex() + 
+#   geom_smooth(col = "red") +
+#   labs(x = "shrubCover", y = "total biomass (Mg/hectare)") 
+# shrubTrim <- ggplot(dat_temp, aes(shrubCover, biomass_MgPerHect)) + 
+#   geom_hex() + 
+#   ylim(0,10) + 
+#   labs(x = "shrubCover", y = "total biomass (Mg/hectare)") 
+# 
+# needleFull <- ggplot(dat_temp, aes(needleLeavedTreeCover, biomass_MgPerHect)) + 
+#   geom_hex() + 
+#   geom_smooth(col = "red") +
+#   labs(x = "needleLeavedTreeCover", y = "total biomass (Mg/hectare)") 
+# needleTrim <- ggplot(dat_temp, aes(needleLeavedTreeCover, biomass_MgPerHect)) + 
+#   geom_hex() + 
+#   ylim(0,10) + 
+#   labs(x = "needleLeavedTreeCover", y = "total biomass (Mg/hectare)") 
+# 
+# broadFull <- ggplot(dat_temp, aes(broadLeavedTreeCover, biomass_MgPerHect)) + 
+#   geom_hex() + 
+#   geom_smooth(col = "red") +
+#   labs(x = "broadLeavedTreeCover", y = "total biomass (Mg/hectare)") 
+# broadTrim <- ggplot(dat_temp, aes(broadLeavedTreeCover, biomass_MgPerHect)) + 
+#   geom_hex() + 
+#   ylim(0,10) + 
+#   labs(x = "broadLeavedTreeCover", y = "total biomass (Mg/hectare)") 
+# 
+
+# forbFull <- ggplot(dat_temp, aes(forbCover, biomass_MgPerHect)) + 
+#   geom_hex() + 
+#   geom_smooth(col = "red") +
+#   labs(x = "forbCover", y = "total biomass (Mg/hectare)") 
+# forbTrim <- ggplot(dat_temp, aes(forbCover, biomass_MgPerHect)) + 
+#   geom_hex() + 
+#   ylim(0,10) + 
+#   labs(x = "forbCover", y = "total biomass (Mg/hectare)") 
+# 
+# c3Full <- ggplot(dat_temp, aes(C3GramCover, biomass_MgPerHect)) + 
+#   geom_hex() + 
+#   geom_smooth(col = "red") +
+#   labs(x = "C3GramCover", y = "total biomass (Mg/hectare)") 
+# c3Trim <- ggplot(dat_temp, aes(C3GramCover, biomass_MgPerHect)) + 
+#   geom_hex() + 
+#   ylim(0,10) + 
+#   labs(x = "C3GramCover", y = "total biomass (Mg/hectare)") 
+# 
+# c4Full <- ggplot(dat_temp, aes(C4GramCover, biomass_MgPerHect)) + 
+#   geom_hex() + 
+#   geom_smooth(col = "red") +
+#   labs(x = "C4GramCover", y = "total biomass (Mg/hectare)") 
+# c4Trim <- ggplot(dat_temp, aes(C4GramCover, biomass_MgPerHect)) + 
+#   geom_hex() + 
+#   ylim(0,10) + 
+#   labs(x = "C4GramCover", y = "total biomass (Mg/hectare)") 
+# 
+# library(patchwork)
+# (shrubFull + shrubTrim)/
+# (  needleFull + needleTrim) / 
+#   (broadFull + broadTrim) 
+# 
+#   (forbFull + forbTrim) /
+#   (c3Full + c3Trim) /
+#   (c4Full + c4Trim) 
+
+```
+
+```{r}
+invAF2 <- function(x) {
+  list(
+    predictors = list(bCover = 1),
+    variables = list(substitute(x)),
+    term = function(predLabels, varLabels) {
+      paste(
+          "100 * (1 + ", predLabels[1], "^2 +", varLabels[1], ") / (1e-4 * 100 * (1 + ",
+        predLabels[1], "^2 +",  varLabels[1], ") + (1 +",  predLabels[1], "^2 + 100) *", varLabels[1], ")"
+        )
+    },
+    start = function(beta) {
+      beta[1] <- 1
+      beta
+    }
+  )
+}
+
+        
+class(invAF2) <- "nonlin"
+
+# rename cover variable of interest for ease with the model calls
+dat_cover <- dat_cover %>% 
+rename("coverOfInterest" = all_of(coverType))  
+
+## use glm to get starting values for the gnm
+glm_fit <- glm(biomass_MgPerHect ~ tmean_s + prcpTempCorr_s +  isothermality_s + annWatDef_s + prcp_s +
+                 prcp_seasonality_s + prcp_dry_s + annWetDegDays_s + t_warm_s + t_cold_s + prcp_wet_s + soilDepth_s +
+                 sand_s + coarse_s + AWHC_s + clay_s + carbon_s + 
+                 #prcp_s * prcpTempCorr_s + 
+                 # prcp_seasonality_s * prcpTempCorr_s +
+                 # annWatDef_s * annWetDegDays_s + 
+                 # tmean_s * annWetDegDays_s + 
+                 #carbon_s * coarse_s +
+                 # clay_s * sand_s +
+                 #carbon_s * AWHC_s +
+                 offset(100 * (1 + 1^2 + coverOfInterest) / (1e-4 * 100 * (1 + 1^2 + coverOfInterest) + (1 + 1^2 + 100) * coverOfInterest)# 100 * (1.5 + coverOfInterest)/((1.5 + 100) * (coverOfInterest))
+                        ),
+               data = dat_cover,
+               family = Gamma(link = "log"))
+# Then use coef(glm_fit) to initialize beta_j (for the linear terms) in your gnm start vector.
+
+## re-write the nonlinear term (1/(1 + exp(-x))) to be exp(x)/1+exp(x) so that the model actually fits 
+#debug(gnm:::gnmFit)#gnm:::gnmFit)
+fit_gnm <- tryCatch(gnm(biomass_MgPerHect ~ gnm::Mult(tmean_s + prcpTempCorr_s +  isothermality_s + annWatDef_s + 
+                                                 prcp_s + prcp_seasonality_s + prcp_dry_s + annWetDegDays_s + 
+                                                 t_warm_s + t_cold_s + prcp_wet_s + soilDepth_s + sand_s + 
+                                                 coarse_s + AWHC_s + clay_s + carbon_s #+ 
+                                                 #prcp_s * prcpTempCorr_s  +
+                # + prcp_seasonality_s * prcpTempCorr_s +
+                 # annWatDef_s * annWetDegDays_s + 
+                 # tmean_s * annWetDegDays_s + 
+                 #carbon_s * coarse_s #+
+                 # clay_s * sand_s +
+                 #carbon_s * AWHC_s
+                , invAF2(coverOfInterest)),
+               method =  "gnmFit",#"gnmFit", #"coefNames,
+              start =  c(coef(glm_fit), .5),
+               data = dat_cover,
+               family = Gamma(link = "log"),
+               iterMax = 1000, 
+               trace = TRUE, #TRUE, 
+               verbose = TRUE#TRUE, 
+               ,ridge = 1e-06
+))
+
+#undebug(gnm:::gnmFit)
+#gnm:::gnmFit)
+
+ #, colM,eans(,badDa,t[,c(,"tmea,n_s" ,, "pr,cpTem,pCorr,_s" ,,  "iso,therm,ality,_s" ,, "annWatDef_s" , "prcp_s" ,
+#                       "prcp_seasonality_s" , "prcp_dry_s" , "annWetDegDays_s" , "t_warm_s" , "t_cold_s" , "prcp_wet_s" , "soilDepth_s" ,
+#                       "sand_s" , "coarse_s" , "AWHC_s" , "clay_s" , "carbon_s" )])
+```
+
+Make plot of coefficients
+```{r}
+if(is.null(fit_gnm)) {
+  print("Model did not converge")
+} else {
+modelStats <- data.frame("coefficientName" = c("Intercept","tmean_s" , "prcpTempCorr_s" ,  "isothermality_s" , "annWatDef_s" , 
+                                                 "prcp_s" , "prcp_seasonality_s" , "prcp_dry_s" , "annWetDegDays_s" , 
+                                                 "t_warm_s" , "t_cold_s" , "prcp_wet_s" , "soilDepth_s" , "sand_s" , 
+                                                 "coarse_s" , "AWHC_s" , "clay_s" , "carbon_s" , 
+                                                   #"prcp_s * prcpTempCorr_s"  ,  "carbon_s * coarse_s" , 
+                                               "nonlinear_b"),
+                         "coefficient" = as.numeric(unname(coef(fit_gnm))), 
+                         "standardError" = se(fit_gnm)[,2]
+                         ) %>% 
+  tibble() %>% 
+  mutate("confInt_low" = coefficient - 1.96 * standardError,
+         "confInt_high" = coefficient + 1.96 * standardError,)
+
+# make a figure
+modelStats %>%
+  #filter(term != "(Intercept)") %>%
+  # reorder the coefficients so that the largest is at the top of the plot
+  mutate(coefficientName = fct_reorder(coefficientName, coefficient)) %>%
+  ggplot(aes(coefficient, coefficientName)) +
+  geom_point() +
+  geom_errorbarh(aes(xmin = confInt_low, xmax = confInt_high)) +
+  # add in a dotted line at zero
+  geom_vline(xintercept = 0, lty = 2) +
+  labs(
+    x = "Estimate of effect of variable on total biomass (in Mg/Hectare)",
+    y = NULL,
+    title = "Coefficient plot with 95% CIs"
+  )
+}
+```
+
+
+See how the allometric fraction term looks with fitted coefficients (the actual allometric fraction, not the inverse allometric fraction)
+```{r}
+if(is.null(fit_gnm)) {
+  print("Model did not converge")
+} else {
+curve(
+ 1/(100 * (1 + 3^2 +x) / (1e-4 * 100 * (1 + 3^2 +x) + (1 +3^2 + 100) *x)),
+ 
+  # 1/((100 * (coef(fit_gnm)[21]^2 + x #+ 1
+  #                ) / ((coef(fit_gnm)[21]^2 + 100) *  (x #+ 1
+  #                                                     )))), 
+  
+  #coef(fit_gnm)[21]*1/(1+exp(-x)),#(.99 * x) / (coef(fit_gnm)[21] + x), 
+  from = 0, to = 100)
+}
+
+dat_test <- dat_cover
+dat_cover$AllometricFraction <- 1/(100 * (1 + 3^2 + dat_test$coverOfInterest) / (1e-4 * 100 * (1 + 3^2 +dat_test$coverOfInterest) + (1 +3^2 + 100) *dat_test$coverOfInterest))
+
+plot(dat_cover$coverOfInterest, dat_cover$AllometricFraction, ylim = c(0,1))
+abline(h = 1)
+```
+
+Here are wall-to-wall predictions from this model using synthetic cover data for the focal functional type and mean values for each scaled climate and soils predictor:
+
+```{r}
+
+if(is.null(fit_gnm)) {
+  print("Model did not converge")
+} else {
+
+## get the prediction data w/ log-transformed and centered and scaled variables, but not trimmed! 
+
+# get only total biomass from GEDI
+dat_untrimmed <- dat_temp %>% 
+  filter(biomassSource == "GEDI") %>% 
+  sf::st_drop_geometry() %>% 
+  drop_na(shrubCover) # remove observations from areas that have no cover values (coasts, islands, etc.)
+
+dat_untrimmed <- dat_untrimmed %>% 
+  mutate(carbon = log(carbon+1), 
+         coarse = log(coarse+1), 
+         prcp = log(prcp+1), 
+         prcp_wet = log(prcp_wet+1),
+         prcp_dry = log(prcp_dry+1), 
+         annWatDef = log(annWatDef+1))
+
+dat_untrimmed <- dat_untrimmed %>% 
+  drop_na(c(tmin:frostFreeDays, soilDepth:AWHC))
+
+# scale the predictors
+name_lookup <- c(
+  tmean_s = "tmean", 
+  prcpTempCorr_s = "prcpTempCorr", 
+  isothermality_s = "isothermality",
+  annWatDef_s ="annWatDef",
+  prcp_s = "prcp", 
+  prcp_seasonality_s = "prcp_seasonality", 
+  prcp_dry_s = "prcp_dry", 
+  annWetDegDays_s = "annWetDegDays",
+  t_warm_s = "t_warm", 
+  t_cold_s = "t_cold",
+  prcp_wet_s = "prcp_wet", 
+  soilDepth_s = "soilDepth", 
+  sand_s = "sand", 
+  coarse_s = "coarse",
+  AWHC_s = "AWHC", 
+  clay_s = "clay", 
+  carbon_s = "carbon")
+
+dat_untrimmed_scaled <- dat_untrimmed %>% 
+  select(tmean, prcpTempCorr, isothermality, annWatDef,
+         prcp, prcp_seasonality, prcp_dry, annWetDegDays,
+         t_warm, t_cold, prcp_wet, soilDepth, sand, coarse, AWHC, clay, carbon) %>% 
+  dplyr::rename(all_of(name_lookup)) %>% 
+  scale() 
+
+dat_untrimmed <- dat_untrimmed %>% 
+  cbind(dat_untrimmed_scaled) %>% 
+  #select(1:40,43:65) %>% 
+  mutate(totalTreeCover = broadLeavedTreeCover + needleLeavedTreeCover, # calculate total tree and herbaceous cover
+         totalHerbaceousCover = C3GramCover + C4GramCover + forbCover)
+
+## fix issue with forest ecoregion naming
+levels(dat_untrimmed$newRegion) <- c(levels(dat_untrimmed$newRegion), "forest")
+dat_untrimmed[dat_untrimmed$newRegion %in% c("eastForest", "westForest"), "newRegion"] <- "forest"
+# Predict using this model ------------------------------------------------
+# Generate a sequence of cover values across observed range
+cover_seq <- seq(min(dat_untrimmed[,coverType], na.rm = TRUE),
+                 max(dat_untrimmed[,coverType], na.rm = TRUE),
+                 length.out = 100)
+
+# Create a new data frame for prediction
+new_data <- data.frame(
+  coverOfInterest = cover_seq,
+  #coverOfInterest_transformed = exp(cover_seq),
+  tmean_s = mean(dat_untrimmed$tmean_s, na.rm = TRUE),
+  prcpTempCorr_s = mean(dat_untrimmed$prcpTempCorr_s, na.rm = TRUE),
+  isothermality_s = mean(dat_untrimmed$isothermality_s, na.rm = TRUE),
+  annWatDef_s = mean(dat_untrimmed$annWatDef_s, na.rm = TRUE),
+  prcp_s = mean(dat_untrimmed$prcp_s, na.rm = TRUE),
+  prcp_seasonality_s = mean(dat_untrimmed$prcp_seasonality_s, na.rm = TRUE),
+  prcp_dry_s = mean(dat_untrimmed$prcp_dry_s, na.rm = TRUE),
+  annWetDegDays_s = mean(dat_untrimmed$annWetDegDays_s, na.rm = TRUE),
+  t_warm_s = mean(dat_untrimmed$t_warm_s, na.rm = TRUE),
+  t_cold_s = mean(dat_untrimmed$t_cold_s, na.rm = TRUE),
+  prcp_wet_s = mean(dat_untrimmed$prcp_wet_s, na.rm = TRUE),
+  soilDepth_s= mean(dat_untrimmed$soilDepth_s, na.rm = TRUE),
+  sand_s = mean(dat_untrimmed$sand_s, na.rm = TRUE),
+  coarse_s = mean(dat_untrimmed$coarse_s, na.rm = TRUE),
+  AWHC_s = mean(dat_untrimmed$AWHC_s, na.rm = TRUE),
+  clay_s = mean(dat_untrimmed$clay_s, na.rm = TRUE),
+  carbon_s = mean(dat_untrimmed$carbon_s, na.rm = TRUE)
+)
+
+# Predict biomass on the response scale
+new_data$predicted_biomass <- predict(fit_gnm, newdata = new_data, type = "response") - .1
+
+# predict biomass of focal cover type 
+new_data$predicted_biomass_FOCALcoverType <- new_data$predicted_biomass * ((coef(fit_gnm)[21]^2+ 100) *  (new_data$coverOfInterest #+ 1
+                                                                                                          ))/(100 * (coef(fit_gnm)[21]^2 + (new_data$coverOfInterest #+ 1
+                                                                                                                                            )))
+
+
+# 5. Plot the predictions
+plot(
+  new_data$coverOfInterest,
+  new_data$predicted_biomass_FOCALcoverType,
+  type = "l",
+  lwd = 2,
+  col = "blue",
+  xlab = coverType,
+  ylab = "Predicted Biomass (Mg/ha) of focal cover type",
+  main = paste0("Effect of Cover on Predicted Biomass (Mg/ha) of\n focal cover type: ", coverType)
+)
+}
+```
+
+
+Here are maps of the raw biomass data, modeled shrub cover data, as well as the predicted biomass and the residuals (observed biomass vs. predicted biomass)
+```{r fig.width=18, fig.height=45}
+
+if(is.null(fit_gnm)) {
+  print("Model did not converge")
+} else {
+# plot the predictions and residuals --------------------------------------
+# rasterize the biomass and shrub cover data
+test_rast <-  rast("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") 
+# rasterize total biomass in Mg/hect
+dat_biomass_rast <- dat_untrimmed %>% 
+  terra::vect(geom = c("Long", "Lat"), crs = crs(test_rast)) %>% 
+  terra::rasterize(test_rast, field = "biomass_MgPerHect") %>% 
+  terra::aggregate(fun = "mean", na.rm = TRUE, fact = 32) 
+# rasterize % shrub cover
+dat_cover_rast <- dat_untrimmed %>% 
+  terra::vect(geom = c("Long", "Lat"), crs = crs(test_rast)) %>% 
+  terra::rasterize(test_rast, field = coverType) %>% 
+  terra::aggregate(fun = "mean", na.rm = TRUE, fact =32)
+
+# generate predictions for this model using training data
+# rename the cover name
+dat_untrimmed <- dat_untrimmed %>% 
+  rename("coverOfInterest" = all_of(coverType))
+# Predict biomass on the response scale
+dat_untrimmed$predicted_totalBiomass <- predict(fit_gnm, newdata = dat_untrimmed, type = "response") - .1
+# rasterize predicted total biomass in Mg/hect
+dat_biomassPreds_rast <- dat_untrimmed %>% 
+  terra::vect(geom = c("Long", "Lat"), crs = crs(test_rast)) %>% 
+  terra::rasterize(test_rast, field = "predicted_totalBiomass") %>% 
+  terra::aggregate(fun = "mean", na.rm = TRUE, fact = 32) %>% 
+  terra::crop(y = dat_biomass_rast)
+
+## calculate the residuals
+# absolute residuals
+dat_resids_rast_abs <- (dat_biomass_rast - dat_biomassPreds_rast)
+# residuals as percentages
+dat_resids_rast <- (dat_biomass_rast - dat_biomassPreds_rast)/dat_biomass_rast * 100
+
+## calculate the model predicted biomass for the target functional group
+dat_funcGroupBiomassPred <- dat_biomassPreds_rast * ((coef(fit_gnm)[21]^2+ 100) *  (dat_cover_rast #+ 1
+                                                                                    ))/(100 * (coef(fit_gnm)[21]^2 + (dat_cover_rast #+ 1
+                                                                                                                      )))
+  
+# make plots 
+plot_biomass <- ggplot() + 
+  geom_spatraster(data = dat_biomass_rast) +
+  #geom_point(data = dat_cover[badLines,], aes(x = Long, y = Lat)) + 
+  labs(title = paste0("Observed total biomass from GEDI; Mg/hect")) +
+  scale_fill_gradient2(low = "white",
+                       high = "purple" , 
+                       limits = c(0,max(terra::values(dat_biomass_rast, na.rm = TRUE))),  na.value = "lightgrey") + 
+  xlim(c(-2060750, 2555250)) + 
+  ylim(c(-1895500, 972500))
+
+dat_biomassPreds_big <- dat_biomassPreds_rast %>% 
+  terra::mask(mask = ifel(. > 1500, 1, NA)) %>% 
+  terra::as.points()
+
+plot_biomassPreds <- ggplot() + 
+    geom_spatraster(data = dat_biomassPreds_rast) +
+  geom_spatvector(data = dat_biomassPreds_big, col = "darkorchid") + 
+    labs(title = paste0("Predicted total biomass from model; Mg/hect"),
+         subtite = "Points indicate locations where predicted biomass is > 2000") +
+    scale_fill_gradient2(low = "white",
+                         high = "purple" , 
+                         limits = c(0, max(terra::values(dat_biomassPreds_rast, na.rm = TRUE))),  na.value = "lightgrey") + 
+    xlim(c(-2060750, 2555250)) + 
+    ylim(c(-1895500, 972500))
+
+# residuals as percentages of observations
+# points where values are >500 or < -500
+dat_resids_big <- dat_resids_rast %>% 
+  terra::mask(mask = ifel(. > 500, 1, NA)) %>% 
+  terra::as.points()
+dat_resids_small <- dat_resids_rast %>% 
+  terra::mask(mask = ifel(. < -500, 1, NA)) %>% 
+  terra::as.points()
+plot_biomassResids <- ggplot() + 
+    geom_spatraster(data = dat_resids_rast) +
+    geom_spatvector(data = dat_resids_big, col = "blue") +
+    geom_spatvector(data = dat_resids_small, col = "red") +
+    labs(title = paste0("Residuals of biomass predictions as percentage of observed (obs - pred)/obs * 100"),
+         subtitle = "points show locations where residuals are > 500 (red) or < -500 (blue)") +
+    scale_fill_gradient2(low = "red",
+                         high = "blue" , 
+                         limits = c(-500,500),  na.value = "lightgrey") + 
+    xlim(c(-2060750, 2555250)) + 
+    ylim(c(-1895500, 972500))
+
+# absolute residuals
+# points where values are >500 or < -500
+dat_resids_big_abs <- dat_resids_rast_abs %>% 
+  terra::mask(mask = ifel(. > 500, 1, NA)) %>% 
+  terra::as.points()
+dat_resids_small_abs <- dat_resids_rast_abs %>% 
+  terra::mask(mask = ifel(. < -500, 1, NA)) %>% 
+  terra::as.points()
+plot_biomassResids_abs <- ggplot() + 
+    geom_spatraster(data = dat_resids_rast_abs) +
+    geom_spatvector(data = dat_resids_big_abs, col = "blue") +
+    geom_spatvector(data = dat_resids_small_abs, col = "red") +
+    labs(title = paste0("Absolute Residuals of biomass: (obs - pred)"),
+         subtitle = "points show locations where residuals are > 500 (red) or < -500 (blue)") +
+    scale_fill_gradient2(low = "red",
+                         high = "blue" , 
+                         limits = c(-500,500),  na.value = "lightgrey") + 
+    xlim(c(-2060750, 2555250)) + 
+    ylim(c(-1895500, 972500))
+# plot of herbaceous cover
+plot_coverOfInterest <- ggplot() + 
+    geom_spatraster(data = dat_cover_rast) +
+  #geom_point(data = dat_cover[badLines,], aes(x = Long, y = Lat)) + 
+    labs(title = paste0("Modeled ", coverType)) +
+    scale_fill_gradient2(low = "white",
+                         high = "forestgreen" , 
+                         limits = c(0,100),  na.value = "lightgrey") + 
+    xlim(c(-2060750, 2555250)) + 
+    ylim(c(-1895500, 972500))
+
+# plot of target functional group biomass
+plot_funcGroupBiomassPred <- ggplot() + 
+    geom_spatraster(data = dat_funcGroupBiomassPred) +
+    labs(title = paste0("Predicted biomass for the focal functional group from the model using ", coverType, "; Mg/hect"),
+         subtite = "Points indicate locations where predicted biomass is > 2000") +
+    scale_fill_gradient2(low = "white",
+                         high = "orange" , 
+                         #limits = c(0,2000),  
+                         na.value = "lightgrey") + 
+    xlim(c(-2060750, 2555250)) + 
+    ylim(c(-1895500, 972500))
+
+(plot_biomass ) /  plot_coverOfInterest/ (plot_biomassPreds )/plot_biomassResids/plot_biomassResids_abs/plot_funcGroupBiomassPred #/ plot_RAPbiomass / #lot_biomassResidsFromRap
+}
+```
+
+Now, make percentile plots 
+```{r, message=FALSE, warning= FALSE, fig.width=8, fig.height=7}
+# prepare data (bin into quantiles)
+# get deciles for best lambda model 
+if(is.null(fit_gnm)) {
+  print("Model did not converge")
+} else {
+  pred_glm1_deciles <- predvars2deciles(df = dat_untrimmed,
+                                      response_vars = c("biomass_MgPerHect", "predicted_totalBiomass"),
+                                        pred_vars = c("tmean_s", "prcpTempCorr_s",  "isothermality_s", "annWatDef_s", 
+                                                 "prcp_s", "prcp_seasonality_s", "prcp_dry_s", "annWetDegDays_s", 
+                                                 "t_warm_s", "t_cold_s", "prcp_wet_s", "soilDepth_s", "sand_s", 
+                                                 "coarse_s", "AWHC_s", "clay_s", "carbon_s"), 
+                                       cut_points = seq(0, 1, 0.005))
+  # plot data
+g3 <- decile_dotplot_pq(df = pred_glm1_deciles, response = c("biomass_MgPerHect", "predicted_totalBiomass"), IQR = TRUE,
+                        CI = FALSE
+                        ) + ggtitle("Decile Plot")
+
+g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles, response = c("biomass_MgPerHect", "predicted_totalBiomass"), dfRaw = dat_untrimmed, add_smooth = TRUE, deciles = FALSE)
+
+g4
+}
+
+
+
+```
+
+
+
+Notes for future attempts... 
+ try a tensor product smooth in a gam? 
+ gam4 package (isntead of mgcv) is better for non-Gaussian models
+
+
+

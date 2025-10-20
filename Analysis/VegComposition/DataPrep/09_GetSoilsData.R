@@ -157,8 +157,9 @@ vegSoils_df <- soilRast %>%
                  , xy = TRUE, bind = TRUE) %>% 
   as.data.frame()
 
+
 # calculate soils variables w/ cover data ---------------------------------
-names(vegSoils_df)[c(186, 187)] <- c("x_UTM", "y_UTM")
+names(vegSoils_df)[c(length(names(vegSoils_df))-1, length(names(vegSoils_df)))] <- c("x_UTM", "y_UTM")
 vegSoils_new <- 
   vegSoils_df %>% 
   dplyr::mutate(
@@ -401,18 +402,13 @@ temp <- vegSoils_new %>%
   vegSoils_final <- vegSoils_final %>% 
     filter(!is.na(durationFrostFreeDays_meanAnnAvg_3yrAnom))
  
-  
-  # # add back in CAM cover spatially averaged data from previous analysis -----------------------
-  #  CAMcoverDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_sf.rds") %>% 
-  #   st_drop_geometry() %>% 
-  #   st_as_sf(coords = c("Long.x", "Lat.x")) %>% 
-  #   st_set_crs(value = crs(vegDat)) %>% 
-  #   filter(!is.na(CAMCover)) 
-
+  # prepare final dataset
+  # give each row a unique ID
   vegSoils_final <- 
     vegSoils_final %>% 
     mutate(uniqueID = seq(1:nrow(.)))
   
+  # give coordinates
   test <- vegSoils_final %>% 
     #slice_sample(n = 1000) %>% 
     st_as_sf(coords = c("Long", "Lat"), crs = st_crs(vegDat)) #%>% 
@@ -448,6 +444,6 @@ temp <- vegSoils_new %>%
  #   ggplot() + 
  #   facet_wrap(~Year) + 
  #   geom_point(aes(x = Long, y = Lat))
- 
+
    
   

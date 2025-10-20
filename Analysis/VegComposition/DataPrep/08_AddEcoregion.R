@@ -10,6 +10,7 @@
 library(tidyverse)
 library(sf)
 library(terra)
+library(mapview)
 
 # load data ---------------------------------------------------------------
 
@@ -45,7 +46,7 @@ modDat_2 <- st_transform(modDat, crs = st_crs(test_rast))
 
 crs(regions_2) == crs(modDat_2)
 
-mapview(regions_2 %>% slice_sample(n = 10000)) + mapview(modDat %>% slice_sample(n = 10000))
+#mapview(regions_2 %>% slice_sample(n = 10000)) + mapview(modDat %>% slice_sample(n = 10000))
 
 
 ## drop those values that don't have any climate data (pre-1980)

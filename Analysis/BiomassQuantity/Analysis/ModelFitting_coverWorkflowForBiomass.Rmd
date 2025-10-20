@@ -1,0 +1,2313 @@
+---
+title: "Models of vegetation biomass based on climate predictors"
+author: "Alice Stears"
+date: "`r lubridate::today()`"
+output:
+  html_document:
+    toc: true
+    df_print: paged
+    code_folding: hide
+params:
+  run: TRUE      
+  save_figs: FALSE
+  ecoregion: shrubGrass 
+  response: FIA
+  removeTexasLouisianaPlain: FALSE
+  trimAnomalies: TRUE
+  autoKfold: FALSE
+subtitle: "Based on code from Martin Holdrege's Sagebrush-Fire paper"
+---
+The data consists of vegetation % cover by functional group from across CONUS (from AIM, FIA, LANDFIRE, and RAP), 
+as well as climate variables from DayMet, which have been aggregated into mean interannual conditions accross multiple temporal windows. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE,
+                      message = FALSE)
+```
+
+# Dependencies 
+
+Set user defined parameters
+
+```{r}
+print(params)
+# set to true if want to run for a limited number of rows (i.e. for code testing)
+test_run <- params$test_run
+save_figs <- params$save_figs
+response <- params$response
+fit_sample <- TRUE # fit model to a sample of the data
+n_train <- 5e4 # sample size of the training data
+n_test <- 1e6 # sample size of the testing data (if this is too big the decile dotplot code throws memory errors)
+trimAnom <- params$trimAnomalies
+removeTLP <- params$removeTexasLouisianaPlain
+run <- params$run
+autoKfold <- params$autoKfold
+```
+
+Load packages 
+```{r warning=FALSE, message=FALSE}
+# set option so resampled dataset created here reproduces earlier runs of this code with dplyr 1.0.10
+source("../../../Functions/glmTransformsIterates.R")
+source("../../../Functions/transformPreds.R")
+source("../../../Functions/StepBeta_mine.R")
+#source("src/fig_params.R")
+#source("src/modeling_functions.R")
+ 
+library(ggspatial)
+library(terra)
+library(tidyterra)
+library(sf)
+library(caret)
+library(tidyverse)
+library(GGally) # for ggpairs()
+library(pdp) # for partial dependence plots
+library(gridExtra)
+library(knitr)
+library(patchwork) # for figure insets etc. 
+library(ggtext)
+library(StepBeta)
+theme_set(theme_classic())
+library(here)
+library(rsample)
+library(kableExtra)
+library(glmnet)
+library(USA.state.boundaries)
+```
+
+# Read in data
+
+Data compiled in the `prepDataForModels.R` script
+
+```{r}
+here::i_am("Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd")
+modDat <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Data_processed/BiomassQuantityData/dataForAnalysis_fireAndDevelopmentRemoved.rds")
+
+modDat_1 <- modDat %>% 
+  st_drop_geometry()
+# remove second 'x' and 'y' columns
+#modDat <- modDat[,c(1:41,43:48)]
+# For all response variables, make sure there are no 0s add  .0001 from each, since the Gamma model framework can't handle that
+modDat_1[modDat_1$biomass_MgPerHect == 0 & !is.na(modDat_1$biomass_MgPerHect), "biomass_MgPerHect"] <- 0.0001
+```
+
+
+# Prep data
+## Add a constant to the response variable (+2) so that models run... 
+```{r}
+modDat_1 <- modDat_1 %>%
+mutate(response_transformed = .[["biomass_MgPerHect"]] + 2)
+```
+
+## Identify the ecoregion and response variable type to use in this model run 
+```{r get ecoregion variable}
+ecoregion <- params$ecoregion
+response <- params$response
+print(paste0("In this model run, the ecoregion is ", ecoregion," and the data is from ",response))
+```
+
+## Visualize the predictor variables
+
+The following are the candidate predictor variables for this ecoregion: 
+```{r get candidate predictor variables}
+if (ecoregion == "shrubGrass") {
+  # select potential predictor variables for the ecoregion of interest
+        prednames <-
+          c("tmean", "prcpTempCorr", "isothermality", "annWatDef",
+         "prcp", "prcp_seasonality", "prcp_dry", "annWetDegDays",
+         "t_warm", "t_cold", "prcp_wet", "soilDepth", "sand", "coarse",
+         "AWHC", "clay", "carbon"
+# "tmean"             , "prcp"                    ,"prcp_seasonality"        ,"prcpTempCorr"          , 
+# "isothermality"     , "annWatDef"               ,"sand"                    ,"coarse"                , 
+# "carbon"            , "AWHC"                    ,"tmin_anom"               ,"tmax_anom"             , 
+# "t_warm_anom"       , "prcp_wet_anom"           ,"precp_dry_anom"          ,"prcp_seasonality_anom" , 
+# "prcpTempCorr_anom" , "aboveFreezingMonth_anom" ,"isothermality_anom"      ,"annWatDef_anom"        , 
+# "annWetDegDays_anom", "VPD_mean_anom"           ,"VPD_min_anom"            ,"frostFreeDays_5_anom"  
+)
+  
+} else if (ecoregion %in% c("forest", "eastForest", "westForest")) {
+  # select potential predictor variables for the ecoregion of interest
+  prednames <- 
+    c("tmean", "prcpTempCorr", "isothermality", "annWatDef",
+         "prcp", "prcp_seasonality", "prcp_dry", "annWetDegDays",
+         "t_warm", "t_cold", "prcp_wet", "soilDepth", "sand", "coarse",
+         "AWHC", "clay", "carbon"
+# "tmean"                 ,"prcp"               , "prcp_dry"                , "prcpTempCorr"      ,     
+# "isothermality"         ,"annWatDef"          , "clay"                    , "sand"              ,     
+# "coarse"                ,"carbon"             , "AWHC"                    , "tmin_anom"         ,     
+# "tmax_anom"             ,"prcp_anom"          , "prcp_wet_anom"           , "precp_dry_anom"    ,     
+# "prcp_seasonality_anom" ,"prcpTempCorr_anom"  , "aboveFreezingMonth_anom" , "isothermality_anom",     
+# "annWatDef_anom"        ,"annWetDegDays_anom" , "VPD_mean_anom"           , "VPD_max_95_anom"   ,     
+# "frostFreeDays_5_anom"   
+)
+} else if (ecoregion == "CONUS") {
+  prednames <- c("tmean", "prcpTempCorr", "isothermality", "annWatDef",
+         "prcp", "prcp_seasonality", "prcp_dry", "annWetDegDays",
+         "t_warm", "t_cold", "prcp_wet", "soilDepth", "sand", "coarse",
+         "AWHC", "clay", "carbon"
+#     "tmean"               ,"prcp"               ,"prcp_seasonality", "prcpTempCorr"       ,  "isothermality"     ,     
+# "annWetDegDays"           ,"sand"               ,"coarse"         , "AWHC"                , "tmin_anom"          ,    
+# "tmax_anom"               ,"prcp_wet_anom"      ,"precp_dry_anom" , "prcp_seasonality_anom", "prcpTempCorr_anom" ,     
+# "aboveFreezingMonth_anom" ,"isothermality_anom" ,"annWatDef_anom" , "annWetDegDays_anom"  , "VPD_mean_anom"      ,    
+# "VPD_max_95_anom"         ,"frostFreeDays_5_anom"   
+  )
+} 
+
+# get the name of the transformed response
+#response <- paste0(response, "_transformed")
+```
+
+## Scale the predictor variables for the model-fitting process
+```{r scaling predictors, fig.height=7, fig.width=10}
+allPreds <- modDat_1 %>% 
+  dplyr::select(tmin:frostFreeDays,#tmean_anom:frostFreeDays_anom, 
+                soilDepth:AWHC) %>% 
+  names()
+modDat_1_s <- modDat_1 %>% 
+  mutate(across(all_of(allPreds), base::scale, .names = "{.col}_s")) 
+# names(modDat_1_s) <- c(names(modDat_1),
+#                        paste0(prednames, "_s")
+#                        )
+#save model input data after its been scaled
+saveRDS(modDat_1_s, file = "./models/scaledModelInputData.rds")
+```
+
+
+## Isolate the data just for the response variable of interest
+```{r}
+modDat_1 <- modDat_1 %>% 
+  filter(biomassSource == response)
+modDat_1_s <- modDat_1_s %>% 
+  filter(biomassSource == response)
+```
+
+
+## Subset the data to only include data for the ecoregion of interest
+```{r subset data to that ecoregion}
+
+if (ecoregion == "shrubGrass") {
+  # select data for the ecoregion of interest
+  modDat_1_s <- modDat_1_s %>%
+    filter(newRegion == "dryShrubGrass")
+} else if (ecoregion == "forest") {
+  # select data for the ecoregion of interest
+  modDat_1_s <- modDat_1_s %>% 
+    filter(newRegion %in% c("eastForest", "westForest"))
+} else if (ecoregion == "CONUS") {
+  modDat_1_s <- modDat_1_s
+} else if (ecoregion == "eastForest") {
+   modDat_1_s <- modDat_1_s %>% 
+    filter(newRegion == "eastForest")
+} else if (ecoregion == "westForest") {
+    modDat_1_s <- modDat_1_s %>% 
+    filter(newRegion == "westForest")
+}
+# remove the rows that have no observations for the response variable of interest
+modDat_1_s <- modDat_1_s[!is.na(modDat_1_s$biomass_MgPerHect),]
+```
+
+
+```{r}
+# subset the data to only include these predictors, and remove any remaining NAs 
+modDat_1_s <- modDat_1_s %>% 
+  dplyr::select(prednames, paste0(prednames, "_s"), biomass_MgPerHect, response_transformed, 
+                newRegion, #Year, Long, Lat,
+                NA_L1NAME, NA_L2NAME,
+                Long, Lat) %>% 
+  drop_na()
+
+names(prednames) <- prednames
+df_pred <- modDat_1_s[, prednames]
+# 
+# # print the list of predictor variables
+# knitr::kable(format = "html", data.frame("Possible_Predictors" = prednames), row.names = FALSE
+# ) %>%
+#   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+
+## Visualize the response variable 
+```{r visualize response variable}
+hist(modDat_1_s$biomass_MgPerHect, main = paste0("Histogram of ","biomass_MgPerHect"),
+     xlab = paste0("biomass_MgPerHect"))
+```
+
+```{r summary_table}
+create_summary <- function(df) {
+  df %>% 
+    pivot_longer(cols = everything(),
+                 names_to = 'variable') %>% 
+    group_by(variable) %>% 
+    summarise(across(value, .fns = list(mean = ~mean(.x, na.rm = TRUE), min = ~min(.x, na.rm = TRUE), 
+                                        median = ~median(.x, na.rm = TRUE), max = ~max(.x, na.rm = TRUE)))) %>% 
+    mutate(across(where(is.numeric), round, 4))
+}
+
+modDat_1_s[prednames] %>% 
+  create_summary() %>% 
+  knitr::kable(caption = 'summaries of possible predictor variables') %>%
+kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+
+# response_summary <- modDat_1_s %>% 
+#     dplyr::select(#where(is.numeric), -all_of(pred_vars),
+#       matches(response)) %>% 
+#     create_summary()
+# 
+# 
+# kable(response_summary, 
+#       caption = 'summaries of response variables, calculated using paint') %>%
+# kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+```
+
+### Histograms of raw and scaled predictors
+```{r}
+  
+scaleFigDat_1 <- modDat_1_s %>% 
+  dplyr::select(c(#Long, Lat, Year, 
+    Long, Lat, prednames)) %>% 
+  pivot_longer(cols = all_of(names(prednames)), 
+               names_to = "predNames", 
+               values_to = "predValues_unScaled")
+scaleFigDat_2 <- modDat_1_s %>% 
+  dplyr::select(c(#Long, Lat, Year, 
+    Long, Lat, paste0(prednames, "_s"))) %>% 
+  pivot_longer(cols = all_of(paste0(prednames,"_s"
+                                    )), 
+               names_to = "predNames", 
+               values_to = "predValues_scaled", 
+               names_sep = ) %>% 
+  mutate(predNames = str_replace(predNames, pattern = "_s$", replacement = ""))
+
+scaleFigDat_3 <- scaleFigDat_1 %>% 
+  left_join(scaleFigDat_2)
+
+ggplot(scaleFigDat_3) + 
+  facet_wrap(~predNames, scales = "free") +
+  geom_histogram(aes(predValues_unScaled), fill = "lightgrey", col = "darkgrey") + 
+  geom_histogram(aes(predValues_scaled), fill = "lightblue", col = "blue") +
+  xlab ("predictor variable values") + 
+  ggtitle("Comparing the distribution of unscaled (grey) to scaled (blue) predictor variables")
+```
+
+```{r}
+modDat_1_s <- modDat_1_s %>% 
+  rename_with(~paste0(.x, "_raw"), 
+                any_of(names(prednames))) %>% 
+  rename_with(~str_remove(.x, "_s$"), 
+              any_of(paste0(names(prednames), "_s")))
+  
+```
+
+## Predictor variables compared to binned response variables
+
+```{r climVar_boxplots, fig.height=9, fig.width=8, eval=FALSE}
+set.seed(12011993)
+quants <- quantile(modDat_1_s$biomass_MgPerHect)
+# vector of name of response variables
+vars_response <- "biomass_MgPerHect"
+# longformat dataframes for making boxplots
+df_sample_plots <-  modDat_1_s  %>% 
+  slice_sample(n = 5e4) %>% 
+   #rename("biomass_MgPerHect" = all_of(biomass_MgPerHect)) %>% 
+  mutate("biomass_MgPerHect" = case_when(
+    "biomass_MgPerHect" <= quants[2] ~ paste(round(quants[2],2)), 
+    "biomass_MgPerHect" > quants[2] & biomass_MgPerHect <=quants[3] ~ paste(round(quants[3],2)), 
+    "biomass_MgPerHect" > quants[3] & biomass_MgPerHect <=quants[4] ~ paste(round(quants[4],2)), 
+    "biomass_MgPerHect" >= quants[4]  ~ paste(round(quants[5],2)), 
+  )) %>% 
+  dplyr::select(c("biomass_MgPerHect", prednames)) %>% 
+  tidyr::pivot_longer(cols = unname(prednames), 
+               names_to = "predictor", 
+               values_to = "value"
+               )  
+ 
+
+  ggplot(df_sample_plots, aes_string(x= "biomass_MgPerHect", y = 'value')) +
+  geom_boxplot() +
+  facet_wrap(~predictor , scales = 'free_y') + 
+  ylab("Predictor Variable Values") + 
+    xlab("biomass_MgPerHect")
+
+```
+
+
+# Model Fitting
+
+## Visualize the spatial blocks and how they differ across environmental space
+First, if there are observations in Louisiana, sub-sample them so they're not so over-represented in the dataset
+```{r}
+## make data into spatial format
+modDat_1_sf <- modDat_1_s %>% 
+  st_as_sf(coords = c("Long", "Lat"), crs = st_crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"))
+
+
+# download map info for visualization
+data(state_boundaries_wgs84) 
+
+cropped_states <- suppressMessages(state_boundaries_wgs84 %>%
+  dplyr::filter(NAME!="Hawaii") %>%
+  dplyr::filter(NAME!="Alaska") %>%
+  dplyr::filter(NAME!="Puerto Rico") %>%
+  dplyr::filter(NAME!="American Samoa") %>%
+  dplyr::filter(NAME!="Guam") %>%
+  dplyr::filter(NAME!="Commonwealth of the Northern Mariana Islands") %>%
+  dplyr::filter(NAME!="United States Virgin Islands") %>%
+  sf::st_sf() %>%
+  sf::st_transform(sf::st_crs(modDat_1_sf))) #%>%
+  #sf::st_crop(sf::st_bbox(modDat_1_sf)+c(-1,-1,1,1))
+if (ecoregion %in% c("Forest", "eastForest", "forest")){
+modDat_1_s$uniqueID <- 1:nrow(modDat_1_s)
+modDat_1_sf$uniqueID <- 1:nrow(modDat_1_sf)
+
+  #xlim(c(730439.1, 1042196))
+}
+
+```
+
+```{r Visualize ecoregion distribution, fig.height=10, fig.width=14, message=FALSE, warning=FALSE}
+
+## do a pca of climate across level 2 ecoregions
+pca <- prcomp(modDat_1_s[,paste0(prednames)])
+library(factoextra)
+(fviz_pca_ind(pca, habillage = modDat_1_s$NA_L2NAME, label = "none", addEllipses = TRUE, ellipse.level = .95, ggtheme = theme_minimal(), alpha.ind = .1))
+
+if (ecoregion == "shrubGrass") {
+  print("We'll combine the 'Mediterranean California' and 'Western Sierra Madre Piedmont' ecoregions (into 'Mediterranean Piedmont'). We'll also combine `Tamaulipas-Texas semiarid plain,' 'Texas-Lousiana Coastal plain,' and 'South Central semiarid prairies' ecoregions (into (`Semiarid plain and prairies`)." )
+  
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "WESTERN SIERRA MADRE PIEDMONT"), "NA_L2NAME"] <- "MEDITERRANEAN PIEDMONT"
+  
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("TAMAULIPAS-TEXAS SEMIARID PLAIN", "TEXAS-LOUISIANA COASTAL PLAIN", "SOUTH CENTRAL SEMIARID PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES"
+ 
+    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND WEST COAST FOREST"
+  
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "UPPER GILA MOUNTAINS"), "NA_L2NAME"] <- "MEDITERRANEAN CALIFORNIA AND UPPER GILA MOUNTAINS"
+
+modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS"
+#////
+modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "WESTERN SIERRA MADRE PIEDMONT"), "NA_L2NAME"] <- "MEDITERRANEAN PIEDMONT"
+  
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("TAMAULIPAS-TEXAS SEMIARID PLAIN", "TEXAS-LOUISIANA COASTAL PLAIN", "SOUTH CENTRAL SEMIARID PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES"
+ 
+    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND WEST COAST FOREST"
+  
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "UPPER GILA MOUNTAINS"), "NA_L2NAME"] <- "MEDITERRANEAN CALIFORNIA AND UPPER GILA MOUNTAINS"
+
+modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS"
+ if (response == "CAMCover") {
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN PIEDMONT", "SEMIARID PLAIN AND PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES AND PIEDMONT"
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MEDITERRANEAN PIEDMONT", "SEMIARID PLAIN AND PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES AND PIEDMONT"
+ } else if (response %in% c("C4GramCover_prop", "C3GramCover_prop")) {
+     modDat_1_s[modDat_1_s$NA_L2NAME %in% c("SEMIARID PLAIN AND PRAIRIES", "TEMPERATE PRAIRIES"), "NA_L2NAME"] <- "SEMIARID AND TEMPERATE PRAIRIES"
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("SEMIARID PLAIN AND PRAIRIES", "TEMPERATE PRAIRIES"), "NA_L2NAME"] <- "SEMIARID AND TEMPERATE PRAIRIES" 
+ }
+
+} else if (ecoregion == "CONUS") {
+  
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("EVERGLADES", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"
+  
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND WEST COAST FOREST"
+  
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS"
+  
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "UPPER GILA MOUNTAINS"), "NA_L2NAME"] <- "MEDITERRANEAN CALIFORNIA AND UPPER GILA MOUNTAINS"
+  
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS", "SOUTHEASTERN USA PLAINS",  "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN AND MIXED WOOD PLAINS"
+   
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("SOUTH CENTRAL SEMIARID PRAIRIES", "TEXAS-LOUISIANA COASTAL PLAIN"), "NA_L2NAME"] <- "SOUTH CENTRAL SEMIARID PRAIRIES"
+  #///
+  
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("EVERGLADES", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"
+  
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND WEST COAST FOREST"
+  
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS"
+  
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "UPPER GILA MOUNTAINS"), "NA_L2NAME"] <- "MEDITERRANEAN CALIFORNIA AND UPPER GILA MOUNTAINS"
+  
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS", "SOUTHEASTERN USA PLAINS",  "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN AND MIXED WOOD PLAINS"
+   
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("SOUTH CENTRAL SEMIARID PRAIRIES", "TEXAS-LOUISIANA COASTAL PLAIN"), "NA_L2NAME"] <- "SOUTH CENTRAL SEMIARID PRAIRIES"
+  
+  if (response %in% c("C4GramCover_prop")) {
+    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("CENTRAL USA PLAINS", "TEMPERATE PRAIRIES", "SOUTHEASTERN AND MIXED WOOD PLAINS", "ATLANTIC HIGHLANDS", "MIXED WOOD SHIELD"), "NA_L2NAME"] <- "EASTERN AND MIXED WOOD PLAINS AND FOREST"
+  #///
+  
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in%c("CENTRAL USA PLAINS", "TEMPERATE PRAIRIES", "SOUTHEASTERN AND MIXED WOOD PLAINS", "ATLANTIC HIGHLANDS", "MIXED WOOD SHIELD"), "NA_L2NAME"] <- "EASTERN AND MIXED WOOD PLAINS AND FOREST"
+  }
+} else if (ecoregion == "forest"  & response != "CAMCover") {
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "EVERGLADES"), "NA_L2NAME"] <- "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS	AND EVERGLADES"
+   
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("UPPER GILA MOUNTAINS", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS"
+   
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS\tAND EVERGLADES", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS"
+   
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("ATLANTIC HIGHLANDS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "HIGHLANDS AND APPALACHIAN FORESTS"
+   
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("CENTRAL USA PLAINS", "MIXED WOOD PLAINS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOOD PLAINS"
+   
+   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD SHIELD", "CENTRAL AND MIXED WOOD PLAINS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOOD PLAINS AND MIXED WOOD SHIELD"
+   
+       ## divide southeastern US plains into two regions, since it's by far the largest group
+  modDat_1_s[modDat_1_s$NA_L2NAME == "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS" &
+               modDat_1_s$Long < -966595#-1773969
+               , "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"
+  modDat_1_s[modDat_1_s$NA_L2NAME == "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS", "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 2"
+   #///
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "EVERGLADES"), "NA_L2NAME"] <- "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS	AND EVERGLADES"
+   
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("UPPER GILA MOUNTAINS", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS"
+   
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS\tAND EVERGLADES", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS"
+   
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("ATLANTIC HIGHLANDS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "HIGHLANDS AND APPALACHIAN FORESTS"
+   
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("CENTRAL USA PLAINS", "MIXED WOOD PLAINS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOOD PLAINS"
+   
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD SHIELD", "CENTRAL AND MIXED WOOD PLAINS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOOD PLAINS AND MIXED WOOD SHIELD"
+          ## divide southeastern US plains into two regions, since it's by far the largest group
+  modDat_1_sf[modDat_1_sf$NA_L2NAME == "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS" &
+              st_coordinates(modDat_1_sf)[,1] < -966595#-1773969
+                , ]$NA_L2NAME <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"
+  modDat_1_sf[modDat_1_sf$NA_L2NAME == "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS", "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 2"
+  
+  if (response %in% c("C3GramCover_prop", "C4GramCover_prop") ) {
+     modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"
+     modDat_1_s[modDat_1_s$NA_L2NAME %in% c("CENTRAL AND MIXED WOOD PLAINS AND MIXED WOOD SHIELD", "HIGHLANDS AND APPALACHIAN FORESTS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOODS AND HIGHLANDS FORESTS"
+     #//
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("CENTRAL AND MIXED WOOD PLAINS AND MIXED WOOD SHIELD", "HIGHLANDS AND APPALACHIAN FORESTS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOODS AND HIGHLANDS FORESTS" 
+  
+  }
+  
+} else if (ecoregion == "forest" & response == "CAMCover") {
+  
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
+    
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "MARINE WEST COAST AND WESTERN CORDILLERA"
+    
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
+  
+  #///
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
+    
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "MARINE WEST COAST AND WESTERN CORDILLERA"
+    
+  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
+  
+} else if (ecoregion == "eastForest") {
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("EVERGLADES", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"
+
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS","CENTRAL USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN AND CENTRAL USA PLAINS"
+
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD SHIELD", "ATLANTIC HIGHLANDS"), "NA_L2NAME"] <- "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD"
+
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD"), "NA_L2NAME"] <- "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD AND PLAINS"
+
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("SOUTHEASTERN AND CENTRAL USA PLAINS", "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD AND PLAINS"), "NA_L2NAME"] <- "PLAINS AND HIGHLANDS AND SHIELD"
+
+  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND COAST"
+
+  # #////
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("EVERGLADES", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"
+
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS","CENTRAL USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN AND CENTRAL USA PLAINS"
+  
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD SHIELD", "ATLANTIC HIGHLANDS"), "NA_L2NAME"] <- "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD"
+  
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD"), "NA_L2NAME"] <- "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD AND PLAINS"
+  
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("SOUTHEASTERN AND CENTRAL USA PLAINS", "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD AND PLAINS"), "NA_L2NAME"] <- "PLAINS AND HIGHLANDS AND SHIELD"
+  
+   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND COAST"
+  
+   ## divide southeastern US plains into two regions, since it's by far the largest group
+  # modDat_1_s[modDat_1_s$NA_L2NAME == "SOUTHEASTERN USA PLAINS" &
+  #              modDat_1_s$Lat < -590062, "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS 1"
+  # modDat_1_s[modDat_1_s$NA_L2NAME == "SOUTHEASTERN USA PLAINS", #&
+  #             # modDat_1_s$Lat < -590062,
+  #            "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS 2"
+
+  #   ## divide southeastern US plains into two regions, since it's by far the largest group
+  # modDat_1_s[modDat_1_s$NA_L2NAME == "OZARK/OUACHITA-APPALACHIAN FORESTS" &
+  #              modDat_1_s$Long < 854862.2, "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS 1"
+  # modDat_1_s[modDat_1_s$NA_L2NAME == "OZARK/OUACHITA-APPALACHIAN FORESTS" &
+  #              modDat_1_s$Long  >=   854862.2, "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS 2"
+}
+# make a table of n for each region
+modDat_1_s %>% 
+  group_by(NA_L2NAME) %>% 
+  dplyr::summarize("Number_Of_Observations" = length(NA_L2NAME)) %>% 
+  rename("Level_2_Ecoregion" = NA_L2NAME)%>% 
+  kable() %>%
+kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+```
+
+
+
+## Then, look at the spatial distribution and environmental characteristics of the grouped ecoregions 
+```{r fig.width = 14, fig.height=10, message=FALSE}
+
+map1 <- ggplot() +
+  geom_sf(data=cropped_states,fill='white') +
+  geom_sf(data=modDat_1_sf#[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS"),]
+          ,
+          aes(fill=as.factor(NA_L2NAME)),linewidth=0.5,alpha=0.5) +
+  geom_point(data=modDat_1_s#[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS"),]
+             ,
+             alpha=0.5, 
+             aes(x = Long, y = Lat, color=as.factor(NA_L2NAME)), alpha = .1) +
+  theme(legend.position = 'none') +
+  labs(title = "Level 2 Ecoregions as spatial blocks")
+
+hull <- modDat_1_sf %>%
+  ungroup() %>%
+  group_by(NA_L2NAME) %>%
+  slice(chull(tmean, prcp))
+
+plot1<-ggplot(data=modDat_1_sf,aes(x=tmean,y=prcp)) +
+  geom_polygon(data = hull, alpha = 0.25,aes(fill=NA_L2NAME) )+
+  geom_point(aes(group=NA_L2NAME,color=NA_L2NAME),alpha=0.25) +
+  theme_minimal() + xlab("Annual Average T_mean - long-term average") +
+  ylab("Annual Average Precip - long-term average") 
+
+plot2<-ggplot(data=modDat_1_sf %>%
+                pivot_longer(cols=tmean:prcp),
+              aes(x=value,group=name)) +
+  # geom_polygon(data = hull, alpha = 0.25,aes(fill=fold) )+
+  geom_density(aes(group=NA_L2NAME,fill=NA_L2NAME),alpha=0.25) +
+  theme_minimal() +
+  facet_wrap(~name,scales='free')
+ 
+library(patchwork)
+(combo <- (map1+plot1)/plot2) 
+
+```
+
+
+## Fit a global model with all of the data 
+
+### First, fit a LASSO regression model using the glmnet R package
+- This regression is a Gamma glm with a log link 
+- Use cross validation across level 2 ecoregions to tune the lambda parameter in the LASSO model 
+- this model is fit to using the scaled weather/climate/soils variables
+- this list of possible predictors includes: 
+  1. main effects
+  2. interactions between all soils variables
+  3. interactions between climate and weather variables
+  4. transformed main effects (squared, log-transformed (add a uniform integer -- 20-- to all variables prior to log-transformation), square root-transformed (add a uniform integer -- 20-- to all variables prior to log-transformation))
+```{r fit global model, echo = FALSE}
+  # Fit model 
+  # penalty values
+  lambdas <- 10^seq(1,-5, length.out = 200)  # sequence of penalties to test
+ 
+  # make model matrix (which includes transformations and interactions)
+  ## only include interactions within and between climate and anomaly variables, and within and between soils variables
+
+ ## break predictors into climate, weather, and soils 
+  prednames_clim <- prednames[which(prednames %in% c("tmin" , "tmax",  "tmean",
+     "prcp", "t_warm" , "t_cold" , "prcp_wet" , "prcp_dry" , "prcp_seasonality", "prcpTempCorr", "abvFreezingMonth" , "isothermality" , "annWatDef" , "annWetDegDays",  "VPD_mean",  "VPD_max",  "VPD_min" , "VPD_max_95", "annWatDef_95", "annWetDegDays_5",  "frostFreeDays_5", "frostFreeDays"))]
+
+  # prednames_weath <- prednames[which(prednames %in% c("tmean_anom", "tmin_anom",  "tmax_anom", 
+  #   "prcp_anom",      "t_warm_anom" , "t_cold_anom",  "prcp_wet_anom" , "precp_dry_anom" ,  "prcp_seasonality_anom" ,  "prcpTempCorr_anom" , "aboveFreezingMonth_anom",  "isothermality_anom" ,  "annWatDef_anom", "annWetDegDays_anom",  "VPD_mean_anom" , "VPD_min_anom" , "VPD_max_anom", "VPD_max_95_anom", "annWatDef_95_anom" , "annWetDegDays_5_anom",  "frostFreeDays_5_anom" , "frostFreeDays_anom"))]
+  
+  prednames_soils <- prednames[which(prednames %in% c( "soilDepth" , "clay", 
+     "sand" , "coarse" ,  "carbon", "AWHC"))]
+  
+  
+  # get a text string of possible interactions between climate and weather variables
+  combos <- data.frame(gtools::permutations(n = length(c(prednames_clim#, prednames_weath
+                                                         )),
+                                            r = 2,
+                                            v = c(prednames_clim#, prednames_weath
+                                                  )))
+  
+  combos$interactions <- paste0(combos$X1, "*", combos$X2)
+  
+  # get a text string of possible interactions between soils variables
+  combos_2 <- data.frame(gtools::permutations(n = length(c(prednames_soils)),
+                                            r = 2,
+                                            v = c(prednames_soils)))
+  
+  combos_2$interactions <- paste0(combos_2$X1, "*", combos_2$X2)
+  
+  # make text string of all possible interactions
+  int_string <-str_flatten(c(combos$interactions, combos_2$interactions), collapse = " + ")
+  
+  # make text string of transformations (log, squared)
+  transform_string <- str_flatten(c(# add square root term 
+                                    paste0("I(log(",prednames_clim,"+30))"), 
+                                    #paste0("I(log(",prednames_weath,"+30))"),
+                                    paste0("I(log(",prednames_soils,"+30))"),
+                                    
+                                    paste0("I(sqrt(",prednames_clim,"+30))"), 
+                                    #paste0("I(sqrt(",prednames_weath,"+30))"),
+                                    paste0("I(sqrt(",prednames_soils,"+30))"),
+                                    
+                                    paste0("I(",prednames_clim,"^2)"), 
+                                    #paste0("I(",prednames_weath,"^2)"),
+                                    paste0("I(",prednames_soils,"^2)"))
+                                    , collapse = " + ")
+              
+  # get a text string of the possible untransformed model terms
+  mod_string <- paste("response_transformed ~", paste0(prednames, collapse = "+"))
+  
+  # make a text string of the model formula w/ interactions and transformations included
+  modWithInteractions <- paste(mod_string, "+",int_string , "+", transform_string
+                               )
+   
+  # now, make a model formula object
+  f <- as.formula(modWithInteractions)
+  
+  # transform dataframe to model matrix
+  X <- model.matrix(f, modDat_1_s)
+  # get response variable
+  y <- as.matrix(modDat_1_s[,"response_transformed"])
+```
+Get rid of transformed predictions and interactions that are correlated 
+```{r}
+# get first pass of names correlated variables
+X_df <- X %>% 
+  as.data.frame() %>% 
+  dplyr::select(-'(Intercept)')  
+corrNames_i <- X_df %>% 
+  cor()  %>% 
+   caret::findCorrelation(cutoff = .7, verbose = FALSE, names = TRUE, exact = TRUE)
+# remove those names that are untransformed main effects 
+  # vector of columns to remove 
+badNames <- corrNames_i[!(corrNames_i %in% prednames)]
+while (sum(!(corrNames_i %in% prednames))>0) {
+ corrNames_i <-  X_df %>% 
+    dplyr::select(-badNames) %>% 
+     cor()  %>% 
+   caret::findCorrelation(cutoff = .7, verbose = FALSE, names = TRUE, exact = TRUE)
+ # update the vector of names to remove 
+ badNames <- unique(c(badNames, corrNames_i[!(corrNames_i %in% prednames)]))
+}
+
+## see if there are any correlated variables left (would be all main effects at this point)
+# if there are, step through and remove the variable that each is most correlated with 
+if (length(corrNames_i)>1) {
+  for (i in 1:length(corrNames_i)) {
+    X_i <- X_df %>% 
+      dplyr::select(-badNames)
+    if (corrNames_i[i] %in% names(X_i)) {
+    corMat_i <- cor(x = X_i[corrNames_i[i]], y = X_i %>% dplyr::select(-corrNames_i[i])) 
+    badNames_i <- colnames(corMat_i)[abs(corMat_i)>=.7]
+    # if there are any predictors in the 'badNames_i', remove them from this list
+    if (length(badNames_i) > 0 & sum(c(badNames_i %in% prednames))>0) {
+        badNames_i <- badNames_i[!(badNames_i %in% prednames)]
+    }
+    badNames <- unique(c(badNames, badNames_i))
+    }
+  }
+}
+## update the X matrix to exclude these correlated variables
+X <- X[,!(colnames(X) %in% badNames)]
+```
+
+```{r}
+if (autoKfold == FALSE) {
+  # get the ecoregions for training lambda
+  train_eco <- modDat_1_s$NA_L2NAME#[train]
+  
+  # Fit model -----------------------------------------------
+  # specify leave-one-year-out cross-validation
+  my_folds <- as.numeric(as.factor(train_eco))
+
+  if (run == TRUE) {
+    # set up parallel processing
+    library(doMC)
+    # this computer has 16 cores (parallel::detectCores())
+    registerDoMC(cores = 8)
+    
+    fit <- cv.glmnet(
+    x = X[,2:ncol(X)], 
+    y = y, 
+    family = stats::Gamma(link = "log"),
+    keep = FALSE,
+    alpha = 1,  # 0 == ridge regression, 1 == lasso, 0.5 ~~ elastic net
+    #lambda = lambdas, 
+    nlambda = 50,
+    type.measure="mse",
+    #penalty.factor = pen_facts,
+    foldid = my_folds,
+    #thresh = thresh,
+    standardize = FALSE, ## scales variables prior to the model sequence... coefficients are always returned on the original scale
+    parallel = TRUE#, 
+    #relax = ifelse(response == "ShrubCover", yes = TRUE, no = FALSE)
+    )
+    base::saveRDS(fit, paste0("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/BiomassQuantity/Analysis/models/", response, "_globalLASSOmod_gammaLogLink_",ecoregion,".rds"))
+  
+  } else {
+    fit <- readRDS(paste0("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/BiomassQuantity/Analysis/models/", response, "_globalLASSOmod_gammaLogLink_",ecoregion, ".rds"))
+  }
+  
+} else if (autoKfold == TRUE) {
+   if (run == TRUE) {
+    # set up parallel processing
+    library(doMC)
+    # this computer has 16 cores (parallel::detectCores())
+    registerDoMC(cores = 8)
+    
+    fit <- cv.glmnet(
+    x = X[,2:ncol(X)], 
+    y = y, 
+    family = stats::Gamma(link = "log"),
+    keep = FALSE,
+    alpha = .5,  # 0 == ridge regression, 1 == lasso, 0.5 ~~ elastic net
+    lambda = lambdas,
+    relax = ifelse(response == "ShrubCover", yes = TRUE, no = FALSE),
+    #nlambda = 100,
+    type.measure="mse",
+    #penalty.factor = pen_facts,
+    #foldid = my_folds,
+    #thresh = thresh,
+    standardize = FALSE, ## scales variables prior to the model sequence... coefficients are always returned on the original scale
+    parallel = TRUE
+    )
+    base::saveRDS(fit, paste0("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/BiomassQuantity/Analysis/models/", response, "_globalLASSOmod_gammaLogLink_",ecoregion, "_kFoldDefault.rds"))
+  
+  } else {
+    fit <- readRDS(paste0("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/BiomassQuantity/Analysis/models/", response, "_globalLASSOmod_gammaLogLink_",ecoregion, "_kFoldDefault.rds"))
+  }
+}
+
+  # assess model fit
+  # assess.glmnet(fit$fit.preval, #newx = X[,2:293], 
+  #               newy = y, family = stats::Gamma(link = "log"))
+  # save the minimum lambda
+  best_lambda <- fit$lambda.min
+  # save the lambda for the most regularized model w/ an MSE that is still 1SE w/in the best lambda model
+  lambda_1SE <- fit$lambda.1se
+  # save the lambda for the most regularized model w/ an MSE that is still .5SE w/in the best lambda model
+  lambda_halfSE <- best_lambda + ((lambda_1SE - best_lambda)/2)
+ 
+  print(fit)     
+  
+  plot(fit)
+
+```
+
+Now, we need to do stability selection to ensure the coefficients that are being chosen with each lambda are stable 
+```{r}
+## stability selection for best lambda model 
+# setup params
+p <- ncol(X[,2:ncol(X)]) # of parameters
+n <- length(y) # of observations
+n_iter <- 100        # number of subsamples
+sample_frac <- 0.75  # fraction of data to subsample
+lambda_val <- best_lambda    # fixed lambda value (could be chosen via CV)
+
+# Track selection
+selection_counts <- matrix(0, nrow = p, ncol = 1)
+
+for (i in 1:n_iter) {
+  # Subsample rows
+  sample_idx <- sample(1:n, size = floor(sample_frac * n), replace = FALSE)
+  X_sub <- X[sample_idx, ]
+  y_sub <- y[sample_idx]
+
+  # Fit Lasso model
+  fit_stab_i <- glmnet(x = X_sub[,2:ncol(X_sub)], y = y_sub, 
+    family = stats::Gamma(link = "log"),
+    alpha = 1, lambda = lambda_val, standardize = FALSE)
+
+  # Get non-zero coefficients (excluding intercept)
+  selected <- which(as.vector(coef(fit_stab_i))[-1] != 0)
+  selection_counts[selected] <- selection_counts[selected] + 1
+}
+
+# Convert counts to selection probabilities (the probability that a variable is selected over 100 iterations)
+selection_prob <- selection_counts / n_iter
+selection_prob_df <- data.frame(
+  VariableNumber = paste0("X", 1:p),
+  VariableName = rownames(coef(fit_stab_i))[2:(p+1)],
+  SelectionProb = as.vector(selection_prob)
+)
+
+# get those variables that are selected in ≥70% of subsets (Meinshausen and Bühlmann, 2010)
+bestLambda_coef <- selection_prob_df[selection_prob_df$SelectionProb>=.7, c("VariableName", "SelectionProb")]
+
+#//////
+# stability selection for 1se lambda model
+lambda_val <-  lambda_1SE    # fixed lambda value (could be chosen via CV)
+
+# Track selection
+selection_counts <- matrix(0, nrow = p, ncol = 1)
+
+for (i in 1:n_iter) {
+  # Subsample rows
+  sample_idx <- sample(1:n, size = floor(sample_frac * n), replace = FALSE)
+  X_sub <- X[sample_idx, ]
+  y_sub <- y[sample_idx]
+
+  # Fit Lasso model
+  fit_stab_i <- glmnet(x = X_sub[,2:ncol(X_sub)], y = y_sub, 
+    family = stats::Gamma(link = "log"),
+    alpha = 1, lambda = lambda_val, standardize = FALSE)
+
+  # Get non-zero coefficients (excluding intercept)
+  selected <- which(as.vector(coef(fit_stab_i))[-1] != 0)
+  selection_counts[selected] <- selection_counts[selected] + 1
+}
+
+# Convert counts to selection probabilities (the probability that a variable is selected over 100 iterations)
+selection_prob <- selection_counts / n_iter
+selection_prob_df <- data.frame(
+  VariableNumber = paste0("X", 1:p),
+  VariableName = rownames(coef(fit_stab_i))[2:(p+1)],
+  SelectionProb = as.vector(selection_prob)
+)
+
+# get those variables that are selected in ≥70% of subsets (Meinshausen and Bühlmann, 2010)
+seLambda_coef <- selection_prob_df[selection_prob_df$SelectionProb>=.7, c("VariableName", "SelectionProb")]
+
+# #//////
+# stability selection for half se lambda model
+lambda_val <- lambda_halfSE    # fixed lambda value (could be chosen via CV)
+
+# Track selection
+selection_counts <- matrix(0, nrow = p, ncol = 1)
+
+for (i in 1:n_iter) {
+  # Subsample rows
+  sample_idx <- sample(1:n, size = floor(sample_frac * n), replace = FALSE)
+  X_sub <- X[sample_idx, ]
+  y_sub <- y[sample_idx]
+
+  # Fit Lasso model
+  fit_stab_i <- glmnet(x = X_sub[,2:ncol(X_sub)], y = y_sub,
+    family = stats::Gamma(link = "log"),
+    alpha = 1, lambda = lambda_val, standardize = FALSE)
+
+  # Get non-zero coefficients (excluding intercept)
+  selected <- which(as.vector(coef(fit_stab_i))[-1] != 0)
+  selection_counts[selected] <- selection_counts[selected] + 1
+}
+
+# Convert counts to selection probabilities (the probability that a variable is selected over 100 iterations)
+selection_prob <- selection_counts / n_iter
+selection_prob_df <- data.frame(
+  VariableNumber = paste0("X", 1:p),
+  VariableName = rownames(coef(fit_stab_i))[2:(p+1)],
+  SelectionProb = as.vector(selection_prob)
+)
+
+# get those variables that are selected in ≥70% of subsets (Meinshausen and Bühlmann, 2010)
+halfseLambda_coef <- selection_prob_df[selection_prob_df$SelectionProb>=.7, c("VariableName", "SelectionProb")]
+```
+
+If prompted to do so by the input arguments, remove any predictors that are for weather anomalies whose corresponding climate predictor is not included in the model 
+```{r}
+# if (trimAnom == TRUE) {
+#   # get unique predictors
+#   bestLamb_all <- bestLambda_coef$VariableName %>% #[str_detect(bestLambda_coef$VariableName, pattern = "_anom_s")] %>% 
+#     str_remove(pattern = "I\\(") %>% 
+#     str_remove(pattern = "\\^2\\)") %>% 
+#     str_remove(pattern = "\\^2\\)") %>% 
+#     str_split(pattern = ":", simplify = TRUE) 
+#   if (ncol(bestLamb_all) == 1) {
+#     bestLamb_all <- unique(bestLamb_all)
+#   } else {
+#     bestLamb_all <-  c(bestLamb_all[bestLamb_all[,1] !="",1], bestLamb_all[bestLamb_all[,2] !="",2]) %>% 
+#       unique()
+#   }
+#   # get anomalies
+#    bestLamb_anom <- bestLamb_all[bestLamb_all %in% prednames_weath]
+#   # get climate
+#    bestLamb_clim <- bestLamb_all[bestLamb_all %in% prednames_clim]
+#   # which anomalies are present in the predictors, but their corresponding climate variable isn't
+#    bestLamb_anomsWithMissingClim <- bestLamb_anom[!(str_remove(bestLamb_anom, "_anom") %in% bestLamb_clim)]
+#    # remove anomalies (and all interaction terms w/ those anomalies) from the predictor list
+# 
+#    if (length(bestLamb_anomsWithMissingClim) != 0) {
+#    
+#         bestLambda_coef_NEW <- bestLambda_coef
+#       for (i in 1:length(bestLamb_anomsWithMissingClim)) {
+#      bestLambda_coef_NEW <- bestLambda_coef_NEW[!str_detect(bestLambda_coef_NEW$VariableName, pattern = bestLamb_anomsWithMissingClim[i]),]
+#       }
+#      
+#    bestLambda_coef <- bestLambda_coef_NEW
+#    }
+#    
+#    
+#   #//// 1 se lambda model
+#       if (nrow(seLambda_coef) !=0) {
+#         # get unique predictors
+#   seLamb_all <- seLambda_coef$VariableName %>% #[str_detect(seLambda_coef$VariableName, pattern = "_anom_s")] %>% 
+#     str_remove(pattern = "I\\(") %>% 
+#     str_remove(pattern = "_s\\^2\\)") %>% 
+#     str_remove(pattern = "\\^2\\)") %>% 
+#     str_split(pattern = ":", simplify = TRUE) 
+#   if (ncol(seLamb_all) == 1) {
+#     seLamb_all <- unique(seLamb_all)
+#   } else {
+#     seLamb_all <-  c(seLamb_all[seLamb_all[,1] !="",1], seLamb_all[seLamb_all[,2] !="",2]) %>% 
+#       unique()
+#   }
+#   # get anomalies
+#    seLamb_anom <- seLamb_all[seLamb_all %in% prednames_weath]
+#   # get climate
+#    seLamb_clim <- seLamb_all[seLamb_all %in% prednames_clim]
+#   # which anomalies are present in the predictors, but their corresponding climate variable isn't
+#    seLamb_anomsWithMissingClim <- seLamb_anom[!(str_remove(seLamb_anom, "_anom") %in%  seLamb_clim)]
+#    # remove anomalies (and all interaction terms w/ those anomalies) from the predictor list
+#       if (length(seLamb_anomsWithMissingClim) != 0) {
+#     seLambda_coef_NEW <- seLambda_coef
+#    for (i in 1:length(seLamb_anomsWithMissingClim)) {
+#      seLambda_coef_NEW <- seLambda_coef_NEW[!str_detect(seLambda_coef_NEW$VariableName, pattern = seLamb_anomsWithMissingClim[i]),]
+#    }
+#    seLambda_coef <- seLambda_coef_NEW
+#       }
+#    }
+#   
+#   #//// 1 se lambda model
+#       if (nrow(halfseLambda_coef) !=0) {
+#         # get unique predictors
+#   halfseLamball<- halfseLambda_coef$VariableName %>% #[str_detect(halfseLambda_coef$VariableName, pattern = "_anom_s")] %>% 
+#     str_remove(pattern = "I\\(") %>% 
+#     str_remove(pattern = "_s\\^2\\)") %>% 
+#     str_split(pattern = ":", simplify = TRUE) 
+#   
+#     if (ncol(halfseLamball) == 1) {
+#     halfseLamball <- unique(halfseLamball)
+#   } else {
+#     halfseLamball <-  c(halfseLamball[halfseLamball[,1] !="",1], halfseLamball[halfseLamball[,2] !="",2]) %>% 
+#       unique()
+#   }
+#   
+#   # get anomalies
+#    halfseLambanom <- halfseLamball[halfseLamball %in% prednames_weath]
+#   # get climate
+#    halfseLambclim <- halfseLamball[halfseLamball %in% prednames_clim]
+#   # which anomalies are present in the predictors, but their corresponding climate variable isn't
+#    halfseLambanomsWithMissingClim <- halfseLambanom[!(str_remove(halfseLambanom, "_anom_s") %in%  halfseLambclim)]
+#    # remove anomalies (and all interaction terms w/ those anomalies) from the predictor list
+# 
+#    
+#    ##
+#         if (length(halfseLambanomsWithMissingClim) != 0) {
+#    halfseLambda_coef_NEW <- halfseLambda_coef
+#    for (i in 1:length(halfseLambanomsWithMissingClim)) {
+#      halfseLambda_coef_NEW <- halfseLambda_coef_NEW[!str_detect(halfseLambda_coef_NEW$VariableName, pattern = halfseLambanomsWithMissingClim[i]),]
+#    }
+#    halfseLambda_coef <- halfseLambda_coef_NEW
+#       }
+#    }
+#     ##
+#   
+#       }
+
+```
+
+Then, fit regular glm models (Gamma glm with a log link), first using the coefficients from the 'best' lambda identified in the LASSO model, and then using the coefficients from the '1SE' lambda and then the '1/2SE' lambda values identified from the LASSO (this is the value of lambda such that the cross validation error is within 1 standard error of the minimum).  
+```{r}
+## fit w/ the identified coefficients from the 'best' lambda, but using the glm function
+  mat_glmnet_best <- bestLambda_coef$VariableName 
+
+  if (length(mat_glmnet_best) == 0) {
+    f_glm_bestLambda <- as.formula(paste0("response_transformed ~  1"))
+  } else {
+  f_glm_bestLambda <- as.formula(paste0( "response_transformed ~ ", paste0(mat_glmnet_best, collapse = " + ")))
+  }
+  
+  fit_glm_bestLambda <- glm(data = modDat_1_s
+                              , formula =  f_glm_bestLambda, family =  stats::Gamma(link = "log"))
+  
+   ## fit w/ the identified coefficients from the '1se' lambda, but using the glm function
+  mat_glmnet_1se <- seLambda_coef$VariableName
+
+  if (length(mat_glmnet_1se) == 0) {
+    f_glm_1se <- as.formula(paste0("response_transformed ~  1"))
+  } else {
+  f_glm_1se <- as.formula(paste0("response_transformed ~ ", paste0(mat_glmnet_1se, collapse = " + ")))
+  }
+
+
+  fit_glm_se <- glm(data = modDat_1_s, formula = f_glm_1se,
+                    family =  stats::Gamma(link = "log"))
+
+     ## fit w/ the identified coefficients from the '.5se' lambda, but using the glm function
+  mat_glmnet_halfse <- halfseLambda_coef$VariableName
+
+  if (length(mat_glmnet_halfse) == 0) {
+    f_glm_halfse <- as.formula(paste0(response, "response_transformed ~  1"))
+  } else {
+  f_glm_halfse <- as.formula(paste0("response_transformed ~" , paste0(mat_glmnet_halfse, collapse = " + ")))
+  }
+
+  fit_glm_halfse <- glm(data = modDat_1_s, formula =  f_glm_halfse,
+                    family =  stats::Gamma(link = "log"))
+
+  ## save models 
+  if (trimAnom == TRUE) {
+    saveRDS(fit_glm_bestLambda, paste0("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/BiomassQuantity/Analysis/models/",response,"_",ecoregion, "_bestLambdaGLM.rds"))
+  saveRDS(fit_glm_halfse, paste0("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/BiomassQuantity/Analysis/models/",response,"_",ecoregion, "_halfSELambdaGLM.rds"))
+  saveRDS(fit_glm_se, paste0("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/BiomassQuantity/Analysis/models/",response,"_",ecoregion, "_oneSELambdaGLM.rds"))
+  } else {
+    saveRDS(fit_glm_bestLambda, paste0("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/BiomassQuantity/Analysis/models/",response,"_",ecoregion, "_noTLP_",removeTLP,"_bestLambdaGLM.rds"))
+  saveRDS(fit_glm_halfse, paste0("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/BiomassQuantity/Analysis/models/",response,"_",ecoregion, "_noTLP_",removeTLP,"_halfSELambdaGLM.rds"))
+  saveRDS(fit_glm_se, paste0("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/BiomassQuantity/Analysis/models/",response,"_",ecoregion, "_noTLP_",removeTLP,"_oneSELambdaGLM.rds"))
+    
+  }
+  
+```
+
+Then, we predict (on the training set) using both of these models (best lambda and 1se lambda) 
+```{r}
+  
+  ## predict on the test data
+  # lasso model predictions with the optimal lambda
+  optimal_pred <- predict(fit_glm_bestLambda, newx=X[,2:ncol(X)], type = "response") -2
+  optimal_pred_1se <-  predict(fit_glm_se, newx=X[,2:ncol(X)], type = "response") -2
+  optimal_pred_halfse <- predict(fit_glm_halfse, newx = X[,2:ncol(X)], type = "response") -2
+  
+    null_fit <- glm(#data = data.frame("y" = y, X[,paste0(prednames, "_s")]), 
+      formula = y ~ 1, family = stats::Gamma(link = "log"))
+  null_pred <- predict(null_fit, newdata = as.data.frame(X), type = "response"
+                       ) -2
+
+  # ## snap values above 100 and below 0 to be 100 or z
+  # #optimal_pred[optimal_pred>100] <- 100
+  # optimal_pred[optimal_pred<0] <- 0
+  # #optimal_pred_1se[optimal_pred_1se>100] <- 100
+  # optimal_pred_1se[optimal_pred_1se<0] <- 0
+  # #optimal_pred_halfse[optimal_pred_halfse>100] <- 100
+  # optimal_pred_halfse[optimal_pred_halfse<0] <- 0
+  # 
+  # save data
+  fullModOut <- list(
+    "modelObject" = fit,
+    "nullModelObject" = null_fit,
+    "modelPredictions" = data.frame(#ecoRegion_holdout = rep(test_eco,length(y)),
+      obs=y-2,
+                    pred_opt=optimal_pred, 
+                    pred_opt_se = optimal_pred_1se,
+                    pred_opt_halfse = optimal_pred_halfse,
+                    pred_null=null_pred#,
+                    #pred_nopenalty=nopen_pred
+                    ))
+  
+# # calculate correlations between null and optimal model 
+# my_cors <- c(cor(optimal_pred, c(y)),
+#              cor(optimal_pred_1se, c(y)), 
+#             cor(null_pred, c(y))
+#             )
+# 
+# # calculate mse between null and optimal model 
+# my_mse <- c(mean((fullModOut$modelPredictions$pred_opt -  c(y))^2) ,
+#             mean((fullModOut$modelPredictions$pred_opt_se -  c(y))^2) ,
+#             mean((fullModOut$modelPredictions$pred_null - c(y))^2)#,
+#             #mean((obs_pred$pred_nopenalty - obs_pred$obs)^2)
+#             )
+
+ggplot() + 
+  geom_point(aes(X[,2], fullModOut$modelPredictions$obs), col = "black", alpha = .1) + 
+  geom_point(aes(X[,2], fullModOut$modelPredictions$pred_opt), col = "red", alpha = .1) + ## predictions w/ the CV model
+  geom_point(aes(X[,2], fullModOut$modelPredictions$pred_opt_halfse), col = "orange", alpha = .1) + ## predictions w/ the CV model (.5se lambda)
+  geom_point(aes(X[,2], fullModOut$modelPredictions$pred_opt_se), col = "green", alpha = .1) + ## predictions w/ the CV model (1se lambda)
+  geom_point(aes(X[,2], fullModOut$modelPredictions$pred_null), col = "blue", alpha = .1) + 
+  labs(title = "A rough comparison of observed and model-predicted values", 
+       subtitle = "black = observed values \n red = predictions from 'best lambda' model \n orange = predictions for '1/2se' lambda model \n green = predictions from '1se' lambda model \n blue = predictions from null model") +
+  xlab(colnames(X)[2])
+  #ylim(c(0,200))
+
+```
+
+The internal cross-validation process to fit the global LASSO model identified an optimal lambda value (regularization parameter) of `r{print(best_lambda)}`. The lambda value such that the cross validation error is within 1 standard error of the minimum ("1se lambda") was `r{print(fit$lambda.1se)}`` . The following coefficients were kept in each model: 
+```{r coefficients in the global model}
+# the coefficient matrix from the 'best model' -- find and print those coefficients that aren't 0 in a table
+coef_glm_bestLambda <- coef(fit_glm_bestLambda) %>% 
+  data.frame() 
+coef_glm_bestLambda$coefficientName <- rownames(coef_glm_bestLambda)
+names(coef_glm_bestLambda)[1] <- "coefficientValue_bestLambda"
+# coefficient matrix from the '1se' model 
+coef_glm_1se <- coef(fit_glm_se) %>% 
+  data.frame() 
+coef_glm_1se$coefficientName <- rownames(coef_glm_1se)
+names(coef_glm_1se)[1] <- "coefficientValue_1seLambda"
+# coefficient matrix from the 'half se' model 
+coef_glm_halfse <- coef(fit_glm_halfse) %>% 
+  data.frame() 
+coef_glm_halfse$coefficientName <- rownames(coef_glm_halfse)
+names(coef_glm_halfse)[1] <- "coefficientValue_halfseLambda"
+# add together
+coefs <- full_join(coef_glm_bestLambda, coef_glm_halfse) %>% 
+  full_join(coef_glm_1se) %>% 
+  dplyr::select(coefficientName, coefficientValue_bestLambda,
+                coefficientValue_halfseLambda, coefficientValue_1seLambda)
+
+globModTerms <- coefs[!is.na(coefs$coefficientValue_bestLambda), "coefficientName"]
+
+## also, get the number of unique variables in each model 
+var_prop_pred <- paste0("biomass_MgPerHect", "_pred")
+response_vars <- c("biomass_MgPerHect", var_prop_pred)
+# for best lambda model
+prednames_fig <- paste(str_split(globModTerms, ":", simplify = TRUE)) 
+prednames_fig <- str_replace(prednames_fig, "I\\(", "")
+prednames_fig <- str_replace(prednames_fig, "\\^2\\)", "")
+prednames_fig <- unique(prednames_fig[prednames_fig>0])
+prednames_fig <- prednames_fig
+prednames_fig_num <- length(prednames_fig)
+# for 1SE lambda model
+globModTerms_1se <- coefs[!is.na(coefs$coefficientValue_1seLambda), "coefficientName"]
+if (length(globModTerms_1se) == 1) {
+prednames_fig_1se <- paste(str_split(globModTerms_1se, ":", simplify = TRUE)) 
+prednames_fig_1se <- str_replace(prednames_fig_1se, "I\\(", "")
+prednames_fig_1se <- str_replace(prednames_fig_1se, "\\^2\\)", "")
+prednames_fig_1se <- unique(prednames_fig_1se[prednames_fig_1se>0])
+prednames_fig_1se_num <- c(0)
+} else {
+prednames_fig_1se <- paste(str_split(globModTerms_1se, ":", simplify = TRUE)) 
+prednames_fig_1se <- str_replace(prednames_fig_1se, "I\\(", "")
+prednames_fig_1se <- str_replace(prednames_fig_1se, "\\^2\\)", "")
+prednames_fig_1se <- unique(prednames_fig_1se[prednames_fig_1se>0])
+prednames_fig_1se_num <- length(prednames_fig_1se)
+}
+# for 1/2SE lambda model
+globModTerms_halfse <- coefs[!is.na(coefs$coefficientValue_halfseLambda), "coefficientName"]
+if (length(globModTerms_halfse) == 1) {
+prednames_fig_halfse <- paste(str_split(globModTerms_halfse, ":", simplify = TRUE)) 
+prednames_fig_halfse <- str_replace(prednames_fig_halfse, "I\\(", "")
+prednames_fig_halfse <- str_replace(prednames_fig_halfse, "\\^2\\)", "")
+prednames_fig_halfse <- unique(prednames_fig_halfse[prednames_fig_halfse>0])
+prednames_fig_halfse_num <- c(0)
+} else {
+prednames_fig_halfse <- paste(str_split(globModTerms_halfse, ":", simplify = TRUE)) 
+prednames_fig_halfse <- str_replace(prednames_fig_halfse, "I\\(", "")
+prednames_fig_halfse <- str_replace(prednames_fig_halfse, "\\^2\\)", "")
+prednames_fig_halfse <- unique(prednames_fig_halfse[prednames_fig_halfse>0])
+prednames_fig_halfse_num <- length(prednames_fig_halfse)
+}
+# make a table
+kable(coefs, col.names = c("Coefficient Name", "Value from best lambda model", 
+                           "Value form 1/2 se lambda", "Value from 1se lambda model")
+      ) %>%
+kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+# calculate RMSE of all models 
+RMSE_best <- yardstick::rmse(fullModOut$modelPredictions[,c("obs", "pred_opt")], truth = "obs", estimate = "pred_opt")$.estimate
+RMSE_halfse <- yardstick::rmse(fullModOut$modelPredictions[,c("obs", "pred_opt_halfse")], truth = "obs", estimate = "pred_opt_halfse")$.estimate
+RMSE_1se <- yardstick::rmse(fullModOut$modelPredictions[,c("obs", "pred_opt_se")], truth = "obs", estimate = "pred_opt_se")$.estimate
+# calculate bias of all models
+bias_best <-  mean((fullModOut$modelPredictions$obs) - fullModOut$modelPredictions$pred_opt)
+bias_halfse <-  mean((fullModOut$modelPredictions$obs) - fullModOut$modelPredictions$pred_opt_halfse)
+bias_1se <- mean((fullModOut$modelPredictions$obs) - fullModOut$modelPredictions$pred_opt_se)
+
+uniqueCoeffs <- data.frame("Best lambda model" = c(RMSE_best, bias_best,
+  as.integer(length(globModTerms)-1), as.integer(prednames_fig_num), 
+                                                   as.integer(sum(prednames_fig %in% c(prednames_clim))),
+                                                   #as.integer(sum(prednames_fig %in% c(prednames_weath))),
+                                                   as.integer(sum(prednames_fig %in% c(prednames_soils)))
+                                                   ), 
+                           "1/2 se lambda model" = c(RMSE_halfse, bias_halfse,
+                             length(globModTerms_halfse)-1, prednames_fig_halfse_num,
+                                                   sum(prednames_fig_halfse %in% c(prednames_clim)),
+                                                   #sum(prednames_fig_halfse %in% c(prednames_weath)),
+                                                   sum(prednames_fig_halfse %in% c(prednames_soils))), 
+                           "1se lambda model" = c(RMSE_1se, bias_1se,
+                             length(globModTerms_1se)-1, prednames_fig_1se_num,
+                                                   sum(prednames_fig_1se %in% c(prednames_clim)),
+                                                   #sum(prednames_fig_1se %in% c(prednames_weath)),
+                                                   sum(prednames_fig_1se %in% c(prednames_soils))))
+row.names(uniqueCoeffs) <- c("RMSE", "bias: mean(obs-pred.)", "Total number of coefficients", "Number of unique coefficients",
+                             "Number of unique climate coefficients", 
+                             "Number of unique soils coefficients"
+                             )
+
+kable(uniqueCoeffs, 
+      col.names = c("Best lambda model", "1/2 se lambda model", "1se lambda model"), row.names = TRUE) %>%
+kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+# Visualizations of Model Predictions and Residuals  -- using best lambda model
+## observed vs. predicted values
+
+If the 1se lambda has no terms (is an intercept only model), use the 1/2 se lambda in subsequent figures
+```{r}
+if (length(prednames_fig_1se) == 0) {
+  mod_secondBest <- fit_glm_halfse
+  name_secondBestMod <- "1/2 SE Model"
+  prednames_secondBestMod <- prednames_fig_halfse
+} else {
+  mod_secondBest <- fit_glm_se
+  name_secondBestMod <- "1 SE Model"
+  prednames_secondBestMod <- prednames_fig_1se
+}
+```
+
+### Predicting on the data
+
+```{r predict with best lambda on data used for fitting}
+
+  # create prediction for each each model
+# (i.e. for each fire proporation variable)
+predict_by_response <- function(mod, df) {
+  df_out <- df
+  response_name <- paste0("biomass_MgPerHect", "_pred")
+  preds <- predict(mod, newx= df_out, #s="lambda.min", 
+                                     type = "response")
+  preds <- preds -2
+  preds[preds<0] <- 0
+  #preds[preds>100] <- 100
+  df_out <- df_out %>% cbind(preds)
+   colnames(df_out)[ncol(df_out)] <- response_name
+  return(df_out)
+}
+
+pred_glm1 <- predict_by_response(fit_glm_bestLambda, X[,2:ncol(X)])
+
+## back-transform the 
+# add back in true y values
+pred_glm1 <- pred_glm1 %>% 
+  cbind(modDat_1_s[,c("biomass_MgPerHect", "response_transformed")])
+
+# add back in lat/long data 
+pred_glm1 <- pred_glm1 %>% 
+  cbind(modDat_1_s[,c("Long", "Lat")])
+
+# calculate residuals
+pred_glm1$resid <- pred_glm1[,"biomass_MgPerHect"] - pred_glm1[,paste0("biomass_MgPerHect", "_pred")]
+pred_glm1$extremeResid <- NA
+pred_glm1[pred_glm1$resid > 70 | pred_glm1$resid < -70,"extremeResid"] <- 1
+
+# calculate residuals as percentages of the total 
+pred_glm1$resid_perc <- (pred_glm1$resid / pred_glm1[,"biomass_MgPerHect"]) * 100
+
+# plot(x = pred_glm1[,response],
+#      y = pred_glm1[,paste0("biomass_MgPerHect", "_pred")],
+#      xlab = "observed values", ylab = "predicted values")
+# points(x = pred_glm1[!is.na(pred_glm1$extremeResid), response],
+#        y = pred_glm1[!is.na(pred_glm1$extremeResid), paste0("biomass_MgPerHect", "_pred")],
+#        col = "red")
+```
+
+```{r predict with 1 se lambda on data used for model fitting}
+
+pred_glm1_1se <- predict_by_response(mod_secondBest, X[,2:ncol(X)])
+
+# add back in true y values
+pred_glm1_1se <- pred_glm1_1se %>% 
+  cbind(modDat_1_s[,c("biomass_MgPerHect", "response_transformed")])
+
+# add back in lat/long data 
+pred_glm1_1se <- pred_glm1_1se %>% 
+  cbind(modDat_1_s[,c("Long", "Lat")])
+
+# calculate residuals
+pred_glm1_1se$resid <- pred_glm1_1se[,"biomass_MgPerHect"] - pred_glm1_1se[,paste0("biomass_MgPerHect", "_pred")]
+pred_glm1_1se$extremeResid <- NA
+pred_glm1_1se[pred_glm1_1se$resid > 70 | pred_glm1_1se$resid < -70,"extremeResid"] <- 1
+
+# calculate residuals as percentages of the total 
+pred_glm1_1se$resid_perc <- (pred_glm1_1se$resid / pred_glm1_1se[,"biomass_MgPerHect"]) * 100
+
+```
+
+### Maps of Observations, Predictions, and Residuals=
+
+Observations across the temporal range of the dataset
+```{r Residual maps5, fig.height = 7, fig.width = 9, }
+
+# rasterize
+# get reference raster
+test_rast <-  rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
+  terra::aggregate(fact = 8, fun = "mean")
+## add ecoregion boundaries (for our ecoregion level model)
+regions <- sf::st_read(dsn = "../../../Data_raw/Level2Ecoregions/", layer = "NA_CEC_Eco_Level2") 
+regions <- regions %>% 
+  st_transform(crs = st_crs(test_rast)) %>% 
+  st_make_valid() #%>% 
+  #st_crop(st_bbox(test_rast))
+# 
+# goodRegions_temp <- st_overlaps(y = cropped_states, x = regions, sparse = FALSE) %>% 
+#   rowSums() 
+# goodRegions <- regions[goodRegions_temp != 0,]
+
+ecoregionLU <- data.frame("NA_L1NAME" = sort(unique(regions$NA_L1NAME)), 
+                        "newRegion" = c(NA, "Forest", "dryShrubGrass", 
+                                        "dryShrubGrass", "Forest", "dryShrubGrass",
+                                       "dryShrubGrass", "Forest", "Forest", 
+                                       "dryShrubGrass", "Forest", "Forest", 
+                                       "Forest", "Forest", "dryShrubGrass", 
+                                       NA
+                                        ))
+goodRegions <- regions %>% 
+  left_join(ecoregionLU)
+mapRegions <- goodRegions %>% 
+  filter(!is.na(newRegion)) %>% 
+  group_by(newRegion) %>% 
+  summarise(geometry = sf::st_union(geometry)) %>% 
+  ungroup() %>% 
+  st_simplify(dTolerance = 1000)
+#mapview(mapRegions)
+# rasterize data
+plotObs <- pred_glm1 %>% 
+         drop_na(paste("biomass_MgPerHect")) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "biomass_MgPerHect", 
+                   fun = mean) #%>% 
+  #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
+  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+
+# get the extent of this particular raster, and crop it accordingly
+tempExt <- crds(plotObs, na.rm = TRUE)
+
+plotObs_2 <- plotObs %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+# make figures
+map_obs <- ggplot() +
+geom_spatraster(data = plotObs_2) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+labs(title = paste0("Observations of ", "biomass_MgPerHect", " in the ",ecoregion, " ecoregion")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0,   na.value = "grey20") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+hist_obs <- ggplot(pred_glm1) + 
+  geom_histogram(aes(.data[["biomass_MgPerHect"]]), fill = "lightgrey", col = "darkgrey")
+
+library(ggpubr)
+ggarrange(map_obs, hist_obs, heights = c(3,1), ncol = 1)
+```
+
+Predictions across the temporal range of the dataset
+```{r predicted values map best lambda model, fig.height = 7, fig.width = 9, }
+
+# rasterize data
+plotPred <- pred_glm1 %>% 
+         drop_na(paste0("biomass_MgPerHect","_pred")) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = paste0("biomass_MgPerHect","_pred"), 
+                   fun = mean) #%>% 
+  #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
+  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+
+# get the point location of those predictions that are > 600
+highPred_points <- pred_glm1 %>% 
+  filter(.[[paste0("biomass_MgPerHect","_pred")]] > 700 | 
+           .[[paste0("biomass_MgPerHect", "_pred")]] < 0) %>% 
+  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) 
+
+# get the extent of this particular raster, and crop it accordingly
+tempExt <- crds(plotPred, na.rm = TRUE)
+
+plotPred_2 <- plotPred %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+ # make figures
+map_preds1 <- ggplot() +
+geom_spatraster(data = plotPred_2) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA )  + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data = highPred_points, col = "red") +
+labs(title = paste0("Predictions from the 'best lambda' fitted model of ", "biomass_MgPerHect", " in the ",ecoregion, " ecoregion"),
+     subtitle =  "bestLambda model\n 
+     red points show predictions greater than 700 Mg/hect")  +
+  scale_fill_gradient2(low = "wheat",
+                       high = "darkgreen" , 
+                       midpoint = 0,   
+                       na.value = "grey20",
+                       limits = c(0,max(terra::values(plotPred), na.rm = TRUE))) + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+hist_preds1 <- ggplot(pred_glm1) + 
+  geom_histogram(aes(.data[[paste0("biomass_MgPerHect", "_pred")]]), fill = "lightgrey", col = "darkgrey")#+ 
+  #xlim(c(0,700))
+
+ggarrange(map_preds1, hist_preds1, heights = c(3,1), ncol = 1)
+```
+
+```{r predicted values map 1se lambda model, fig.height = 7, fig.width = 9, }
+
+# rasterize data
+plotPred <- pred_glm1_1se %>% 
+         drop_na(paste0("biomass_MgPerHect","_pred")) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = paste0("biomass_MgPerHect","_pred"), 
+                   fun = mean) #%>% 
+  #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
+  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+
+# get the point location of those predictions that are > 100
+highPred_points <- pred_glm1_1se %>% 
+  filter(.[[paste0("biomass_MgPerHect","_pred")]] > 700 | 
+           .[[paste0("biomass_MgPerHect", "_pred")]] < 0) %>% 
+  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) 
+
+# get the extent of this particular raster, and crop it accordingly
+tempExt <- crds(plotPred, na.rm = TRUE)
+
+plotPred_2 <- plotPred %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+# make figures
+map_preds2 <- ggplot() +
+geom_spatraster(data = plotPred_2) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA )  + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data = highPred_points, col = "red") +
+labs(title = paste0("Predictions from the '1SE lambda' fitted model of ", "biomass_MgPerHect", " in the ",ecoregion, " ecoregion"),
+     subtitle =  name_secondBestMod)  +
+  scale_fill_gradient2(low = "wheat",
+                       high = "darkgreen" , 
+                       #midpoint = 100,   
+                       na.value = "grey20",
+                       limits = c(0,max(terra::values(plotPred), na.rm = TRUE))) + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+hist_preds2 <- ggplot(pred_glm1_1se) + 
+  geom_histogram(aes(.data[[paste0("biomass_MgPerHect", "_pred")]]), fill = "lightgrey", col = "darkgrey")#+ 
+  #xlim(c(0,200))
+
+ggarrange(map_preds2, hist_preds2, heights = c(3,1), ncol = 1)
+```
+
+Residuals as a percentage of prediction ((resid - prediction)*100) for best SE lambda model 
+```{r Residual map from best lambda model, fig.height = 12, fig.width = 9, warning = FALSE }
+# rasterize data
+plotResid_rast <- pred_glm1 %>% 
+         drop_na(resid_perc) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "resid_perc", 
+                   fun = mean) #%>% 
+  #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
+  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+
+# get the extent of this particular raster, and crop it accordingly
+tempExt <- crds(plotResid_rast, na.rm = TRUE)
+
+plotResid_rast_2 <- plotResid_rast %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+# identify locations where residuals are >100 or < -100
+badResids_high <- pred_glm1 %>% 
+  filter(resid_perc > 200)  %>% 
+  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) 
+badResids_low <- pred_glm1 %>% 
+  filter(resid_perc < -200)  %>% 
+  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) 
+# make figures
+map <- ggplot() +
+geom_spatraster(data =plotResid_rast_2) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA )  + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data = badResids_high, col = "blue") +
+  geom_sf(data = badResids_low, col = "red") +
+labs(title = paste0("Resids. as a percentage (obs. - pred.)/obs. * 100 from the ", ecoregion," ecoregion-wide model of ",  "biomass_MgPerHect"),
+     subtitle = "bestLambda model \n red points indicate locations that have residuals below -200% \n blue points indicate locations that have residuals above 200%") +
+  scale_fill_gradient2(low = "red",
+                       mid = "white" ,
+                       high = "blue" , 
+                       midpoint = 0,   na.value = "grey20",
+                       limits = c(-200 ,200)
+                       ) + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+hist <- ggplot(pred_glm1) + 
+  geom_histogram(aes(resid_perc), fill = "lightgrey", col = "darkgrey") + 
+  geom_text(aes(x = min(resid_perc)*.9, y = 1500, label = paste0("min = ", round(min(resid_perc),2)))) +
+  geom_text(aes(x = max(resid_perc)*.9, y = 1500, label = paste0("max = ", round(max(resid_perc),2)))) + 
+  geom_vline(aes(xintercept = mean(resid_perc)))
+
+ggarrange(map, hist, heights = c(3,1), ncol = 1)
+```
+
+
+Residuals as a percentage of prediction ((resid - prediction)*100) for second best SE lambda model 
+```{r Residual map from 1 SE lambda model, fig.height = 12, fig.width = 9, warning = FALSE }
+# rasterize data
+plotResid_rast <- pred_glm1_1se %>% 
+         drop_na(resid_perc) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "resid_perc", 
+                   fun = mean) #%>% 
+  #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
+  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+
+# get the extent of this particular raster, and crop it accordingly
+tempExt <- crds(plotResid_rast, na.rm = TRUE)
+
+plotResid_rast_2 <- plotResid_rast %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+# identify locations where residuals are >100 or < -100
+badResids_high <- pred_glm1_1se %>% 
+  filter(resid_perc > 200)  %>% 
+  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) 
+badResids_low <- pred_glm1_1se %>% 
+  filter(resid_perc < -200)  %>% 
+  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) 
+# make figures
+map <- ggplot() +
+geom_spatraster(data =plotResid_rast_2) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA )  + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data = badResids_high, col = "blue") +
+  geom_sf(data = badResids_low, col = "red") +
+labs(title = paste0("Resids. as a percentage (obs. - pred.)/obs. * 100 from the ", ecoregion," ecoregion-wide model of ", "biomass_MgPerHect"),
+     subtitle = paste0(name_secondBestMod,"\n red points indicate locations that have residuals below -200% \n blue points indicate locations that have residuals above 200%")) +
+  scale_fill_gradient2(low = "red",
+                       mid = "white" ,
+                       high = "blue" , 
+                       midpoint = 0,   na.value = "grey20",
+                       limits = c(-200,200)
+                       ) + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+hist <- ggplot(pred_glm1_1se) + 
+  geom_histogram(aes(resid_perc), fill = "lightgrey", col = "darkgrey") + 
+  geom_text(aes(x = min(resid_perc)*.9, y = 1500, label = paste0("min = ", round(min(resid_perc),2)))) +
+  geom_text(aes(x = max(resid_perc)*.9, y = 1500, label = paste0("max = ", round(max(resid_perc),2))))+ 
+  geom_vline(aes(xintercept = mean(resid_perc)))
+
+ggarrange(map, hist, heights = c(3,1), ncol = 1)
+```
+
+### Are there biases of the model predictions across year/lat/long? 
+```{r bias figures best lambda model, fig.align=8, fig.height=10}
+# plot residuals against Year
+# yearResidMod_bestLambda <- ggplot(pred_glm1) + 
+#   geom_point(aes(x = jitter(Year), y = resid), alpha = .1) + 
+#   geom_smooth(aes(x = Year, y = resid)) + 
+#   xlab("Year") + 
+#   ylab("Residuals") +
+#   ggtitle("from best lamba model")
+# yearResidMod_1seLambda <- ggplot(pred_glm1_1se) + 
+#   geom_point(aes(x = jitter(Year), y = resid), alpha = .1) + 
+#   geom_smooth(aes(x = Year, y = resid)) + 
+#   xlab("Year") + 
+#   ylab("Residuals") +
+#   ggtitle(paste0("from ", name_secondBestMod))
+
+# plot residuals against Lat
+latResidMod_bestLambda <- ggplot(pred_glm1) + 
+  geom_point(aes(x = Lat, y = resid), alpha = .1) + 
+  geom_smooth(aes(x = Lat, y = resid)) + 
+  xlab("Latitude") + 
+  ylab("Residuals") +
+  ggtitle("from best lamba model")
+latResidMod_1seLambda <- ggplot(pred_glm1_1se) + 
+  geom_point(aes(x = Lat, y = resid), alpha = .1) + 
+  geom_smooth(aes(x = Lat, y = resid)) + 
+  xlab("Latitude") + 
+  ylab("Residuals") +
+  ggtitle(paste0("from ", name_secondBestMod))
+
+# plot residuals against Long
+longResidMod_bestLambda <- ggplot(pred_glm1) + 
+  geom_point(aes(x = Long, y = resid), alpha = .1) + 
+  geom_smooth(aes(x = Long, y = resid)) + 
+  xlab("Longitude") + 
+  ylab("Residuals") +
+  ggtitle("from best lamba model")
+longResidMod_1seLambda <- ggplot(pred_glm1_1se) + 
+  geom_point(aes(x = Long, y = resid), alpha = .1) + 
+  geom_smooth(aes(x = Long, y = resid)) + 
+  xlab("Longitude") + 
+  ylab("Residuals") +
+  ggtitle(paste0("from ", name_secondBestMod))
+
+library(patchwork)
+#(yearResidMod_bestLambda + yearResidMod_1seLambda) / 
+(  latResidMod_bestLambda + latResidMod_1seLambda) /
+(  longResidMod_bestLambda + longResidMod_1seLambda)
+```
+
+### Quantile plots
+
+Binning predictor variables into "Deciles" (actually percentiles) and looking at the mean
+predicted probability for each percentile. The use of the word Decentiles
+is just a legacy thing (they started out being actual Percentiles)
+```{r}
+# get deciles for best lambda model 
+if (length(prednames_fig) == 0) {
+  print("The best lambda model only contains one predictor (an intercept), so decile plots aren't possible to generate")
+} else {
+  pred_glm1_deciles <- predvars2deciles(pred_glm1,
+                                      response_vars = response_vars,
+                                        pred_vars = prednames_fig, 
+                                       cut_points = seq(0, 1, 0.005))
+}
+# get deciles for 1 SE lambda model 
+if (length(prednames_secondBestMod) == 0) {
+  print("The 1SE (or 1/2 SE) lambda model only contains one predictor (an intercept), so decile plots aren't possible to generate")
+} else {
+  pred_glm1_deciles_1se <- predvars2deciles(pred_glm1_1se,
+                                      response_vars = response_vars,
+                                        pred_vars = prednames_secondBestMod, 
+                                       cut_points = seq(0, 1, 0.005))
+}
+```
+
+Here is a quick version of LOESS curves fit to raw data (to double-check the quantile plot calculations)
+```{r, fig.height= 12, fig.width = 12}
+# 
+# if (length(prednames_fig) == 0) {
+#   print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate")
+# } else {
+#   pred_glm1 %>%
+#   dplyr::select(all_of(c(prednames_fig, response_vars))) %>%
+#   pivot_longer(cols = prednames_fig)  %>%
+#   ggplot() +
+#   facet_wrap(~name, scales = "free") +
+#   geom_point(aes(x = value, y =  .data[[paste(response)]]), col = "darkblue", alpha = .1)  + # observed values
+#   geom_point(aes(x = value, y = .data[[response_vars[2]]]), col = "lightblue", alpha = .1) + # model-predicted values
+#   geom_smooth(aes(x = value, y =  .data[[paste(response)]]), col = "black", se = FALSE) +
+#   geom_smooth(aes(x = value, y = .data[[response_vars[2]]]), col = "brown", se = FALSE) +
+#   ggtitle(label = "dark blue points = observations;
+#           light blue points = predictions;
+#           black line = observations;
+#           brown line = predictions") + 
+#     ggplot2::ylim(c(0,1000))
+# 
+# }
+
+```
+
+Below are the actual quantile plots 
+(note that the predictor variables are scaled) 
+```{r Percentile_plot best lambda, fig.height= 16, fig.width = 12, warning=FALSE, message=FALSE}
+if (length(prednames_fig) == 0) {
+  print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate")
+} else {
+
+# publication quality version
+g3 <- decile_dotplot_pq(df = pred_glm1_deciles, response = "biomass_MgPerHect", IQR = TRUE,
+                        CI = FALSE
+                        ) + ggtitle("Decile Plot")
+
+g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles, response = "biomass_MgPerHect", dfRaw = pred_glm1, add_smooth = TRUE, deciles = FALSE)
+
+  
+if(save_figs) {
+  png(paste0("figures/quantile_plots/quantile_plot_", response,  "_",ecoregion,".png"), 
+     units = "in", res = 600, width = 5.5, height = 3.5 )
+    print(g4)
+  dev.off()
+}
+
+g4
+}
+
+```
+
+```{r Percentile_plot 1 SE lambda, fig.height= 16, fig.width = 12, warning=FALSE, message=FALSE}
+if (length(prednames_secondBestMod) == 0) {
+  print("The 1 se lambda model only contains one predictor (an intercept), so decile plots aren't possible to generate")
+
+  } else {
+
+# publication quality version
+g3 <- decile_dotplot_pq(pred_glm1_deciles_1se, response =  "biomass_MgPerHect", IQR = TRUE) + ggtitle("Decile Plot")
+
+g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles_1se, response =  "biomass_MgPerHect", dfRaw = pred_glm1_1se, add_smooth = TRUE, deciles = FALSE)
+
+  
+if(save_figs) {
+  png(paste0("figures/quantile_plots/quantile_plot_", response,  "_",ecoregion,".png"), 
+     units = "in", res = 600, width = 5.5, height = 3.5 )
+    print(g4)
+  dev.off()
+}
+
+g4
+}
+
+```
+
+### Deciles Filtered 
+
+20th and 80th percentiles for each climate variable
+
+```{r}
+df <- pred_glm1[, prednames_fig] #%>% 
+  #mutate(MAT = MAT - 273.15) # k to c
+quantiles <- purrr::map(df, quantile, probs = c(0.2, 0.8), na.rm = TRUE)
+```
+
+Filtered 'Decile' plots of data. These plots show each vegetation variable,
+but only based on data that falls into the upper and lower two deciles of
+each predictor variable. 
+
+```{r glm_deciles_filtered best lambda model, fig.height = 24, fig.width = 24, message = FALSE}
+if (length(prednames_fig) == 0) {
+  print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate")
+} else {
+pred_glm1_deciles_filt <- predvars2deciles( pred_glm1, 
+                         response_vars = response_vars,
+                         pred_vars = prednames_fig,
+                         filter_var = TRUE,
+                         filter_vars = prednames_fig,
+                         cut_points = seq(0, 1, 0.005)) 
+
+decile_dotplot_filtered_pq(pred_glm1_deciles_filt, xvars = prednames_fig, response = "biomass_MgPerHect"
+                           )
+#decile_dotplot_filtered_pq(pred_glm1_deciles_filt)
+
+}
+```
+
+Filtered quantile figure with middle 2 deciles also shown
+
+```{r filtered quantile plot for best lambda model with middle 2 deciles, fig.height = 24, fig.width = 24, eval = TRUE, message = FALSE}
+if (length(prednames_fig) == 0) {
+  print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate")
+} else {
+pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1, 
+                         response_vars = response_vars,
+                         pred_vars = prednames_fig,
+                         filter_vars = prednames_fig,
+                         filter_var = TRUE,
+                         add_mid = TRUE,
+                         cut_points = seq(0, 1, 0.005))
+
+g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt_mid, response = "biomass_MgPerHect", 
+                                xvars = prednames_fig)
+g
+
+if(save_figs) {
+jpeg(paste0("figures/quantile_plots/quantile_plot_filtered_mid_v1", , ".jpeg"),
+     units = "in", res = 600, width = 5.5, height = 6 )
+  g 
+dev.off()
+}
+}
+```
+
+### Show model RMSE w/in each quantile
+```{r}
+# get deciles for best lambda model 
+if (length(prednames_fig) == 0) {
+  print("The best lambda model only contains one predictor (an intercept), so decile plots aren't possible to generate")
+} else {
+  pred_glm1_deciles %>% 
+    ggplot(aes(x = mean_value, y = RMSE)) +
+    facet_wrap(~name, scales = "free_x")+
+    geom_point(alpha = .2, size = .5) + 
+    geom_smooth(lwd = .5) + 
+    xlab("Scaled predictor value") + 
+    ggtitle("RMSE by decile for bestLambda model")
+}
+# get deciles for 1 SE lambda model 
+if (length(prednames_secondBestMod) == 0) {
+  print("The 1SE (or 1/2 SE) lambda model only contains one predictor (an intercept), so decile plots aren't possible to generate")
+} else {
+  pred_glm1_deciles_1se %>% 
+    ggplot(aes(x = mean_value, y = RMSE)) +
+    facet_wrap(~name, scales = "free_x")+
+    geom_point(alpha = .2, size = .5) + 
+    geom_smooth(lwd = .5) + 
+    xlab("Scaled predictor value") + 
+    ggtitle(paste0("RMSE by decile for ", name_secondBestMod, "model"))
+}
+```
+
+# Cross-validation 
+## Using best lambda model 
+### Use terms from global model to re-fit and predict on different held out regions
+### Figures show residuals for each of the models fit to held-out ecoregions 
+These models were fit to six ecoregions, and then predict on the indicated heldout ecoregion
+
+```{r cross-validation for best lambda model , fig.height = 7, fig.width = 9, warning=FALSE, message=FALSE }
+if (length(prednames_fig) == 0) {
+  print("The model only contains one predictor (an intercept), so cross validation isn't practical")
+} else {
+  
+## code from Tredennick et al. 2020
+# try each separate level II ecoregion as a test set
+# make a list to hold output data
+outList <- vector(mode = "list", length = length(sort(unique(modDat_1_s$NA_L2NAME))))
+# obs_pred <- data.frame(ecoregion = character(),obs = numeric(),
+#                        pred_opt = numeric(), pred_null = numeric()#,
+#                        #pred_nopenalty = numeric()
+#                        )
+
+## get the model specification from the global model
+mat <- as.matrix(coef(fit_glm_bestLambda, s = "lambda.min"))
+mat2 <- mat[mat[,1] != 0,]
+
+f_cv <- as.formula(paste0("response_transformed ~ ", paste0(names(mat2)[2:length(names(mat2))], collapse = " + ")))
+
+X_cv <- model.matrix(object = f_cv, data = modDat_1_s)
+# get response variable
+y_cv <- as.matrix(modDat_1_s[,"response_transformed"])
+
+  
+# now, loop through so with each iteration, a different ecoregion is held out
+ for(i_eco in sort(unique(modDat_1_s$NA_L2NAME))){
+
+  # split into training and test sets
+  test_eco <- i_eco
+  print(test_eco)
+  # identify the rowID of observations to be in the training and test datasets
+  train <- which(modDat_1_s$NA_L2NAME!=test_eco) # data for all ecoregions that aren't 'i_eco'
+  test <- which(modDat_1_s$NA_L2NAME==test_eco) # data for the ecoregion that is 'i_eco'
+
+  trainDat_all <- modDat_1_s %>% 
+    slice(train) %>% 
+    dplyr::select(-newRegion)
+  testDat_all <- modDat_1_s %>% 
+    slice(test) %>% 
+    dplyr::select(-newRegion)
+
+  # get the model matrices for input and response variables for cross validation model specification
+  X_train <- as.matrix(X_cv[train,])
+  X_test <- as.matrix(X_cv[test,])
+
+  y_train <- modDat_1_s[train,"response_transformed"]
+  y_test <- modDat_1_s[test,"response_transformed"]
+  
+  # get the model matrices for input and response variables for original model specification
+  X_train_glob <- as.matrix(X[train,])
+  X_test_glob <- as.matrix(X[test,])
+
+  y_train_glob <- modDat_1_s[train,"response_transformed"]
+  y_test_glob <- modDat_1_s[test,"response_transformed"]
+
+  train_eco <- modDat_1_s$NA_L2NAME[train]
+
+  ## just try a regular glm w/ the components from the global model
+  fit_i <- glm(data = trainDat_all, formula = f_cv, 
+    ,
+               family =  stats::Gamma(link = "log")
+    )
+    
+  # lasso model predictions with the optimal lambda (back transformed)
+  optimal_pred <- predict(fit_i, newdata= testDat_all, type = "response") 
+  # null model and predictions
+  # the "null" model in this case is the global model 
+  # predict on the test data for this iteration w/ the global model (back transformed)
+  null_pred <- predict.glm(fit_glm_bestLambda, newdata = testDat_all, type = "response") 
+
+  
+  # save data
+  tmp <- data.frame(ecoRegion_holdout = rep(test_eco,length(y_test)),
+                    obs=y_test - 2,
+                    pred_opt=optimal_pred- 2, 
+                    pred_null=null_pred- 2#,
+                    #pred_nopenalty=nopen_pred
+                    ) %>%
+    cbind(testDat_all)
+  
+  # calculate RMSE, bias, etc. of 
+  # RMSE of CV model 
+  RMSE_optimal <- yardstick::rmse(data = data.frame(optimal_pred,"y_test" = (y_test)), truth = "y_test", estimate = "optimal_pred")[1,]$.estimate
+  # RMSE of global model
+  RMSE_null <- yardstick::rmse(data = data.frame(null_pred,"y_test" = (y_test)), truth = "y_test", estimate = "null_pred")[1,]$.estimate
+  # bias of CV model
+  bias_optimal <- mean((y_test) - optimal_pred)
+  # bias of global model
+  bias_null <-  mean((y_test) - null_pred )
+  
+  # put output into a list
+  tmpList <- list("testRegion" = i_eco,
+    "modelObject" = fit_i,
+       "modelPredictions" = tmp, 
+    "performanceMetrics" = data.frame("RMSE_cvModel" = RMSE_optimal, 
+                                      "RMSE_globalModel" = RMSE_null, 
+                                      "bias_cvModel" = bias_optimal, 
+                                      "bias_globalModel" = bias_null))
+
+  # save model outputs
+  outList[[which(sort(unique(modDat_1_s$NA_L2NAME)) == i_eco)]] <- tmpList
+ }
+}
+```
+### Below are the RMSE and bias values for predictions made for each holdout level II ecoregion, compared to predictions from the global model for that same ecoregion
+```{r metrics output table for best lambda CV}
+# table of model performance
+purrr::map(outList, .f = function(x) {
+  cbind(data.frame("holdout region" = x$testRegion),  x$performanceMetrics)
+}
+) %>% 
+  purrr::list_rbind() %>% 
+  kable(col.names = c("Held-out ecoregion", "RMSE of CV model", "RMSE of global model", 
+                      "bias of CV model - mean(obs-pred.)", "bias of global model- mean(obs-pred.)"), 
+        caption = "Performance of Cross Validation using 'best lambda' model specification") %>%
+kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+```{r figures for best lambda CV}
+# visualize model predictions
+for (i in 1:length(sort(unique(modDat_1_s$NA_L2NAME)))) {
+  holdoutRegion <- outList[[i]]$testRegion
+  predictionData <- outList[[i]]$modelPredictions
+  modTerms <- as.matrix(coef(outList[[i]]$modelObject)) %>%
+    as.data.frame() %>%
+    filter(V1!=0) %>%
+    rownames()
+
+  # calculate residuals
+  predictionData <- predictionData %>%
+  mutate(resid = .[["obs"]] - .[["pred_opt"]] ,
+         resid_globMod = .[["obs"]]  - .[["pred_null"]]) %>% 
+    mutate(resid_perc = (resid/.[["obs"]] )*100,
+           resid_percGlobMod = (resid_globMod/.[["obs"]] )*100)
+
+
+# rasterize
+# use 'test_rast' from earlier
+
+  # rasterize data
+plotObs <- predictionData %>%
+         drop_na(paste("biomass_MgPerHect")) %>%
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("Long", "Lat")) %>%
+  terra::set.crs(crs(test_rast)) %>%
+  terra::rasterize(y = test_rast,
+                   field = "resid_perc",
+                   fun = mean) #%>%
+  #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>%
+  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+
+tempExt <- crds(plotObs, na.rm = TRUE)
+
+plotObs_2 <- plotObs %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+# identify locations where residuals are >100 or < -100
+badResids_high <- predictionData %>%
+  filter(resid_perc > 500)  %>%
+  terra::vect(geom = c("Long", "Lat")) %>%
+  terra::set.crs(crs(test_rast))
+badResids_low <- predictionData %>%
+  filter(resid_perc < -500)  %>%
+  terra::vect(geom = c("Long", "Lat")) %>%
+  terra::set.crs(crs(test_rast))
+
+
+# make figures
+# make histogram
+hist_i <- ggplot(predictionData) +
+  geom_histogram(aes(resid_perc), col = "darkgrey", fill = "lightgrey") +
+  xlab(c("Residuals as % (obs. - pred.)/pred. * 100"))
+# make map
+map_i <-  ggplot() +
+geom_spatraster(data = plotObs_2) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data = badResids_high, col = "blue") +
+  geom_sf(data = badResids_low, col = "red") +
+labs(title = paste0("Residuals as % ((obs. - pred.)/pred.)*100 for predictions of \n", holdoutRegion, " \n from a model fit to other ecoregions"),
+     subtitle = paste0(response, " ~ ", paste0( modTerms, collapse = " + "))) +
+  scale_fill_gradient2(low = "red",
+                       mid = "white" ,
+                       high = "blue" ,
+                       midpoint = 0,   na.value = "grey20",
+                       limits = c(-500, 500)
+                       )  + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+ assign(paste0("residPlot_",holdoutRegion),
+   value = ggarrange(map_i, hist_i, heights = c(3,1), ncol = 1)
+)
+
+}
+
+  lapply(unique(modDat_1_s$NA_L2NAME), FUN = function(x) {
+    get(paste0("residPlot_", x))
+  })
+
+```
+
+## Using second best lambda model (either 1se or 1/2se)
+### Use terms from global model to re-fit and predict on different held out regions
+### Figures show residuals for each of the models fit to held-out ecoregions 
+These models were fit to six ecoregions, and then predict on the indicated heldout ecoregion
+
+```{r cross-validation for 1 SE lambda model , fig.height = 7, fig.width = 9, warning=FALSE, message=FALSE }
+if (length(prednames_secondBestMod) == 0) {
+  print("The model only contains one predictor (an intercept), so cross validation isn't practical")
+} else {
+
+## code from Tredennick et al. 2020
+# try each separate level II ecoregion as a test set
+# make a list to hold output data
+outList <- vector(mode = "list", length = length(sort(unique(modDat_1_s$NA_L2NAME))))
+# obs_pred <- data.frame(ecoregion = character(),obs = numeric(),
+#                        pred_opt = numeric(), pred_null = numeric()#,
+#                        #pred_nopenalty = numeric()
+#                        )
+
+## get the model specification from the global model
+mat <- as.matrix(coef(mod_secondBest, s = "lambda.min"))
+mat2 <- mat[mat[,1] != 0,]
+
+f_cv <- as.formula(paste0("response_transformed ~ ", paste0(names(mat2)[2:length(names(mat2))], collapse = " + ")))
+
+X_cv <- model.matrix(object = f_cv, data = modDat_1_s)
+# get response variable
+y_cv <- as.matrix(modDat_1_s[,"biomass_MgPerHect"])
+
+  
+# now, loop through so with each iteration, a different ecoregion is held out
+ for(i_eco in sort(unique(modDat_1_s$NA_L2NAME))){
+
+  # split into training and test sets
+  test_eco <- i_eco
+  print(test_eco)
+  # identify the rowID of observations to be in the training and test datasets
+  train <- which(modDat_1_s$NA_L2NAME!=test_eco) # data for all ecoregions that aren't 'i_eco'
+  test <- which(modDat_1_s$NA_L2NAME==test_eco) # data for the ecoregion that is 'i_eco'
+
+  trainDat_all <- modDat_1_s %>% 
+    slice(train) %>% 
+    dplyr::select(-newRegion)
+  testDat_all <- modDat_1_s %>% 
+    slice(test) %>% 
+    dplyr::select(-newRegion)
+
+  # get the model matrices for input and response variables for cross validation model specification
+  X_train <- as.matrix(X_cv[train,])
+  X_test <- as.matrix(X_cv[test,])
+
+  y_train <- modDat_1_s[train,"response_transformed"]
+  y_test <- modDat_1_s[test,"response_transformed"]
+  
+  # get the model matrices for input and response variables for original model specification
+  X_train_glob <- as.matrix(X[train,])
+  X_test_glob <- as.matrix(X[test,])
+
+  y_train_glob <- modDat_1_s[train,"response_transformed"]
+  y_test_glob <- modDat_1_s[test,"response_transformed"]
+
+  train_eco <- modDat_1_s$NA_L2NAME[train]
+
+  ## just try a regular glm w/ the components from the global model
+  fit_i <- glm(data = trainDat_all, formula = f_cv, 
+               family =  stats::Gamma(link = "log")
+    )
+
+    coef(fit_i)
+    
+  # lasso model predictions with the optimal lambda
+  optimal_pred <- predict(fit_i, newdata= testDat_all, type = "response")  
+  # null model and predictions
+  # the "null" model in this case is the global model
+  # predict on the test data for this iteration w/ the global model 
+  null_pred <- predict.glm(mod_secondBest, newdata = testDat_all, type = "response") 
+
+  # save data
+  tmp <- data.frame(ecoRegion_holdout = rep(test_eco,length(y_test)),
+                    obs=y_test - 2,
+                    pred_opt=optimal_pred -2, 
+                    pred_null=null_pred-2#,
+                    #pred_nopenalty=nopen_pred
+                    ) %>%
+    cbind(testDat_all)
+    
+  # calculate RMSE, bias, etc. of 
+  # RMSE of CV model 
+  RMSE_optimal <- yardstick::rmse(data = data.frame(optimal_pred, "y_test" = (y_test)), truth = "y_test", estimate = "optimal_pred")[1,]$.estimate
+  # RMSE of global model
+  RMSE_null <- yardstick::rmse(data = data.frame(null_pred,  "y_test" = (y_test)), truth = "y_test", estimate = "null_pred")[1,]$.estimate
+  # bias of CV model
+  bias_optimal <- mean((y_test) - optimal_pred)
+  # bias of global model
+  bias_null <-  mean((y_test) - null_pred )
+  
+  # put output into a list
+  tmpList <- list("testRegion" = i_eco,
+    "modelObject" = fit_i,
+       "modelPredictions" = tmp, 
+    "performanceMetrics" = data.frame("RMSE_cvModel" = RMSE_optimal, 
+                                      "RMSE_globalModel" = RMSE_null, 
+                                      "bias_cvModel" = bias_optimal, 
+                                      "bias_globalModel" = bias_null))
+
+  # save model outputs
+  outList[[which(sort(unique(modDat_1_s$NA_L2NAME)) == i_eco)]] <- tmpList
+ }
+}
+```
+
+### Below are the RMSE and bias values for predictions made for each holdout level II ecoregion, compared to predictions from the global model for that same ecoregion
+```{r metrics output table for 1SE lambda CV}
+
+if (length(prednames_secondBestMod) == 0) {
+  print("The model only contains one predictor (an intercept), so cross validation isn't practical")
+} else {
+# table of model performance
+purrr::map(outList, .f = function(x) {
+  cbind(data.frame("holdout region" = x$testRegion),  x$performanceMetrics)
+}
+) %>% 
+  purrr::list_rbind() %>% 
+  kable(col.names = c("Held-out ecoregion", "RMSE of CV model", "RMSE of global model", 
+                      "bias of CV model - mean(obs-pred.)", "bias of global model - mean(obs-pred.)"), 
+        caption = "Performance of Cross Validation using '1 SE lambda' model specification") %>%
+kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+}
+```
+
+```{r figures of CV for 1 SE lambda model}
+if (length(prednames_secondBestMod) == 0) {
+  print("The model only contains one predictor (an intercept), so cross validation isn't practical")
+} else {
+for (i in 1:length(unique(modDat_1_s$NA_L2NAME))) {
+  holdoutRegion <- outList[[i]]$testRegion
+  predictionData <- outList[[i]]$modelPredictions
+  modTerms <- as.matrix(coef(outList[[i]]$modelObject)) %>%
+    as.data.frame() %>%
+    filter(V1!=0) %>%
+    rownames()
+
+  # calcuye residuals
+  predictionData <- predictionData %>%
+  mutate(resid = .[["obs"]] - .[["pred_opt"]] ,
+         resid_globMod = .[["obs"]]  - .[["pred_null"]]) %>% 
+    mutate(resid_perc = (resid/.[["obs"]] )*100)
+
+
+# rasterize
+# use 'test_rast' from earlier
+
+  # rasterize data
+plotObs <- predictionData %>%
+         drop_na(paste("biomass_MgPerHect")) %>%
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("Long", "Lat")) %>%
+  terra::set.crs(crs(test_rast)) %>%
+  terra::rasterize(y = test_rast,
+                   field = "resid_perc",
+                   fun = mean) #%>%
+  #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>%
+  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+
+tempExt <- crds(plotObs, na.rm = TRUE)
+
+plotObs_2 <- plotObs %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+# identify locations where residuals are >100 or < -100
+badResids_high <- predictionData %>% 
+  filter(resid_perc > 500)  %>% 
+  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) 
+badResids_low <- predictionData %>% 
+  filter(resid_perc < -500)  %>% 
+  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) 
+
+
+# make figures
+# make histogram
+hist_i <- ggplot(predictionData) +
+  geom_histogram(aes(resid_perc), col = "darkgrey", fill = "lightgrey") +
+  xlab(c("Residuals (obs. - pred.)"))
+# make map
+map_i <-  ggplot() +
+geom_spatraster(data = plotObs_2) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data = badResids_high, col = "blue") +
+  geom_sf(data = badResids_low, col = "red") +
+labs(title = paste0("Residuals as % ((obs. - pred.)/pred.)*100 for predictions of \n", holdoutRegion, " \n from a model fit to other ecoregions"),
+     subtitle = paste0("biomass_MgPerHect", " ~ ", paste0( modTerms, collapse = " + "))) +
+  scale_fill_gradient2(low = "red",
+                       mid = "white" ,
+                       high = "blue" ,
+                       midpoint = 0,   na.value = "grey20",
+                       limits = c(-500, 500))  + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+ assign(paste0("residPlot_",holdoutRegion),
+   value = ggarrange(map_i, hist_i, heights = c(3,1), ncol = 1)
+)
+
+}
+
+  lapply(unique(modDat_1_s$NA_L2NAME), FUN = function(x) {
+    get(paste0("residPlot_", x))
+  })
+}
+
+```
+
+
+# Save output
+
+```{r save_output}
+## save the coefficients for the models (best lambda, 1/2se lambda, 1se lambda)
+if(trimAnom == TRUE) {
+saveRDS(coefs, file = paste0("./models/modelCoefficients_trimAnom_", ecoregion, "_", "biomass_MgPerHect",".rds")) 
+saveRDS(uniqueCoeffs, file = paste0("./models/modelMetrics_trimAnom_", ecoregion, "_", "biomass_MgPerHect",".rds")) 
+} else {
+saveRDS(coefs, file = paste0("./models/modelCoefficients_", ecoregion, "_", "biomass_MgPerHect",".rds")) 
+saveRDS(uniqueCoeffs, file = paste0("./models/modelMetrics_", ecoregion, "_", "biomass_MgPerHect",".rds")) 
+}
+# make a table
+
+```
+
+
+ 
+
+```{r pdp_glm, warning = FALSE, fig.width = 8, fig.height=8}
+## partial dependence plots
+#vip::vip(mod_glmFinal, num_features = 15)
+
+#pdp_all_vars(mod_glmFinal, mod_vars = pred_vars, ylab = 'probability',train = df_small)
+
+#caret::varImp(fit)
+```
+
+
+# session info
+
+Hash of current commit (i.e. to ID the version of the code used)
+
+```{r}
+system("git rev-parse HEAD", intern=TRUE)
+```
+
+Packages etc.
+
+```{r}
+sessionInfo()
+
+```

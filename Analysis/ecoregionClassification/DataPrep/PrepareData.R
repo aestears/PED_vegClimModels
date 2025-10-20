@@ -8,23 +8,27 @@
 # load packages -----------------------------------------------------------
 
 library(tidyverse)
-
+library(sf) 
+library(terra)
 
 # load data ---------------------------------------------------------------
 
 # load dayMet climate data that has been processed in '03_GettingWeatherData.R'
-RDS(climDat, "./Data_processed/EcoregionData/Biomass_dayMetClimateValuesForAnalysis_final.rds")
-climDat <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Data_processed/EcoregionData/ECOREGIONS_dayMetClimateValuesForAnalysis_final.rds")
-#readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Data_processed/EcoregionData/Biomass_dayMetClimateValuesForAnalysis_final.rds")
+climDat <- readRDS("./Data_processed/ecoregionClassificationData/climateValuesForAnalysis_final.rds")
+#climDat <- readRDS("./Data_processed/BiomassQuantityData/climateValuesForAnalysis_final.rds")
+#readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Data_processed/EcoregionData/.rds")
 # load ecoregion data
 regions <- sf::st_read(dsn = "./Data_raw/Level1Ecoregions/", layer = "NA_CEC_Eco_Level1")
 
 
 soilRast <- readRDS("./Data_processed/SoilsRaster.rds")
 
-# add ecoregion classification to climate data  ---------------------------
 
-climDat_use <- climDat[climDat$year == 201,]
+# add ecoregion classification to climate data  ---------------------------
+climDat_use <- climDat
+#climDat_use <- climDat[climDat$year %in% c(2010:2020),] # 2011 for total biomass data from GEDI; 
+# 2010, 2011, 2012, 2013, 2013, 2014, 2015, 2016, 2017, 2018, 2019 for FIA biomass
+# 2020 for RAP biomass 
 rm(climDat)
 gc()
 
@@ -59,22 +63,24 @@ ecoReg_lu <- data.frame("NA_L1NAME" = sort(unique(climDat_3$NA_L1NAME)),
 # ggplot(climDat_3) + 
 #   geom_sf(aes(col = NA_L1NAME))
 
-
-
+rm(climDat_2, climDat_use)
+gc()
 # add to main data.frame 
 newDat <- climDat_3 %>% 
   left_join(ecoReg_lu) %>% 
   mutate(newRegion = as.factor(newRegion)) 
 
+rm(climDat_3)
+gc()
 
 # add soils data ----------------------------------------------------------
 # sample raster to get values for the points in the cover dataset
-
+## first half of data: 
 newDat_df <- soilRast %>% 
-  terra::extract(y = newDat, xy = TRUE, bind = TRUE) %>% 
+  terra::extract(y = newDat %>% slice(1:(nrow(newDat)/2)) , xy = TRUE, bind = TRUE) %>% 
   as.data.frame() 
 
-vegSoils_new <- 
+vegSoils_new_1 <- 
   newDat_df %>% 
   dplyr::mutate(
     # Soil depth 
@@ -151,7 +157,7 @@ vegSoils_new <-
 
 
 # # total profile available water-holding capacity
-temp <- vegSoils_new %>% 
+temp <- vegSoils_new_1 %>% 
   mutate(clayPerc_2cm = clayPerc_2cm/100,
          clayPerc_7cm = clayPerc_7cm/100,
          clayPerc_15cm = clayPerc_15cm/100,
@@ -257,7 +263,403 @@ vegSoil_awc <- map(.x = c(1:nrow(temp)),
                    }
 ) 
 
-vegSoils_new$totalAvailableWaterHoldingCapacity <- unlist(vegSoil_awc)
+vegSoils_new_1$totalAvailableWaterHoldingCapacity <- unlist(vegSoil_awc)
+vegSoils_new_1 <- vegSoils_new_1 %>% 
+  filter(!is.na(Start_CLIM))
+
+saveRDS(vegSoils_new_1, "./Data_processed/ecoregionClassificationData/EcoRegion_climSoilData_int1.rds")
+
+rm(vegSoil_awc, vegSoil_p, vegSoil_tmp, temp, vegSoils_new_1, test_rast)
+gc()
+
+## second part
+newDat_df <- soilRast %>% 
+  terra::extract(y = newDat %>% slice(((nrow(newDat)/2)+1):(((nrow(newDat)/2)+1) + (nrow(newDat)/4))) , xy = TRUE, bind = TRUE) %>%
+                   as.data.frame() 
+
+vegSoils_new_2 <- 
+  newDat_df %>% 
+  dplyr::mutate(
+    # Soil depth 
+    soilDepth = pmap_dbl(.[c("horizonThickness_cm_2cm" , "horizonThickness_cm_7cm" , "horizonThickness_cm_15cm" , 
+                             "horizonThickness_cm_25cm" , "horizonThickness_cm_35cm" , "horizonThickness_cm_50cm" , 
+                             "horizonThickness_cm_70cm" , "horizonThickness_cm_90cm" , "horizonThickness_cm_125cm" , 
+                             "horizonThickness_cm_176cm")], sum, na.rm = TRUE),
+    #Surface clay (influences how much moisture can get into the profile)
+    surfaceClay_perc = clayPerc_2cm) %>% 
+  mutate(soilDepth = replace(soilDepth, is.na(horizonThickness_cm_2cm), values = NA)) %>% 
+  mutate( 
+    # Sand average across depths (avg. weighted by width of layer)
+    avgSandPerc_acrossDepth = pmap_dbl(.[c("horizonThickness_cm_2cm" , "horizonThickness_cm_7cm" , "horizonThickness_cm_15cm" , 
+                                           "horizonThickness_cm_25cm" , "horizonThickness_cm_35cm" , "horizonThickness_cm_50cm" , 
+                                           "horizonThickness_cm_70cm" , "horizonThickness_cm_90cm" , "horizonThickness_cm_125cm" , 
+                                           "horizonThickness_cm_176cm", "sandPerc_2cm", "sandPerc_7cm" , "sandPerc_15cm",
+                                           "sandPerc_25cm" , "sandPerc_35cm", "sandPerc_50cm" , "sandPerc_70cm", "sandPerc_90cm" ,
+                                           "sandPerc_125cm", "sandPerc_176cm", "soilDepth")], 
+                                       function(horizonThickness_cm_2cm , horizonThickness_cm_7cm , horizonThickness_cm_15cm , 
+                                                horizonThickness_cm_25cm , horizonThickness_cm_35cm , horizonThickness_cm_50cm , 
+                                                horizonThickness_cm_70cm , horizonThickness_cm_90cm , horizonThickness_cm_125cm , 
+                                                horizonThickness_cm_176cm, sandPerc_2cm, sandPerc_7cm , sandPerc_15cm,
+                                                sandPerc_25cm , sandPerc_35cm, sandPerc_50cm , sandPerc_70cm, sandPerc_90cm ,
+                                                sandPerc_125cm,sandPerc_176cm, soilDepth) {
+                                         y <- sum(c(sandPerc_2cm *  horizonThickness_cm_2cm/soilDepth, 
+                                                    sandPerc_7cm *    horizonThickness_cm_7cm/soilDepth, 
+                                                    sandPerc_15cm *   horizonThickness_cm_15cm/soilDepth, 
+                                                    sandPerc_25cm *   horizonThickness_cm_25cm/soilDepth, 
+                                                    sandPerc_35cm *   horizonThickness_cm_35cm/soilDepth, 
+                                                    sandPerc_50cm *   horizonThickness_cm_50cm/soilDepth, 
+                                                    sandPerc_70cm *   horizonThickness_cm_70cm/soilDepth, 
+                                                    sandPerc_90cm *   horizonThickness_cm_90cm/soilDepth, 
+                                                    sandPerc_125cm *  horizonThickness_cm_125cm/soilDepth, 
+                                                    sandPerc_176cm *  horizonThickness_cm_176cm/soilDepth), 
+                                                  na.rm = TRUE)/1 
+                                         # following weighted average formula here: weighted average = sum(x * weight)/sum(weights)
+                                         return(y)
+                                       }
+    ),
+    # Coarse fragments average across depths (avg. weighted by width of layer)
+    avgCoarsePerc_acrossDepth = pmap_dbl(.[c("horizonThickness_cm_2cm" , "horizonThickness_cm_7cm" , "horizonThickness_cm_15cm" , 
+                                             "horizonThickness_cm_25cm" , "horizonThickness_cm_35cm" , "horizonThickness_cm_50cm" , 
+                                             "horizonThickness_cm_70cm" , "horizonThickness_cm_90cm" , "horizonThickness_cm_125cm" , 
+                                             "horizonThickness_cm_176cm", "coarsePerc_2cm", "coarsePerc_7cm" , "coarsePerc_15cm",
+                                             "coarsePerc_25cm" , "coarsePerc_35cm", "coarsePerc_50cm" , "coarsePerc_70cm", "coarsePerc_90cm" ,
+                                             "coarsePerc_125cm","coarsePerc_176cm", "soilDepth")], 
+                                         function(horizonThickness_cm_2cm , horizonThickness_cm_7cm , horizonThickness_cm_15cm , 
+                                                  horizonThickness_cm_25cm , horizonThickness_cm_35cm , horizonThickness_cm_50cm , 
+                                                  horizonThickness_cm_70cm , horizonThickness_cm_90cm , horizonThickness_cm_125cm , 
+                                                  horizonThickness_cm_176cm, coarsePerc_2cm, coarsePerc_7cm , coarsePerc_15cm,
+                                                  coarsePerc_25cm , coarsePerc_35cm, coarsePerc_50cm , coarsePerc_70cm, coarsePerc_90cm ,
+                                                  coarsePerc_125cm,coarsePerc_176cm, soilDepth) {
+                                           y <- sum(c(coarsePerc_2cm *  horizonThickness_cm_2cm/soilDepth, 
+                                                      coarsePerc_7cm *    horizonThickness_cm_7cm/soilDepth, 
+                                                      coarsePerc_15cm *   horizonThickness_cm_15cm/soilDepth, 
+                                                      coarsePerc_25cm *   horizonThickness_cm_25cm/soilDepth, 
+                                                      coarsePerc_35cm *   horizonThickness_cm_35cm/soilDepth, 
+                                                      coarsePerc_50cm *   horizonThickness_cm_50cm/soilDepth, 
+                                                      coarsePerc_70cm *   horizonThickness_cm_70cm/soilDepth, 
+                                                      coarsePerc_90cm *   horizonThickness_cm_90cm/soilDepth, 
+                                                      coarsePerc_125cm *  horizonThickness_cm_125cm/soilDepth, 
+                                                      coarsePerc_176cm *  horizonThickness_cm_176cm/soilDepth), 
+                                                    na.rm = TRUE)/1 
+                                           # following weighted average formula here: weighted average = sum(x * weight)/sum(weights)
+                                           return(y)
+                                         }
+    ), 
+    # soil organic carbon average across depths (avg. weighted by width of layer)
+    avgOrganicCarbonPerc_0_3cm = organicCarbonPerc_2cm
+    
+  )
+
+
+
+
+# # total profile available water-holding capacity
+temp <- vegSoils_new_2 %>% 
+  mutate(clayPerc_2cm = clayPerc_2cm/100,
+         clayPerc_7cm = clayPerc_7cm/100,
+         clayPerc_15cm = clayPerc_15cm/100,
+         clayPerc_25cm = clayPerc_25cm/100,
+         clayPerc_35cm = clayPerc_35cm/100,
+         clayPerc_50cm = clayPerc_50cm/100,
+         clayPerc_70cm = clayPerc_70cm/100,
+         clayPerc_90cm = clayPerc_90cm/100,
+         clayPerc_125cm = clayPerc_125cm/100,
+         clayPerc_176cm = clayPerc_176cm/100,
+         sandPerc_2cm = sandPerc_2cm/100,
+         sandPerc_7cm = sandPerc_7cm/100,
+         sandPerc_15cm = sandPerc_15cm/100,
+         sandPerc_25cm = sandPerc_25cm/100,
+         sandPerc_35cm = sandPerc_35cm/100,
+         sandPerc_50cm = sandPerc_50cm/100,
+         sandPerc_70cm = sandPerc_70cm/100,
+         sandPerc_90cm = sandPerc_90cm/100,
+         sandPerc_125cm = sandPerc_125cm/100,
+         sandPerc_176cm = sandPerc_176cm/100,
+         coarsePerc_2cm = coarsePerc_2cm/100,
+         coarsePerc_7cm = coarsePerc_7cm/100,
+         coarsePerc_15cm = coarsePerc_15cm/100,
+         coarsePerc_25cm = coarsePerc_25cm/100,
+         coarsePerc_35cm = coarsePerc_35cm/100,
+         coarsePerc_50cm = coarsePerc_50cm/100,
+         coarsePerc_70cm = coarsePerc_70cm/100,
+         coarsePerc_90cm = coarsePerc_90cm/100,
+         coarsePerc_125cm = coarsePerc_125cm/100,
+         coarsePerc_176cm = coarsePerc_176cm/100) #%>% 
+#slice(1:3) 
+# calculate # # intermediate value 'p' 
+vegSoil_p <- pmap(.l = temp[,c("sandPerc_2cm", "sandPerc_7cm", "sandPerc_15cm", 
+                               "sandPerc_25cm", "sandPerc_35cm", "sandPerc_50cm", 
+                               "sandPerc_70cm", "sandPerc_90cm" ,"sandPerc_125cm", 
+                               "sandPerc_176cm",
+                               "clayPerc_2cm", "clayPerc_7cm" , "clayPerc_15cm", 
+                               "clayPerc_25cm", "clayPerc_35cm", "clayPerc_50cm", 
+                               "clayPerc_70cm", "clayPerc_90cm" ,"clayPerc_125cm", 
+                               "clayPerc_176cm",
+                               "coarsePerc_2cm", "coarsePerc_7cm" , "coarsePerc_15cm", 
+                               "coarsePerc_25cm", "coarsePerc_35cm", "coarsePerc_50cm", 
+                               "coarsePerc_70cm", "coarsePerc_90cm" ,"coarsePerc_125cm", 
+                               "coarsePerc_176cm")], 
+                  function (sandPerc_2cm, sandPerc_7cm, sandPerc_15cm, 
+                            sandPerc_25cm, sandPerc_35cm, sandPerc_50cm, 
+                            sandPerc_70cm, sandPerc_90cm ,sandPerc_125cm, 
+                            sandPerc_176cm,
+                            clayPerc_2cm, clayPerc_7cm , clayPerc_15cm, 
+                            clayPerc_25cm, clayPerc_35cm, clayPerc_50cm, 
+                            clayPerc_70cm, clayPerc_90cm ,clayPerc_125cm, 
+                            clayPerc_176cm,
+                            coarsePerc_2cm, coarsePerc_7cm , coarsePerc_15cm, 
+                            coarsePerc_25cm, coarsePerc_35cm, coarsePerc_50cm, 
+                            coarsePerc_70cm, coarsePerc_90cm ,coarsePerc_125cm, 
+                            coarsePerc_176cm) {
+                    p <- rSOILWAT2::ptf_estimate(
+                      sand = c(sandPerc_2cm,sandPerc_7cm , sandPerc_15cm,
+                               sandPerc_25cm , sandPerc_35cm, sandPerc_50cm , sandPerc_70cm, sandPerc_90cm ,
+                               sandPerc_125cm,sandPerc_176cm),
+                      clay = c(clayPerc_2cm,clayPerc_7cm , clayPerc_15cm,
+                               clayPerc_25cm , clayPerc_35cm, clayPerc_50cm , clayPerc_70cm, clayPerc_90cm ,
+                               clayPerc_125cm,clayPerc_176cm),
+                      fcoarse = c(coarsePerc_2cm, coarsePerc_7cm , coarsePerc_15cm,
+                                  coarsePerc_25cm , coarsePerc_35cm, coarsePerc_50cm , coarsePerc_70cm, coarsePerc_90cm ,
+                                  coarsePerc_125cm,coarsePerc_176cm),
+                      swrc_name = "Campbell1974",
+                      ptf_name = "Cosby1984"
+                    )
+                  }
+)
+
+# calculate intermediate value 'tmp'
+# reference "temp" data frame (which has the raw soil variables), as well as vegSoil_p, a list which has matrices for p calculated above
+vegSoil_tmp <- map(.x = c(1:nrow(temp)), 
+                   function (n) {
+                     tmp <- rSOILWAT2::swrc_swp_to_vwc(
+                       c(-1.5, -0.033), ##AES should I change this? not totally clear what these values indicate 
+                       fcoarse = unlist(as.vector(temp[n,c("coarsePerc_2cm" ,                           
+                                                           "coarsePerc_7cm" ,  "coarsePerc_15cm",                        
+                                                           "coarsePerc_25cm",  "coarsePerc_35cm",                        
+                                                           "coarsePerc_50cm",  "coarsePerc_70cm",                        
+                                                           "coarsePerc_90cm",  "coarsePerc_125cm",                        
+                                                           "coarsePerc_176cm")])),
+                       swrc = list(name = "Campbell1974", swrcp = vegSoil_p[[n]])
+                     )
+                   }
+)
+
+
+#   # calculate final value 'awc' 
+vegSoil_awc <- map(.x = c(1:nrow(temp)), 
+                   function (n) {
+                     awc <- temp[n,c("horizonThickness_cm_2cm"  ,                 
+                                     "horizonThickness_cm_7cm"  ,                  "horizonThickness_cm_15cm"    ,              
+                                     "horizonThickness_cm_25cm" ,                  "horizonThickness_cm_35cm"    ,              
+                                     "horizonThickness_cm_50cm" ,                  "horizonThickness_cm_70cm"    ,              
+                                     "horizonThickness_cm_90cm" ,                  "horizonThickness_cm_125cm"   ,              
+                                     "horizonThickness_cm_176cm")] * as.vector(diff(vegSoil_tmp[[n]])
+                                     )
+                     #AES I assume that I sum these values across the entire profile to get "total profile awc"??
+                     totAWC <- sum(awc, na.rm = TRUE)
+                   }
+) 
+
+vegSoils_new_2$totalAvailableWaterHoldingCapacity <- unlist(vegSoil_awc)
+
+vegSoils_new_2 <- vegSoils_new_2 %>% 
+  filter(!is.na(Start_CLIM))
+
+saveRDS(vegSoils_new_2, "./Data_processed/ecoregionClassificationData/EcoRegion_climSoilData_int2.rds")
+
+rm(vegSoil_awc, vegSoil_p, vegSoil_tmp, temp, vegSoils_new_2)
+gc()
+
+## part 3 
+## second part
+newDat_df <- soilRast %>% 
+  terra::extract(y = newDat %>% slice(((((nrow(newDat)/2)+1) + (nrow(newDat)/4)) + 1):(nrow(newDat))) , xy = TRUE, bind = TRUE) %>%
+  as.data.frame() 
+
+vegSoils_new_3 <- 
+  newDat_df %>% 
+  dplyr::mutate(
+    # Soil depth 
+    soilDepth = pmap_dbl(.[c("horizonThickness_cm_2cm" , "horizonThickness_cm_7cm" , "horizonThickness_cm_15cm" , 
+                             "horizonThickness_cm_25cm" , "horizonThickness_cm_35cm" , "horizonThickness_cm_50cm" , 
+                             "horizonThickness_cm_70cm" , "horizonThickness_cm_90cm" , "horizonThickness_cm_125cm" , 
+                             "horizonThickness_cm_176cm")], sum, na.rm = TRUE),
+    #Surface clay (influences how much moisture can get into the profile)
+    surfaceClay_perc = clayPerc_2cm) %>% 
+  mutate(soilDepth = replace(soilDepth, is.na(horizonThickness_cm_2cm), values = NA)) %>% 
+  mutate( 
+    # Sand average across depths (avg. weighted by width of layer)
+    avgSandPerc_acrossDepth = pmap_dbl(.[c("horizonThickness_cm_2cm" , "horizonThickness_cm_7cm" , "horizonThickness_cm_15cm" , 
+                                           "horizonThickness_cm_25cm" , "horizonThickness_cm_35cm" , "horizonThickness_cm_50cm" , 
+                                           "horizonThickness_cm_70cm" , "horizonThickness_cm_90cm" , "horizonThickness_cm_125cm" , 
+                                           "horizonThickness_cm_176cm", "sandPerc_2cm", "sandPerc_7cm" , "sandPerc_15cm",
+                                           "sandPerc_25cm" , "sandPerc_35cm", "sandPerc_50cm" , "sandPerc_70cm", "sandPerc_90cm" ,
+                                           "sandPerc_125cm", "sandPerc_176cm", "soilDepth")], 
+                                       function(horizonThickness_cm_2cm , horizonThickness_cm_7cm , horizonThickness_cm_15cm , 
+                                                horizonThickness_cm_25cm , horizonThickness_cm_35cm , horizonThickness_cm_50cm , 
+                                                horizonThickness_cm_70cm , horizonThickness_cm_90cm , horizonThickness_cm_125cm , 
+                                                horizonThickness_cm_176cm, sandPerc_2cm, sandPerc_7cm , sandPerc_15cm,
+                                                sandPerc_25cm , sandPerc_35cm, sandPerc_50cm , sandPerc_70cm, sandPerc_90cm ,
+                                                sandPerc_125cm,sandPerc_176cm, soilDepth) {
+                                         y <- sum(c(sandPerc_2cm *  horizonThickness_cm_2cm/soilDepth, 
+                                                    sandPerc_7cm *    horizonThickness_cm_7cm/soilDepth, 
+                                                    sandPerc_15cm *   horizonThickness_cm_15cm/soilDepth, 
+                                                    sandPerc_25cm *   horizonThickness_cm_25cm/soilDepth, 
+                                                    sandPerc_35cm *   horizonThickness_cm_35cm/soilDepth, 
+                                                    sandPerc_50cm *   horizonThickness_cm_50cm/soilDepth, 
+                                                    sandPerc_70cm *   horizonThickness_cm_70cm/soilDepth, 
+                                                    sandPerc_90cm *   horizonThickness_cm_90cm/soilDepth, 
+                                                    sandPerc_125cm *  horizonThickness_cm_125cm/soilDepth, 
+                                                    sandPerc_176cm *  horizonThickness_cm_176cm/soilDepth), 
+                                                  na.rm = TRUE)/1 
+                                         # following weighted average formula here: weighted average = sum(x * weight)/sum(weights)
+                                         return(y)
+                                       }
+    ),
+    # Coarse fragments average across depths (avg. weighted by width of layer)
+    avgCoarsePerc_acrossDepth = pmap_dbl(.[c("horizonThickness_cm_2cm" , "horizonThickness_cm_7cm" , "horizonThickness_cm_15cm" , 
+                                             "horizonThickness_cm_25cm" , "horizonThickness_cm_35cm" , "horizonThickness_cm_50cm" , 
+                                             "horizonThickness_cm_70cm" , "horizonThickness_cm_90cm" , "horizonThickness_cm_125cm" , 
+                                             "horizonThickness_cm_176cm", "coarsePerc_2cm", "coarsePerc_7cm" , "coarsePerc_15cm",
+                                             "coarsePerc_25cm" , "coarsePerc_35cm", "coarsePerc_50cm" , "coarsePerc_70cm", "coarsePerc_90cm" ,
+                                             "coarsePerc_125cm","coarsePerc_176cm", "soilDepth")], 
+                                         function(horizonThickness_cm_2cm , horizonThickness_cm_7cm , horizonThickness_cm_15cm , 
+                                                  horizonThickness_cm_25cm , horizonThickness_cm_35cm , horizonThickness_cm_50cm , 
+                                                  horizonThickness_cm_70cm , horizonThickness_cm_90cm , horizonThickness_cm_125cm , 
+                                                  horizonThickness_cm_176cm, coarsePerc_2cm, coarsePerc_7cm , coarsePerc_15cm,
+                                                  coarsePerc_25cm , coarsePerc_35cm, coarsePerc_50cm , coarsePerc_70cm, coarsePerc_90cm ,
+                                                  coarsePerc_125cm,coarsePerc_176cm, soilDepth) {
+                                           y <- sum(c(coarsePerc_2cm *  horizonThickness_cm_2cm/soilDepth, 
+                                                      coarsePerc_7cm *    horizonThickness_cm_7cm/soilDepth, 
+                                                      coarsePerc_15cm *   horizonThickness_cm_15cm/soilDepth, 
+                                                      coarsePerc_25cm *   horizonThickness_cm_25cm/soilDepth, 
+                                                      coarsePerc_35cm *   horizonThickness_cm_35cm/soilDepth, 
+                                                      coarsePerc_50cm *   horizonThickness_cm_50cm/soilDepth, 
+                                                      coarsePerc_70cm *   horizonThickness_cm_70cm/soilDepth, 
+                                                      coarsePerc_90cm *   horizonThickness_cm_90cm/soilDepth, 
+                                                      coarsePerc_125cm *  horizonThickness_cm_125cm/soilDepth, 
+                                                      coarsePerc_176cm *  horizonThickness_cm_176cm/soilDepth), 
+                                                    na.rm = TRUE)/1 
+                                           # following weighted average formula here: weighted average = sum(x * weight)/sum(weights)
+                                           return(y)
+                                         }
+    ), 
+    # soil organic carbon average across depths (avg. weighted by width of layer)
+    avgOrganicCarbonPerc_0_3cm = organicCarbonPerc_2cm
+    
+  )
+
+
+
+
+# # total profile available water-holding capacity
+temp <- vegSoils_new_3 %>% 
+  mutate(clayPerc_2cm = clayPerc_2cm/100,
+         clayPerc_7cm = clayPerc_7cm/100,
+         clayPerc_15cm = clayPerc_15cm/100,
+         clayPerc_25cm = clayPerc_25cm/100,
+         clayPerc_35cm = clayPerc_35cm/100,
+         clayPerc_50cm = clayPerc_50cm/100,
+         clayPerc_70cm = clayPerc_70cm/100,
+         clayPerc_90cm = clayPerc_90cm/100,
+         clayPerc_125cm = clayPerc_125cm/100,
+         clayPerc_176cm = clayPerc_176cm/100,
+         sandPerc_2cm = sandPerc_2cm/100,
+         sandPerc_7cm = sandPerc_7cm/100,
+         sandPerc_15cm = sandPerc_15cm/100,
+         sandPerc_25cm = sandPerc_25cm/100,
+         sandPerc_35cm = sandPerc_35cm/100,
+         sandPerc_50cm = sandPerc_50cm/100,
+         sandPerc_70cm = sandPerc_70cm/100,
+         sandPerc_90cm = sandPerc_90cm/100,
+         sandPerc_125cm = sandPerc_125cm/100,
+         sandPerc_176cm = sandPerc_176cm/100,
+         coarsePerc_2cm = coarsePerc_2cm/100,
+         coarsePerc_7cm = coarsePerc_7cm/100,
+         coarsePerc_15cm = coarsePerc_15cm/100,
+         coarsePerc_25cm = coarsePerc_25cm/100,
+         coarsePerc_35cm = coarsePerc_35cm/100,
+         coarsePerc_50cm = coarsePerc_50cm/100,
+         coarsePerc_70cm = coarsePerc_70cm/100,
+         coarsePerc_90cm = coarsePerc_90cm/100,
+         coarsePerc_125cm = coarsePerc_125cm/100,
+         coarsePerc_176cm = coarsePerc_176cm/100) #%>% 
+#slice(1:3) 
+# calculate # # intermediate value 'p' 
+vegSoil_p <- pmap(.l = temp[,c("sandPerc_2cm", "sandPerc_7cm", "sandPerc_15cm", 
+                               "sandPerc_25cm", "sandPerc_35cm", "sandPerc_50cm", 
+                               "sandPerc_70cm", "sandPerc_90cm" ,"sandPerc_125cm", 
+                               "sandPerc_176cm",
+                               "clayPerc_2cm", "clayPerc_7cm" , "clayPerc_15cm", 
+                               "clayPerc_25cm", "clayPerc_35cm", "clayPerc_50cm", 
+                               "clayPerc_70cm", "clayPerc_90cm" ,"clayPerc_125cm", 
+                               "clayPerc_176cm",
+                               "coarsePerc_2cm", "coarsePerc_7cm" , "coarsePerc_15cm", 
+                               "coarsePerc_25cm", "coarsePerc_35cm", "coarsePerc_50cm", 
+                               "coarsePerc_70cm", "coarsePerc_90cm" ,"coarsePerc_125cm", 
+                               "coarsePerc_176cm")], 
+                  function (sandPerc_2cm, sandPerc_7cm, sandPerc_15cm, 
+                            sandPerc_25cm, sandPerc_35cm, sandPerc_50cm, 
+                            sandPerc_70cm, sandPerc_90cm ,sandPerc_125cm, 
+                            sandPerc_176cm,
+                            clayPerc_2cm, clayPerc_7cm , clayPerc_15cm, 
+                            clayPerc_25cm, clayPerc_35cm, clayPerc_50cm, 
+                            clayPerc_70cm, clayPerc_90cm ,clayPerc_125cm, 
+                            clayPerc_176cm,
+                            coarsePerc_2cm, coarsePerc_7cm , coarsePerc_15cm, 
+                            coarsePerc_25cm, coarsePerc_35cm, coarsePerc_50cm, 
+                            coarsePerc_70cm, coarsePerc_90cm ,coarsePerc_125cm, 
+                            coarsePerc_176cm) {
+                    p <- rSOILWAT2::ptf_estimate(
+                      sand = c(sandPerc_2cm,sandPerc_7cm , sandPerc_15cm,
+                               sandPerc_25cm , sandPerc_35cm, sandPerc_50cm , sandPerc_70cm, sandPerc_90cm ,
+                               sandPerc_125cm,sandPerc_176cm),
+                      clay = c(clayPerc_2cm,clayPerc_7cm , clayPerc_15cm,
+                               clayPerc_25cm , clayPerc_35cm, clayPerc_50cm , clayPerc_70cm, clayPerc_90cm ,
+                               clayPerc_125cm,clayPerc_176cm),
+                      fcoarse = c(coarsePerc_2cm, coarsePerc_7cm , coarsePerc_15cm,
+                                  coarsePerc_25cm , coarsePerc_35cm, coarsePerc_50cm , coarsePerc_70cm, coarsePerc_90cm ,
+                                  coarsePerc_125cm,coarsePerc_176cm),
+                      swrc_name = "Campbell1974",
+                      ptf_name = "Cosby1984"
+                    )
+                  }
+)
+
+# calculate intermediate value 'tmp'
+# reference "temp" data frame (which has the raw soil variables), as well as vegSoil_p, a list which has matrices for p calculated above
+vegSoil_tmp <- map(.x = c(1:nrow(temp)), 
+                   function (n) {
+                     tmp <- rSOILWAT2::swrc_swp_to_vwc(
+                       c(-1.5, -0.033), ##AES should I change this? not totally clear what these values indicate 
+                       fcoarse = unlist(as.vector(temp[n,c("coarsePerc_2cm" ,                           
+                                                           "coarsePerc_7cm" ,  "coarsePerc_15cm",                        
+                                                           "coarsePerc_25cm",  "coarsePerc_35cm",                        
+                                                           "coarsePerc_50cm",  "coarsePerc_70cm",                        
+                                                           "coarsePerc_90cm",  "coarsePerc_125cm",                        
+                                                           "coarsePerc_176cm")])),
+                       swrc = list(name = "Campbell1974", swrcp = vegSoil_p[[n]])
+                     )
+                   }
+)
+
+
+#   # calculate final value 'awc' 
+vegSoil_awc <- map(.x = c(1:nrow(temp)), 
+                   function (n) {
+                     awc <- temp[n,c("horizonThickness_cm_2cm"  ,                 
+                                     "horizonThickness_cm_7cm"  ,                  "horizonThickness_cm_15cm"    ,              
+                                     "horizonThickness_cm_25cm" ,                  "horizonThickness_cm_35cm"    ,              
+                                     "horizonThickness_cm_50cm" ,                  "horizonThickness_cm_70cm"    ,              
+                                     "horizonThickness_cm_90cm" ,                  "horizonThickness_cm_125cm"   ,              
+                                     "horizonThickness_cm_176cm")] * as.vector(diff(vegSoil_tmp[[n]])
+                                     )
+                     #AES I assume that I sum these values across the entire profile to get "total profile awc"??
+                     totAWC <- sum(awc, na.rm = TRUE)
+                   }
+) 
+
+vegSoils_new_3$totalAvailableWaterHoldingCapacity <- unlist(vegSoil_awc)
 
 # code from Daniel to calculate AWC
 #Total profile available water-holding capacity (may be some rSOILWAT functions that can help with this? 
@@ -278,10 +680,26 @@ vegSoils_new$totalAvailableWaterHoldingCapacity <- unlist(vegSoil_awc)
 # )
 # awc <- diff(c(0, soils[, depth_cm])) * as.vector(diff(tmp))
 
-# remove unnecessary soils variables 
-vegSoils_final <- vegSoils_new %>% 
-  dplyr::select(-c(clayPerc_2cm:organicCarbonPerc_176cm)) 
+rm(vegSoil_awc, vegSoil_p, vegSoil_tmp, temp, soilRast, newDat, newDat_df, ecoReg_lu, regions, regions_2)
+gc()
+vegSoils_new_1 <- readRDS("./Data_processed/ecoregionClassificationData/EcoRegion_climSoilData_int1.rds")
+vegSoils_new_2 <- readRDS("./Data_processed/ecoregionClassificationData/EcoRegion_climSoilData_int2.rds")
 
+# remove unnecessary soils variables 
+vegSoils_final_a <- vegSoils_new_1 %>%
+  rbind(vegSoils_new_2) #%>% 
+  #rbind(vegSoils_new_3) %>% 
+  #dplyr::select(-c(clayPerc_2cm:organicCarbonPerc_176cm)) 
+rm(vegSoils_new_1, vegSoils_new_2)
+
+vegSoils_final_a <- vegSoils_final_a %>% 
+  filter(!is.na(Start_CLIM))
+vegSoils_new_3 <- vegSoils_new_3 %>% 
+  filter(!is.na(Start_CLIM))
+
+vegSoils_final <- vegSoils_final_a %>% 
+  rbind(vegSoils_new_3) %>% 
+  dplyr::select(-c(clayPerc_2cm:organicCarbonPerc_176cm)) 
 
 # Save Data for further analysis ------------------------------------------
 saveRDS(vegSoils_final, "./Data_processed/EcoRegion_climSoilData.rds")

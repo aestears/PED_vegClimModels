@@ -142,17 +142,18 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFittin
                   output_file = "forest_TotalHerbaceousCover_trimAnoms_LASSO_gammaLogLink.html")
 
 #total tree cover
-rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
-                  params = list(  run = FALSE, 
-                                  test_run = FALSE,
+rmarkdown::render(input = "Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
+                  params = list(  run = TRUE, 
                                   save_figs = FALSE,
                                   trimAnomalies = TRUE,
                                   ecoregion = "forest",
                                   response = "TotalTreeCover",
                                   removeTexasLouisianaPlain = FALSE), 
                   output_format = "html_document", 
-                  output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-                  output_file = "forest_TotalTreeCover_trimAnoms_LASSO_gammaLogLink.html")
+                    output_dir = "Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/outputHtmls/",
+                  output_file = "gammaLASSO_test_forest_totalTree.html"
+                    #"forest_TotalTreeCover_trimAnoms_LASSO_gammaLogLink.html"
+                    )
 
 #total shrub cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
@@ -280,19 +281,18 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFittin
 #                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
 #                   output_file = "CONUS_TotalHerbaceousCover_trimAnoms_LASSO_gammaLogLink.html")
 # 
-# # total tree cover
-# rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 
-#                   params = list(  run = FALSE, 
-#                                   test_run = FALSE,
+# total tree cover
+# rmarkdown::render(input = "Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd",
+#                   params = list(  run = TRUE,
 #                                   save_figs = FALSE,
 #                                   trimAnomalies = TRUE,
 #                                   ecoregion = "CONUS",
-#                                   response = "TotalTreeCover"), 
-#                   output_format = "html_document", 
+#                                   response = "TotalTreeCover"),
+#                   output_format = "html_document",
 #                   output_dir = "./Analysis/VegComposition/ModelFitting/outputHtmls/",
-#                   output_file = "CONUS_TotalTreeCover_trimAnoms_LASSO_gammaLogLink.html")
-# 
-# 
+#                   output_file = "gammaLASSO_test_CONUS_totalTree.html")
+
+
 # 
 # total shrub cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd",

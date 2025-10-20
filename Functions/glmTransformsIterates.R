@@ -163,7 +163,7 @@ decile_dotplot_pq <- function(df, size = 0.5, response = response, IQR = FALSE, 
   
   if('filter_var' %in% names(df)) {
     stop('filter_var column present, you should used decile_dotplot_filtered()')
-  }
+  } 
   
   
   # convert k to c
@@ -181,8 +181,8 @@ decile_dotplot_pq <- function(df, size = 0.5, response = response, IQR = FALSE, 
   
   df2$name <-factor(as.character(df2$name))
   
-  yvar <- response
-  yvar_pred <- paste0(response,"_pred")
+  yvar <- response[1]
+  yvar_pred <-  response[2]
   
   # convert to %
   #df2[[yvar]] <- df2[[yvar]]*100
@@ -217,7 +217,7 @@ decile_dotplot_pq <- function(df, size = 0.5, response = response, IQR = FALSE, 
       geom_text(data = letter_df, aes(x = x, y = y, label = letter),
                 hjust = -0.8,
                 vjust = 1) +
-      facet_wrap(~name, scales = 'free_x', strip.position = "bottom") +
+      facet_wrap(~name, scales = 'free', strip.position = "bottom") +
       # using annotate to add in line segements because lemon package (facet_rep_wrap)
       # isn't being maintained anymore
       annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf, size = 1) +
@@ -333,7 +333,25 @@ var2lab <- function(x = NULL, units_md = FALSE, add_letters = FALSE,
   
   
   # Including units that are written using markdown formatting
+
   lookup_md <- c(
+    "tmean_s" = "Mean ann. temp.",
+    "prcpTempCorr_s"  = "Prcp. - temp. correlation",
+    "isothermality_s" = "isothermality",
+    "annWatDef_s" = "Ann. water deficit",
+    "prcp_s" = "Prcp.",
+    "prcp_seasonality_s" = "Prcp. seasonality",
+    "prcp_dry_s" = "Prcp. of driest month", 
+    "annWetDegDays_s" = "Ann. wet degree days", 
+    "t_warm_s" = "Temp. of warmest month", 
+    "t_cold_s" = "Temp. of coldest month", 
+    "prcp_wet_s" = "Prcp. of wettest month", 
+    "soilDepth_s" = "Soil depth", 
+    "sand_s" = "Sand", 
+    "coarse_s" = "Coarse",
+    "AWHC_s" = "Avg. Wat. Holding Cap.", 
+    "clay_s" = "Clay", 
+    "carbon_s" = "Carbon", 
     "AWHC" = "AWHC",
     "VPD_mean_anom" = "VPD mean ANOM", 
     "VPD_max" = "VPD max CLIM",
@@ -364,10 +382,31 @@ var2lab <- function(x = NULL, units_md = FALSE, add_letters = FALSE,
     "t_warm_anom" = "tempWarmest ANOM",
     "tmax_anom" = "maxTemp ANOM Ann. maximum Temp. - 3 yr. anomaly", 
     "tmean" = "meanTemp CLIM",
-    "tmin_anom" = "tmin ANOM 3"
+    "tmin_anom" = "tmin ANOM",
+    "prcp_wet" = "prcp_wet",
+    "t_warm" = "t_warm",
+    "soilDepth" = "soilDepth", 
+    "t_cold" = "t_cold"
   )
   
   lookup_name_only <- c(
+    "tmean_s" = "Mean ann. temp.",
+    "prcpTempCorr_s"  = "Prcp. - temp. correlation",
+    "isothermality_s" = "isothermality",
+    "annWatDef_s" = "Ann. water deficit",
+    "prcp_s" = "Prcp.",
+    "prcp_seasonality_s" = "Prcp. seasonality",
+    "prcp_dry_s" = "Prcp. of driest month", 
+    "annWetDegDays_s" = "Ann. wet degree days", 
+    "t_warm_s" = "Temp. of warmest month", 
+    "t_cold_s" = "Temp. of coldest month", 
+    "prcp_wet_s" = "Prcp. of wettest month", 
+    "soilDepth_s" = "Soil depth", 
+    "sand_s" = "Sand", 
+    "coarse_s" = "Coarse",
+    "AWHC_s" = "AWHC", 
+    "clay_s" = "Clay", 
+    "carbon_s" = "Carbon",
     "AWHC" = "Average Soil Water Holding Capacity",
     "VPD_max" = "VPD Ann. maximum - 30 yr. mean",
     "VPD_mean_anom" = "VPD mean - 3 yr. anomaly", 
@@ -398,7 +437,11 @@ var2lab <- function(x = NULL, units_md = FALSE, add_letters = FALSE,
     "tmax_anom" = "Ann. maximum Temp. - 3 yr. anomaly", 
     "tmean" = "Ann. mean Temp. - 30 yr. mean",
     "tmin_anom" = "Ann. minimum Temp. - 3 yr. anomaly",
-    "prcp_anom" = "Ann. total precip. - 3 yr. anomaly"
+    "prcp_anom" = "Ann. total precip. - 3 yr. anomaly",
+    "prcp_wet" = "Precip of wettest month - 30 yr. mean",
+    "t_warm" = "temp. of warmest month - 30 yr. mean",
+    "soilDepth" = "soilDepth", 
+    "t_cold" = "t_cold"
   )
   
   # if human modification layer included in the input,
@@ -443,19 +486,19 @@ var2lab <- function(x = NULL, units_md = FALSE, add_letters = FALSE,
 #' @param df dataframe (same dataframe used for decile_dotplot_pq)
 #' @param add_smooth whether to add a smoother to the inset
 #' @param ... arguments passed to geom_smooth
-add_dotplot_inset <- function(g, df, dfRaw = NULL, add_smooth = FALSE, deciles = TRUE, ...) {
+add_dotplot_inset <- function(g, df, response, dfRaw = NULL, add_smooth = FALSE,  deciles = TRUE, ...) {
   fig_letters <- str_to_upper(c("a", "b", "c", "d", "e", "f", "g", "f", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q","r", "s", "t", "u", "v", "w", "x", "y", "z"))
-  yvar <- response
+  yvar <- response[1]
   max <- df %>% 
-    dplyr::select(all_of(yvar), all_of(paste0(yvar,"_pred"))) %>% 
+    dplyr::select(all_of(yvar), all_of(response[2])) %>% 
     max #* 100
   if (deciles == TRUE) {
    
-    inset <- ggplot(df, aes(y = .data[[yvar]], x = .data[[paste0(yvar,"_pred")]])) +
+    inset <- ggplot(df, aes(y = .data[[yvar]], x = .data[[response[2]]])) +
       geom_point(shape = 4, alpha = 0.2, size = 0.3) +
       geom_abline(slope = 1, size = 0.5, col = "red") +
-      labs(y = "Observed Cover (%)",
-           x = "Predicted Cover (%)") +
+      labs(y = "Observed Values",
+           x = "Predicted Values") +
       # geom_text(data = tibble(
       #   letter = fig_letters[6],
       #   x = -Inf,
@@ -480,11 +523,11 @@ add_dotplot_inset <- function(g, df, dfRaw = NULL, add_smooth = FALSE, deciles =
     #               bottom = -.08,
     #               right = 1, top = 0.14)
   } else {
-    inset_raw <- ggplot(dfRaw, aes(y = .data[[yvar]], x = .data[[paste0(yvar,"_pred")]])) +
+    inset_raw <- ggplot(dfRaw, aes(y = .data[[yvar]], x = .data[[response[2]]])) +
       geom_point(shape = 4, alpha = 0.2, size = 0.3) +
       geom_abline(slope = 1, size = 0.5, col = "red") +
-      labs(y = "Observed Cover (%)",
-           x = "Predicted Cover (%)") +
+      labs(y = "Observed Values",
+           x = "Predicted Values") +
       theme(axis.title = element_text(size = 6),
             axis.text = element_text(size = 6)#,
             #plot.margin = margin()
@@ -496,11 +539,11 @@ add_dotplot_inset <- function(g, df, dfRaw = NULL, add_smooth = FALSE, deciles =
     }
     
     
-    inset <- ggplot(df, aes(y = .data[[yvar]], x = .data[[paste0(yvar,"_pred")]])) +
+    inset <- ggplot(df, aes(y = .data[[yvar]], x = .data[[response[2]]])) +
       geom_point(shape = 4, alpha = 0.2, size = 0.3) +
       geom_abline(slope = 1, size = 0.5, col = "red") +
-      labs(y = "Observed Cover (%)",
-           x = "Predicted Cover (%)") +
+      labs(y = "Observed Values",
+           x = "Predicted Values") +
       # geom_text(data = tibble(
       #   letter = fig_letters[6],
       #   x = -Inf,
@@ -536,6 +579,7 @@ add_dotplot_inset <- function(g, df, dfRaw = NULL, add_smooth = FALSE, deciles =
 #' @param size size of points
 #' @param xvars = vector of variables to show along the x axis
 decile_dotplot_filtered_pq <- function(df,
+                                       response,
                                        add_smooth = TRUE,
                                        size = 0.5,
                                        return_df = FALSE,

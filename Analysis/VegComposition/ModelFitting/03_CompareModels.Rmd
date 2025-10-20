@@ -593,10 +593,10 @@ modDat_long <- modDat_1_s %>%
 allDat_long <- climDat_long %>% 
   rbind(modDat_long)
 
-# ggplot(allDat_long)  +
-#   facet_wrap(~variableName, scales = "free") +
-#   geom_density(aes(values, col = source)) + 
-#   ggtitle("A figure to double-check that the climate data used for contemporary predictions is consistent with the data used for fitting")
+ggplot(allDat_long)  +
+  facet_wrap(~variableName, scales = "free") +
+  geom_density(aes(values, col = source)) +
+  ggtitle("A figure to double-check that the climate data used for contemporary predictions is consistent with the data used for fitting")
 
 ```
 
@@ -2140,21 +2140,24 @@ hist <- ggplot(bestLambda_GS_totHerb_predict) +
   geom_density(data = bestLambda_GS_totHerb_predict[bestLambda_GS_totHerb_predict$newRegion == "dryShrubGrass",],
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
-  ylab("frequency")
+  ylab("frequency")+ 
+  xlim(c(0,300))
 
 hist_bestlambdaFuture1 <-  ggplot(bestLambda_GS_totHerb_predictFuture_1) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
   geom_density(data = bestLambda_GS_totHerb_predictFuture_1[bestLambda_GS_totHerb_predictFuture_1$newRegion == "dryShrubGrass",],
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
-  ylab("frequency")
+  ylab("frequency")+ 
+  xlim(c(0,300))
 
 hist_bestlambdaFuture2 <-  ggplot(bestLambda_GS_totHerb_predictFuture_2) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
   geom_density(data = bestLambda_GS_totHerb_predictFuture_2[bestLambda_GS_totHerb_predictFuture_2$newRegion == "dryShrubGrass",],
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
-  ylab("frequency")
+  ylab("frequency")+ 
+  xlim(c(0,300))
 
 hist_obs <- ggplot(modDat_1_s) + 
   geom_density(aes(TotalHerbaceousCover), fill = "lightgrey", col = "darkgrey") + 
@@ -2163,7 +2166,8 @@ hist_obs <- ggplot(modDat_1_s) +
   xlab("Predicted Value") + 
   ggtitle("Pink = predictions within 
           the focal ecoregion") +
-  ylab("frequency")
+  ylab("frequency")+ 
+  xlim(c(0,300))
 
 ## calculate residuals for contemporary prediction
 # (observed - predicted)
@@ -2189,7 +2193,8 @@ hist_trimAnoms_resids <-  ggplot(resids) +
   geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
   xlab("Predicted Value") + 
   ylab("frequency") + 
-  geom_vline(aes(xintercept = mean(terra::values(resids$mean), na.rm = TRUE)))
+  geom_vline(aes(xintercept = mean(terra::values(resids$mean), na.rm = TRUE)))+ 
+  xlim(c(-300,300))
 
 # calculate deltas from model 1(future model predictions - contemporary model predictions)
 predDeltas_model1 <-  plotObs_GS_totHerb_bestLambdaFuture1_2 - plotObs_GS_totHerb_2 
@@ -2213,7 +2218,8 @@ geom_spatraster(data = predDeltas_model1) +
 hist_deltas_model1 <-  ggplot(predDeltas_model1) + 
   geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
   xlab("Predicted Value") + 
-  ylab("frequency") 
+  ylab("frequency") + 
+  xlim(c(-200,200))
 
 # calculate deltas from model 1(future model predictions - contemporary model predictions)
 predDeltas_model2 <-  plotObs_GS_totHerb_bestLambdaFuture2_2 - plotObs_GS_totHerb_2 
@@ -2237,7 +2243,8 @@ geom_spatraster(data = predDeltas_model2) +
 hist_deltas_model2 <-  ggplot(predDeltas_model2) + 
   geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
   xlab("Predicted Value") + 
-  ylab("frequency") 
+  ylab("frequency") + 
+  xlim(c(-200,200))
 
 ## conglomerate figure
 
@@ -2412,21 +2419,24 @@ hist <- ggplot(bestLambda_GS_totTree_predict) +
   geom_density(data = bestLambda_GS_totTree_predict[bestLambda_GS_totTree_predict$newRegion == "dryShrubGrass",],
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
-  ylab("frequency")
+  ylab("frequency")+ 
+  xlim(c(0,300))
 
 hist_bestlambdaFuture1 <-  ggplot(bestLambda_GS_totTree_predictFuture_1) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
   geom_density(data = bestLambda_GS_totTree_predictFuture_1[bestLambda_GS_totTree_predictFuture_1$newRegion == "dryShrubGrass",],
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
-  ylab("frequency")
+  ylab("frequency")+ 
+  xlim(c(0,300))
 
 hist_bestlambdaFuture2 <-  ggplot(bestLambda_GS_totTree_predictFuture_2) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
   geom_density(data = bestLambda_GS_totTree_predictFuture_2[bestLambda_GS_totTree_predictFuture_2$newRegion == "dryShrubGrass",],
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
-  ylab("frequency")
+  ylab("frequency")+ 
+  xlim(c(0,300))
 
 hist_obs <- ggplot(modDat_1_s) + 
   geom_density(aes(TotalTreeCover), fill = "lightgrey", col = "darkgrey") + 
@@ -2435,7 +2445,8 @@ hist_obs <- ggplot(modDat_1_s) +
   xlab("Predicted Value") + 
   ggtitle("Pink = predictions within 
           the focal ecoregion") +
-  ylab("frequency")
+  ylab("frequency")+ 
+  xlim(c(0,300))
 
 ## calculate residuals for contemporary prediction
 # (observed - predicted)
@@ -2461,7 +2472,8 @@ hist_trimAnoms_resids <-  ggplot(resids) +
   geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
   xlab("Predicted Value") + 
   ylab("frequency") + 
-  geom_vline(aes(xintercept = mean(terra::values(resids$mean), na.rm = TRUE)))
+  geom_vline(aes(xintercept = mean(terra::values(resids$mean), na.rm = TRUE)))+ 
+  xlim(c(-200,200))
 
 # calculate deltas from model 1(future model predictions - contemporary model predictions)
 predDeltas_model1 <-  plotObs_bestLambdaFuture1_2 - plotObs_2 
@@ -2485,7 +2497,8 @@ geom_spatraster(data = predDeltas_model1) +
 hist_deltas_model1 <-  ggplot(predDeltas_model1) + 
   geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
   xlab("Predicted Value") + 
-  ylab("frequency") 
+  ylab("frequency") + 
+  xlim(c(-200,200))
 
 # calculate deltas from model 1(future model predictions - contemporary model predictions)
 predDeltas_model2 <-  plotObs_bestLambdaFuture2_2 - plotObs_2 
@@ -2509,12 +2522,12 @@ geom_spatraster(data = predDeltas_model2) +
 hist_deltas_model2 <-  ggplot(predDeltas_model2) + 
   geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
   xlab("Predicted Value") + 
-  ylab("frequency") 
+  ylab("frequency")  + 
+  xlim(c(-200,200))
 
 ## conglomerate figure
 
-library(ggpubr)
-  ggarrange(map_obs_GS_totTree, hist_obs, heights = c(3,1), ncol = 1, nrow  = 2)
+  #ggarrange(map_obs_GS_totTree, hist_obs, heights = c(3,1), ncol = 1, nrow  = 2)
 
   # plot model forecasts with model that does not exclude anomalies
        ggarrange(map, map_bestlambda_future1, map_bestlambda_future2,
@@ -5909,8 +5922,6 @@ plotPreds_totHerbaceous <- preds_contemp %>%
   terra::rasterize(y = test_rast, 
                    field = "totHerb_synth", 
                    fun = mean, na.rm = TRUE)  
-    
-  
 
 # get the extent of this particular raster, and crop it accordingly
 
@@ -5921,7 +5932,7 @@ plotPreds_totHerbaceous_2 <- plotPreds_totHerbaceous %>%
 
 map_preds_totHerbaceous <- ggplot() +
   geom_spatraster(data = plotPreds_totHerbaceous_2) + 
-  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
 labs(title = paste0("'Synthetic' prediction of total herbaceous cover with 
                     contemporary climate data")) +
@@ -5954,7 +5965,7 @@ plotPreds_totTree_2 <- plotPreds_totTree %>%
 
 map_preds_totTree <- ggplot() +
   geom_spatraster(data = plotPreds_totTree_2) + 
-  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
 labs(title = paste0("'Synthetic' prediction of total Tree cover with 
                     contemporary climate data")) +
@@ -5986,9 +5997,11 @@ plotPreds_totHerbaceous_future1_2 <- plotPreds_totHerbaceous_future1 %>%
            min(tempExt[,2]), max(tempExt[,2])) 
        )
 
+plotPreds_totHerbaceous_future1_2 <- classify(plotPreds_totHerbaceous_future1_2, rcl = matrix(c(100, 1000, 100), ncol = 3))
+
 map_preds_totHerbaceous_future1 <- ggplot() +
   geom_spatraster(data = plotPreds_totHerbaceous_future1_2) + 
-  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
 labs(title = paste0("'Synthetic' prediction of total herbaceous cover with 
                     future climate data - first model")) +
@@ -6019,9 +6032,11 @@ plotPreds_totTree_future1_2 <- plotPreds_totTree_future1 %>%
            min(tempExt[,2]), max(tempExt[,2])) 
        )
 
+plotPreds_totTree_future1_2 <- classify(plotPreds_totTree_future1_2, rcl = matrix(c(100, 1000, 100), ncol = 3))
+
 map_preds_totTree_future1 <- ggplot() +
   geom_spatraster(data = plotPreds_totTree_future1_2) + 
-  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
 labs(title = paste0("'Synthetic' prediction of total Tree cover with 
                     future climate data - first model")) +
@@ -6031,6 +6046,7 @@ labs(title = paste0("'Synthetic' prediction of total Tree cover with
                        midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
+
 
 ## Plot predictions with future 1 data
 # total Herbaceous
@@ -6053,9 +6069,11 @@ plotPreds_totHerbaceous_future2_2 <- plotPreds_totHerbaceous_future2 %>%
            min(tempExt[,2]), max(tempExt[,2])) 
        )
 
+plotPreds_totHerbaceous_future2_2 <- classify(plotPreds_totHerbaceous_future2_2, rcl = matrix(c(100, 1000, 100), ncol = 3))
+
 map_preds_totHerbaceous_future2 <- ggplot() +
   geom_spatraster(data = plotPreds_totHerbaceous_future2_2) + 
-  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
 labs(title = paste0("'Synthetic' prediction of total herbaceous cover with 
                     future climate data - second model")) +
@@ -6086,9 +6104,12 @@ plotPreds_totTree_future2_2 <- plotPreds_totTree_future2 %>%
            min(tempExt[,2]), max(tempExt[,2])) 
        )
 
+plotPreds_totTree_future2_2 <- classify(plotPreds_totTree_future2_2, rcl = matrix(c(100, 1000, 100), ncol = 3))
+
+
 map_preds_totTree_future2 <- ggplot() +
   geom_spatraster(data = plotPreds_totTree_future2_2) + 
-  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+ # geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
 labs(title = paste0("'Synthetic' prediction of total Tree cover with 
                     future climate data - second model")) +
@@ -6580,6 +6601,11 @@ names(future2_cover2_ScaledPreds_maps) <- c("C3_cover_finalScaled",
          "C4_cover_finalScaled",  "forb_cover_finalScaled", 
          "broadLeaved_cover_finalScaled", "needleLeaved_cover_finalScaled")
 
+
+## save "preds_contemp" data, since that has the sythetic but not scaled data (predictions that are weighted according ecoregion prediction, but not scaled to sum to 100 w/in each gridcell) 
+saveRDS(preds_contemp, "../../../Data_processed/CoverData/ModelPredictionData/ModelPreds_UNRELATIVIZED_ContempClimateData_dayMetScale.rds")
+
+
 ```
 
 
@@ -6662,6 +6688,7 @@ ggarrange( contempScaledPreds_maps[[3]]$map, map_obs_F_totHerb, mapResids_final_
   ncol = 3, nrow = 4
   ) %>% 
   annotate_figure(fig.lab = "Final scaled and Relativized predictions, observations, and residuals for 'level 1' cover classes with contemporary climate data", fig.lab.size = 20)
+
 
 ```
 
