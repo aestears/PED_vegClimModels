@@ -55,7 +55,16 @@ Data_processed/
 Data_raw/
 Figures/
 
-*.html
+# old versions of markdown htmls
+"./Analysis/VegComposition/ModelFitting/outputHtmls/v1/"
+"./Analysis/VegComposition/ModelFitting/outputHtmls/v2/"
+"./Analysis/VegComposition/ModelFitting/outputHtmls/v3/
+"./Analysis/BiomassQuantity/Analysis/modelRunMarkdowns/v1/"
+
+"/Analysis/VegComposition/ModelFitting/outputHtmls/v1/"
+"/Analysis/VegComposition/ModelFitting/outputHtmls/v2/"
+"/Analysis/VegComposition/ModelFitting/outputHtmls/v3/"
+"/Analysis/BiomassQuantity/Analysis/modelRunMarkdowns/v1/"
 
 # model output files
 /Analysis/BiomassQuantity/Analysis/models/
