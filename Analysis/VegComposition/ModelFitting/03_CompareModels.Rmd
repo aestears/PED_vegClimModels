@@ -8,6 +8,7 @@ output:
     toc_float: true
     df_print: paged
     code_folding: hide
+    dev: "jpeg"
 params:
   readParams: TRUE
 ---
@@ -325,7 +326,7 @@ makePredictions <- function(predictionDF, modelObject) {
   mutate(across(all_of(prednames), base::scale,scale = FALSE, center = FALSE)) 
   
   # modelPredictions
-  modelPreds <- predict(object = modelObject, newdata = predictionDF, type = "response") - 2
+  modelPreds <- predict(object = modelObject, newdata = predictionDF, type = "response")
   # add predictions back into the input data.frame
   predictionDF <- predictionDF %>% 
     cbind(modelPreds)
@@ -487,11 +488,12 @@ knitr::kable(format = "html", modMetrics_CONUS_needleLeavedTree_trimAnom,
 kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
 ## First, get the contemporary climate and weather data that we'll use for predictions 
-### Get climate data from dayMet for wall-to-wall predictions
+### Get climate data from dayMet for wall-to-wall predictions (arbitrarily chose 2016)
 ```{r}
-climDat <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Data_processed/EcoRegion_climSoilData.rds")
+climDat_temp <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Data_processed/EcoRegion_climSoilData.rds")
 # rename
-climDat <- climDat %>% 
+climDat <- climDat_temp %>% 
+  filter(year == 2016) %>% 
   dplyr::select(tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_3yrAnom, NA_L1CODE, 
          NA_L1NAME, NA_L1KEY, newRegion, x, y, soilDepth:totalAvailableWaterHoldingCapacity) %>% 
 rename("tmin" = tmin_meanAnnAvg_CLIM, 
@@ -548,12 +550,15 @@ rename("tmin" = tmin_meanAnnAvg_CLIM,
   ) %>% 
   dplyr::select(-c(tmin_meanAnnAvg_3yr:Start_3yr))
 
+rm(climDat_temp) 
+gc()
 ```
 
 Get the scaling factors for the data used to fit the models (scaling is done to entire dataset, so only need to get once for all models), and apply those same scaling factors to the data we'll predict with 
 ```{r fig.width= 12, fig.height = 12}
 # get the scaling factors 
 scaleParams <- modDat_1_s %>% 
+  filter(Year == 2016) %>% 
   dplyr::select(tmin_s:AWHC_s) %>% 
   reframe(across(all_of(names(.)), attributes)) 
 
@@ -573,6 +578,9 @@ climDatPred <- climDat %>%
   dplyr::select(NA_L1CODE:y) %>% 
   cbind(climDat_scaled)
 names(climDatPred)[7:56] <- str_remove(names(climDatPred)[7:56], pattern = "_s$")
+
+rm(climDat_scaled) 
+gc()
 
 prednames_s <-  modDat_1_s %>%
   dplyr::select(tmin_s:AWHC_s) %>%
@@ -604,6 +612,9 @@ ggplot(allDat_long)  +
 ### In this iteration, using data from the “BNU-ESM” model (what I call model #1) as the cool/wet(ish) option and the “IPSL-CM5A-MR (France)” (what I call model #1) model as the hot/dry option. For both models, we use data from the end of century w/ RCP 8.5
 
 ```{r, eval = FALSE}
+rm(allDat_long, climDat_long)
+gc()
+
 # MACA data from:  BNU-ESM model (cool/wet-ish)
 ## read in tmin data 
 tmin_1a <- rast("../../../Data_raw/macaClimateProjections/Data/macav2livneh_tasmin_BNU-ESM_r1i1p1_rcp85_2066_2085_CONUS_monthly.nc") %>% 
@@ -1051,7 +1062,7 @@ slidingMetMeans <- function(inDat, start, end) {
 
 # for last 20-year window, which is fewer than the 30 we used in the model-fitting... but I'd have to download even more MACA data, which I don't want to do right now...
 annMeans_30yrs <- slidingMetMeans(inDat = climVar_1,
-                            start = as.numeric(2099-30), end = 2099)
+                            start = as.numeric(2099-31), end = 2099)
 
 names(annMeans_30yrs)[3:24] <- paste0(names(annMeans_30yrs)[3:24], "_CLIM")
 annMeans_30yrs$End_CLIM <- 2099
@@ -1067,7 +1078,7 @@ annMeans_30yrs$End_CLIM <- 2099
 
 # for last 3-year window
 annMeans_3yrs <- slidingMetMeans(inDat = climVar_1,
-                                 start = as.numeric(2099-3), end = 2099)
+                                 start = as.numeric(2099-4), end = 2099)
 
 names(annMeans_3yrs)[3:24] <- paste0(names(annMeans_3yrs)[3:24], "_3yr")
 annMeans_3yrs$End_3yr <- 2099
@@ -1176,7 +1187,7 @@ climDat <- cbind(test,
 # sample raster to get values for the points in the cover dataset
 
 soils_df <- soilRast %>% 
-  terra::extract(y = pointsSamp  dplyr::dplyr::select(-x,-y)
+  terra::extract(y = pointsSamp #%>% dplyr::select(-x,-y)
                  , xy = TRUE, bind = TRUE) %>% 
   as.data.frame()
 
@@ -1378,6 +1389,7 @@ soils_df <- soilRast %>%
                       totAWC <- sum(awc, na.rm = TRUE)
                      }
   )
+  
   
   soils_new$totalAvailableWaterHoldingCapacity <- unlist(vegSoil_awc)
 
@@ -1609,14 +1621,14 @@ gc()
 ## calculate MAP and MAT over past years (a sliding window?)
 
 # for last 20-year window, which is fewer than the 30 we used in the model-fitting... but I'd have to download even more MACA data, which I don't want to do right now...
-%>% <- slidingMetMeans(inDat = climVar_2,
-                            start = as.numeric(2099-30), end = 2099)
+annMeans_30yrs  <- slidingMetMeans(inDat = climVar_2,
+                            start = as.numeric(2099-31), end = 2099)
 
 names(annMeans_30yrs)[3:24] <- paste0(names(annMeans_30yrs)[3:24], "_CLIM")
 annMeans_30yrs$End_CLIM <- 2099
 # for last 3-year window
 annMeans_3yrs <- slidingMetMeans(inDat = climVar_2,
-                                 start = as.numeric(2099-3), end = 2099)
+                                 start = as.numeric(2099-4), end = 2099)
 
 names(annMeans_3yrs)[3:24] <- paste0(names(annMeans_3yrs)[3:24], "_3yr")
 annMeans_3yrs$End_3yr <- 2099
@@ -1894,23 +1906,19 @@ prednames_s <-  modDat_1_s %>%
 prednames <- str_replace(prednames_s, pattern = "_s$", replacement = "")
 
 
-forecastClimSoilsDat_long_1 <- forecastClimSoilsDatPred_1 %>% 
-  rename_with(.cols = any_of(c(prednames)), .fn = ~paste0(.x, "_s")) %>% 
-  pivot_longer(cols = c(tmin_s:AWHC_s), names_to = "variableName", values_to = "values") %>% 
-  mutate(source = "forecastClimSoilsDat") %>% 
-  dplyr::select(x, y, variableName, values, source)
-modDat_long <- modDat_1_s %>% 
-  pivot_longer(cols = c(tmin_s:AWHC_s), names_to = "variableName", values_to = "values") %>% 
-  mutate(source = "modDat") %>% 
-  rename(x = x, y = y) %>% 
-  dplyr::select(x, y, variableName, values, source)
-allDat_long_1 <- forecastClimSoilsDat_long_1 %>% 
-  rbind(modDat_long)
+# forecastClimSoilsDat_long_1 <- forecastClimSoilsDatPred_1 %>% 
+#   rename_with(.cols = any_of(c(prednames)), .fn = ~paste0(.x, "_s")) %>% 
+#   pivot_longer(cols = c(tmin_s:AWHC_s), names_to = "variableName", values_to = "values") %>% 
+#   mutate(source = "forecastClimSoilsDat") %>% 
+#   dplyr::select(x, y, variableName, values, source)
+# modDat_long <- modDat_1_s %>% 
+#   pivot_longer(cols = c(tmin_s:AWHC_s), names_to = "variableName", values_to = "values") %>% 
+#   mutate(source = "modDat") %>% 
+#   rename(x = x, y = y) %>% 
+#   dplyr::select(x, y, variableName, values, source)
+# allDat_long_1 <- forecastClimSoilsDat_long_1 %>% 
+#   rbind(modDat_long)
 
-# ggplot(allDat_long_1)  +
-#   facet_wrap(~variableName, scales = "free") +
-#   geom_density(aes(values, col = source)) + 
-#   ggtitle("A figure to double-check that the climate data used for contemporary predictions is consistent with the data used for fitting")
 
 #////
 ## For first climate model
@@ -1931,22 +1939,22 @@ forecastClimSoilsDatPred_2 <- forecastClimSoilsDat_2 %>%
   cbind(forecastClimSoilsDat_scaled_2)
 names(forecastClimSoilsDatPred_2)[5:54] <- str_remove(names(forecastClimSoilsDatPred_2)[5:54], pattern = "_s$")
 
-forecastClimSoilsDat_long_2 <- forecastClimSoilsDatPred_2 %>% 
-  rename_with(.cols = any_of(c(prednames)), .fn = ~paste0(.x, "_s")) %>% 
-  pivot_longer(cols = c(tmin_s:AWHC_s), names_to = "variableName", values_to = "values") %>% 
-  mutate(source = "forecastClimSoilsDat") %>% 
-  dplyr::select(x, y, variableName, values, source)
-modDat_long <- modDat_1_s %>% 
-  pivot_longer(cols = c(tmin_s:AWHC_s), names_to = "variableName", values_to = "values") %>% 
-  mutate(source = "modDat") %>% 
-  rename(x = x, y = y) %>% 
-  dplyr::select(x, y, variableName, values, source)
-allDat_long_2 <- forecastClimSoilsDat_long_2 %>% 
-  rbind(modDat_long)
-
+# forecastClimSoilsDat_long_2 <- forecastClimSoilsDatPred_2 %>% 
+#   rename_with(.cols = any_of(c(prednames)), .fn = ~paste0(.x, "_s")) %>% 
+#   pivot_longer(cols = c(tmin_s:AWHC_s), names_to = "variableName", values_to = "values") %>% 
+#   mutate(source = "forecastClimSoilsDat") %>% 
+#   dplyr::select(x, y, variableName, values, source)
+# modDat_long <- modDat_1_s %>% 
+#   pivot_longer(cols = c(tmin_s:AWHC_s), names_to = "variableName", values_to = "values") %>% 
+#   mutate(source = "modDat") %>% 
+#   rename(x = x, y = y) %>% 
+#   dplyr::select(x, y, variableName, values, source)
+# allDat_long_2 <- forecastClimSoilsDat_long_2 %>% 
+#   rbind(modDat_long)
+# # 
 # ggplot(allDat_long_2)  +
 #   facet_wrap(~variableName, scales = "free") +
-#   geom_density(aes(values, col = source)) + 
+#   geom_density(aes(values, col = source)) +
 #   ggtitle("A figure to double-check that the climate data used for forecasted cliamte data predictions is consistent with the data used for fitting")
 
 
@@ -1965,14 +1973,14 @@ allDat_long_2 <- forecastClimSoilsDat_long_2 %>%
 
 # [1] "ShrubCover~ exp( 2.809 +  0.080*prcp + -0.098*prcp_seasonality + -0.258*prcpTempCorr +  0.068*sand +  0.051*I(tmean^2) +  0.069*I(prcp_seasonality^2) +  0.002*I(annWatDef_anom^2) + -0.012*I(VPD_max_95_anom^2) + -0.048*I(sand^2) + -0.008*I(AWHC^2) +  0.023*annWetDegDays:annWatDef_anom +  0.032*annWetDegDays:isothermality_anom + -0.054*isothermality_anom:isothermality +  0.096*isothermality:tmean +  0.017*prcp:tmax_anom + -0.061*prcpTempCorr:tmin_anom) - 2"
 
-# plot(forecastClimSoilsDat_1 %>% 
-#          #drop_na(paste(response)) %>% 
+# plot(forecastClimSoilsDat_1 %>%
+#          #drop_na(paste(response)) %>%
 #   #slice_sample(n = 5e4) %>%
-#   terra::vect(geom = c("x", "y")) %>% 
-#   terra::set.crs(crs(test_rast)) %>% 
-#   terra::rasterize(y = test_rast, 
-#                    field = "sand", 
-#                    fun = mean, na.rm = TRUE) %>% 
+#   terra::vect(geom = c("x", "y")) %>%
+#   terra::set.crs(crs(test_rast)) %>%
+#   terra::rasterize(y = test_rast,
+#                    field = "t_warm",
+#                    fun = mean, na.rm = TRUE) %>%
 #   terra::trim())
 
 ```
@@ -1980,7 +1988,7 @@ allDat_long_2 <- forecastClimSoilsDat_long_2 %>%
 
 ## Predict for 'level 1' of cover types
 
-### Predict for grass/shrub total herbaceous cover: best lambda model
+### Predict for grass/shrub *total herbaceous cover*: best lambda model
 
 Read in the best lambda model object
 ```{r}
@@ -2089,7 +2097,7 @@ labs(title = paste0("Predictions of totalHerbaceousCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,200),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_GS_totHerb_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_GS_totHerb_2)[c(2,4)])
 
@@ -2104,7 +2112,7 @@ labs(title = paste0("Predictions of totalHerbaceousCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,200),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_GS_totHerb_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_GS_totHerb_2)[c(2,4)])
 
@@ -2119,7 +2127,7 @@ labs(title = paste0("Predictions of totalHerbaceousCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,200),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_GS_totHerb_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_GS_totHerb_2)[c(2,4)])
 
@@ -2131,7 +2139,7 @@ labs(title = paste0("Observations of totalHerbaceousCover")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,200),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_GS_totHerb_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_GS_totHerb_2)[c(2,4)])
 
@@ -2141,7 +2149,7 @@ hist <- ggplot(bestLambda_GS_totHerb_predict) +
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
   ylab("frequency")+ 
-  xlim(c(0,300))
+  xlim(c(0,1))
 
 hist_bestlambdaFuture1 <-  ggplot(bestLambda_GS_totHerb_predictFuture_1) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
@@ -2149,7 +2157,7 @@ hist_bestlambdaFuture1 <-  ggplot(bestLambda_GS_totHerb_predictFuture_1) +
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
   ylab("frequency")+ 
-  xlim(c(0,300))
+  xlim(c(0,1))
 
 hist_bestlambdaFuture2 <-  ggplot(bestLambda_GS_totHerb_predictFuture_2) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
@@ -2157,7 +2165,7 @@ hist_bestlambdaFuture2 <-  ggplot(bestLambda_GS_totHerb_predictFuture_2) +
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
   ylab("frequency")+ 
-  xlim(c(0,300))
+  xlim(c(0,1))
 
 hist_obs <- ggplot(modDat_1_s) + 
   geom_density(aes(TotalHerbaceousCover), fill = "lightgrey", col = "darkgrey") + 
@@ -2167,7 +2175,7 @@ hist_obs <- ggplot(modDat_1_s) +
   ggtitle("Pink = predictions within 
           the focal ecoregion") +
   ylab("frequency")+ 
-  xlim(c(0,300))
+  xlim(c(0,1))
 
 ## calculate residuals for contemporary prediction
 # (observed - predicted)
@@ -2184,7 +2192,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-150,150)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -2194,7 +2202,7 @@ hist_trimAnoms_resids <-  ggplot(resids) +
   xlab("Predicted Value") + 
   ylab("frequency") + 
   geom_vline(aes(xintercept = mean(terra::values(resids$mean), na.rm = TRUE)))+ 
-  xlim(c(-300,300))
+  xlim(c(-1,1))
 
 # calculate deltas from model 1(future model predictions - contemporary model predictions)
 predDeltas_model1 <-  plotObs_GS_totHerb_bestLambdaFuture1_2 - plotObs_GS_totHerb_2 
@@ -2210,7 +2218,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-150,150)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -2219,7 +2227,7 @@ hist_deltas_model1 <-  ggplot(predDeltas_model1) +
   geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
   xlab("Predicted Value") + 
   ylab("frequency") + 
-  xlim(c(-200,200))
+  xlim(c(-1,1))
 
 # calculate deltas from model 1(future model predictions - contemporary model predictions)
 predDeltas_model2 <-  plotObs_GS_totHerb_bestLambdaFuture2_2 - plotObs_GS_totHerb_2 
@@ -2235,7 +2243,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-150,150)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -2244,7 +2252,7 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
   geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
   xlab("Predicted Value") + 
   ylab("frequency") + 
-  xlim(c(-200,200))
+  xlim(c(-1,1))
 
 ## conglomerate figure
 
@@ -2259,40 +2267,40 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
   annotate_figure(fig.lab = "Model Predictions with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
 ```
 
-### Predict for grass/shrub Total Tree cover - halfSE lambda model
+### Predict for grass/shrub Total Tree cover - best lambda model
 ```{r}
 
 # read in model objects (is the trim anomaly version)
-  oneSELambdaMod_GS_totTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/TotalTreeCover_shrubGrass_noTLP_FALSE_trimAnom_halfSELambdaGLM.rds")
+  bestLambdaMod_GS_totTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/TotalTreeCover_shrubGrass_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
 
-ModelSpec_oneSElambda_GS_totTree <- getModelStatement(coefficientTable = grassShrub_totalTree_trimAnoms,
-                                                    modelName <- "coefficientValue_halfseLambda", 
+ModelSpec_bestlambda_GS_totTree <- getModelStatement(coefficientTable = grassShrub_totalTree_trimAnoms,
+                                                    modelName <- "coefficientValue_bestLambda", 
                                                     responseVar <- "TotalTreeCover")
 
 ```
 
 
-This is the **1/2 SE Lambda** model equation if the inputs *are* scaled: 
+This is the **best Lambda** model equation if the inputs *are* scaled: 
 ```{r}
-(ModelSpec_oneSElambda_GS_totTree$scaledInputVars_ModelStatement)
+(ModelSpec_bestlambda_GS_totTree$scaledInputVars_ModelStatement)
 ```
 
-This is the **1/2 SE Lambda** model equation if the inputs are *not* scaled: 
+This is the **best Lambda** model equation if the inputs are *not* scaled: 
 ```{r}
-(ModelSpec_oneSElambda_GS_totTree$unscaledInputVars_scaledModelStatement)
+(ModelSpec_bestlambda_GS_totTree$unscaledInputVars_scaledModelStatement)
 ```
 
 Predict with model specification for grass/shrub total tree cover
 ```{r fig.width = 16, fig.height = 18, message = FALSE}
 # predict w/ best SE lambda model
 bestLambda_GS_totTree_predict <- makePredictions(predictionDF = climDatPred, 
-                                                           modelObject = oneSELambdaMod_GS_totTree)
+                                                           modelObject = bestLambdaMod_GS_totTree)
 # predict with best SE lambda model w/ forecasted climate data
 bestLambda_GS_totTree_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
-                                                           modelObject = oneSELambdaMod_GS_totTree)
+                                                           modelObject = bestLambdaMod_GS_totTree)
 # predict with best SE lambda model w/ forecasted climate data
 bestLambda_GS_totTree_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
-                                                           modelObject = oneSELambdaMod_GS_totTree)
+                                                           modelObject = bestLambdaMod_GS_totTree)
 
 # predict w/ best model
 plotObs <- bestLambda_GS_totTree_predict %>% 
@@ -2368,7 +2376,7 @@ labs(title = paste0("Predictions of TotalTreeCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2383,7 +2391,7 @@ labs(title = paste0("Predictions of TotalTreeCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2398,7 +2406,7 @@ labs(title = paste0("Predictions of TotalTreeCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2410,7 +2418,7 @@ labs(title = paste0("Observations of TotalTreeCover")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2420,7 +2428,7 @@ hist <- ggplot(bestLambda_GS_totTree_predict) +
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
   ylab("frequency")+ 
-  xlim(c(0,300))
+  xlim(c(0,1))
 
 hist_bestlambdaFuture1 <-  ggplot(bestLambda_GS_totTree_predictFuture_1) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
@@ -2428,7 +2436,7 @@ hist_bestlambdaFuture1 <-  ggplot(bestLambda_GS_totTree_predictFuture_1) +
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
   ylab("frequency")+ 
-  xlim(c(0,300))
+  xlim(c(0,1))
 
 hist_bestlambdaFuture2 <-  ggplot(bestLambda_GS_totTree_predictFuture_2) + 
   geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
@@ -2436,7 +2444,7 @@ hist_bestlambdaFuture2 <-  ggplot(bestLambda_GS_totTree_predictFuture_2) +
                aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
   xlab("Predicted Value") + 
   ylab("frequency")+ 
-  xlim(c(0,300))
+  xlim(c(0,1))
 
 hist_obs <- ggplot(modDat_1_s) + 
   geom_density(aes(TotalTreeCover), fill = "lightgrey", col = "darkgrey") + 
@@ -2446,7 +2454,7 @@ hist_obs <- ggplot(modDat_1_s) +
   ggtitle("Pink = predictions within 
           the focal ecoregion") +
   ylab("frequency")+ 
-  xlim(c(0,300))
+  xlim(c(0,1))
 
 ## calculate residuals for contemporary prediction
 # (observed - predicted)
@@ -2463,7 +2471,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-150,150)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -2473,7 +2481,7 @@ hist_trimAnoms_resids <-  ggplot(resids) +
   xlab("Predicted Value") + 
   ylab("frequency") + 
   geom_vline(aes(xintercept = mean(terra::values(resids$mean), na.rm = TRUE)))+ 
-  xlim(c(-200,200))
+  xlim(c(-1,1))
 
 # calculate deltas from model 1(future model predictions - contemporary model predictions)
 predDeltas_model1 <-  plotObs_bestLambdaFuture1_2 - plotObs_2 
@@ -2489,7 +2497,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-150,150)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -2498,7 +2506,7 @@ hist_deltas_model1 <-  ggplot(predDeltas_model1) +
   geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
   xlab("Predicted Value") + 
   ylab("frequency") + 
-  xlim(c(-200,200))
+  xlim(c(-1,1))
 
 # calculate deltas from model 1(future model predictions - contemporary model predictions)
 predDeltas_model2 <-  plotObs_bestLambdaFuture2_2 - plotObs_2 
@@ -2514,7 +2522,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-150,150)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -2523,7 +2531,7 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
   geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
   xlab("Predicted Value") + 
   ylab("frequency")  + 
-  xlim(c(-200,200))
+  xlim(c(-1,1))
 
 ## conglomerate figure
 
@@ -2645,7 +2653,7 @@ labs(title = paste0("Predictions of TotalHerbaceousCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2660,7 +2668,7 @@ labs(title = paste0("Predictions of TotalHerbaceousCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2675,7 +2683,7 @@ labs(title = paste0("Predictions of TotalHerbaceousCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2687,7 +2695,7 @@ labs(title = paste0("Observations of TotalHerbaceousCover")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2736,7 +2744,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-150,150)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -2761,7 +2769,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-150,150)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -2785,7 +2793,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-150,150)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -2917,7 +2925,7 @@ labs(title = paste0("Predictions of TotalTreeCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2932,7 +2940,7 @@ labs(title = paste0("Predictions of TotalTreeCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2947,7 +2955,7 @@ labs(title = paste0("Predictions of TotalTreeCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -2959,7 +2967,7 @@ labs(title = paste0("Observations of TotalTreeCover")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -3008,7 +3016,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-150,150)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -3033,7 +3041,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-150,150)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -3057,7 +3065,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-150,150)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -3185,7 +3193,7 @@ labs(title = paste0("Predictions of ShrubCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -3200,7 +3208,7 @@ labs(title = paste0("Predictions of ShrubCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -3215,7 +3223,7 @@ labs(title = paste0("Predictions of ShrubCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -3227,7 +3235,7 @@ labs(title = paste0("Observations of ShrubCover")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -3268,7 +3276,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-150,150)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -3293,7 +3301,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-150,150)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -3317,7 +3325,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-150,150)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -3445,7 +3453,7 @@ labs(title = paste0("Predictions of BareGroundCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -3460,7 +3468,7 @@ labs(title = paste0("Predictions of BareGroundCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -3475,7 +3483,7 @@ labs(title = paste0("Predictions of BareGroundCover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -3487,7 +3495,7 @@ labs(title = paste0("Observations of BareGroundCover")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,150),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -3528,7 +3536,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-150,150)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -3553,7 +3561,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-150,150)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -3577,7 +3585,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-150,150)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -3708,7 +3716,7 @@ modelObject = oneSELambdaMod_CONUS_forb)
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
- bestLambdaMod_forest_needleLeavedTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/ConifTreeCover_prop_forest_noTLP_FALSE_bestLambdaGLM.rds")
+ bestLambdaMod_forest_needleLeavedTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/ConifTreeCover_prop_forest_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
 
 ModelSpec_bestLambdaMod_forest_needleLeavedTree <- getModelStatement(coefficientTable = forest_needleLeavedTree_trimAnoms,
                                                     modelName <- "coefficientValue_bestLambda", 
@@ -3743,7 +3751,7 @@ modelObject = bestLambdaMod_forest_needleLeavedTree)
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
- bestLambdaMod_grassShrub_needleLeavedTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/ConifTreeCover_prop_shrubGrass_noTLP_FALSE_bestLambdaGLM.rds")
+ bestLambdaMod_grassShrub_needleLeavedTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/ConifTreeCover_prop_shrubGrass_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
 
 ModelSpec_bestLambdaMod_grassShrub_needleLeavedTree <- getModelStatement(coefficientTable = grassShrub_needleLeavedTree_trimAnoms,
                                                     modelName <- "coefficientValue_bestLambda", 
@@ -3799,6 +3807,7 @@ Predict
 # predict w/ best SE lambda model
 bestLambda_forest_broadLeavedTree_predict <- makePredictions(predictionDF = climDatPred, 
                                                            modelObject = bestLambdaMod_forest_broadLeavedTree)
+
 # predict with best SE lambda model w/ forecasted climate data
 bestLambda_forest_broadLeavedTree_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
                                                            modelObject = bestLambdaMod_forest_broadLeavedTree)
@@ -3843,6 +3852,9 @@ modelObject = bestLambdaMod_grassShrub_broadLeavedTree)
 
 ## Combine the level 2 cover variables (combine and scale to sum to 100 - for both total herbaceous and total tree cover)
 ```{r}
+rm(climDatPred)
+gc() 
+
 # for contemporary data
 names(bestLambda_CONUS_C3_predict)[57] <- "C3_percentage_pred"
 names(bestLambda_CONUS_C4_predict)[57] <- "C4_percentage_pred"
@@ -3852,25 +3864,25 @@ names(bestLambda_forest_broadLeavedTree_predict)[57] <- "broadLeavedTree_forest_
 names(bestLambda_grassShrub_needleLeavedTree_predict)[57] <- "needleLeavedTree_grassShrub_percentage_pred"
 names(bestLambda_forest_needleLeavedTree_predict)[57] <- "needleLeavedTree_forest_percentage_pred"
 
-level2_cover_preds_contemp <- bestLambda_CONUS_C3_predict %>% 
-  left_join(bestLambda_CONUS_C4_predict) %>% 
-  left_join(bestLambda_CONUS_forb_predict) %>% 
-  left_join(bestLambda_grassShrub_broadLeavedTree_predict) %>% 
-  left_join(bestLambda_forest_broadLeavedTree_predict) %>% 
-  left_join(bestLambda_grassShrub_needleLeavedTree_predict) %>% 
-  left_join(bestLambda_forest_needleLeavedTree_predict) 
+level2_cover_preds_contemp <- bestLambda_CONUS_C3_predict  %>% 
+  cbind(bestLambda_CONUS_C4_predict %>% select(C4_percentage_pred)) %>% 
+  cbind(bestLambda_CONUS_forb_predict %>% select(forb_percentage_pred)) %>% 
+  cbind(bestLambda_grassShrub_broadLeavedTree_predict %>% select(broadLeavedTree_grassShrub_percentage_pred)) %>% 
+  cbind(bestLambda_forest_broadLeavedTree_predict %>% select(broadLeavedTree_forest_percentage_pred)) %>% 
+  cbind(bestLambda_grassShrub_needleLeavedTree_predict %>% select(needleLeavedTree_grassShrub_percentage_pred)) %>% 
+  cbind(bestLambda_forest_needleLeavedTree_predict %>% select(needleLeavedTree_forest_percentage_pred)) 
 
 level2_cover_preds_contemp <- level2_cover_preds_contemp %>% 
   mutate("sumFromModels_totalHerbaceousCover" = C3_percentage_pred +  C4_percentage_pred + forb_percentage_pred, 
          "sumFromModels_forest_totalTreeCover" = broadLeavedTree_forest_percentage_pred + needleLeavedTree_forest_percentage_pred,  
          "sumFromModels_grassShrub_totalTreeCover" = broadLeavedTree_grassShrub_percentage_pred + needleLeavedTree_grassShrub_percentage_pred) %>% 
-  mutate(C3_percentage_scaled = (C3_percentage_pred/sumFromModels_totalHerbaceousCover)*100,
-         C4_percentage_scaled = (C4_percentage_pred/sumFromModels_totalHerbaceousCover)*100,
-         forb_percentage_scaled = (forb_percentage_pred/sumFromModels_totalHerbaceousCover)*100,
-         broadLeavedTree_forest_percentage_scaled = (broadLeavedTree_forest_percentage_pred/sumFromModels_forest_totalTreeCover)*100,
-         needleLeavedTree_forest_percentage_scaled = (needleLeavedTree_forest_percentage_pred/sumFromModels_forest_totalTreeCover)*100,
-         broadLeavedTree_grassShrub_percentage_scaled = (broadLeavedTree_grassShrub_percentage_pred/sumFromModels_grassShrub_totalTreeCover)*100,
-         needleLeavedTree_grassShrub_percentage_scaled = (needleLeavedTree_grassShrub_percentage_pred/sumFromModels_grassShrub_totalTreeCover)*100)
+  mutate(C3_percentage_scaled = (C3_percentage_pred/sumFromModels_totalHerbaceousCover),
+         C4_percentage_scaled = (C4_percentage_pred/sumFromModels_totalHerbaceousCover),
+         forb_percentage_scaled = (forb_percentage_pred/sumFromModels_totalHerbaceousCover),
+         broadLeavedTree_forest_percentage_scaled = (broadLeavedTree_forest_percentage_pred/sumFromModels_forest_totalTreeCover),
+         needleLeavedTree_forest_percentage_scaled = (needleLeavedTree_forest_percentage_pred/sumFromModels_forest_totalTreeCover),
+         broadLeavedTree_grassShrub_percentage_scaled = (broadLeavedTree_grassShrub_percentage_pred/sumFromModels_grassShrub_totalTreeCover),
+         needleLeavedTree_grassShrub_percentage_scaled = (needleLeavedTree_grassShrub_percentage_pred/sumFromModels_grassShrub_totalTreeCover))
   
 # for future model 1
 names(bestLambda_CONUS_C3_predictFuture_1)[55] <- "C3_percentage_pred"
@@ -3882,24 +3894,24 @@ names(bestLambda_grassShrub_needleLeavedTree_predictFuture_1)[55] <- "needleLeav
 names(bestLambda_forest_needleLeavedTree_predictFuture_1)[55] <- "needleLeavedTree_forest_percentage_pred"
 
 level2_cover_preds_future1 <- bestLambda_CONUS_C3_predictFuture_1 %>% 
-  left_join(bestLambda_CONUS_C4_predictFuture_1) %>% 
-  left_join(bestLambda_CONUS_forb_predictFuture_1) %>% 
-  left_join(bestLambda_grassShrub_broadLeavedTree_predictFuture_1) %>% 
-  left_join(bestLambda_forest_broadLeavedTree_predictFuture_1) %>% 
-  left_join(bestLambda_grassShrub_needleLeavedTree_predictFuture_1) %>% 
-  left_join(bestLambda_forest_needleLeavedTree_predictFuture_1) 
+  cbind(bestLambda_CONUS_C4_predictFuture_1 %>% select(C4_percentage_pred)) %>% 
+  cbind(bestLambda_CONUS_forb_predictFuture_1 %>% select(forb_percentage_pred)) %>% 
+  cbind(bestLambda_grassShrub_broadLeavedTree_predictFuture_1%>% select(broadLeavedTree_grassShrub_percentage_pred)) %>% 
+  cbind(bestLambda_forest_broadLeavedTree_predictFuture_1%>% select(broadLeavedTree_forest_percentage_pred)) %>% 
+  cbind(bestLambda_grassShrub_needleLeavedTree_predictFuture_1%>% select(needleLeavedTree_grassShrub_percentage_pred)) %>% 
+  cbind(bestLambda_forest_needleLeavedTree_predictFuture_1%>% select(needleLeavedTree_forest_percentage_pred)) 
 
 level2_cover_preds_future1 <- level2_cover_preds_future1 %>% 
   mutate("sumFromModels_totalHerbaceousCover" = C3_percentage_pred +  C4_percentage_pred + forb_percentage_pred, 
          "sumFromModels_forest_totalTreeCover" = broadLeavedTree_forest_percentage_pred + needleLeavedTree_forest_percentage_pred,  
          "sumFromModels_grassShrub_totalTreeCover" = broadLeavedTree_grassShrub_percentage_pred + needleLeavedTree_grassShrub_percentage_pred) %>% 
-  mutate(C3_percentage_scaled = (C3_percentage_pred/sumFromModels_totalHerbaceousCover)*100,
-         C4_percentage_scaled = (C4_percentage_pred/sumFromModels_totalHerbaceousCover)*100,
-         forb_percentage_scaled = (forb_percentage_pred/sumFromModels_totalHerbaceousCover)*100,
-         broadLeavedTree_forest_percentage_scaled = (broadLeavedTree_forest_percentage_pred/sumFromModels_forest_totalTreeCover)*100,
-         needleLeavedTree_forest_percentage_scaled = (needleLeavedTree_forest_percentage_pred/sumFromModels_forest_totalTreeCover)*100,
-         broadLeavedTree_grassShrub_percentage_scaled = (broadLeavedTree_grassShrub_percentage_pred/sumFromModels_grassShrub_totalTreeCover)*100,
-         needleLeavedTree_grassShrub_percentage_scaled = (needleLeavedTree_grassShrub_percentage_pred/sumFromModels_grassShrub_totalTreeCover)*100)
+  mutate(C3_percentage_scaled = (C3_percentage_pred/sumFromModels_totalHerbaceousCover),
+         C4_percentage_scaled = (C4_percentage_pred/sumFromModels_totalHerbaceousCover),
+         forb_percentage_scaled = (forb_percentage_pred/sumFromModels_totalHerbaceousCover),
+         broadLeavedTree_forest_percentage_scaled = (broadLeavedTree_forest_percentage_pred/sumFromModels_forest_totalTreeCover),
+         needleLeavedTree_forest_percentage_scaled = (needleLeavedTree_forest_percentage_pred/sumFromModels_forest_totalTreeCover),
+         broadLeavedTree_grassShrub_percentage_scaled = (broadLeavedTree_grassShrub_percentage_pred/sumFromModels_grassShrub_totalTreeCover),
+         needleLeavedTree_grassShrub_percentage_scaled = (needleLeavedTree_grassShrub_percentage_pred/sumFromModels_grassShrub_totalTreeCover))
   
 # for model 2
 names(bestLambda_CONUS_C3_predictFuture_2)[55] <- "C3_percentage_pred"
@@ -3911,27 +3923,29 @@ names(bestLambda_grassShrub_needleLeavedTree_predictFuture_2)[55] <- "needleLeav
 names(bestLambda_forest_needleLeavedTree_predictFuture_2)[55] <- "needleLeavedTree_forest_percentage_pred"
 
 level2_cover_preds_future2 <- bestLambda_CONUS_C3_predictFuture_2 %>% 
-  left_join(bestLambda_CONUS_C4_predictFuture_2) %>% 
-  left_join(bestLambda_CONUS_forb_predictFuture_2) %>% 
-  left_join(bestLambda_grassShrub_broadLeavedTree_predictFuture_2) %>% 
-  left_join(bestLambda_forest_broadLeavedTree_predictFuture_2) %>% 
-  left_join(bestLambda_grassShrub_needleLeavedTree_predictFuture_2) %>% 
-  left_join(bestLambda_forest_needleLeavedTree_predictFuture_2) 
+  cbind(bestLambda_CONUS_C4_predictFuture_2 %>% select(C4_percentage_pred)) %>% 
+  cbind(bestLambda_CONUS_forb_predictFuture_2 %>% select(forb_percentage_pred)) %>% 
+  cbind(bestLambda_grassShrub_broadLeavedTree_predictFuture_2%>% select(broadLeavedTree_grassShrub_percentage_pred)) %>% 
+  cbind(bestLambda_forest_broadLeavedTree_predictFuture_2%>% select(broadLeavedTree_forest_percentage_pred)) %>% 
+  cbind(bestLambda_grassShrub_needleLeavedTree_predictFuture_2%>% select(needleLeavedTree_grassShrub_percentage_pred)) %>% 
+  cbind(bestLambda_forest_needleLeavedTree_predictFuture_2%>% select(needleLeavedTree_forest_percentage_pred)) 
 
 level2_cover_preds_future2 <- level2_cover_preds_future2 %>% 
   mutate("sumFromModels_totalHerbaceousCover" = C3_percentage_pred +  C4_percentage_pred + forb_percentage_pred, 
          "sumFromModels_forest_totalTreeCover" = broadLeavedTree_forest_percentage_pred + needleLeavedTree_forest_percentage_pred,  
          "sumFromModels_grassShrub_totalTreeCover" = broadLeavedTree_grassShrub_percentage_pred + needleLeavedTree_grassShrub_percentage_pred) %>% 
-  mutate(C3_percentage_scaled = (C3_percentage_pred/sumFromModels_totalHerbaceousCover)*100,
-         C4_percentage_scaled = (C4_percentage_pred/sumFromModels_totalHerbaceousCover)*100,
-         forb_percentage_scaled = (forb_percentage_pred/sumFromModels_totalHerbaceousCover)*100,
-         broadLeavedTree_forest_percentage_scaled = (broadLeavedTree_forest_percentage_pred/sumFromModels_forest_totalTreeCover)*100,
-         needleLeavedTree_forest_percentage_scaled = (needleLeavedTree_forest_percentage_pred/sumFromModels_forest_totalTreeCover)*100,
-         broadLeavedTree_grassShrub_percentage_scaled = (broadLeavedTree_grassShrub_percentage_pred/sumFromModels_grassShrub_totalTreeCover)*100,
-         needleLeavedTree_grassShrub_percentage_scaled = (needleLeavedTree_grassShrub_percentage_pred/sumFromModels_grassShrub_totalTreeCover)*100)
+  mutate(C3_percentage_scaled = (C3_percentage_pred/sumFromModels_totalHerbaceousCover),
+         C4_percentage_scaled = (C4_percentage_pred/sumFromModels_totalHerbaceousCover),
+         forb_percentage_scaled = (forb_percentage_pred/sumFromModels_totalHerbaceousCover),
+         broadLeavedTree_forest_percentage_scaled = (broadLeavedTree_forest_percentage_pred/sumFromModels_forest_totalTreeCover),
+         needleLeavedTree_forest_percentage_scaled = (needleLeavedTree_forest_percentage_pred/sumFromModels_forest_totalTreeCover),
+         broadLeavedTree_grassShrub_percentage_scaled = (broadLeavedTree_grassShrub_percentage_pred/sumFromModels_grassShrub_totalTreeCover),
+         needleLeavedTree_grassShrub_percentage_scaled = (needleLeavedTree_grassShrub_percentage_pred/sumFromModels_grassShrub_totalTreeCover))
 ```
 
 ## visualize the *scaled* level 2 predictions
+
+i.e. the following predictions are the proportion of the relevant level 1 group (total herbaceous or total tree) that is composed of each level 2 functional group, after those groups have been 'scaled' to sum to 1 (e.g. proportion of total herbaceous that is C3, C4, or forb sums to 1)
 
 ### C3 cover
 ```{r fig.width = 16, fig.height = 12}
@@ -4006,7 +4020,7 @@ labs(title = paste0("Scaled Predictions of C3GramCover_prop in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4021,7 +4035,7 @@ labs(title = paste0("Scaled Predictions of C3GramCover_prop in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4036,7 +4050,7 @@ labs(title = paste0("Scaled Predictions of C3GramCover_prop in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4048,7 +4062,7 @@ labs(title = paste0("Observations of the proportion of total herbaceous that is 
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4089,7 +4103,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -4118,7 +4132,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -4147,7 +4161,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -4243,7 +4257,7 @@ labs(title = paste0("Scaled Predictions of C4GramCover_prop in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4258,7 +4272,7 @@ labs(title = paste0("Scaled Predictions of C4GramCover_prop in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4273,7 +4287,7 @@ labs(title = paste0("Scaled Predictions of C4GramCover_prop in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4285,7 +4299,7 @@ labs(title = paste0("Observations of the proportion of total herbaceous that is 
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4326,7 +4340,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -4355,7 +4369,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -4384,7 +4398,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -4480,7 +4494,7 @@ labs(title = paste0("Scaled Predictions of ForbCover_prop in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4495,7 +4509,7 @@ labs(title = paste0("Scaled Predictions of ForbCover_prop in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4510,7 +4524,7 @@ labs(title = paste0("Scaled Predictions of ForbCover_prop in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4522,7 +4536,7 @@ labs(title = paste0("Observations of the proportion of total herbaceous that is 
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4563,7 +4577,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -4592,7 +4606,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -4621,7 +4635,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -4641,7 +4655,7 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
             map_resids_trimAnoms, map_deltas_model1, map_deltas_model2,
             hist_trimAnoms_resids, hist_deltas_model1, hist_deltas_model2,
             heights = c(3,1), ncol = 3, nrow = 4) %>% 
-  annotate_figure(fig.lab = "Model Predictions of forb cover with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
+  annotate_figure(fig.lab = "Model Predictions of forb proportion with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
 ```
 
 ### broad-leaved tree cover -- forest
@@ -4717,7 +4731,7 @@ labs(title = paste0("Scaled Predictions of Broad-leaved tree cover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4732,7 +4746,7 @@ labs(title = paste0("Scaled Predictions of Broad-leaved tree cover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4747,7 +4761,7 @@ labs(title = paste0("Scaled Predictions of Broad-leaved tree cover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4759,7 +4773,7 @@ labs(title = paste0("Observations of the proportion of total tree cover that is 
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4800,7 +4814,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -4829,7 +4843,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -4858,7 +4872,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -4878,7 +4892,7 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
             map_resids_trimAnoms, map_deltas_model1, map_deltas_model2,
             hist_trimAnoms_resids, hist_deltas_model1, hist_deltas_model2,
             heights = c(3,1), ncol = 3, nrow = 4) %>% 
-  annotate_figure(fig.lab = "Model Predictions of broadLeavedTree in forests with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
+  annotate_figure(fig.lab = "Model Predictions of broadLeavedTree proportion in forests with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
 ```
 
 ### needle-leaved tree cover -- forest
@@ -4954,7 +4968,7 @@ labs(title = paste0("Scaled Predictions of needle-leaved tree cover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4969,7 +4983,7 @@ labs(title = paste0("Scaled Predictions of needle-leaved tree cover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4984,7 +4998,7 @@ labs(title = paste0("Scaled Predictions of needle-leaved tree cover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -4996,7 +5010,7 @@ labs(title = paste0("Observations of the proportion of total tree cover that is 
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -5037,7 +5051,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -5066,7 +5080,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -5095,7 +5109,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -5115,7 +5129,7 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
             map_resids_trimAnoms, map_deltas_model1, map_deltas_model2,
             hist_trimAnoms_resids, hist_deltas_model1, hist_deltas_model2,
             heights = c(3,1), ncol = 3, nrow = 4) %>% 
-  annotate_figure(fig.lab = "Model Predictions of needleLeavedTree with Forest Model using Contemporary and Forecasted Climate Data", fig.lab.size = 20)
+  annotate_figure(fig.lab = "Model Predictions of needleLeavedTree proportion with Forest Model using Contemporary and Forecasted Climate Data", fig.lab.size = 20)
 ```
 
 ### broad-leaved tree cover -- grass/shrub
@@ -5191,7 +5205,7 @@ labs(title = paste0("Scaled Predictions of Broad-leaved tree cover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -5206,7 +5220,7 @@ labs(title = paste0("Scaled Predictions of Broad-leaved tree cover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -5221,7 +5235,7 @@ labs(title = paste0("Scaled Predictions of Broad-leaved tree cover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -5233,7 +5247,7 @@ labs(title = paste0("Observations of the proportion of total tree cover that is 
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -5274,7 +5288,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -5303,7 +5317,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -5332,7 +5346,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -5352,7 +5366,7 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
             map_resids_trimAnoms, map_deltas_model1, map_deltas_model2,
             hist_trimAnoms_resids, hist_deltas_model1, hist_deltas_model2,
             heights = c(3,1), ncol = 3, nrow = 4) %>% 
-  annotate_figure(fig.lab = "Model Predictions of broadLeavedTree in grass/shrub with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
+  annotate_figure(fig.lab = "Model Predictions of broadLeavedTree proportion in grass/shrub with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
 ```
 
 ### needle-leaved tree cover -- grass/shrub
@@ -5428,7 +5442,7 @@ labs(title = paste0("Scaled Predictions of needle-leaved tree cover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -5443,7 +5457,7 @@ labs(title = paste0("Scaled Predictions of needle-leaved tree cover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -5458,7 +5472,7 @@ labs(title = paste0("Scaled Predictions of needle-leaved tree cover in the
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -5470,7 +5484,7 @@ labs(title = paste0("Observations of the proportion of total tree cover that is 
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -5511,7 +5525,7 @@ geom_spatraster(data = resids) +
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(resids)[c(1,3)]) + 
   ylim(st_bbox(resids)[c(2,4)])
@@ -5540,7 +5554,7 @@ geom_spatraster(data = predDeltas_model1) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model1)[c(2,4)])
@@ -5569,7 +5583,7 @@ geom_spatraster(data = predDeltas_model2) +
                        mid = "white" ,
                        high = "purple" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        ) + 
   xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
   ylim(st_bbox(predDeltas_model2)[c(2,4)])
@@ -5589,7 +5603,7 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
             map_resids_trimAnoms, map_deltas_model1, map_deltas_model2,
             hist_trimAnoms_resids, hist_deltas_model1, hist_deltas_model2,
             heights = c(3,1), ncol = 3, nrow = 4) %>% 
-  annotate_figure(fig.lab = "Model Predictions of needleLeavedTree with grass/shrub Model using Contemporary and Forecasted Climate Data", fig.lab.size = 20)
+  annotate_figure(fig.lab = "Model Predictions of needleLeavedTree proportion with grass/shrub Model using Contemporary and Forecasted Climate Data", fig.lab.size = 20)
 ```
 
 
@@ -5640,7 +5654,10 @@ modDat_ecoregionFit <- modDat_ecoregionFit %>%
 
 # get climate data from dayMet (d.f. is "climDatPred_unscaled")
 climDatPred_unscaled <- climDat
-names(climDatPred_unscaled)[c(5, 6, 7, 13, 10, 12, 52, 54, 55, 56)] <- c("T_warmestMonth_meanAnnAvg_CLIM", "T_coldestMonth_meanAnnAvg_CLIM", "precip_wettestMonth_meanAnnAvg_CLIM", "annWaterDeficit_meanAnnAvg_CLIM", "PrecipTempCorr_meanAnnAvg_CLIM", "isothermality_meanAnnAvg_CLIM", "soilDepth", "avgSandPerc_acrossDepth", "avgCoarsePerc_acrossDepth", "avgOrganicCarbonPerc_0_3cm")
+names(climDatPred_unscaled)[c(5, 6, 7, 13, 10, 12, 98, 100, 101, 102)] <- c("T_warmestMonth_meanAnnAvg_CLIM", "T_coldestMonth_meanAnnAvg_CLIM", "precip_wettestMonth_meanAnnAvg_CLIM", "annWaterDeficit_meanAnnAvg_CLIM", "PrecipTempCorr_meanAnnAvg_CLIM", "isothermality_meanAnnAvg_CLIM", "soilDepth", "avgSandPerc_acrossDepth", "avgCoarsePerc_acrossDepth", "avgOrganicCarbonPerc_0_3cm")
+
+#rm(climDat) 
+#gc()
 
 # predict with contemporary climate data 
 preds_byHand <- climDatPred_unscaled %>% 
@@ -5858,7 +5875,7 @@ preds_future_2_cover1 <- bestLambda_GS_totHerb_predictFuture_2 %>%
   left_join(level2_cover_preds_future2)
 
 ### add ecoregion-level predictions to these data frames
-names(preds_byHand)[58] <- "prob_forest"
+names(preds_byHand)[104] <- "prob_forest"
 preds_byHand$prob_GrassShrub <- 1 - preds_byHand$prob_forest
 
 names(preds_future1_byHand)[55] <- "prob_forest"
@@ -5868,12 +5885,21 @@ names(preds_future2_byHand)[55] <- "prob_forest"
 preds_future2_byHand$prob_GrassShrub <- 1 - preds_future2_byHand$prob_forest
 
 preds_contemp <- preds_contemp_cover1 %>% 
+ # rename(prob_forest_old = prob_forest, 
+ #        prob_GrassShrub_old = prob_GrassShrub) %>% 
+ #  select(-prob_GrassShrub_old, -prob_forest_old) %>% 
  cbind(preds_byHand %>% select( prob_forest, prob_GrassShrub))
 
 preds_future_1 <- preds_future_1_cover1 %>% 
+ # rename(prob_forest_old = prob_forest, 
+ #        prob_GrassShrub_old = prob_GrassShrub) %>% 
+ #  select(-prob_GrassShrub_old, -prob_forest_old) %>% 
  cbind(preds_future1_byHand %>% select(prob_forest, prob_GrassShrub))
 
 preds_future_2 <- preds_future_2_cover1 %>% 
+ # rename(prob_forest_old = prob_forest, 
+ #        prob_GrassShrub_old = prob_GrassShrub) %>% 
+ #  select(-prob_GrassShrub_old, -prob_forest_old) %>% 
  cbind(preds_future2_byHand %>% select( prob_forest, prob_GrassShrub))
 
 ## make the predictions scale according to ecoregion
@@ -5890,6 +5916,7 @@ preds_future_2 <- preds_future_2 %>%
 # add ecoregion predictions to level 2 cover predictions
 
 level2_cover_preds_contemp <- level2_cover_preds_contemp %>% 
+  # select(-c(74:77)) %>% 
  cbind(preds_byHand %>% select(
    prob_forest, prob_GrassShrub)) %>% 
   mutate(needleLeavedTree_perc_scaled_synth = ((prob_GrassShrub * needleLeavedTree_grassShrub_percentage_scaled) + (prob_forest * needleLeavedTree_forest_percentage_scaled)), 
@@ -5897,12 +5924,14 @@ level2_cover_preds_contemp <- level2_cover_preds_contemp %>%
 ## but maybe need to scale to sum to 100 *after* multiplying by ecoregion probability?? this first pass is scaling **before** the multiplication -- it turns out that the multiplication works out either way...  this version, the synthetic values still sum to 100
 # for future model 1
 level2_cover_preds_future1 <- level2_cover_preds_future1 %>% 
+  #select(-c(72:75)) %>% 
  cbind(preds_future1_byHand %>% select(
    prob_forest, prob_GrassShrub)) %>% 
   mutate(needleLeavedTree_perc_scaled_synth = ((prob_GrassShrub * needleLeavedTree_grassShrub_percentage_scaled) + (prob_forest * needleLeavedTree_forest_percentage_scaled)), 
          broadLeavedTree_perc_scaled_synth = ((prob_GrassShrub * broadLeavedTree_grassShrub_percentage_scaled) + (prob_forest * broadLeavedTree_forest_percentage_scaled))) 
 # for future model 2
 level2_cover_preds_future2 <- level2_cover_preds_future2 %>% 
+ # select(-c(72:75)) %>% 
  cbind(preds_future2_byHand %>% select(
    prob_forest, prob_GrassShrub)) %>% 
   mutate(needleLeavedTree_perc_scaled_synth = ((prob_GrassShrub * needleLeavedTree_grassShrub_percentage_scaled) + (prob_forest * needleLeavedTree_forest_percentage_scaled)), 
@@ -5939,7 +5968,7 @@ labs(title = paste0("'Synthetic' prediction of total herbaceous cover with
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -5972,7 +6001,7 @@ labs(title = paste0("'Synthetic' prediction of total Tree cover with
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -6008,7 +6037,7 @@ labs(title = paste0("'Synthetic' prediction of total herbaceous cover with
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -6043,7 +6072,7 @@ labs(title = paste0("'Synthetic' prediction of total Tree cover with
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -6080,7 +6109,7 @@ labs(title = paste0("'Synthetic' prediction of total herbaceous cover with
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -6116,7 +6145,7 @@ labs(title = paste0("'Synthetic' prediction of total Tree cover with
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -6125,7 +6154,7 @@ ggarrange(map_preds_totHerbaceous, map_preds_totTree,
           map_preds_totHerbaceous_future2, map_preds_totTree_future2, ncol = 2, nrow = 3)
 ```
 
-### Show "synthetic" predictions for the second tier of cover models (only for needle leaved/broad leaved trees, since other models are CONUS-wide)
+### Show "synthetic" predictions for the second tier of cover modelsat (i.e. predictions after they have been scaled to sum to 1 within each ecoregion, and then scaled again according to predicted ecoregion probability) (only for needle leaved/broad leaved trees, since other models are CONUS-wide)
 
 ```{r fig.width = 10, fig.height=10}
 # broad leaved tree contemp
@@ -6154,7 +6183,7 @@ contemporary climate data")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -6184,7 +6213,7 @@ future climate data - first model")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -6214,7 +6243,7 @@ future climate data - second model")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -6244,7 +6273,7 @@ contemporary climate data")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -6274,7 +6303,7 @@ future climate data - first model")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -6304,7 +6333,7 @@ future climate data - second model")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -6319,28 +6348,40 @@ ggarrange(map_preds_broadLeavedSynth_contemp, map_preds_needleLeavedSynth_contem
 preds_contemp <- preds_contemp %>% 
   mutate(totalCover =  predContemp_CONUS_shrub + predContemp_CONUS_bareGround + totHerb_synth + totTree_synth)  %>% # calculate total cover "%" in a location
   # scale so that the cover classes sum to 100 
-  mutate(shrub_cover_finalScaled = predContemp_CONUS_shrub/totalCover * 100,
-         bareGround_cover_finalScaled = predContemp_CONUS_bareGround/totalCover * 100, 
-         totalHerb_cover_finalScaled = totHerb_synth/totalCover * 100, 
-         totalTree_cover_finalScaled = totTree_synth/totalCover * 100)
+  mutate(shrub_cover_finalScaled = predContemp_CONUS_shrub/totalCover #* 100
+  ,
+         bareGround_cover_finalScaled = predContemp_CONUS_bareGround/totalCover #* 100
+         , 
+         totalHerb_cover_finalScaled = totHerb_synth/totalCover# * 100
+  , 
+         totalTree_cover_finalScaled = totTree_synth/totalCover #* 100
+         )
 
 ## future climate data model 1
 preds_future_1 <- preds_future_1 %>% 
   mutate(totalCover =  predFuture1_CONUS_shrub + predFuture1_CONUS_bareGround + totHerb_synth + totTree_synth)  %>% # calculate total cover "%" in a location
   # scale so that the cover classes sum to 100 
-  mutate(shrub_cover_finalScaled = predFuture1_CONUS_shrub/totalCover * 100,
-         bareGround_cover_finalScaled = predFuture1_CONUS_bareGround/totalCover * 100, 
-         totalHerb_cover_finalScaled = totHerb_synth/totalCover * 100, 
-         totalTree_cover_finalScaled = totTree_synth/totalCover * 100)
+  mutate(shrub_cover_finalScaled = predFuture1_CONUS_shrub/totalCover #* 100
+  ,
+         bareGround_cover_finalScaled = predFuture1_CONUS_bareGround/totalCover #* 100
+         , 
+         totalHerb_cover_finalScaled = totHerb_synth/totalCover #* 100
+         , 
+         totalTree_cover_finalScaled = totTree_synth/totalCover #* 100
+         )
 
 ## future climate data model 2
 preds_future_2 <- preds_future_2 %>% 
   mutate(totalCover = predFuture2_CONUS_shrub + predFuture2_CONUS_bareGround + totHerb_synth + totTree_synth)  %>% # calculate total cover "%" in a location
   # scale so that the cover classes sum to 100 
-  mutate(shrub_cover_finalScaled = predFuture2_CONUS_shrub/totalCover * 100,
-         bareGround_cover_finalScaled = predFuture2_CONUS_bareGround/totalCover * 100, 
-         totalHerb_cover_finalScaled = totHerb_synth/totalCover * 100, 
-         totalTree_cover_finalScaled = totTree_synth/totalCover * 100)
+  mutate(shrub_cover_finalScaled = predFuture2_CONUS_shrub/totalCover #* 100
+  ,
+         bareGround_cover_finalScaled = predFuture2_CONUS_bareGround/totalCover #* 100
+         , 
+         totalHerb_cover_finalScaled = totHerb_synth/totalCover #* 100
+         , 
+         totalTree_cover_finalScaled = totTree_synth/totalCover #* 100
+         )
 
 ### make figures
 # for contemporary climate 
@@ -6367,7 +6408,7 @@ labs(title = paste0("'Scaled' prediction of ", x, " with
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(rast_1)[c(1,3)]) + 
   ylim(st_bbox(rast_1)[c(2,4)])
            
@@ -6402,7 +6443,7 @@ labs(title = paste0("'Scaled' prediction of ", x, " with
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(rast_1)[c(1,3)]) + 
   ylim(st_bbox(rast_1)[c(2,4)])
            
@@ -6438,7 +6479,7 @@ labs(title = paste0("'Scaled' prediction of ", x, " with
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(rast_1)[c(1,3)]) + 
   ylim(st_bbox(rast_1)[c(2,4)])
            
@@ -6469,29 +6510,34 @@ names(future2ScaledPreds_maps) <- c("shrub_cover_finalScaled",
 ## for contemporary data, multiply the synthetic and scaled level-1 cover predictions by the scaled level-2 percentages
 preds_contemp  <- preds_contemp  %>% 
   left_join(level2_cover_preds_contemp) %>% 
- mutate(C3_cover_finalScaled = totalHerb_cover_finalScaled *(C3_percentage_scaled/100),
-        C4_cover_finalScaled = totalHerb_cover_finalScaled *(C4_percentage_scaled/100),
-        forb_cover_finalScaled = totalHerb_cover_finalScaled *(forb_percentage_scaled/100),
-        broadLeaved_cover_finalScaled = totalTree_cover_finalScaled *(broadLeavedTree_perc_scaled_synth/100),
-        needleLeaved_cover_finalScaled = totalTree_cover_finalScaled *(needleLeavedTree_perc_scaled_synth/100)) 
+ mutate(C3_cover_finalScaled = totalHerb_cover_finalScaled *(C3_percentage_scaled#/100
+                                                             ),
+        C4_cover_finalScaled = totalHerb_cover_finalScaled *(C4_percentage_scaled#/100
+                                                             ),
+        forb_cover_finalScaled = totalHerb_cover_finalScaled *(forb_percentage_scaled#/100
+                                                               ),
+        broadLeaved_cover_finalScaled = totalTree_cover_finalScaled *(broadLeavedTree_perc_scaled_synth#/100
+                                                                      ),
+        needleLeaved_cover_finalScaled = totalTree_cover_finalScaled *(needleLeavedTree_perc_scaled_synth#/100
+                                                                       )) 
 
 ## for future 1 data, multiply the synthetic and scaled level-1 cover predictions by the scaled level-2 percentages
 preds_future_1 <- preds_future_1 %>% 
   left_join(level2_cover_preds_future1) %>% 
- mutate(C3_cover_finalScaled = totalHerb_cover_finalScaled *(C3_percentage_scaled/100),
-        C4_cover_finalScaled = totalHerb_cover_finalScaled *(C4_percentage_scaled/100),
-        forb_cover_finalScaled = totalHerb_cover_finalScaled *(forb_percentage_scaled/100),
-        broadLeaved_cover_finalScaled = totalTree_cover_finalScaled *(broadLeavedTree_perc_scaled_synth/100),
-        needleLeaved_cover_finalScaled = totalTree_cover_finalScaled *(needleLeavedTree_perc_scaled_synth/100)) 
+ mutate(C3_cover_finalScaled = totalHerb_cover_finalScaled *(C3_percentage_scaled),
+        C4_cover_finalScaled = totalHerb_cover_finalScaled *(C4_percentage_scaled),
+        forb_cover_finalScaled = totalHerb_cover_finalScaled *(forb_percentage_scaled),
+        broadLeaved_cover_finalScaled = totalTree_cover_finalScaled *(broadLeavedTree_perc_scaled_synth),
+        needleLeaved_cover_finalScaled = totalTree_cover_finalScaled *(needleLeavedTree_perc_scaled_synth)) 
 
 ## for future 2 data, multiply the synthetic and scaled level-1 cover predictions by the scaled level-2 percentages
 preds_future_2 <- preds_future_2 %>% 
   left_join(level2_cover_preds_future2) %>% 
- mutate(C3_cover_finalScaled = totalHerb_cover_finalScaled *(C3_percentage_scaled/100),
-        C4_cover_finalScaled = totalHerb_cover_finalScaled *(C4_percentage_scaled/100),
-        forb_cover_finalScaled = totalHerb_cover_finalScaled *(forb_percentage_scaled/100),
-        broadLeaved_cover_finalScaled = totalTree_cover_finalScaled *(broadLeavedTree_perc_scaled_synth/100),
-        needleLeaved_cover_finalScaled = totalTree_cover_finalScaled *(needleLeavedTree_perc_scaled_synth/100)) 
+ mutate(C3_cover_finalScaled = totalHerb_cover_finalScaled *(C3_percentage_scaled),
+        C4_cover_finalScaled = totalHerb_cover_finalScaled *(C4_percentage_scaled),
+        forb_cover_finalScaled = totalHerb_cover_finalScaled *(forb_percentage_scaled),
+        broadLeaved_cover_finalScaled = totalTree_cover_finalScaled *(broadLeavedTree_perc_scaled_synth),
+        needleLeaved_cover_finalScaled = totalTree_cover_finalScaled *(needleLeavedTree_perc_scaled_synth)) 
 
 
 # make maps for level 2 cover w/ contemporary climate data
@@ -6518,7 +6564,7 @@ labs(title = paste0("'Scaled' prediction of ", x, " with
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(rast_1)[c(1,3)]) + 
   ylim(st_bbox(rast_1)[c(2,4)])
            
@@ -6553,7 +6599,7 @@ labs(title = paste0("'Scaled' prediction of ", x, " with
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(rast_1)[c(1,3)]) + 
   ylim(st_bbox(rast_1)[c(2,4)])
            
@@ -6588,7 +6634,7 @@ labs(title = paste0("'Scaled' prediction of ", x, " with
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(rast_1)[c(1,3)]) + 
   ylim(st_bbox(rast_1)[c(2,4)])
            
@@ -6616,8 +6662,8 @@ saveRDS(preds_contemp, "../../../Data_processed/CoverData/ModelPredictionData/Mo
 # make maps of residuals between scaled predictions and observations
 shrubCover_resids_final <- contempScaledPreds_maps[[1]]$rast - plotObservations_CONUS_shrub_2 
 bareGround_resids_final <- contempScaledPreds_maps[[2]]$rast - plotObservations_CONUS_bareGround_2 
-totalHerb_resids_final <- contempScaledPreds_maps[[3]]$rast - plotObservations_F_totHerb_2
-totalTree_resids_final <- contempScaledPreds_maps[[4]]$rast - plotObservations_F_totTree_2
+totalHerb_resids_final <- contempScaledPreds_maps[[3]]$rast - plotObservations_F_totHerb_2 #(plotObservations_F_totHerb_2 is the observed total herbaceous cover)
+totalTree_resids_final <- contempScaledPreds_maps[[4]]$rast - plotObservations_F_totTree_2 #(plotObservations_F_totHerb_2 is the observed total herbaceous cover)
 
 mapResids_final_shrubCover <- ggplot() +
   geom_spatraster(data = shrubCover_resids_final) + 
@@ -6629,7 +6675,7 @@ labs(title = paste0("Residuals (scaled final model prediction - observations) fo
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        )  + 
   xlim(st_bbox(shrubCover_resids_final)[c(1,3)]) + 
   ylim(st_bbox(shrubCover_resids_final)[c(2,4)])
@@ -6644,7 +6690,7 @@ labs(title = paste0("Residuals (scaled final model prediction - observations) fo
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        )  + 
   xlim(st_bbox(bareGround_resids_final)[c(1,3)]) + 
   ylim(st_bbox(bareGround_resids_final)[c(2,4)])
@@ -6659,7 +6705,7 @@ labs(title = paste0("Residuals (scaled final model prediction - observations) fo
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        )  + 
   xlim(st_bbox(totalHerb_resids_final)[c(1,3)]) + 
   ylim(st_bbox(totalHerb_resids_final)[c(2,4)])
@@ -6674,7 +6720,7 @@ labs(title = paste0("Residuals (scaled final model prediction - observations) fo
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        )  + 
   xlim(st_bbox(totalTree_resids_final)[c(1,3)]) + 
   ylim(st_bbox(totalTree_resids_final)[c(2,4)])
@@ -6699,11 +6745,11 @@ ggarrange( contempScaledPreds_maps[[3]]$map, map_obs_F_totHerb, mapResids_final_
 ## level 2 cover variables
 
 # calculate the actual observed cover (rather than proportion) for level 2 cover
-plotObservations_C3_actualCover <-  plotObservations_F_totHerb_2 * (plotObservations_C3_proportion_2/100)
-plotObservations_C4_actualCover <-  plotObservations_F_totHerb_2 * (plotObservations_C4_proportion_2/100)
-plotObservations_forb_actualCover <-  plotObservations_F_totHerb_2 * (plotObservations_forb_proportion_2/100)
-plotObservations_broadLeaved_actualCover <-  plotObservations_F_totTree_2 * (plotObservations_broadLeaved_forest_proportion_2/100)
-plotObservations_needleLeaved_actualCover <-  plotObservations_F_totTree_2 * (plotObservations_needleLeaved_proportion_2/100)
+plotObservations_C3_actualCover <-  plotObservations_F_totHerb_2 * (plotObservations_C3_proportion_2)
+plotObservations_C4_actualCover <-  plotObservations_F_totHerb_2 * (plotObservations_C4_proportion_2)
+plotObservations_forb_actualCover <-  plotObservations_F_totHerb_2 * (plotObservations_forb_proportion_2)
+plotObservations_broadLeaved_actualCover <-  plotObservations_F_totTree_2 * (plotObservations_broadLeaved_forest_proportion_2)
+plotObservations_needleLeaved_actualCover <-  plotObservations_F_totTree_2 * (plotObservations_needleLeaved_proportion_2)
 
 # make maps of observations (not proportion, but actual values)
 map_obs_C3_actualCover <-  ggplot() +
@@ -6714,7 +6760,7 @@ labs(title = paste0("Observations of actual cover - C3 graminoids")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObservations_C3_actualCover)[c(1,3)]) + 
   ylim(st_bbox(plotObservations_C3_actualCover)[c(2,4)])
 
@@ -6726,7 +6772,7 @@ labs(title = paste0("Observations of actual cover - C4 graminoids")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObservations_C4_actualCover)[c(1,3)]) + 
   ylim(st_bbox(plotObservations_C4_actualCover)[c(2,4)])
 
@@ -6738,7 +6784,7 @@ labs(title = paste0("Observations of actual cover - forbs")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObservations_forb_actualCover)[c(1,3)]) + 
   ylim(st_bbox(plotObservations_forb_actualCover)[c(2,4)])
 
@@ -6750,7 +6796,7 @@ labs(title = paste0("Observations of actual cover - broadLeaved trees")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObservations_broadLeaved_actualCover)[c(1,3)]) + 
   ylim(st_bbox(plotObservations_broadLeaved_actualCover)[c(2,4)])
 
@@ -6762,7 +6808,7 @@ labs(title = paste0("Observations of actual cover - needleLeaved trees")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(st_bbox(plotObservations_needleLeaved_actualCover)[c(1,3)]) + 
   ylim(st_bbox(plotObservations_needleLeaved_actualCover)[c(2,4)])
 
@@ -6784,7 +6830,7 @@ labs(title = paste0("Residuals (scaled final model prediction - observations) fo
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        )  + 
   xlim(st_bbox(C3Cover_resids_final)[c(1,3)]) + 
   ylim(st_bbox(C3Cover_resids_final)[c(2,4)])
@@ -6799,7 +6845,7 @@ labs(title = paste0("Residuals (scaled final model prediction - observations) fo
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        )  + 
   xlim(st_bbox(C4Cover_resids_final)[c(1,3)]) + 
   ylim(st_bbox(C4Cover_resids_final)[c(2,4)])
@@ -6814,7 +6860,7 @@ labs(title = paste0("Residuals (scaled final model prediction - observations) fo
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        )  + 
   xlim(st_bbox(forb_resids_final)[c(1,3)]) + 
   ylim(st_bbox(forb_resids_final)[c(2,4)])
@@ -6829,7 +6875,7 @@ labs(title = paste0("Residuals (scaled final model prediction - observations) fo
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        )  + 
   xlim(st_bbox(broadLeaved_resids_final)[c(1,3)]) + 
   ylim(st_bbox(broadLeaved_resids_final)[c(2,4)])
@@ -6844,7 +6890,7 @@ labs(title = paste0("Residuals (scaled final model prediction - observations) fo
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey20",
-                       limits = c(-100,100)
+                       limits = c(-1,1)
                        )  + 
   xlim(st_bbox(needleLeaved_resids_final)[c(1,3)]) + 
   ylim(st_bbox(needleLeaved_resids_final)[c(2,4)])
@@ -6881,7 +6927,7 @@ labs(title = paste0("Total, unscaled cover with
   scale_fill_gradient2(low = "white",
                        high = "purple" , 
                        #midpoint = 0, 
-                       limits = c(0,250),  
+                       limits = c(0,3),  
                        na.value = "lightgrey") + 
   xlim(st_bbox(rast_1)[c(1,3)]) + 
   ylim(st_bbox(rast_1)[c(2,4)]))
@@ -6967,27 +7013,29 @@ labs(title = paste0("Final shrub fractional cover from our current model")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(c(-1956750, 3250)) + 
   ylim(c(-883500, 952500))
 shrubMap_ds <- ggplot() +
-  geom_spatraster(data = shrubsCover_ds*100) + 
+  geom_spatraster(data = shrubsCover_ds#*100
+  ) + 
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
 labs(title = paste0("Final shrub fractional cover from previous SOILWAT run")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(c(-1956750, 3250)) + 
   ylim(c(-883500, 952500))
 shrubCompareMap <- ggplot() +
-  geom_spatraster(data = shrub_as - shrubsCover_ds*100) + 
+  geom_spatraster(data = shrub_as - shrubsCover_ds#*100
+  ) + 
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
 labs(title = paste0("diffs: current model Shrub preds - previous SOILWAT preds")) +
   scale_fill_gradient2(low = "red",
                        mid = "white" ,
                        high = "blue" , 
-                       midpoint = 0, limits = c(-100,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(-1,1),  na.value = "lightgrey") + 
   xlim(c(-1956750, 3250)) + 
   ylim(c(-883500, 952500))
 
@@ -6999,27 +7047,29 @@ labs(title = paste0("Final tree fractional cover from our current model")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(c(-1956750, 3250)) + 
   ylim(c(-883500, 952500))
 treeMap_ds <- ggplot() +
-    geom_spatraster(data = treeCover_ds*100) + 
+    geom_spatraster(data = treeCover_ds#*100
+    ) + 
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
 labs(title = paste0("Final tree fractional cover from previous SOILWAT run")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(c(-1956750, 3250)) + 
   ylim(c(-883500, 952500))
 treeCompareMap <- ggplot() +
-  geom_spatraster(data = totTree_as - treeCover_ds*100) + 
+  geom_spatraster(data = totTree_as - treeCover_ds#*100
+  ) + 
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
 labs(title = paste0("diffs: current model tree preds - previous SOILWAT preds")) +
   scale_fill_gradient2(low = "red",
                        mid = "white" ,
                        high = "blue" , 
-                       midpoint = 0, limits = c(-100,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(-1,1),  na.value = "lightgrey") + 
   xlim(c(-1956750, 3250)) + 
   ylim(c(-883500, 952500))
 
@@ -7031,27 +7081,29 @@ labs(title = paste0("Final total herbaceous fractional cover from our current mo
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(c(-1956750, 3250)) + 
   ylim(c(-883500, 952500))
 herbMap_ds <- ggplot() +
-    geom_spatraster(data = (grassCover_ds + forbCover_ds)*100) + 
+    geom_spatraster(data = (grassCover_ds + forbCover_ds)#*100
+    ) + 
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
 labs(title = paste0("Final herbaceous fractional cover from previous SOILWAT run")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(c(-1956750, 3250)) + 
   ylim(c(-883500, 952500))
 herbCompareMap <- ggplot() +
-  geom_spatraster(data = totHerb_as - (grassCover_ds + forbCover_ds)*100) + 
+  geom_spatraster(data = totHerb_as - (grassCover_ds + forbCover_ds)#*100
+  ) + 
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
 labs(title = paste0("diffs: current model herbaceous preds - previous SOILWAT preds")) +
   scale_fill_gradient2(low = "red",
                        mid = "white" ,
                        high = "blue" , 
-                       midpoint = 0, limits = c(-100,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(-1,1),  na.value = "lightgrey") + 
   xlim(c(-1956750, 3250)) + 
   ylim(c(-883500, 952500))
 
@@ -7063,27 +7115,29 @@ labs(title = paste0("Final total bare ground fractional cover from our current m
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(c(-1956750, 3250)) + 
   ylim(c(-883500, 952500))
 bareGroundMap_ds <- ggplot() +
-    geom_spatraster(data = (bareGroundCover_ds)*100) + 
+    geom_spatraster(data = (bareGroundCover_ds)#*100
+    ) + 
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
 labs(title = paste0("Final herbaceous fractional cover from previous SOILWAT run")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
   xlim(c(-1956750, 3250)) + 
   ylim(c(-883500, 952500))
 bareGroundCompareMap <- ggplot() +
-  geom_spatraster(data = bareGround_as - (bareGroundCover_ds)*100) + 
+  geom_spatraster(data = bareGround_as - (bareGroundCover_ds)#*100
+  ) + 
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(rast_1)),fill=NA ) +
 labs(title = paste0("diffs: current model bare ground preds - previous SOILWAT preds")) +
   scale_fill_gradient2(low = "red",
                        mid = "white" ,
                        high = "blue" , 
-                       midpoint = 0, limits = c(-100,100),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(-1,1),  na.value = "lightgrey") + 
   xlim(c(-1956750, 3250)) + 
   ylim(c(-883500, 952500))
 
@@ -7125,6 +7179,7 @@ predictedCover_contempData <- c(contempScaledPreds_maps[[1]]$rast,
                                 contemp_cover2_ScaledPreds_maps[[5]]$rast)
 
 terra::writeRaster(x = predictedCover_contempData, 
-                   filename = "../../../Data_processed/CoverData/ModelPredictionData/ModelPreds_ContempClimateData_dayMetScale.tif")
+                   filename = "../../../Data_processed/CoverData/ModelPredictionData/ModelPreds_ContempClimateData_dayMetScale.tif", 
+                   overwrite = TRUE)
 ```
 

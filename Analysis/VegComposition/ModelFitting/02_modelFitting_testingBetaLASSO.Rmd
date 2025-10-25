@@ -12,7 +12,7 @@ params:
   run: FALSE      
   save_figs: FALSE
   ecoregion: shrubGrass #shrubGrass
-  response: TotalTreeCover
+  response: C4GramCover_prop
   removeTexasLouisianaPlain: FALSE
   trimAnomalies: TRUE
   autoKfold: FALSE
@@ -1051,7 +1051,7 @@ if (trimAnom == TRUE) {
 
 ```
 
-Then, fit regular glm models (Beta glm with a logit link), first using the coefficients from the 'best' lambda identified in the LASSO model, and then using the coefficients from the '1SE' lambda and then the '1/2SE' lambda values identified from the LASSO (this is the value of lambda such that the cross validation error is within 1 standard error of the minimum).  
+Then, fit regular glm models (quasi-Beta glm with a logit link), first using the coefficients from the 'best' lambda identified in the LASSO model, and then using the coefficients from the '1SE' lambda and then the '1/2SE' lambda values identified from the LASSO (this is the value of lambda such that the cross validation error is within 1 standard error of the minimum).  
 ```{r}
 ## fit w/ the identified coefficients from the 'best' lambda, but using the glm function
   mat_glmnet_best <- bestLambda_coef$VariableName 
@@ -1109,9 +1109,6 @@ Then, fit regular glm models (Beta glm with a logit link), first using the coeff
 
   fit_glm_halfse <- glm(formula = f_glm_halfse, data = modDat_1_s, family =quasibeta_family(link = "logit") )
   
-  #glm(data = modDat_1_s, formula =  f_glm_halfse,
-                   # family =  stats::Gamma(link = "log"))
-  
   ## save models 
   if (trimAnom == TRUE) {
     saveRDS(fit_glm_bestLambda, paste0("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/",response,"_",ecoregion, "_noTLP_",removeTLP,"_trimAnom_bestLambdaGLM.rds"))
@@ -1136,7 +1133,9 @@ Then, we predict (on the training set) using both of these models (best lambda a
   optimal_pred_halfse <- predict(fit_glm_halfse, newx = X[,2:ncol(X)], type = "response")
   
     null_fit <- glm(#data = data.frame("y" = y, X[,paste0(prednames, "_s")]), 
-      formula = y ~ 1, family = stats::Gamma(link = "log"))
+      formula = y ~ 1, data = modDat_1_s, family =quasibeta_family(link = "logit")
+      #formula = y ~ 1, family = stats::Gamma(link = "log")
+      )
   null_pred <- predict(null_fit, newdata = as.data.frame(X), type = "response"
                        )
 
