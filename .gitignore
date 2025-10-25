@@ -56,7 +56,7 @@ Data_raw/
 Figures/
 
 # model comparison html
-"./Analysis/VegComposition/ModelFitting/03_CompareModels.html"
+./Analysis/VegComposition/ModelFitting/03_CompareModels.html
 /Analysis/VegComposition/ModelFitting/03_CompareModels.html
 
 # old versions of markdown htmls
