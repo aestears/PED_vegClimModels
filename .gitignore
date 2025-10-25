@@ -55,6 +55,10 @@ Data_processed/
 Data_raw/
 Figures/
 
+# model comparison html
+"./Analysis/VegComposition/ModelFitting/03_CompareModels.html"
+"/Analysis/VegComposition/ModelFitting/03_CompareModels.html"
+
 # old versions of markdown htmls
 "./Analysis/VegComposition/ModelFitting/outputHtmls/v1/"
 "./Analysis/VegComposition/ModelFitting/outputHtmls/v2/"
