@@ -57,18 +57,18 @@ Figures/
 
 # model comparison html
 "./Analysis/VegComposition/ModelFitting/03_CompareModels.html"
-"/Analysis/VegComposition/ModelFitting/03_CompareModels.html"
+/Analysis/VegComposition/ModelFitting/03_CompareModels.html
 
 # old versions of markdown htmls
-"./Analysis/VegComposition/ModelFitting/outputHtmls/v1/"
-"./Analysis/VegComposition/ModelFitting/outputHtmls/v2/"
-"./Analysis/VegComposition/ModelFitting/outputHtmls/v3/
-"./Analysis/BiomassQuantity/Analysis/modelRunMarkdowns/v1/"
+./Analysis/VegComposition/ModelFitting/outputHtmls/v1/
+./Analysis/VegComposition/ModelFitting/outputHtmls/v2/
+./Analysis/VegComposition/ModelFitting/outputHtmls/v3/
 
-"/Analysis/VegComposition/ModelFitting/outputHtmls/v1/"
-"/Analysis/VegComposition/ModelFitting/outputHtmls/v2/"
-"/Analysis/VegComposition/ModelFitting/outputHtmls/v3/"
-"/Analysis/BiomassQuantity/Analysis/modelRunMarkdowns/v1/"
+./Analysis/BiomassQuantity/Analysis/modelRunMarkdowns/v1/
+/Analysis/VegComposition/ModelFitting/outputHtmls/v1/
+/Analysis/VegComposition/ModelFitting/outputHtmls/v2/
+/Analysis/VegComposition/ModelFitting/outputHtmls/v3/
+/Analysis/BiomassQuantity/Analysis/modelRunMarkdowns/v1/
 
 # model output files
 /Analysis/BiomassQuantity/Analysis/models/
