@@ -421,7 +421,7 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_modelFittin
                   output_file = "betaLASSO_test_GrassShrub_AngioTreeCover_prop.html")
 #conifer tree cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_modelFitting_testingBetaLASSO.Rmd", 
-                  params = list(  run = TRFALSEUE, 
+                  params = list(  run = TRUE, 
                                   
                                   save_figs = FALSE,
                                   trimAnomalies = TRUE,
