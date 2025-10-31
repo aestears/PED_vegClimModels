@@ -19,11 +19,35 @@ knitr::opts_chunk$set(echo = TRUE, warning=FALSE,
                       message = FALSE)
 ```
 
-##User defined parameters
+##User defined parameters and functions
 ```{r}
 print(params)
 # set to true if want to run for a limited number of rows (i.e. for code testing)
 readParams <- params$readParams
+
+makePredictions <- function(predictionDF, modelObject) {
+  ##
+  # predictionDF <- climDatPred
+  # modelObject <- bestLambdaMod_grassShrub_totalHerb
+  # ##
+  
+  # pretend to scale the input variables so the model object can predict accurately
+  predictionDF <- predictionDF %>% 
+  mutate(across(all_of(prednames), base::scale,scale = FALSE, center = FALSE)) 
+  
+  # modelPredictions
+  modelPreds <- predict(object = modelObject, newdata = predictionDF, type = "response")
+  # add predictions back into the input data.frame
+  predictionDF <- predictionDF %>% 
+    cbind(modelPreds)
+  
+  # truncate all predictions to max out at 100 
+  #predictionDF[predictionDF$modelPreds>100 & !is.na(predictionDF$modelPreds),"modelPreds"] <- 100
+predictionDF[predictionDF$modelPreds < 0 & !is.na(predictionDF$modelPreds),"modelPreds"] <- 0
+
+  # print predicted data
+ return(predictionDF)
+}
 ```
 
 ## Dependencies 
@@ -36,6 +60,7 @@ library(knitr)
 library(USA.state.boundaries)
 library(tidyterra)
 library(ggpubr)
+library(USA.state.boundaries)
 ```
 
 ## Read in necessary data 
@@ -63,6 +88,7 @@ cropped_states <- suppressMessages(state_boundaries_wgs84 %>%
   dplyr::filter(NAME!="Guam") %>%
   dplyr::filter(NAME!="Commonwealth of the Northern Mariana Islands") %>%
   dplyr::filter(NAME!="United States Virgin Islands") %>%
+  dplyr::filter(NAME!= "U.S. Virgin Islands") %>% 
   sf::st_sf() %>%
   sf::st_transform(sf::st_crs(test_rast))) 
   #sf::st_crop(sf::st_bbox(modDat_1_sf)+c(-1,-1,1,1))
@@ -91,6 +117,86 @@ mapRegions <- goodRegions %>%
 
 ## contemporary climate data
 climDat_temp <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Data_processed/EcoRegion_climSoilData.rds")
+
+climDat_timeTemp <- climDat_temp %>% 
+  mutate(spatialID = paste0(round(x,4), "_", round(y,4))) %>% 
+  drop_na()
+
+spatID_lu <- data.frame("spatialID" = unique(climDat_timeTemp$spatialID), 
+                        "uniqueID" = 1:length(unique(climDat_timeTemp$spatialID)))
+
+climDat_timeTemp <- climDat_timeTemp %>% 
+  left_join(spatID_lu)
+
+## because of the spatial joining we did, there are some "locations" that have data for less than the true time span we want (2010-2020), or multiple observations per year... remove those so we have the even representation over the time span we're looking for 
+set.seed("12011993")
+goodTable <- data.frame(table(climDat_timeTemp$uniqueID))
+goodIDs_temp <- as.numeric(goodTable[goodTable$Freq == 11,"Var1"])
+
+#goodIDs <- unique(names(table(climDat_timeTemp$uniqueID))[(table(climDat_timeTemp$uniqueID)==11)])
+# select 1000 random IDs
+goodIDs <- goodIDs_temp[sample(x = 1:length(goodIDs_temp), size = 1000, replace = FALSE)]
+
+## get climate data for 500 different points randomly chosen across CONUS for all years in the contemporary climate/weather/soils dataset 
+climDat_time <- climDat_timeTemp %>% 
+  filter(uniqueID %in% goodIDs) %>% 
+  dplyr::select(tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_3yrAnom, NA_L1CODE, 
+         NA_L1NAME, NA_L1KEY, year, newRegion, x, y, soilDepth:totalAvailableWaterHoldingCapacity, uniqueID, spatialID) %>% 
+rename("tmin" = tmin_meanAnnAvg_CLIM, 
+     "tmax" = tmax_meanAnnAvg_CLIM, #1 
+     "tmean" = tmean_meanAnnAvg_CLIM, 
+     "prcp" = prcp_meanAnnTotal_CLIM, 
+     "t_warm" = T_warmestMonth_meanAnnAvg_CLIM,
+     "t_cold" = T_coldestMonth_meanAnnAvg_CLIM, 
+     "prcp_wet" = precip_wettestMonth_meanAnnAvg_CLIM,
+     "prcp_dry" = precip_driestMonth_meanAnnAvg_CLIM, 
+     "prcp_seasonality" = precip_Seasonality_meanAnnAvg_CLIM, #2
+     "prcpTempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  #3
+     "abvFreezingMonth" = aboveFreezing_month_meanAnnAvg_CLIM, 
+     "isothermality" = isothermality_meanAnnAvg_CLIM, #4
+     "annWatDef" = annWaterDeficit_meanAnnAvg_CLIM, 
+     "annWetDegDays" = annWetDegDays_meanAnnAvg_CLIM,
+     "VPD_mean" = annVPD_mean_meanAnnAvg_CLIM, 
+     "VPD_max" = annVPD_max_meanAnnAvg_CLIM, #5
+     "VPD_min" = annVPD_min_meanAnnAvg_CLIM, #6
+     "VPD_max_95" = annVPD_max_95percentile_CLIM, 
+     "annWatDef_95" = annWaterDeficit_95percentile_CLIM, 
+     "annWetDegDays_5" = annWetDegDays_5percentile_CLIM, 
+     "frostFreeDays_5" = durationFrostFreeDays_5percentile_CLIM, 
+     "frostFreeDays" = durationFrostFreeDays_meanAnnAvg_CLIM, 
+     "soilDepth" = soilDepth, #7
+     "clay" = surfaceClay_perc, 
+     "sand" = avgSandPerc_acrossDepth, #8
+     "coarse" = avgCoarsePerc_acrossDepth, #9
+     "carbon" = avgOrganicCarbonPerc_0_3cm, #10
+     "AWHC" = totalAvailableWaterHoldingCapacity,
+     ## anomaly variables
+     tmean_anom = tmean_meanAnnAvg_3yrAnom, #15
+     tmin_anom = tmin_meanAnnAvg_3yrAnom, #16
+     tmax_anom = tmax_meanAnnAvg_3yrAnom, #17
+    prcp_anom = prcp_meanAnnTotal_3yrAnom, #18
+      t_warm_anom = T_warmestMonth_meanAnnAvg_3yrAnom,  #19
+     t_cold_anom = T_coldestMonth_meanAnnAvg_3yrAnom, #20
+      prcp_wet_anom = precip_wettestMonth_meanAnnAvg_3yrAnom, #21
+      precp_dry_anom = precip_driestMonth_meanAnnAvg_3yrAnom,  #22
+    prcp_seasonality_anom = precip_Seasonality_meanAnnAvg_3yrAnom, #23 
+     prcpTempCorr_anom = PrecipTempCorr_meanAnnAvg_3yrAnom, #24
+      aboveFreezingMonth_anom = aboveFreezing_month_meanAnnAvg_3yrAnom, #25  
+    isothermality_anom = isothermality_meanAnnAvg_3yrAnom, #26
+       annWatDef_anom = annWaterDeficit_meanAnnAvg_3yrAnom, #27
+     annWetDegDays_anom = annWetDegDays_meanAnnAvg_3yrAnom,  #28
+      VPD_mean_anom = annVPD_mean_meanAnnAvg_3yrAnom, #29
+      VPD_min_anom = annVPD_min_meanAnnAvg_3yrAnom,  #30
+      VPD_max_anom = annVPD_max_meanAnnAvg_3yrAnom,  #31
+     VPD_max_95_anom = annVPD_max_95percentile_3yrAnom, #32
+      annWatDef_95_anom = annWaterDeficit_95percentile_3yrAnom, #33 
+      annWetDegDays_5_anom = annWetDegDays_5percentile_3yrAnom ,  #34
+    frostFreeDays_5_anom = durationFrostFreeDays_5percentile_3yrAnom, #35 
+      frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_3yrAnom #36
+  ) %>% 
+  dplyr::select(-c(tmin_meanAnnAvg_3yr:Start_3yr)) 
+
+
 # rename
 climDat <- climDat_temp %>% 
   filter(year == 2016) %>% 
@@ -152,10 +258,11 @@ rename("tmin" = tmin_meanAnnAvg_CLIM,
 
 rm(climDat_temp) 
 gc()
+
 ## now, scale the contemporary climate data for use in models 
 # get the scaling factors 
 scaleParams <- modDat_1_s %>% 
-  filter(Year == 2016) %>% 
+  #filter(Year == 2016) %>% 
   dplyr::select(tmin_s:AWHC_s) %>% 
   reframe(across(all_of(names(.)), attributes)) 
 
@@ -176,6 +283,19 @@ climDatPred <- climDat %>%
   cbind(climDat_scaled)
 names(climDatPred)[7:56] <- str_remove(names(climDatPred)[7:56], pattern = "_s$")
 
+# apply the scaling factors to the contemporary climate data used for predictions over time 
+climDat_scaled <- map(namesToScale, .f = function(x) {
+  x_new <- (climDat_time[,x] - scaleParams[,paste0(x, "_s")]$`scaled:center`)/scaleParams[,paste0(x, "_s")]$`scaled:scale`
+  return(data.frame(x_new))
+}) %>% 
+  purrr::list_cbind()
+names(climDat_scaled) <- paste0(namesToScale, "_s")
+
+climDat_time_Pred <- climDat_time %>% 
+  dplyr::select(NA_L1CODE:y,spatialID) %>% 
+  cbind(climDat_scaled)
+names(climDat_time_Pred)[9:58] <- str_remove(names(climDat_time_Pred)[9:58], pattern = "_s$")
+
 rm(climDat_scaled) 
 gc()
 
@@ -184,6 +304,12 @@ prednames_s <-  modDat_1_s %>%
   names()
 prednames <- str_replace(prednames_s, pattern = "_s$", replacement = "")
 
+## read in scaled data for future climate 
+ forecastClimSoilsDatPred_1 <- readRDS(file = "../../../Data_processed/CoverData/IntermediateAnalysisFiles/Final_ForecastedClimateDataAndSoilsDataForPredictions_BNU-ESM_rcp8_5.rds")
+ forecastClimSoilsDatPred_2 <- readRDS(file = "../../../Data_processed/CoverData/IntermediateAnalysisFiles/Final_ForecastedClimateDataAndSoilsDataForPredictions_IPSL-CM5A-MR_rcp8_5.rds")
+  # read in unscaled data for future climate
+ forecastClimSoilsDat_1 <- readRDS("../../../Data_processed/CoverData/IntermediateAnalysisFiles/Final_ForecastedClimateDataAndSoilsDataForPredictions_BNU-ESM_rcp8_5_UNSCALED.rds")
+forecastClimSoilsDat_2 <- readRDS("../../../Data_processed/CoverData/IntermediateAnalysisFiles/Final_ForecastedClimateDataAndSoilsDataForPredictions_IPSL-CM5A-MR_rcp8_5_UNSCALED.rds")
 ```
 
 ## Now, predict using the entire hierarchy of models, starting with the ecoregion classification model 
@@ -216,7 +342,7 @@ tempNames <- paste0(
 ```
  
  Here are maps of the ecoregion model predictions with both contemporary and modeled future climate data 
-```{r fig.width = 16, fig.height = 10, message = FALSE}
+```{r fig.width = 16, fig.height = 6, message = FALSE}
 ## get model data used for ecoregion fitting
 modDat_ecoregionFit <- readRDS("../../../Data_processed/EcoRegion_climSoilData.rds")
 
@@ -267,6 +393,9 @@ plotObs <- preds_byHand %>%
 
 # get the extent of this particular raster, and crop it accordingly
 
+# get the extent of this particular raster, and crop it accordingly
+tempExt <- crds(plotObs, na.rm = TRUE)
+
 plotObs_2 <- plotObs %>% 
   crop(ext(min(tempExt[,1]), max(tempExt[,1]),
            min(tempExt[,2]), max(tempExt[,2])) 
@@ -281,7 +410,8 @@ labs(title = paste0("Ecoregion classification predictions using
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey",
+                       labels = c("grassShrub", "0.25", "0.50", "0.75", "forest")) + 
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_2)[c(2,4)])
 
@@ -296,7 +426,6 @@ plotObs_future1 <- preds_future1_byHand %>%
                    fun = mean, na.rm = TRUE)  
     
   
-
 # get the extent of this particular raster, and crop it accordingly
 
 plotObs_future1_2 <- plotObs_future1 %>% 
@@ -313,7 +442,8 @@ climate data from the BNU-ESM model")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey",
+                       labels = c("grassShrub", "0.25", "0.50", "0.75", "forest")) + 
   xlim(st_bbox(plotObs_future1_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_future1_2)[c(2,4)])
 
@@ -345,7 +475,8 @@ climate data from the IPSL-CM5A-MR model")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey",
+                       labels = c("grassShrub", "0.25", "0.50", "0.75", "forest")) + 
   xlim(st_bbox(plotObs_future2_2)[c(1,3)]) + 
   ylim(st_bbox(plotObs_future2_2)[c(2,4)])
 
@@ -354,132 +485,694 @@ climate data from the IPSL-CM5A-MR model")) +
   annotate_figure(fig.lab = "Model Predictions of Ecoregion Classification with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
 ```
  
+## get model objects for cover models
+```{r}
+# Total herbaceous cover: 
+# Grass/shrub: 1SE lambda model
+totalHerb_GS <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/TotalHerbaceousCover_shrubGrass_noTLP_FALSE_trimAnom_oneSELambdaGLM.rds")
+# Forest: best lambda model
+totalHerb_F <-  readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/TotalHerbaceousCover_forest_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+
+# Total tree cover: 
+# Grass/shrub: best lambda model 
+totalTree_GS <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/TotalTreeCover_shrubGrass_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+# Forest: best lambda model 
+totalTree_F <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/TotalTreeCover_forest_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+  
+# Bare ground: 
+# CONUS - 1SE lambda model
+bareGround_CONUS <-  readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/BareGroundCover_CONUS_noTLP_FALSE_trimAnom_oneSELambdaGLM.rds")
+
+# Shrub: 
+# CONUS - best lambda model
+shrub_CONUS <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/ShrubCover_CONUS_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+
+# Broad-leaved tree: 
+# Grass/shrub: best lambda model
+BLtree_GS <-  readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/AngioTreeCover_prop_shrubGrass_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+# Forest:  best lambda model
+BLtree_F <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/AngioTreeCover_prop_forest_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+
+  
+# Needle-leaved tree: 
+# Grass/shrub: best lambda model
+NLtree_GS <-  readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/ConifTreeCover_prop_shrubGrass_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+# Forest:  best lambda model
+NLtree_F <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/ConifTreeCover_prop_forest_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+
+# Forb:
+# CONUS: best lambda model
+forb_CONUS <-  readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/ForbCover_prop_CONUS_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+
+# C3 grass:
+# CONUS: 1SE lambda model
+C3grass_CONUS <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/C3GramCover_prop_CONUS_noTLP_FALSE_trimAnom_oneSELambdaGLM.rds")
+
+# C4 grass: 
+# CONUS: best lambda model
+C4grass_CONUS <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/C4GramCover_prop_CONUS_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+
+```
+
+## Now, predict absolute cover with scaled climate/weather/soils data 
+```{r}
+## with contemporary climate data
+totalHerb_F_predsContemp <- makePredictions(predictionDF = climDatPred,
+                                            modelObject = totalHerb_F) %>% 
+  rename(absTotalHerb_F = "modelPreds")
+totalHerb_GS_predsContemp <- makePredictions(predictionDF = climDatPred,
+                                            modelObject = totalHerb_GS) %>% 
+  rename(absTotalHerb_GS = "modelPreds")
+
+totalTree_F_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                            modelObject = totalTree_F) %>% 
+  rename(absTotalTree_F = "modelPreds")
+totalTree_GS_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                            modelObject = totalTree_GS) %>% 
+  rename(absTotalTree_GS = "modelPreds")
+
+bareGround_CONUS_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                            modelObject = bareGround_CONUS) %>% 
+  rename(absBareGround_CONUS = "modelPreds")
+
+shrub_CONUS_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                            modelObject = shrub_CONUS) %>% 
+  rename(absShrub_CONUS = "modelPreds")
+
+BLtree_F_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                            modelObject = BLtree_F) %>% 
+  rename(percBLTree_F = "modelPreds")
+BLtree_GS_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                            modelObject = BLtree_GS) %>% 
+  rename(percBLTree_GS = "modelPreds")
+
+NLtree_F_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                            modelObject = NLtree_F) %>% 
+  rename(percNLTree_F = "modelPreds")
+NLtree_GS_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                            modelObject = NLtree_GS) %>% 
+  rename(percNLTree_GS = "modelPreds")
+
+C3grass_CONUS_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                            modelObject = C3grass_CONUS) %>% 
+  rename(percC3grass_CONUS = "modelPreds")
+
+C4grass_CONUS_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                            modelObject = C4grass_CONUS) %>% 
+  rename(percC4grass_CONUS = "modelPreds")
+
+forb_CONUS_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                            modelObject = forb_CONUS) %>% 
+  rename(percForb_CONUS = "modelPreds")
+
+contempPreds <- totalHerb_F_predsContemp  %>% 
+  cbind(totalHerb_GS_predsContemp %>% select(absTotalHerb_GS)) %>% 
+  cbind(totalTree_F_predsContemp %>% select(absTotalTree_F)) %>% 
+  cbind(totalTree_GS_predsContemp %>% select(absTotalTree_GS)) %>% 
+  cbind(bareGround_CONUS_predsContemp %>% select(absBareGround_CONUS)) %>% 
+  cbind(shrub_CONUS_predsContemp %>% select(absShrub_CONUS)) %>% 
+  cbind(BLtree_F_predsContemp %>% select(percBLTree_F)) %>% 
+  cbind(BLtree_GS_predsContemp %>% select(percBLTree_GS)) %>% 
+  cbind(NLtree_F_predsContemp %>% select(percNLTree_F)) %>% 
+  cbind(NLtree_GS_predsContemp %>% select(percNLTree_GS)) %>% 
+  cbind(C3grass_CONUS_predsContemp %>% select(percC3grass_CONUS)) %>% 
+  cbind(C4grass_CONUS_predsContemp %>% select(percC4grass_CONUS)) %>% 
+  cbind(forb_CONUS_predsContemp %>% select(percForb_CONUS)) %>% 
+  cbind(preds_byHand %>% select(pred)) %>% 
+  rename(prob_Forest = "pred") %>% 
+  mutate(prob_grassShrub = 1 - prob_Forest)
+
+# get predictions with first climate model 
+## with contemporary climate data
+totalHerb_F_predsFuture1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1,
+                                            modelObject = totalHerb_F) %>% 
+  rename(absTotalHerb_F = "modelPreds")
+totalHerb_GS_predsFuture1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1,
+                                            modelObject = totalHerb_GS) %>% 
+  rename(absTotalHerb_GS = "modelPreds")
+
+totalTree_F_predsFuture1<- makePredictions(predictionDF = forecastClimSoilsDatPred_1,
+                                            modelObject = totalTree_F) %>% 
+  rename(absTotalTree_F = "modelPreds")
+totalTree_GS_predsFuture1<- makePredictions(predictionDF = forecastClimSoilsDatPred_1,
+                                            modelObject = totalTree_GS) %>% 
+  rename(absTotalTree_GS = "modelPreds")
+
+bareGround_CONUS_predsFuture1<- makePredictions(predictionDF = forecastClimSoilsDatPred_1,
+                                            modelObject = bareGround_CONUS) %>% 
+  rename(absBareGround_CONUS = "modelPreds")
+
+shrub_CONUS_predsFuture1<- makePredictions(predictionDF = forecastClimSoilsDatPred_1,
+                                            modelObject = shrub_CONUS) %>% 
+  rename(absShrub_CONUS = "modelPreds")
+
+BLtree_F_predsFuture1<- makePredictions(predictionDF = forecastClimSoilsDatPred_1,
+                                            modelObject = BLtree_F) %>% 
+  rename(percBLTree_F = "modelPreds")
+BLtree_GS_predsFuture1<- makePredictions(predictionDF = forecastClimSoilsDatPred_1,
+                                            modelObject = BLtree_GS) %>% 
+  rename(percBLTree_GS = "modelPreds")
+
+NLtree_F_predsFuture1<- makePredictions(predictionDF = forecastClimSoilsDatPred_1,
+                                            modelObject = NLtree_F) %>% 
+  rename(percNLTree_F = "modelPreds")
+NLtree_GS_predsFuture1<- makePredictions(predictionDF = forecastClimSoilsDatPred_1,
+                                            modelObject = NLtree_GS) %>% 
+  rename(percNLTree_GS = "modelPreds")
+
+C3grass_CONUS_predsFuture1<- makePredictions(predictionDF = forecastClimSoilsDatPred_1,
+                                            modelObject = C3grass_CONUS) %>% 
+  rename(percC3grass_CONUS = "modelPreds")
+
+C4grass_CONUS_predsFuture1<- makePredictions(predictionDF = forecastClimSoilsDatPred_1,
+                                            modelObject = C4grass_CONUS) %>% 
+  rename(percC4grass_CONUS = "modelPreds")
+
+forb_CONUS_predsFuture1<- makePredictions(predictionDF = forecastClimSoilsDatPred_1,
+                                            modelObject = forb_CONUS) %>% 
+  rename(percForb_CONUS = "modelPreds")
+
+predsFuture1 <- totalHerb_F_predsFuture1  %>% 
+  cbind(totalHerb_GS_predsFuture1 %>% select(absTotalHerb_GS)) %>% 
+  cbind(totalTree_F_predsFuture1 %>% select(absTotalTree_F)) %>% 
+  cbind(totalTree_GS_predsFuture1 %>% select(absTotalTree_GS)) %>% 
+  cbind(bareGround_CONUS_predsFuture1 %>% select(absBareGround_CONUS)) %>% 
+  cbind(shrub_CONUS_predsFuture1 %>% select(absShrub_CONUS)) %>% 
+  cbind(BLtree_F_predsFuture1 %>% select(percBLTree_F)) %>% 
+  cbind(BLtree_GS_predsFuture1 %>% select(percBLTree_GS)) %>% 
+  cbind(NLtree_F_predsFuture1 %>% select(percNLTree_F)) %>% 
+  cbind(NLtree_GS_predsFuture1 %>% select(percNLTree_GS)) %>% 
+  cbind(C3grass_CONUS_predsFuture1 %>% select(percC3grass_CONUS)) %>% 
+  cbind(C4grass_CONUS_predsFuture1 %>% select(percC4grass_CONUS)) %>% 
+  cbind(forb_CONUS_predsFuture1 %>% select(percForb_CONUS)) %>% 
+  cbind(preds_future1_byHand %>% select(pred)) %>% 
+  rename(prob_Forest = "pred") %>% 
+  mutate(prob_grassShrub = 1 - prob_Forest)
+
+# get predictions with second climate model
+totalHerb_F_predsFuture2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2,
+                                            modelObject = totalHerb_F) %>% 
+  rename(absTotalHerb_F = "modelPreds")
+totalHerb_GS_predsFuture2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2,
+                                            modelObject = totalHerb_GS) %>% 
+  rename(absTotalHerb_GS = "modelPreds")
+
+totalTree_F_predsFuture2<- makePredictions(predictionDF = forecastClimSoilsDatPred_2,
+                                            modelObject = totalTree_F) %>% 
+  rename(absTotalTree_F = "modelPreds")
+totalTree_GS_predsFuture2<- makePredictions(predictionDF = forecastClimSoilsDatPred_2,
+                                            modelObject = totalTree_GS) %>% 
+  rename(absTotalTree_GS = "modelPreds")
+
+bareGround_CONUS_predsFuture2<- makePredictions(predictionDF = forecastClimSoilsDatPred_2,
+                                            modelObject = bareGround_CONUS) %>% 
+  rename(absBareGround_CONUS = "modelPreds")
+
+shrub_CONUS_predsFuture2<- makePredictions(predictionDF = forecastClimSoilsDatPred_2,
+                                            modelObject = shrub_CONUS) %>% 
+  rename(absShrub_CONUS = "modelPreds")
+
+BLtree_F_predsFuture2<- makePredictions(predictionDF = forecastClimSoilsDatPred_2,
+                                            modelObject = BLtree_F) %>% 
+  rename(percBLTree_F = "modelPreds")
+BLtree_GS_predsFuture2<- makePredictions(predictionDF = forecastClimSoilsDatPred_2,
+                                            modelObject = BLtree_GS) %>% 
+  rename(percBLTree_GS = "modelPreds")
+
+NLtree_F_predsFuture2<- makePredictions(predictionDF = forecastClimSoilsDatPred_2,
+                                            modelObject = NLtree_F) %>% 
+  rename(percNLTree_F = "modelPreds")
+NLtree_GS_predsFuture2<- makePredictions(predictionDF = forecastClimSoilsDatPred_2,
+                                            modelObject = NLtree_GS) %>% 
+  rename(percNLTree_GS = "modelPreds")
+
+C3grass_CONUS_predsFuture2<- makePredictions(predictionDF = forecastClimSoilsDatPred_2,
+                                            modelObject = C3grass_CONUS) %>% 
+  rename(percC3grass_CONUS = "modelPreds")
+
+C4grass_CONUS_predsFuture2<- makePredictions(predictionDF = forecastClimSoilsDatPred_2,
+                                            modelObject = C4grass_CONUS) %>% 
+  rename(percC4grass_CONUS = "modelPreds")
+
+forb_CONUS_predsFuture2<- makePredictions(predictionDF = forecastClimSoilsDatPred_2,
+                                            modelObject = forb_CONUS) %>% 
+  rename(percForb_CONUS = "modelPreds")
+
+predsFuture2 <- totalHerb_F_predsFuture2  %>% 
+  cbind(totalHerb_GS_predsFuture2 %>% select(absTotalHerb_GS)) %>% 
+  cbind(totalTree_F_predsFuture2 %>% select(absTotalTree_F)) %>% 
+  cbind(totalTree_GS_predsFuture2 %>% select(absTotalTree_GS)) %>% 
+  cbind(bareGround_CONUS_predsFuture2 %>% select(absBareGround_CONUS)) %>% 
+  cbind(shrub_CONUS_predsFuture2 %>% select(absShrub_CONUS)) %>% 
+  cbind(BLtree_F_predsFuture2 %>% select(percBLTree_F)) %>% 
+  cbind(BLtree_GS_predsFuture2 %>% select(percBLTree_GS)) %>% 
+  cbind(NLtree_F_predsFuture2 %>% select(percNLTree_F)) %>% 
+  cbind(NLtree_GS_predsFuture2 %>% select(percNLTree_GS)) %>% 
+  cbind(C3grass_CONUS_predsFuture2 %>% select(percC3grass_CONUS)) %>% 
+  cbind(C4grass_CONUS_predsFuture2 %>% select(percC4grass_CONUS)) %>% 
+  cbind(forb_CONUS_predsFuture2 %>% select(percForb_CONUS)) %>% 
+  cbind(preds_future2_byHand %>% select(pred)) %>% 
+  rename(prob_Forest = "pred") %>% 
+  mutate(prob_grassShrub = 1 - prob_Forest)
+
+```
+
+## "Scale" absolute cover predictions according to predicted ecoregion probability
+```{r}
+## for contemporary data
+contempPreds <- contempPreds %>% 
+  mutate(absTotalHerb_CONUS = (prob_grassShrub * absTotalHerb_GS) + (prob_Forest * absTotalHerb_F),
+         absTotalTree_CONUS = (prob_grassShrub * absTotalTree_GS) + (prob_Forest * absTotalTree_F),
+         percBLTree_CONUS = (prob_grassShrub * percBLTree_GS) + (prob_Forest * percBLTree_F),
+         percNLTree_CONUS = (prob_grassShrub * percNLTree_GS) + (prob_Forest * percNLTree_F)
+         )
+
+## for first climate model
+predsFuture1 <- predsFuture1 %>% 
+  mutate(absTotalHerb_CONUS = (prob_grassShrub * absTotalHerb_GS) + (prob_Forest * absTotalHerb_F),
+         absTotalTree_CONUS = (prob_grassShrub * absTotalTree_GS) + (prob_Forest * absTotalTree_F),
+         percBLTree_CONUS = (prob_grassShrub * percBLTree_GS) + (prob_Forest * percBLTree_F),
+         percNLTree_CONUS = (prob_grassShrub * percNLTree_GS) + (prob_Forest * percNLTree_F)
+         )
+
+## for second climate model 
+predsFuture2 <- predsFuture2 %>% 
+  mutate(absTotalHerb_CONUS = (prob_grassShrub * absTotalHerb_GS) + (prob_Forest * absTotalHerb_F),
+         absTotalTree_CONUS = (prob_grassShrub * absTotalTree_GS) + (prob_Forest * absTotalTree_F),
+         percBLTree_CONUS = (prob_grassShrub * percBLTree_GS) + (prob_Forest * percBLTree_F),
+         percNLTree_CONUS = (prob_grassShrub * percNLTree_GS) + (prob_Forest * percNLTree_F)
+         )
+```
+
+## Convert percentages for level 2 cover into absolute cover values
+```{r}
+## for contemporary data
+contempPreds <- contempPreds %>% 
+  mutate(absNLTree_CONUS = (percNLTree_CONUS * absTotalTree_CONUS), 
+         absBLTree_CONUS = (percBLTree_CONUS * absTotalTree_CONUS), 
+         absC3grass_CONUS = (percC3grass_CONUS * absTotalHerb_CONUS),
+         absC4grass_CONUS = (percC4grass_CONUS * absTotalHerb_CONUS),
+         absForb_CONUS = (percForb_CONUS * absTotalHerb_CONUS)
+  )
+
+## for first climate model
+predsFuture1 <- predsFuture1 %>% 
+  mutate(absNLTree_CONUS = (percNLTree_CONUS * absTotalTree_CONUS), 
+         absBLTree_CONUS = (percBLTree_CONUS * absTotalTree_CONUS), 
+         absC3grass_CONUS = (percC3grass_CONUS * absTotalHerb_CONUS),
+         absC4grass_CONUS = (percC4grass_CONUS * absTotalHerb_CONUS),
+         absForb_CONUS = (percForb_CONUS * absTotalHerb_CONUS)
+  )
+
+## for second climate model 
+predsFuture2 <- predsFuture2 %>% 
+  mutate(absNLTree_CONUS = (percNLTree_CONUS * absTotalTree_CONUS), 
+         absBLTree_CONUS = (percBLTree_CONUS * absTotalTree_CONUS), 
+         absC3grass_CONUS = (percC3grass_CONUS * absTotalHerb_CONUS),
+         absC4grass_CONUS = (percC4grass_CONUS * absTotalHerb_CONUS),
+         absForb_CONUS = (percForb_CONUS * absTotalHerb_CONUS)
+  )
+```
+
+
+## Show predictions of absolute cover, CONUS-wide (after scaling according to ecoregion classification probability) 
+```{r}
+# list of absolute cover names
+responseNames <- c("absTotalTree_CONUS", "absTotalHerb_CONUS", "absShrub_CONUS", "absBareGround_CONUS", "absNLTree_CONUS", "absBLTree_CONUS", "absC3grass_CONUS", "absC4grass_CONUS", "absForb_CONUS")
+
+absoluteCoverMaps_contemp <- lapply(responseNames, 
+                                      FUN = function(x) {
+                                       ## contemporary absolute cover
+                                        # rasterize response 
+                                        resp_rast <- contempPreds %>% 
+                                          terra::vect(geom = c("x", "y")) %>% 
+                                          terra::set.crs(crs(test_rast)) %>% 
+                                          terra::rasterize(y = test_rast, 
+                                                           field = x, 
+                                                           fun = mean, na.rm = TRUE)   
+                                        # get the extent of this particular raster, and crop it accordingly
+                                        resp_rast_2 <- resp_rast %>% 
+                                          crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+                                                   min(tempExt[,2]), max(tempExt[,2])) 
+                                               )
+                                        # make a map
+                                        resp_map <- ggplot() +
+                                          geom_spatraster(data = resp_rast_2) +
+                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>%
+                                                    st_crop(st_bbox(plotObs_2)),fill=NA ) +
+                                                    labs(title = paste0("Predictions of absolute cover of ",x,", 
+                                                    \n after scaling according to ecoregion prediction")) +
+                                          scale_fill_gradient2(low = "brown",
+                                                               mid = "wheat" ,
+                                                               high = "darkgreen" , 
+                                                               midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
+                                          xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+                                          ylim(st_bbox(plotObs_2)[c(2,4)]) + 
+                                          theme_classic()
+                                        
+                                        # make a histogram
+                                        resp_hist <- ggplot() + 
+                                          geom_density(aes(contempPreds[,x]), col = "black", fill = "darkgrey") + 
+                                          xlab(paste0("Predictions of absolute cover of ",x)) +
+                                          theme_classic()
+                                        
+                                         ## future model 1 absolute cover
+                                        # rasterize response 
+                                        resp_rast_future1 <- predsFuture1 %>% 
+                                          terra::vect(geom = c("x", "y")) %>% 
+                                          terra::set.crs(crs(test_rast)) %>% 
+                                          terra::rasterize(y = test_rast, 
+                                                           field = x, 
+                                                           fun = mean, na.rm = TRUE)   
+                                        # get the extent of this particular raster, and crop it accordingly
+                                        resp_rast_future1_2 <- resp_rast_future1 %>% 
+                                          crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+                                                   min(tempExt[,2]), max(tempExt[,2])) 
+                                               )
+                                        # calculate differences between contemporary preds and future 1 preds (deltas)
+                                        rast_deltas_future1 <- resp_rast_future1_2 - resp_rast_2
+                                        # make a map
+                                        resp_map_future1 <- ggplot() +
+                                          geom_spatraster(data = rast_deltas_future1) +
+                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>%
+                                                    st_crop(st_bbox(plotObs_2)),fill=NA ) +
+                                                    labs(title = paste0("Future predictions of absolute cover of ",x,", \n compared to contemporary predictions (future - contemprary)  \n - climate model: BNU-ESM")) +
+                                          scale_fill_gradient2(low = "orange",
+                                                               mid = "white" ,
+                                                               high = "purple" , 
+                                                               midpoint = 0, limits = c(-1,1),  na.value = "lightgrey") + 
+                                          xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+                                          ylim(st_bbox(plotObs_2)[c(2,4)]) + 
+                                          theme_classic()
+                                        
+                                        # make a histogram
+                                        resp_hist_future1 <- ggplot() + 
+                                          geom_density(aes(predsFuture1[,x]), col = "black", fill = "darkgrey") + 
+                                          xlab(paste0("Predictions of absolute cover of ",x, 
+                                                      " \n in future scenario (model = BNU-ESM)")) +
+                                          theme_classic()
+                                        
+                                        ## future model 2 absolute cover
+                                        # rasterize response 
+                                        resp_rast_future2 <- predsFuture2 %>% 
+                                          terra::vect(geom = c("x", "y")) %>% 
+                                          terra::set.crs(crs(test_rast)) %>% 
+                                          terra::rasterize(y = test_rast, 
+                                                           field = x, 
+                                                           fun = mean, na.rm = TRUE)   
+                                        # get the extent of this particular raster, and crop it accordingly
+                                        resp_rast_future2_2 <- resp_rast_future2 %>% 
+                                          crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+                                                   min(tempExt[,2]), max(tempExt[,2])) 
+                                               )
+                                        # calculate differences between contemporary preds and future 1 preds (deltas)
+                                        rast_deltas_future2 <- resp_rast_future2_2 - resp_rast_2
+                                        # make a map
+                                        resp_map_future2 <- ggplot() +
+                                          geom_spatraster(data = rast_deltas_future2) +
+                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>%
+                                                    st_crop(st_bbox(plotObs_2)),fill=NA ) +
+                                                    labs(title = paste0("Future predictions of absolute cover of ",x,", \n compared to contemporary predictions (future - contemprary) \n- climate model: IPSL-CM5A-MR (France)")) +
+                                          scale_fill_gradient2(low = "orange",
+                                                               mid = "white" ,
+                                                               high = "purple" , 
+                                                               midpoint = 0, limits = c(-1,1),  na.value = "lightgrey") + 
+                                          xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+                                          ylim(st_bbox(plotObs_2)[c(2,4)]) + 
+                                          theme_classic()
+                                        
+                                        # make a histogram
+                                        resp_hist_future2 <- ggplot() + 
+                                          geom_density(aes(predsFuture2[,x]), col = "black", fill = "darkgrey") + 
+                                          xlab(paste0("Predictions of absolute cover of ",x, 
+                                                      " \n in future scenario (model = IPSL-CM5A-MR (France))")) +
+                                          theme_classic()
+                                        
+                                        
+                                        return(list("rast" = resp_rast_2, 
+                                                    "map" = resp_map, 
+                                                    "hist" = resp_hist,
+                                                    "rast_future1" = resp_rast_future1_2,
+                                                    "map_future1" = resp_map_future1, 
+                                                    "hist_future1" = resp_hist_future1,
+                                                    "rast_future2" = resp_rast_future2_2,
+                                                    "map_future2" = resp_map_future2, 
+                                                    "hist_future2" = resp_hist_future2))
+                                      })
+
+
+names(absoluteCoverMaps_contemp) <- c("absTotalTree_CONUS", "absTotalHerb_CONUS", "absShrub_CONUS", "absBareGround_CONUS", "absNLTree_CONUS", "absBLTree_CONUS", "absC3grass_CONUS", "absC4grass_CONUS", "absForb_CONUS")
+
+```
+
+```{r  fig.height=60, fig.width=18}
+ggarrange(
+ggarrange(absoluteCoverMaps_contemp$absTotalTree_CONUS$map, 
+          absoluteCoverMaps_contemp$absTotalTree_CONUS$map_future1,
+          absoluteCoverMaps_contemp$absTotalTree_CONUS$map_future2,
+          absoluteCoverMaps_contemp$absTotalTree_CONUS$hist,
+           absoluteCoverMaps_contemp$absTotalTree_CONUS$hist_future1, absoluteCoverMaps_contemp$absTotalTree_CONUS$hist_future2,
+          ncol = 3,
+          nrow = 2,
+          heights = c(1,.35)
+          ),
+ggarrange(absoluteCoverMaps_contemp$absTotalHerb_CONUS$map, 
+          absoluteCoverMaps_contemp$absTotalHerb_CONUS$map_future1,
+          absoluteCoverMaps_contemp$absTotalHerb_CONUS$map_future2,
+          absoluteCoverMaps_contemp$absTotalHerb_CONUS$hist,
+          absoluteCoverMaps_contemp$absTotalHerb_CONUS$hist_future1, 
+          absoluteCoverMaps_contemp$absTotalHerb_CONUS$hist_future2,
+          ncol = 3,
+          nrow = 2,
+          heights = c(1,.35)
+          ),
+ggarrange(absoluteCoverMaps_contemp$absShrub_CONUS$map, 
+          absoluteCoverMaps_contemp$absShrub_CONUS$map_future1,
+          absoluteCoverMaps_contemp$absShrub_CONUS$map_future2,
+          absoluteCoverMaps_contemp$absShrub_CONUS$hist,
+          absoluteCoverMaps_contemp$absShrub_CONUS$hist_future1, 
+          absoluteCoverMaps_contemp$absShrub_CONUS$hist_future2,
+          ncol = 3,
+          nrow = 2,
+          heights = c(1,.35)
+          ),
+ggarrange(absoluteCoverMaps_contemp$absBareGround_CONUS$map, 
+          absoluteCoverMaps_contemp$absBareGround_CONUS$map_future1,
+          absoluteCoverMaps_contemp$absBareGround_CONUS$map_future2,
+          absoluteCoverMaps_contemp$absBareGround_CONUS$hist,
+          absoluteCoverMaps_contemp$absBareGround_CONUS$hist_future1, 
+          absoluteCoverMaps_contemp$absBareGround_CONUS$hist_future2,
+          ncol = 3,
+          nrow = 2,
+          heights = c(1,.35)
+          ),
+ggarrange(absoluteCoverMaps_contemp$absNLTree_CONUS$map, 
+          absoluteCoverMaps_contemp$absNLTree_CONUS$map_future1,
+          absoluteCoverMaps_contemp$absNLTree_CONUS$map_future2,
+          absoluteCoverMaps_contemp$absNLTree_CONUS$hist,
+          absoluteCoverMaps_contemp$absNLTree_CONUS$hist_future1, 
+          absoluteCoverMaps_contemp$absNLTree_CONUS$hist_future2,
+          ncol = 3,
+          nrow = 2,
+          heights = c(1,.35)
+          ),
+ggarrange(absoluteCoverMaps_contemp$absBLTree_CONUS$map, 
+          absoluteCoverMaps_contemp$absBLTree_CONUS$map_future1,
+          absoluteCoverMaps_contemp$absBLTree_CONUS$map_future2,
+          absoluteCoverMaps_contemp$absBLTree_CONUS$hist,
+          absoluteCoverMaps_contemp$absBLTree_CONUS$hist_future1, 
+          absoluteCoverMaps_contemp$absBLTree_CONUS$hist_future2,
+          ncol = 3,
+          nrow = 2,
+          heights = c(1,.35)
+          ),
+ggarrange(absoluteCoverMaps_contemp$absC3grass_CONUS$map, 
+          absoluteCoverMaps_contemp$absC3grass_CONUS$map_future1,
+          absoluteCoverMaps_contemp$absC3grass_CONUS$map_future2,
+          absoluteCoverMaps_contemp$absC3grass_CONUS$hist,
+          absoluteCoverMaps_contemp$absC3grass_CONUS$hist_future1, 
+          absoluteCoverMaps_contemp$absC3grass_CONUS$hist_future2,
+          ncol = 3,
+          nrow = 2,
+          heights = c(1,.35)
+          ),
+ggarrange(absoluteCoverMaps_contemp$absC4grass_CONUS$map, 
+          absoluteCoverMaps_contemp$absC4grass_CONUS$map_future1,
+          absoluteCoverMaps_contemp$absC4grass_CONUS$map_future2,
+          absoluteCoverMaps_contemp$absC4grass_CONUS$hist,
+          absoluteCoverMaps_contemp$absC4grass_CONUS$hist_future1, 
+          absoluteCoverMaps_contemp$absC4grass_CONUS$hist_future2,
+          ncol = 3,
+          nrow = 2,
+          heights = c(1,.35)
+          ),
+ggarrange(absoluteCoverMaps_contemp$absForb_CONUS$map, 
+          absoluteCoverMaps_contemp$absForb_CONUS$map_future1,
+          absoluteCoverMaps_contemp$absForb_CONUS$map_future2,
+          absoluteCoverMaps_contemp$absForb_CONUS$hist,
+          absoluteCoverMaps_contemp$absForb_CONUS$hist_future1, 
+          absoluteCoverMaps_contemp$absForb_CONUS$hist_future2,
+          ncol = 3,
+          nrow = 2,
+          heights = c(1,.35)
+          ), 
+ncol = 1
+)
+```
+
+### Get predictions of absolute cover across time using observed climate/weather/soils data
+```{r}
+# get climate data from dayMet (d.f. is "climDatPred_unscaled")
+climDat_time_unscaled <- climDat_time
+names(climDat_time_unscaled)[c(5, 6, 7, 13, 10, 12, 99, 101, 102, 103)] <- c("T_warmestMonth_meanAnnAvg_CLIM", "T_coldestMonth_meanAnnAvg_CLIM", "precip_wettestMonth_meanAnnAvg_CLIM", "annWaterDeficit_meanAnnAvg_CLIM", "PrecipTempCorr_meanAnnAvg_CLIM", "isothermality_meanAnnAvg_CLIM", "soilDepth", "avgSandPerc_acrossDepth", "avgCoarsePerc_acrossDepth", "avgOrganicCarbonPerc_0_3cm")
+
+# predict with contemporary climate data 
+preds_byHand_time <- climDat_time_unscaled %>% 
+  mutate(pred = 1/(1 + exp(-( 9.8726 + -0.2999*T_warmestMonth_meanAnnAvg_CLIM +  0.2456*T_coldestMonth_meanAnnAvg_CLIM +  0.0106*precip_wettestMonth_meanAnnAvg_CLIM + -0.0621*annWaterDeficit_meanAnnAvg_CLIM + -2.7863*PrecipTempCorr_meanAnnAvg_CLIM +  0.0540*isothermality_meanAnnAvg_CLIM + -0.0076*soilDepth +  0.0335*avgSandPerc_acrossDepth +  0.0310*avgCoarsePerc_acrossDepth +  0.2726*avgOrganicCarbonPerc_0_3cm))))
+#predictionsModel <- predict(object = ecoMod, type = "response", newdata = climDatPred_unscaled)
+
+## with contemporary climate data
+totalHerb_F_predsOverTime <- makePredictions(predictionDF = climDat_time_Pred,
+                                            modelObject = totalHerb_F) %>% 
+  rename(absTotalHerb_F = "modelPreds")
+totalHerb_GS_predsOverTime <- makePredictions(predictionDF = climDat_time_Pred,
+                                            modelObject = totalHerb_GS) %>% 
+  rename(absTotalHerb_GS = "modelPreds")
+
+totalTree_F_predsOverTime<- makePredictions(predictionDF = climDat_time_Pred,
+                                            modelObject = totalTree_F) %>% 
+  rename(absTotalTree_F = "modelPreds")
+totalTree_GS_predsOverTime<- makePredictions(predictionDF = climDat_time_Pred,
+                                            modelObject = totalTree_GS) %>% 
+  rename(absTotalTree_GS = "modelPreds")
+
+bareGround_CONUS_predsOverTime<- makePredictions(predictionDF = climDat_time_Pred,
+                                            modelObject = bareGround_CONUS) %>% 
+  rename(absBareGround_CONUS = "modelPreds")
+
+shrub_CONUS_predsOverTime<- makePredictions(predictionDF = climDat_time_Pred,
+                                            modelObject = shrub_CONUS) %>% 
+  rename(absShrub_CONUS = "modelPreds")
+
+BLtree_F_predsOverTime<- makePredictions(predictionDF = climDat_time_Pred,
+                                            modelObject = BLtree_F) %>% 
+  rename(percBLTree_F = "modelPreds")
+BLtree_GS_predsOverTime<- makePredictions(predictionDF = climDat_time_Pred,
+                                            modelObject = BLtree_GS) %>% 
+  rename(percBLTree_GS = "modelPreds")
+
+NLtree_F_predsOverTime<- makePredictions(predictionDF = climDat_time_Pred,
+                                            modelObject = NLtree_F) %>% 
+  rename(percNLTree_F = "modelPreds")
+NLtree_GS_predsOverTime<- makePredictions(predictionDF = climDat_time_Pred,
+                                            modelObject = NLtree_GS) %>% 
+  rename(percNLTree_GS = "modelPreds")
+
+C3grass_CONUS_predsOverTime<- makePredictions(predictionDF = climDat_time_Pred,
+                                            modelObject = C3grass_CONUS) %>% 
+  rename(percC3grass_CONUS = "modelPreds")
+
+C4grass_CONUS_predsOverTime<- makePredictions(predictionDF = climDat_time_Pred,
+                                            modelObject = C4grass_CONUS) %>% 
+  rename(percC4grass_CONUS = "modelPreds")
+
+forb_CONUS_predsOverTime<- makePredictions(predictionDF = climDat_time_Pred,
+                                            modelObject = forb_CONUS) %>% 
+  rename(percForb_CONUS = "modelPreds")
+
+predsOverTime <- totalHerb_F_predsOverTime  %>% 
+  cbind(totalHerb_GS_predsOverTime %>% select(absTotalHerb_GS)) %>% 
+  cbind(totalTree_F_predsOverTime %>% select(absTotalTree_F)) %>% 
+  cbind(totalTree_GS_predsOverTime %>% select(absTotalTree_GS)) %>% 
+  cbind(bareGround_CONUS_predsOverTime %>% select(absBareGround_CONUS)) %>% 
+  cbind(shrub_CONUS_predsOverTime %>% select(absShrub_CONUS)) %>% 
+  cbind(BLtree_F_predsOverTime %>% select(percBLTree_F)) %>% 
+  cbind(BLtree_GS_predsOverTime %>% select(percBLTree_GS)) %>% 
+  cbind(NLtree_F_predsOverTime %>% select(percNLTree_F)) %>% 
+  cbind(NLtree_GS_predsOverTime %>% select(percNLTree_GS)) %>% 
+  cbind(C3grass_CONUS_predsOverTime %>% select(percC3grass_CONUS)) %>% 
+  cbind(C4grass_CONUS_predsOverTime %>% select(percC4grass_CONUS)) %>% 
+  cbind(forb_CONUS_predsOverTime %>% select(percForb_CONUS)) %>% 
+  cbind(preds_byHand_time %>% select(pred)) %>% 
+  rename(prob_Forest = "pred") %>% 
+  mutate(prob_grassShrub = 1 - prob_Forest)
+
+## now, scale predictions according to ecoregion percentage
+predsOverTime <- predsOverTime %>% 
+  mutate(absTotalHerb_CONUS = (prob_grassShrub * absTotalHerb_GS) + (prob_Forest * absTotalHerb_F),
+         absTotalTree_CONUS = (prob_grassShrub * absTotalTree_GS) + (prob_Forest * absTotalTree_F),
+         percBLTree_CONUS = (prob_grassShrub * percBLTree_GS) + (prob_Forest * percBLTree_F),
+         percNLTree_CONUS = (prob_grassShrub * percNLTree_GS) + (prob_Forest * percNLTree_F)
+         )
+## convert percentages into absolute cover for level 2 cover classes
+predsOverTime <- predsOverTime %>% 
+  mutate(absNLTree_CONUS = (percNLTree_CONUS * absTotalTree_CONUS), 
+         absBLTree_CONUS = (percBLTree_CONUS * absTotalTree_CONUS), 
+         absC3grass_CONUS = (percC3grass_CONUS * absTotalHerb_CONUS),
+         absC4grass_CONUS = (percC4grass_CONUS * absTotalHerb_CONUS),
+         absForb_CONUS = (percForb_CONUS * absTotalHerb_CONUS)
+  )
+```
+
+### Now, visualize predictions of absolute cover over time
+```{r}
+# change spatialIDs to discrete numbers, since the long form is causing some sort of floating point issue? 
+spatID_lu <- data.frame("spatialID" = unique(predsOverTime$spatialID), 
+                        "uniqueID" = 1:length(predsOverTime$spatialID))
+predsOverTime <- predsOverTime %>% 
+  left_join(spatID_lu)
+
+# make into a long format
+predsOverTime_long <- predsOverTime %>% 
+  select(year,x, y, spatialID, uniqueID, absShrub_CONUS, absBareGround_CONUS, absTotalHerb_CONUS, absTotalTree_CONUS, absNLTree_CONUS:absForb_CONUS) %>% 
+  pivot_longer(cols = c(absShrub_CONUS, absBareGround_CONUS, absTotalHerb_CONUS, absTotalTree_CONUS, absNLTree_CONUS:absForb_CONUS)) %>% 
+  mutate(year = as.integer(year))
+
+# calculate the coefficient of variation for each cover type at each location
+predsOverTime_cv <- predsOverTime_long %>% 
+  group_by(uniqueID, name) %>% 
+  summarize(cv = sd(value)/mean(value))
+## add x,y 
+predsOverTime_cv <- predsOverTime_cv %>% 
+  left_join(predsOverTime %>% select(uniqueID, x, y))
+
+# visualize change over time for a selection of points
+predsOverTime_long %>% 
+  filter(uniqueID %in% 1:50) %>% 
+  filter(name %in% c("absShrub_CONUS", "absBareGround_CONUS",  "absNLTree_CONUS", 
+                     "absBLTree_CONUS", "absC3grass_CONUS", "absC4grass_CONUS", "absForb_CONUS")) %>% 
+  ggplot() + 
+  facet_wrap(~uniqueID) + 
+  geom_area(aes(x = year, y = value, fill = name)) + 
+  geom_line(data = predsOverTime_long %>% 
+              filter(uniqueID %in% 1:50) %>% 
+              filter(name %in% c("absTotalHerb_CONUS", "absTotalTree_CONUS")),
+            aes(x = year, y = value, linetype = name), col = "black") +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  labs(title = "Change in modeled absolute cover by functional type from \n 2010 to 2020 for a subset of locations")
+
+predsOverTime_cv %>%  
+  ggplot() + 
+  geom_boxplot(aes(x = name, y = cv, col = name)) +
+  theme_minimal() + 
+  labs(title = "Coefficients of variation of model-predicted absolute \n cover for each functional group from 2010-2020",
+        x = "functional group",
+       y = "coefficient of variation") +
+  theme(axis.text.x = element_text(angle = 90))
+
+  
+```
+
+
+## Now, relativize the predictions across the different functional groups
+### First option: relativize cover so that cover for all groups sums to 1
+
+
+### Second option: relativize cover so that cover for all groups *except* trees sums to 1
  
 ### Show "synthetic" predictions for first tier of cover models -- using *scaled* climate predictors
 ```{r fig.width = 10, fig.height=10}
-# rename climate data.frame to work with model specifications
-## grass/shrub total herbaceous - best lambda model (bestLambdaMod_GS_totHerb)
-# predict with contemporary data
-#bestLambda_GS_totHerb_predict
-names(bestLambda_GS_totHerb_predict)[57] <- "predContemp_GS_totHerb"
-# predict with modeled future climate data v1
-#bestLambda_GS_totHerb_predictFuture_1
-names(bestLambda_GS_totHerb_predictFuture_1)[55] <- "predFuture1_GS_totHerb"
-# predict with modeled future climate data v2
-#bestLambda_GS_totHerb_predictFuture_2
-names(bestLambda_GS_totHerb_predictFuture_2)[55] <- "predFuture2_GS_totHerb"
-
-
-# grass/shrub total tree - 1/2 SE lambda model (oneSELambdaMod_GS_totTree)
-# predict with contemporary data
-#bestLambda_GS_totTree_predict
-names(bestLambda_GS_totTree_predict)[57] <- "predContemp_GS_totTree"
-# predict with modeled future climate data v1
-#bestLambda_GS_totTree_predictFuture_1
-names(bestLambda_GS_totTree_predictFuture_1)[55] <- "predFuture1_GS_totTree"
-# predict with modeled future climate data v2
-#bestLambda_GS_totTree_predictFuture_2
-names(bestLambda_GS_totTree_predictFuture_2)[55] <- "predFuture2_GS_totTree"
-
-
-# forest total herbaceous - best lambda model (bestLambdaMod_F_totHerb)
-# predict with contemporary data
-#bestLambda_F_totHerb_predict
-names(bestLambda_F_totHerb_predict)[57] <- "predContemp_F_totHerb"
-# predict with modeled future climate data v1
-#bestLambda_F_totHerb_predictFuture_1
-names(bestLambda_F_totHerb_predictFuture_1)[55] <- "predFuture1_F_totHerb"
-# predict with modeled future climate data v2
-#bestLambda_F_totHerb_predictFuture_2
-names(bestLambda_F_totHerb_predictFuture_2)[55] <- "predFuture2_F_totHerb"
-
-
-# forest total tree - best lambda model (bestLambdaMod_F_totTree)
-# predict with contemporary data
-#bestLambda_F_totTree_predict
-names(bestLambda_F_totTree_predict)[57] <- "predContemp_F_totTree"
-# predict with modeled future climate data v1
-#bestLambda_F_totTree_predictFuture_1
-names(bestLambda_F_totTree_predictFuture_1)[55] <- "predFuture1_F_totTree"
-# predict with modeled future climate data v2
-#bestLambda_F_totTree_predictFuture_2
-names(bestLambda_F_totTree_predictFuture_2)[55] <- "predFuture2_F_totTree"
-
-
-# CONUS shrub - best lambda model (bestLambdaMod_CONUS_shrub)
-# predict with contemporary data
-#bestLambda_CONUS_shrub_predict
-names(bestLambda_CONUS_shrub_predict)[57] <- "predContemp_CONUS_shrub"
-# predict with modeled future climate data v1
-#bestLambda_CONUS_shrub_predictFuture_1
-names(bestLambda_CONUS_shrub_predictFuture_1)[55] <- "predFuture1_CONUS_shrub"
-# predict with modeled future climate data v2
-#bestLambda_CONUS_shrub_predictFuture_2
-names(bestLambda_CONUS_shrub_predictFuture_2)[55] <- "predFuture2_CONUS_shrub"
-
-# CONUS bare ground - 1 SE lambda model (oneSELambdaMod_CONUS_bareGround)
-# predict with contemporary data
-#bestLambda_CONUS_bareGround_predict
-names(bestLambda_CONUS_bareGround_predict)[57] <- "predContemp_CONUS_bareGround"
-# predict with modeled future climate data v1
-#bestLambda_CONUS_bareGround_predictFuture_1
-names(bestLambda_CONUS_bareGround_predictFuture_1)[55] <- "predFuture1_CONUS_bareGround"
-# predict with modeled future climate data v2
-#bestLambda_CONUS_bareGround_predictFuture_2
-names(bestLambda_CONUS_bareGround_predictFuture_2)[55] <- "predFuture2_CONUS_bareGround"
-
-### add all of the predictions for each time interval together
-preds_contemp_cover1 <- bestLambda_GS_totHerb_predict %>% 
-  left_join(bestLambda_GS_totTree_predict) %>% 
-  left_join(bestLambda_F_totHerb_predict) %>% 
-  left_join(bestLambda_F_totTree_predict)  %>% 
-  left_join(bestLambda_CONUS_shrub_predict) %>% 
-  left_join(bestLambda_CONUS_bareGround_predict) %>% 
-  left_join(level2_cover_preds_contemp)
-
-preds_future_1_cover1 <-  bestLambda_GS_totHerb_predictFuture_1 %>% 
-  left_join(bestLambda_GS_totTree_predictFuture_1) %>% 
-  left_join(bestLambda_F_totHerb_predictFuture_1) %>% 
-  left_join(bestLambda_F_totTree_predictFuture_1)  %>% 
-  left_join(bestLambda_CONUS_shrub_predictFuture_1) %>% 
-  left_join(bestLambda_CONUS_bareGround_predictFuture_1) %>% 
-  left_join(level2_cover_preds_future1)
-
-preds_future_2_cover1 <- bestLambda_GS_totHerb_predictFuture_2 %>% 
-  left_join(bestLambda_GS_totTree_predictFuture_2) %>% 
-  left_join(bestLambda_F_totHerb_predictFuture_2) %>% 
-  left_join(bestLambda_F_totTree_predictFuture_2)  %>% 
-  left_join(bestLambda_CONUS_shrub_predictFuture_2) %>% 
-  left_join(bestLambda_CONUS_bareGround_predictFuture_2) %>% 
-  left_join(level2_cover_preds_future2)
-
-### add ecoregion-level predictions to these data frames
-names(preds_byHand)[104] <- "prob_forest"
-preds_byHand$prob_GrassShrub <- 1 - preds_byHand$prob_forest
-
-names(preds_future1_byHand)[55] <- "prob_forest"
-preds_future1_byHand$prob_GrassShrub <- 1 - preds_future1_byHand$prob_forest
-
-names(preds_future2_byHand)[55] <- "prob_forest"
-preds_future2_byHand$prob_GrassShrub <- 1 - preds_future2_byHand$prob_forest
-
-preds_contemp <- preds_contemp_cover1 %>% 
- # rename(prob_forest_old = prob_forest, 
- #        prob_GrassShrub_old = prob_GrassShrub) %>% 
- #  select(-prob_GrassShrub_old, -prob_forest_old) %>% 
- cbind(preds_byHand %>% select( prob_forest, prob_GrassShrub))
-
-preds_future_1 <- preds_future_1_cover1 %>% 
- # rename(prob_forest_old = prob_forest, 
- #        prob_GrassShrub_old = prob_GrassShrub) %>% 
- #  select(-prob_GrassShrub_old, -prob_forest_old) %>% 
- cbind(preds_future1_byHand %>% select(prob_forest, prob_GrassShrub))
-
-preds_future_2 <- preds_future_2_cover1 %>% 
- # rename(prob_forest_old = prob_forest, 
- #        prob_GrassShrub_old = prob_GrassShrub) %>% 
- #  select(-prob_GrassShrub_old, -prob_forest_old) %>% 
- cbind(preds_future2_byHand %>% select( prob_forest, prob_GrassShrub))
 
 ## make the predictions scale according to ecoregion
 preds_contemp <- preds_contemp %>% 
