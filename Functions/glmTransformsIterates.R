@@ -165,12 +165,11 @@ decile_dotplot_pq <- function(df, size = 0.5, response = response, IQR = FALSE, 
     stop('filter_var column present, you should used decile_dotplot_filtered()')
   } 
   
-  
-  # convert k to c
-  #if(max(df[df$name == "MAT", ]$mean_value) > 150) {
-   # df[df$name == "MAT", ]$mean_value <- df[df$name  == "MAT", ]$mean_value - 273.15
-  #}
-  
+  # if there are deciles that have been calculated for the observed values, then remove then from the input data.frame
+  if(c("newObservedVal") %in% df$name) {
+    df <- df %>% 
+      filter(name != "newObservedVal")
+  }
   
   df2 <- df %>% 
     #filter(!name %in% response) %>% 
@@ -178,16 +177,10 @@ decile_dotplot_pq <- function(df, size = 0.5, response = response, IQR = FALSE, 
     arrange(name)
   
   # fix the levels to correspond to the predictor values we actually use in this model
-  
   df2$name <-factor(as.character(df2$name))
   
   yvar <- response[1]
   yvar_pred <-  response[2]
-  
-  # convert to %
-  #df2[[yvar]] <- df2[[yvar]]*100
-  #df2[[yvar_pred]] <- df2[[yvar_pred]]*100
-  
   
   fig_letters <- str_to_upper(c("a", "b", "c", "d", "e", "f", "g", "f", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q","r", "s", "t", "u", "v", "w", "x", "y", "z"))
   letter_df <- tibble(
@@ -493,35 +486,35 @@ add_dotplot_inset <- function(g, df, response, dfRaw = NULL, add_smooth = FALSE,
     dplyr::select(all_of(yvar), all_of(response[2])) %>% 
     max #* 100
   if (deciles == TRUE) {
-   
-    inset <- ggplot(df, aes(y = .data[[yvar]], x = .data[[response[2]]])) +
-      geom_point(shape = 4, alpha = 0.2, size = 0.3) +
-      geom_abline(slope = 1, size = 0.5, col = "red") +
-      labs(y = "Observed Values",
-           x = "Predicted Values") +
-      # geom_text(data = tibble(
-      #   letter = fig_letters[6],
-      #   x = -Inf,
-      #   y = Inf),
-      #   aes(x = x, y = y, label = letter),
-      #   hjust = -0.8, vjust = 1) +
-      theme(axis.title = element_text(size = 6),
-            axis.text = element_text(size = 6)#,
-            #plot.margin = margin()
-      )#+
-    #coord_cartesian(xlim = c(0, max),
-    #ylim = c(0, max))
-    
-    if(add_smooth) {
-      inset <- inset +
-        geom_smooth(se = FALSE, color = 'gray')
-    }
-    
-    library(ggpubr)
-    g2 <- ggarrange(g, ggarrange(inset, ggplot(), widths = c(1,2)), heights = c(3, 1), nrow = 2)
-    # inset_element(inset, left = .75,
-    #               bottom = -.08,
-    #               right = 1, top = 0.14)
+    # 
+    # inset <- ggplot(df, aes(y = .data[[yvar]], x = .data[[response[2]]])) +
+    #   geom_point(shape = 4, alpha = 0.2, size = 0.3) +
+    #   geom_abline(slope = 1, size = 0.5, col = "red") +
+    #   labs(y = "Observed Values",
+    #        x = "Predicted Values") +
+    #   # geom_text(data = tibble(
+    #   #   letter = fig_letters[6],
+    #   #   x = -Inf,
+    #   #   y = Inf),
+    #   #   aes(x = x, y = y, label = letter),
+    #   #   hjust = -0.8, vjust = 1) +
+    #   theme(axis.title = element_text(size = 6),
+    #         axis.text = element_text(size = 6)#,
+    #         #plot.margin = margin()
+    #   )#+
+    # #coord_cartesian(xlim = c(0, max),
+    # #ylim = c(0, max))
+    # 
+    # if(add_smooth) {
+    #   inset <- inset +
+    #     geom_smooth(se = FALSE, color = 'gray')
+    # }
+    # 
+    # library(ggpubr)
+    # g2 <- ggarrange(g, ggarrange(inset, ggplot(), widths = c(1,2)), heights = c(3, 1), nrow = 2)
+    # # inset_element(inset, left = .75,
+    # #               bottom = -.08,
+    # #               right = 1, top = 0.14)
   } else {
     inset_raw <- ggplot(dfRaw, aes(y = .data[[yvar]], x = .data[[response[2]]])) +
       geom_point(shape = 4, alpha = 0.2, size = 0.3) +
@@ -538,32 +531,34 @@ add_dotplot_inset <- function(g, df, response, dfRaw = NULL, add_smooth = FALSE,
         geom_smooth(se = TRUE, color = 'gray')
     }
     
-    
-    inset <- ggplot(df, aes(y = .data[[yvar]], x = .data[[response[2]]])) +
-      geom_point(shape = 4, alpha = 0.2, size = 0.3) +
-      geom_abline(slope = 1, size = 0.5, col = "red") +
-      labs(y = "Observed Values",
-           x = "Predicted Values") +
-      # geom_text(data = tibble(
-      #   letter = fig_letters[6],
-      #   x = -Inf,
-      #   y = Inf),
-      #   aes(x = x, y = y, label = letter),
-      #   hjust = -0.8, vjust = 1) +
-      theme(axis.title = element_text(size = 6),
-            axis.text = element_text(size = 6)#,
-            #plot.margin = margin()
-      )#+
-    #coord_cartesian(xlim = c(0, max),
-    #ylim = c(0, max))
-    
-    if(add_smooth) {
-      inset <- inset +
-        geom_smooth(se = FALSE, color = 'gray')
-    }
+    # 
+    # inset <- ggplot(df, aes(y = .data[[yvar]], x = .data[[response[2]]])) +
+    #   geom_point(shape = 4, alpha = 0.2, size = 0.3) +
+    #   geom_abline(slope = 1, size = 0.5, col = "red") +
+    #   labs(y = "Observed Values",
+    #        x = "Predicted Values") +
+    #   # geom_text(data = tibble(
+    #   #   letter = fig_letters[6],
+    #   #   x = -Inf,
+    #   #   y = Inf),
+    #   #   aes(x = x, y = y, label = letter),
+    #   #   hjust = -0.8, vjust = 1) +
+    #   theme(axis.title = element_text(size = 6),
+    #         axis.text = element_text(size = 6)#,
+    #         #plot.margin = margin()
+    #   )#+
+    # #coord_cartesian(xlim = c(0, max),
+    # #ylim = c(0, max))
+    # 
+    # if(add_smooth) {
+    #   inset <- inset +
+    #     geom_smooth(se = FALSE, color = 'gray')
+    # }
     
     library(ggpubr)
-    g2 <- ggarrange(g, ggarrange(inset,inset_raw, ggplot(), widths = c(1,1,2), nrow = 1), heights = c(3, 1), nrow = 2)
+    g2 <- ggarrange(g, ggarrange(#inset,
+      inset_raw
+                                 , ggplot(), widths = c(1,3), nrow = 1), heights = c(3, 1), nrow = 2)
     # inset_element(inset, left = .75,
     #               bottom = -.08,
     #               right = 1, top = 0.14)

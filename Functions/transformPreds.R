@@ -196,6 +196,8 @@ predvars2long <- function(df, response_vars,
   # 
   # new_pred_vars <- c(pred_vars, 'herbAGB')
   # 
+
+  
   select_cols <- c(new_pred_vars, response_vars)
   
   if(filter_var) {
