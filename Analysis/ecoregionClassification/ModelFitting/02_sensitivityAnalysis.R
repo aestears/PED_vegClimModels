@@ -9,10 +9,54 @@ library(sf)
 library(tidyverse)
 library(tidyterra)
 library(pdp)
+library(ggpubr)
 
 # load data from bioclim --------------------------------------------------
 # load model data 
 #source("./Analysis/VegComposition/ModelFitting/01_EcoregionClassification.R")
+# Load Data ---------------------------------------------------------------
+# data ready for modeling 
+modDat <- readRDS("./Data_processed/EcoRegion_climSoilData.rds")
+
+modDat_testNew <- modDat %>% 
+  filter(year %in% c(2010, 2015, 2020)) %>% 
+  mutate(newRegion = str_replace(newRegion, "eastForest", "forest"),
+         newRegion = str_replace(newRegion, "westForest", "forest")) %>% 
+  mutate(newRegionFact = as.factor(newRegion)) 
+rm(modDat)
+gc()
+
+# read in desired model object
+testMod_5 <- readRDS(file = "./Analysis/ecoregionClassification/ModelFitting/ModelObjects/EcoregionClassificationModel.rds")
+
+# get the soil raster, which we'll use for rasterizing the imagery
+soilRastTemp <- readRDS("./Data_processed/SoilsRaster.rds") %>% 
+  terra::unwrap()
+#   terra::project("GEOGCRS[\"WGS 84\",\n    ENSEMBLE[\"World Geodetic System 1984 ensemble\",\n        MEMBER[\"World Geodetic System 1984 (Transit)\"],\n        MEMBER[\"World Geodetic System 1984 (G730)\"],\n        MEMBER[\"World Geodetic System 1984 (G873)\"],\n        MEMBER[\"World Geodetic System 1984 (G1150)\"],\n        MEMBER[\"World Geodetic System 1984 (G1674)\"],\n        MEMBER[\"World Geodetic System 1984 (G1762)\"],\n        MEMBER[\"World Geodetic System 1984 (G2139)\"],\n        ELLIPSOID[\"WGS 84\",6378137,298.257223563,\n            LENGTHUNIT[\"metre\",1]],\n        ENSEMBLEACCURACY[2.0]],\n    PRIMEM[\"Greenwich\",0,\n        ANGLEUNIT[\"degree\",0.0174532925199433]],\n    CS[ellipsoidal,2],\n        AXIS[\"geodetic latitude (Lat)\",north,\n            ORDER[1],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n        AXIS[\"geodetic longitude (Lon)\",east,\n            ORDER[2],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n    USAGE[\n        SCOPE[\"Horizontal component of 3D system.\"],\n        AREA[\"World.\"],\n        BBOX[-90,-180,90,180]],\n    ID[\"EPSG\",4326]]"
+#                  )
+# Prepare data for model-fitting  ----------------------------------------------
+# (eastern forest) put eastern temperate forests, tropical wet forests and northern forests together
+# (dry shrub and grass) put great plains, southern semiarid highlands, Mediterranean California and north american deserts together 
+# (western forest) put northwestern forested mountains, marine west coast forests together, and temperate sierras together
+set.seed(12011993)
+
+# ggplot(modDat) + 
+#   geom_point(aes(x = Long, y = Lat))
+
+modDat_use <- modDat_testNew %>% 
+  ## arbitrarily chose three years of climate data to use 
+  filter(year %in% c(2010, 2015, 2020)) %>% 
+  rename("Long" = x, "Lat" = y) %>% 
+  dplyr::select(c(newRegion, #swe_meanAnnAvg_CLIM:
+                  tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM,
+                  soilDepth                  , surfaceClay_perc          ,                
+                  avgSandPerc_acrossDepth    ,  avgCoarsePerc_acrossDepth,                 
+                  avgOrganicCarbonPerc_0_3cm ,  totalAvailableWaterHoldingCapacity,
+                  Long, Lat)) %>% 
+  mutate(newRegion = as.factor(newRegion)) %>% 
+  drop_na() #%>% 
+#mutate(isothermality_meanAnnAvg_CLIM = -1 * isothermality_meanAnnAvg_CLIM)
+
 #list all files in folder # arbitrarily chose end-century, highest ssp
 #(ssp_585)
 
@@ -151,6 +195,9 @@ ecoregionsSF <- data.frame("ecoregion" = c("grassShrub", "forest"),
 ecoregionsSF2 <- sf::st_simplify(ecoregionsSF, preserveTopology = TRUE, dTolerance = .1)
 #mapview(ecoregionsSF2)
 
+rm(forest, grassShrub)
+gc()
+
 # calculate VPD 95th percentile (from contemporary data) -------------------------------------------------------
 soilRastTemp <- readRDS("./Data_processed/SoilsRaster.rds") 
 soilRast <- soilRastTemp %>% 
@@ -158,10 +205,10 @@ soilRast <- soilRastTemp %>%
 
 # get data averaged over contemporary 30 year period
 maxVPD_95_Rast <- modDat_use %>% 
-  dplyr::select(annVPD_max_95percentile_30yr, Long, Lat) %>% 
+  dplyr::select(annVPD_max_95percentile_CLIM, Long, Lat) %>% 
   terra::vect(geom = c("Long", "Lat"), crs =     crs("PROJCRS[\"unnamed\",\n BASEGEOGCRS[\"unknown\",\n DATUM[\"unknown\",\nELLIPSOID[\"Spheroid\",6378137,298.257223563,\n LENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]]],\n PRIMEM[\"Greenwich\",0,\n ANGLEUNIT[\"degree\",0.0174532925199433,\n ID[\"EPSG\",9122]]]],\n CONVERSION[\"Lambert Conic Conformal (2SP)\",\n METHOD[\"Lambert Conic Conformal (2SP)\",\n ID[\"EPSG\",9802]],\nPARAMETER[\"Latitude of false origin\",42.5,\nANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8821]],\n PARAMETER[\"Longitude of false origin\",-100,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8822]],\n PARAMETER[\"Latitude of 1st standard parallel\",25,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8823]],\n PARAMETER[\"Latitude of 2nd standard parallel\",60,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8824]],\n PARAMETER[\"Easting at false origin\",0,\n LENGTHUNIT[\"metre\",1],\n ID[\"EPSG\",8826]],\n PARAMETER[\"Northing at false origin\",0,\n LENGTHUNIT[\"metre\",1],\n ID[\"EPSG\",8827]]],\n CS[Cartesian,2],\nAXIS[\"easting\",east,\n ORDER[1],\nLENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]],\n AXIS[\"northing\",north,\nORDER[2],\nLENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]]]")) %>% 
   terra::rasterize(y = ( soilRast %>% terra::project("PROJCRS[\"unnamed\",\n BASEGEOGCRS[\"unknown\",\n DATUM[\"unknown\",\nELLIPSOID[\"Spheroid\",6378137,298.257223563,\n LENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]]],\n PRIMEM[\"Greenwich\",0,\n ANGLEUNIT[\"degree\",0.0174532925199433,\n ID[\"EPSG\",9122]]]],\n CONVERSION[\"Lambert Conic Conformal (2SP)\",\n METHOD[\"Lambert Conic Conformal (2SP)\",\n ID[\"EPSG\",9802]],\nPARAMETER[\"Latitude of false origin\",42.5,\nANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8821]],\n PARAMETER[\"Longitude of false origin\",-100,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8822]],\n PARAMETER[\"Latitude of 1st standard parallel\",25,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8823]],\n PARAMETER[\"Latitude of 2nd standard parallel\",60,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8824]],\n PARAMETER[\"Easting at false origin\",0,\n LENGTHUNIT[\"metre\",1],\n ID[\"EPSG\",8826]],\n PARAMETER[\"Northing at false origin\",0,\n LENGTHUNIT[\"metre\",1],\n ID[\"EPSG\",8827]]],\n CS[Cartesian,2],\nAXIS[\"easting\",east,\n ORDER[1],\nLENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]],\n AXIS[\"northing\",north,\nORDER[2],\nLENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]]]")), 
-                   field =  "annVPD_max_95percentile_30yr", fun = mean, na.rm = TRUE) %>% 
+                   field =  "annVPD_max_95percentile_CLIM", fun = mean, na.rm = TRUE) %>% 
   terra::project(crs(bioClim))
 
 maxVPD_95_points <- maxVPD_95_Rast %>% 
@@ -170,6 +217,24 @@ maxVPD_95_points <- maxVPD_95_Rast %>%
 ggplot(maxVPD_95_points) + 
   geom_point(aes(x, y, color = mean))
 
+# calculate precip-temp correlation (from contemporary data, we can't get accurate information from the worldclim data that is averaged across months over 20 years) -------------------------------------------------------
+soilRastTemp <- readRDS("./Data_processed/SoilsRaster.rds") 
+soilRast <- soilRastTemp %>% 
+  terra::project(crs(bioClim))
+
+# get data averaged over contemporary 30 year period
+ptCorr_Rast <- modDat_use %>% 
+  dplyr::select(PrecipTempCorr_meanAnnAvg_CLIM, Long, Lat) %>% 
+  terra::vect(geom = c("Long", "Lat"), crs =     crs("PROJCRS[\"unnamed\",\n BASEGEOGCRS[\"unknown\",\n DATUM[\"unknown\",\nELLIPSOID[\"Spheroid\",6378137,298.257223563,\n LENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]]],\n PRIMEM[\"Greenwich\",0,\n ANGLEUNIT[\"degree\",0.0174532925199433,\n ID[\"EPSG\",9122]]]],\n CONVERSION[\"Lambert Conic Conformal (2SP)\",\n METHOD[\"Lambert Conic Conformal (2SP)\",\n ID[\"EPSG\",9802]],\nPARAMETER[\"Latitude of false origin\",42.5,\nANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8821]],\n PARAMETER[\"Longitude of false origin\",-100,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8822]],\n PARAMETER[\"Latitude of 1st standard parallel\",25,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8823]],\n PARAMETER[\"Latitude of 2nd standard parallel\",60,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8824]],\n PARAMETER[\"Easting at false origin\",0,\n LENGTHUNIT[\"metre\",1],\n ID[\"EPSG\",8826]],\n PARAMETER[\"Northing at false origin\",0,\n LENGTHUNIT[\"metre\",1],\n ID[\"EPSG\",8827]]],\n CS[Cartesian,2],\nAXIS[\"easting\",east,\n ORDER[1],\nLENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]],\n AXIS[\"northing\",north,\nORDER[2],\nLENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]]]")) %>% 
+  terra::rasterize(y = ( soilRast %>% terra::project("PROJCRS[\"unnamed\",\n BASEGEOGCRS[\"unknown\",\n DATUM[\"unknown\",\nELLIPSOID[\"Spheroid\",6378137,298.257223563,\n LENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]]],\n PRIMEM[\"Greenwich\",0,\n ANGLEUNIT[\"degree\",0.0174532925199433,\n ID[\"EPSG\",9122]]]],\n CONVERSION[\"Lambert Conic Conformal (2SP)\",\n METHOD[\"Lambert Conic Conformal (2SP)\",\n ID[\"EPSG\",9802]],\nPARAMETER[\"Latitude of false origin\",42.5,\nANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8821]],\n PARAMETER[\"Longitude of false origin\",-100,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8822]],\n PARAMETER[\"Latitude of 1st standard parallel\",25,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8823]],\n PARAMETER[\"Latitude of 2nd standard parallel\",60,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8824]],\n PARAMETER[\"Easting at false origin\",0,\n LENGTHUNIT[\"metre\",1],\n ID[\"EPSG\",8826]],\n PARAMETER[\"Northing at false origin\",0,\n LENGTHUNIT[\"metre\",1],\n ID[\"EPSG\",8827]]],\n CS[Cartesian,2],\nAXIS[\"easting\",east,\n ORDER[1],\nLENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]],\n AXIS[\"northing\",north,\nORDER[2],\nLENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]]]")), 
+                   field =  "PrecipTempCorr_meanAnnAvg_CLIM", fun = mean, na.rm = TRUE) %>% 
+  terra::project(crs(bioClim))
+
+ptCorr_points <- ptCorr_Rast %>% 
+  terra::extract(sampPoints, xy = TRUE)
+
+ggplot(ptCorr_points) + 
+  geom_point(aes(x, y, color = mean))
 
 # precip of driest month --------------------------------------------------
 # this is bioclim variable 14
@@ -426,24 +491,24 @@ ggplot(coarse) +
 
 # Put all input variables together ----------------------------------------
 sensDat <- (precip_driestMonth_points %>% dplyr::select(bio14))  %>% 
-  cbind(ptCorr_points %>% dplyr::select(mean) %>% rename(PrecipTempCorr_meanAnnAvg_30yr = mean)) %>% #contemporary data 
+  cbind(ptCorr_points %>% dplyr::select(mean) %>% rename(PrecipTempCorr_meanAnnAvg_CLIM = mean)) %>% #contemporary data 
   cbind(soilCarbon %>% dplyr::select(organicCarbonPerc_2cm)) %>% #contemporary data 
-  cbind(maxVPD_95_points %>% dplyr::select(mean) %>% rename(annVPD_max_95percentile_30yr = mean)) %>% #contemporary data 
+  cbind(maxVPD_95_points %>% dplyr::select(mean) %>% rename(annVPD_max_95percentile_CLIM = mean)) %>% #contemporary data 
   cbind(coarse %>% dplyr::select(avgCoarsePerc_acrossDepth)) %>% #contemporary data 
   cbind(precip_points %>% dplyr::select(MAP)) %>% 
   cbind(soilClay %>% dplyr::select(surfaceClay_perc)) %>% #contemporary data
   cbind(soilDepth %>% dplyr::select(soilDepth)) %>% #contemporary data 
   cbind(sand %>% dplyr::select(avgSandPerc_acrossDepth)) %>%   # contemporary data
-  cbind(isotherm_points %>% dplyr::select(bio03) %>% rename(isothermality_meanAnnAvg_30yr = bio03)) %>% 
-  cbind(precip_wettestMonth_points %>% dplyr::select(bio13) %>% rename(precip_wettestMonth_meanAnnAvg_30yr = bio13)) %>% 
-  cbind(temp_warmestMonth_points %>% dplyr::select(bio05) %>% rename(T_warmestMonth_meanAnnAvg_30yr = bio05)) %>% 
-  cbind(temp_coldestMonth_points %>% dplyr::select(bio06) %>% rename(T_coldestMonth_meanAnnAvg_30yr = bio06)) %>% 
-  cbind(precipSeasonality_points %>% dplyr::select(bio15) %>% rename(precip_Seasonality_meanAnnAvg_30yr = bio15)) %>% 
-  cbind(annWatDeficit_points %>% dplyr::select(sum) %>% rename(annWaterDeficit_meanAnnAvg_30yr = sum)) %>% 
+  cbind(isotherm_points %>% dplyr::select(bio03) %>% rename(isothermality_meanAnnAvg_CLIM = bio03)) %>% 
+  cbind(precip_wettestMonth_points %>% dplyr::select(bio13) %>% rename(precip_wettestMonth_meanAnnAvg_CLIM = bio13)) %>% 
+  cbind(temp_warmestMonth_points %>% dplyr::select(bio05) %>% rename(T_warmestMonth_meanAnnAvg_CLIM = bio05)) %>% 
+  cbind(temp_coldestMonth_points %>% dplyr::select(bio06) %>% rename(T_coldestMonth_meanAnnAvg_CLIM = bio06)) %>% 
+  cbind(precipSeasonality_points %>% dplyr::select(bio15) %>% rename(precip_Seasonality_meanAnnAvg_CLIM = bio15)) %>% 
+  cbind(annWatDeficit_points %>% dplyr::select(sum) %>% rename(annWaterDeficit_meanAnnAvg_CLIM = sum)) %>% 
   cbind(sampPoints) %>% 
   dplyr::rename(avgOrganicCarbonPerc_0_3cm = organicCarbonPerc_2cm,
-         precip_driestMonth_meanAnnAvg_30yr = bio14,
-         prcp_meanAnnTotal_30yr = MAP,
+         precip_driestMonth_meanAnnAvg_CLIM = bio14,
+         prcp_meanAnnTotal_CLIM = MAP,
          Long = x, 
          Lat = y
          ) %>% 
@@ -451,20 +516,20 @@ sensDat <- (precip_driestMonth_points %>% dplyr::select(bio14))  %>%
 
 ## precip water deficit
 (compareAnnWatDef <- ggplot() +
-    geom_density(data = sensDat, aes(x = annWaterDeficit_meanAnnAvg_30yr), col = "red") +
-    geom_density(data = modDat_use, aes(annWaterDeficit_meanAnnAvg_30yr), col = "blue") +
+    geom_density(data = sensDat, aes(x = annWaterDeficit_meanAnnAvg_CLIM), col = "red") +
+    geom_density(data = modDat_use, aes(annWaterDeficit_meanAnnAvg_CLIM), col = "blue") +
     ggtitle("Annual Water Deficit", subtitle = "red = end of century, blue = current"))
 
 # predicted values
 predsTemp <- (sensDat %>%
                 terra::vect(geom = c("Long", "Lat"), crs = crs(ecoregionsSF2)) %>%
                 terra::rasterize(y = bioClim
-                                 , field = "annWaterDeficit_meanAnnAvg_30yr"))
+                                 , field = "annWaterDeficit_meanAnnAvg_CLIM"))
 # contemporary values
 contempTemp <- (modDat_use %>%
                   terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)) %>%
-                  terra::project(crs(ptCorrRast)) %>%
-                  terra::rasterize(y = bioClim, field = "annWaterDeficit_meanAnnAvg_30yr"))
+                  terra::project(crs(maxVPD_95_Rast)) %>%
+                  terra::rasterize(y = bioClim, field = "annWaterDeficit_meanAnnAvg_CLIM"))
 plotDatTemp <- predsTemp - contempTemp
 
 (compareAnnWaterDef_2 <- ggplot() +
@@ -476,20 +541,20 @@ plotDatTemp <- predsTemp - contempTemp
 
 ## precip seasonality 
 (comparePrecipSeasonality <- ggplot() +
-    geom_density(data = sensDat, aes(x = precip_Seasonality_meanAnnAvg_30yr), col = "red") +
-    geom_density(data = modDat_use, aes(precip_Seasonality_meanAnnAvg_30yr), col = "blue") +
+    geom_density(data = sensDat, aes(x = precip_Seasonality_meanAnnAvg_CLIM), col = "red") +
+    geom_density(data = modDat_use, aes(precip_Seasonality_meanAnnAvg_CLIM), col = "blue") +
     ggtitle("Precip seasonality", subtitle = "red = end of century, blue = current"))
 
 # predicted values
 predsTemp <- (sensDat %>%
             terra::vect(geom = c("Long", "Lat"), crs = crs(ecoregionsSF2)) %>%
             terra::rasterize(y = bioClim
-                             , field = "precip_Seasonality_meanAnnAvg_30yr"))
+                             , field = "precip_Seasonality_meanAnnAvg_CLIM"))
 # contemporary values
 contempTemp <- (modDat_use %>%
               terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)) %>%
-              terra::project(crs(ptCorrRast)) %>%
-              terra::rasterize(y = bioClim, field = "precip_Seasonality_meanAnnAvg_30yr"))
+              terra::project(crs(maxVPD_95_Rast)) %>%
+              terra::rasterize(y = bioClim, field = "precip_Seasonality_meanAnnAvg_CLIM"))
 plotDatTemp <- predsTemp - contempTemp
 
 (comparePrecipSeasonality_2 <- ggplot() +
@@ -500,19 +565,19 @@ plotDatTemp <- predsTemp - contempTemp
 
 ## precip of wettest month 
 (comparePrecipWettest <- ggplot() + 
-    geom_density(data = sensDat, aes(x = precip_wettestMonth_meanAnnAvg_30yr), col = "red") + 
-    geom_density(data = modDat_use, aes(precip_wettestMonth_meanAnnAvg_30yr), col = "blue") + 
+    geom_density(data = sensDat, aes(x = precip_wettestMonth_meanAnnAvg_CLIM), col = "red") + 
+    geom_density(data = modDat_use, aes(precip_wettestMonth_meanAnnAvg_CLIM), col = "blue") + 
     ggtitle("Precip in wettest month", subtitle = "red = end of century, blue = current"))
 # predicted values 
 predsTemp <- (sensDat %>% 
                 terra::vect(geom = c("Long", "Lat"), crs = crs(ecoregionsSF2)) %>% 
                 terra::rasterize(y = bioClim
-                                 , field = "precip_wettestMonth_meanAnnAvg_30yr"))
+                                 , field = "precip_wettestMonth_meanAnnAvg_CLIM"))
 # contemporary values
 contempTemp <- (modDat_use %>% 
                   terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)) %>% 
-                  terra::project(crs(ptCorrRast)) %>% 
-                  terra::rasterize(y = bioClim, field = "precip_wettestMonth_meanAnnAvg_30yr"))
+                  terra::project(crs(maxVPD_95_Rast)) %>% 
+                  terra::rasterize(y = bioClim, field = "precip_wettestMonth_meanAnnAvg_CLIM"))
 plotDatTemp <- predsTemp - contempTemp
 (comparePrecipWettest_2 <- ggplot() +
     geom_spatraster(data = plotDatTemp) + 
@@ -522,19 +587,19 @@ plotDatTemp <- predsTemp - contempTemp
 
 ## temp of warmest month 
 (compareTempWarmest <- ggplot() +
-  geom_density(data = sensDat, aes(x = T_warmestMonth_meanAnnAvg_30yr), col = "red") +
-  geom_density(data = modDat_use, aes(T_warmestMonth_meanAnnAvg_30yr), col = "blue") +
+  geom_density(data = sensDat, aes(x = T_warmestMonth_meanAnnAvg_CLIM), col = "red") +
+  geom_density(data = modDat_use, aes(T_warmestMonth_meanAnnAvg_CLIM), col = "blue") +
   ggtitle("Temp of Warmest Month", subtitle = "red = end of century, blue = current"))
 # predicted values 
 predsTemp <- (sensDat %>% 
                 terra::vect(geom = c("Long", "Lat"), crs = crs(ecoregionsSF2)) %>% 
                 terra::rasterize(y = bioClim
-                                 , field = "T_warmestMonth_meanAnnAvg_30yr"))
+                                 , field = "T_warmestMonth_meanAnnAvg_CLIM"))
 # contemporary values
 contempTemp <- (modDat_use %>% 
                   terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)) %>% 
-                  terra::project(crs(ptCorrRast)) %>% 
-                  terra::rasterize(y = bioClim, field = "T_warmestMonth_meanAnnAvg_30yr"))
+                  terra::project(crs(maxVPD_95_Rast)) %>% 
+                  terra::rasterize(y = bioClim, field = "T_warmestMonth_meanAnnAvg_CLIM"))
 plotDatTemp <- predsTemp - contempTemp
 (compareTempWarmest_2 <- ggplot() +
     geom_spatraster(data = plotDatTemp) + 
@@ -544,19 +609,19 @@ plotDatTemp <- predsTemp - contempTemp
 
 ## temp of coldest month 
 (compareTempColdest <- ggplot() +
-    geom_density(data = sensDat, aes(x = T_coldestMonth_meanAnnAvg_30yr), col = "red") +
-    geom_density(data = modDat_use, aes(T_coldestMonth_meanAnnAvg_30yr), col = "blue") +
+    geom_density(data = sensDat, aes(x = T_coldestMonth_meanAnnAvg_CLIM), col = "red") +
+    geom_density(data = modDat_use, aes(T_coldestMonth_meanAnnAvg_CLIM), col = "blue") +
     ggtitle("Temp of Coldest Month", subtitle = "red = end of century, blue = current"))
 # predicted values 
 predsTemp <- (sensDat %>% 
                 terra::vect(geom = c("Long", "Lat"), crs = crs(ecoregionsSF2)) %>% 
                 terra::rasterize(y = bioClim
-                                 , field = "T_coldestMonth_meanAnnAvg_30yr"))
+                                 , field = "T_coldestMonth_meanAnnAvg_CLIM"))
 # contemporary values
 contempTemp <- (modDat_use %>% 
                   terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)) %>% 
-                  terra::project(crs(ptCorrRast)) %>% 
-                  terra::rasterize(y = bioClim, field = "T_coldestMonth_meanAnnAvg_30yr"))
+                  terra::project(crs(maxVPD_95_Rast)) %>% 
+                  terra::rasterize(y = bioClim, field = "T_coldestMonth_meanAnnAvg_CLIM"))
 plotDatTemp <- predsTemp - contempTemp
 (compareTempColdest_2 <- ggplot() +
     geom_spatraster(data = plotDatTemp) + 
@@ -566,19 +631,19 @@ plotDatTemp <- predsTemp - contempTemp
 
 ## isothermality
 (compareIsothermality <- ggplot() + 
-    geom_density(data = sensDat, aes(x = isothermality_meanAnnAvg_30yr), col = "red") + 
-    geom_density(data = modDat_use, aes(isothermality_meanAnnAvg_30yr), col = "blue") + 
+    geom_density(data = sensDat, aes(x = isothermality_meanAnnAvg_CLIM), col = "red") + 
+    geom_density(data = modDat_use, aes(isothermality_meanAnnAvg_CLIM), col = "blue") + 
     ggtitle("isothermality", subtitle = "red = end of century, blue = current"))
 # predicted values 
 predsTemp <- (sensDat %>% 
                 terra::vect(geom = c("Long", "Lat"), crs = crs(ecoregionsSF2)) %>% 
                 terra::rasterize(y = bioClim
-                                 , field = "isothermality_meanAnnAvg_30yr"))
+                                 , field = "isothermality_meanAnnAvg_CLIM"))
 # contemporary values
 contempTemp <- (modDat_use %>% 
                   terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)) %>% 
-                  terra::project(crs(ptCorrRast)) %>% 
-                  terra::rasterize(y = bioClim, field = "isothermality_meanAnnAvg_30yr"))
+                  terra::project(crs(maxVPD_95_Rast)) %>% 
+                  terra::rasterize(y = bioClim, field = "isothermality_meanAnnAvg_CLIM"))
 plotDatTemp <- predsTemp - contempTemp
 (compareIsothermality_2 <- ggplot() +
     geom_spatraster(data = plotDatTemp) + 
@@ -614,12 +679,12 @@ patchwork::plot_layout(#(comparePrecipDriest+
 dev.off()
 
 # the model is called "modUse" 
-# newRegionFact ~ precip_wettestMonth_meanAnnAvg_30yr  + 
-# precip_driestMonth_meanAnnAvg_30yr    +
-#   PrecipTempCorr_meanAnnAvg_30yr       +
-#   isothermality_meanAnnAvg_30yr        +
+# newRegionFact ~ precip_wettestMonth_meanAnnAvg_CLIM  + 
+# precip_driestMonth_meanAnnAvg_CLIM    +
+#   PrecipTempCorr_meanAnnAvg_CLIM       +
+#   isothermality_meanAnnAvg_CLIM        +
 
-#   annVPD_max_95percentile_30yr         +  
+#   annVPD_max_95percentile_CLIM         +  
 #   soilDepth                             +
 #   surfaceClay_perc                     + 
 #   avgCoarsePerc_acrossDepth            +  avgOrganicCarbonPerc_0_3cm
@@ -661,19 +726,19 @@ regModPreds_2 <- regModPreds_2_df %>%
 
 #"faked" meaning that for the variables not available from worldClim, I increased or decreased them uniformly
 sensDat_2b <- sensDat %>% 
-  mutate(PrecipTempCorr_meanAnnAvg_30yr = PrecipTempCorr_meanAnnAvg_30yr*1.1,
+  mutate(PrecipTempCorr_meanAnnAvg_CLIM = PrecipTempCorr_meanAnnAvg_CLIM*1.1,
          avgOrganicCarbonPerc_0_3cm = avgOrganicCarbonPerc_0_3cm*1.1, 
-         annVPD_max_95percentile_30yr = annVPD_max_95percentile_30yr*1.1, 
+         annVPD_max_95percentile_CLIM = annVPD_max_95percentile_CLIM*1.1, 
          avgCoarsePerc_acrossDepth = avgCoarsePerc_acrossDepth*1.1, 
          surfaceClay_perc = surfaceClay_perc*1.1,
          soilDepth = soilDepth*1.1,
-         precip_driestMonth_meanAnnAvg_30yr = precip_driestMonth_meanAnnAvg_30yr*1.1,
-         prcp_meanAnnTotal_30yr = prcp_meanAnnTotal_30yr*1.1,
+         precip_driestMonth_meanAnnAvg_CLIM = precip_driestMonth_meanAnnAvg_CLIM*1.1,
+         prcp_meanAnnTotal_CLIM = prcp_meanAnnTotal_CLIM*1.1,
          avgSandPerc_acrossDepth = avgSandPerc_acrossDepth*1.1,
-         isothermality_meanAnnAvg_30yr = isothermality_meanAnnAvg_30yr*1.1,
-         precip_wettestMonth_meanAnnAvg_30yr = precip_wettestMonth_meanAnnAvg_30yr*1.1,
-         T_warmestMonth_meanAnnAvg_30yr = T_warmestMonth_meanAnnAvg_30yr*1.1,
-         T_coldestMonth_meanAnnAvg_30yr = T_coldestMonth_meanAnnAvg_30yr*1.1
+         isothermality_meanAnnAvg_CLIM = isothermality_meanAnnAvg_CLIM*1.1,
+         precip_wettestMonth_meanAnnAvg_CLIM = precip_wettestMonth_meanAnnAvg_CLIM*1.1,
+         T_warmestMonth_meanAnnAvg_CLIM = T_warmestMonth_meanAnnAvg_CLIM*1.1,
+         T_coldestMonth_meanAnnAvg_CLIM = T_coldestMonth_meanAnnAvg_CLIM*1.1
          ) 
 
 
@@ -705,19 +770,19 @@ regModPreds_2b <- sensDat_2b %>%
 
 #"faked" meaning that for the variables not available from worldClim, I increased or decreased them uniformly
 sensDat_2c <- sensDat %>% 
-  mutate(PrecipTempCorr_meanAnnAvg_30yr = PrecipTempCorr_meanAnnAvg_30yr*.9,
+  mutate(PrecipTempCorr_meanAnnAvg_CLIM = PrecipTempCorr_meanAnnAvg_CLIM*.9,
          avgOrganicCarbonPerc_0_3cm = avgOrganicCarbonPerc_0_3cm*.9, 
-         annVPD_max_95percentile_30yr = annVPD_max_95percentile_30yr*.9, 
+         annVPD_max_95percentile_CLIM = annVPD_max_95percentile_CLIM*.9, 
          avgCoarsePerc_acrossDepth = avgCoarsePerc_acrossDepth*.9, 
          surfaceClay_perc = surfaceClay_perc*.9,
          soilDepth = soilDepth*.9,
-         precip_driestMonth_meanAnnAvg_30yr = precip_driestMonth_meanAnnAvg_30yr*.9,
-         prcp_meanAnnTotal_30yr = prcp_meanAnnTotal_30yr*.9,
+         precip_driestMonth_meanAnnAvg_CLIM = precip_driestMonth_meanAnnAvg_CLIM*.9,
+         prcp_meanAnnTotal_CLIM = prcp_meanAnnTotal_CLIM*.9,
          avgSandPerc_acrossDepth = avgSandPerc_acrossDepth*.9,
-         isothermality_meanAnnAvg_30yr = isothermality_meanAnnAvg_30yr*.9,
-         precip_wettestMonth_meanAnnAvg_30yr = precip_wettestMonth_meanAnnAvg_30yr*.9,
-         T_warmestMonth_meanAnnAvg_30yr = T_warmestMonth_meanAnnAvg_30yr*.9,
-         T_coldestMonth_meanAnnAvg_30yr = T_coldestMonth_meanAnnAvg_30yr*.9
+         isothermality_meanAnnAvg_CLIM = isothermality_meanAnnAvg_CLIM*.9,
+         precip_wettestMonth_meanAnnAvg_CLIM = precip_wettestMonth_meanAnnAvg_CLIM*.9,
+         T_warmestMonth_meanAnnAvg_CLIM = T_warmestMonth_meanAnnAvg_CLIM*.9,
+         T_coldestMonth_meanAnnAvg_CLIM = T_coldestMonth_meanAnnAvg_CLIM*.9
   ) 
 
 
@@ -753,9 +818,9 @@ regModPreds_2c <- sensDat_2c %>%
 # use contemporary dataset (modDat_testNew)
 # names of variables to perturb: 
 
-# T_warmestMonth_meanAnnAvg_30yr       T_coldestMonth_meanAnnAvg_30yr  
-# precip_wettestMonth_meanAnnAvg_30yr   precip_driestMonth_meanAnnAvg_30yr       PrecipTempCorr_meanAnnAvg_30yr  
-# isothermality_meanAnnAvg_30yr                            soilDepth              avgSandPerc_acrossDepth  
+# T_warmestMonth_meanAnnAvg_CLIM       T_coldestMonth_meanAnnAvg_CLIM  
+# precip_wettestMonth_meanAnnAvg_CLIM   precip_driestMonth_meanAnnAvg_CLIM       PrecipTempCorr_meanAnnAvg_CLIM  
+# isothermality_meanAnnAvg_CLIM                            soilDepth              avgSandPerc_acrossDepth  
 # avgCoarsePerc_acrossDepth           avgOrganicCarbonPerc_0_3cm 
 
 predictors <- names(coefficients(modUse))[-1][1:10] 
@@ -770,7 +835,7 @@ perturbFun_2 <- function(predictor,
   #model <- model
   predsOut <- vector(mode = "list", length(perturbVal))
   # for each value of perturbVal 
-  if (predictor == "PrecipTempCorr_meanAnnAvg_30yr") {
+  if (predictor == "PrecipTempCorr_meanAnnAvg_CLIM") {
     for (i in 1:length(perturbVal)) {
       predictDat_i <- predictData
       # transform predictor value of choice
@@ -798,9 +863,9 @@ perturbFun_2 <- function(predictor,
       # transform predictor value of choice
       predictDat_i[,predictor] <-  predictDat_i[,predictor] + predictDat_i[,predictor]*perturbVal[i] 
       # if the predicted values are less than 0 , change to 0
-      predictDat_i[ predictDat_i[,predictor] < 0 ,predictor] <- 0
+      predictDat_i[ predictDat_i[,predictor] < 0 & !is.na(predictDat_i[,predictor] ),predictor] <- 0
       # if the predicted values are greater than 100 , change to 100
-      predictDat_i[ predictDat_i[,predictor] > 100 ,predictor] <- 100
+      predictDat_i[ predictDat_i[,predictor] > 100 & !is.na(predictDat_i[,predictor] ),predictor] <- 100
       # predict 
       regModPreds_i <- predictDat_i %>%
         cbind("newRegion_pred" = predict(model, newdata = predictDat_i, "response")) %>%  
@@ -887,19 +952,20 @@ makeFigures_sens_2 <- function(modPreds,
   names(predsOut_final)[1] <- "predictor"
   
   # calculate the mean response prediction for each 'bin' of the predictor value
-  quantiles <- stats::quantile(predsOut_final[[1]], c(0, .09,.1,.19, .2, .29, .3, .39, .4, .49, 
+  quantiles <- stats::quantile(na.omit(predsOut_final[[1]]), c(0, .09,.1,.19, .2, .29, .3, .39, .4, .49, 
                                          .5, .59, .6, .69, .7, .79, .8, .89, .9, 1))
   predsOut_final$quantile <- NA
-  predsOut_final[predsOut_final$predictor > quantiles[1] & predsOut_final$predictor <= quantiles[2],"quantile"] <- quantiles[2]  
-  predsOut_final[predsOut_final$predictor > quantiles[3] & predsOut_final$predictor <= quantiles[4],"quantile"] <- quantiles[4]  
-  predsOut_final[predsOut_final$predictor > quantiles[5] & predsOut_final$predictor <= quantiles[6],"quantile"] <- quantiles[6]  
-  predsOut_final[predsOut_final$predictor > quantiles[7] & predsOut_final$predictor <= quantiles[8],"quantile"] <- quantiles[8]  
-  predsOut_final[predsOut_final$predictor > quantiles[9] & predsOut_final$predictor <= quantiles[10],"quantile"] <- quantiles[10]  
-  predsOut_final[predsOut_final$predictor > quantiles[11] & predsOut_final$predictor <= quantiles[12],"quantile"] <- quantiles[12] 
-  predsOut_final[predsOut_final$predictor > quantiles[13] & predsOut_final$predictor <= quantiles[14],"quantile"] <- quantiles[14]   
-  predsOut_final[predsOut_final$predictor > quantiles[15] & predsOut_final$predictor <= quantiles[16],"quantile"] <- quantiles[16]
-  predsOut_final[predsOut_final$predictor > quantiles[17] & predsOut_final$predictor <= quantiles[18],"quantile"] <- quantiles[18] 
-  predsOut_final[predsOut_final$predictor > quantiles[19] & predsOut_final$predictor <= quantiles[20],"quantile"] <- quantiles[20] 
+  predsOut_final[predsOut_final$predictor > quantiles[1] & predsOut_final$predictor <= quantiles[2] & !is.na(predsOut_final$predictor),"quantile"] <- quantiles[2]  
+  predsOut_final[predsOut_final$predictor > quantiles[3] & predsOut_final$predictor <= quantiles[4]& !is.na(predsOut_final$predictor),"quantile"] <- quantiles[4]  
+  predsOut_final[predsOut_final$predictor > quantiles[5] & predsOut_final$predictor <= quantiles[6]& !is.na(predsOut_final$predictor),"quantile"] <- quantiles[6]  
+  predsOut_final[predsOut_final$predictor > quantiles[7] & predsOut_final$predictor <= quantiles[8]& !is.na(predsOut_final$predictor),"quantile"] <- quantiles[8]  
+  predsOut_final[predsOut_final$predictor > quantiles[9] & predsOut_final$predictor <= quantiles[10] & !is.na(predsOut_final$predictor),"quantile"] <- quantiles[10]  
+  predsOut_final[predsOut_final$predictor > quantiles[11] & predsOut_final$predictor <= quantiles[12] & !is.na(predsOut_final$predictor),"quantile"] <- quantiles[12] 
+  predsOut_final[predsOut_final$predictor > quantiles[13] & predsOut_final$predictor <= quantiles[14] & !is.na(predsOut_final$predictor),"quantile"] <- quantiles[14]   
+  predsOut_final[predsOut_final$predictor > quantiles[15] & predsOut_final$predictor <= quantiles[16] & !is.na(predsOut_final$predictor),"quantile"] <- quantiles[16]
+  predsOut_final[predsOut_final$predictor > quantiles[17] & predsOut_final$predictor <= quantiles[18] & !is.na(predsOut_final$predictor),"quantile"] <- quantiles[18] 
+  predsOut_final[predsOut_final$predictor > quantiles[19] & predsOut_final$predictor <= quantiles[20] & !is.na(predsOut_final$predictor),"quantile"] <- quantiles[20] 
+  
   
   figDat <- predsOut_final %>% 
     group_by(quantile, perturbVal) %>% 
@@ -937,6 +1003,14 @@ makeFigures_sens_2 <- function(modPreds,
   return(predMod)
 }
 
+rm(modDat, precipSeasonality_points, precip_driestMonth_points, precip_points, precip_wettestMonth_points, precipSeasonality_points,
+   precipSeasonality, precip_driestMonth, precip_wettestMonth, annWatDeficit_points, isotherm, isotherm_points, maxVPD_95_points, monthlyWatDeficit_rast, 
+   monthlyWatDeficit_TEMP, precip, ptCorr_points, sand, soilCarbon, soilClay, soilDepth, temp_coldestMonth_points, temp_coldestMonth, temp_warmestMonth_points, 
+   temp_warmestMonth, tmax, tmean, tmin, tmean_rast, predictData, predictData_i, preds, predsOut, predsOut_final, ptCorr_Rast, coarse, 
+   ecoregionsSF, ecoregionsSF_temp, ecoregLU, modDat_use, model, preds_i, predictDat_i, regions, regionsCONUS, regionsTemp, regModPreds_2, 
+   regModPreds_2_df, regModPreds_2b, regModPreds_2c, sampPoints, soilPoints, soilRast, sensDat_2b, sensDat_2c, annWatDeficit_rast)
+gc()
+
 ## make figures
 
 lapply(predictors, FUN = function(x) {
@@ -951,6 +1025,7 @@ lapply(predictors, FUN = function(x) {
 
 lapply(predictors, FUN = function(x) {
   temp <- pdp::partial(modUse, pred.var = c(x), 
+                       train =  modDat_testNew, 
                prob = TRUE, rug = TRUE, plot = TRUE)
   temp <- update(temp, main = paste(x), ylim = c(0,1))
   assign(x = paste0("pdp_",x), value = temp, pos = ".GlobalEnv")
@@ -980,7 +1055,7 @@ lapply(predictors, FUN = function(x) {
     mutate(newRegion_group = newRegion_pred) %>% 
     mutate(newRegion_group = replace(newRegion_group, newRegion_pred<.5, "dryShrubGrass"), 
            newRegion_group = replace(newRegion_group, newRegion_pred>.5, "forest")) %>% 
-    terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)) %>% 
+    terra::vect(geom = c("x", "y"), crs = crs(soilRastTemp)) %>% 
     terra::rasterize(y = 
                        terra::aggregate(soilRastTemp, fact = 2, fun = mean)
                      , field = "newRegion_pred")
@@ -1003,7 +1078,7 @@ lapply(predictors, FUN = function(x) {
     mutate(newRegion_group = newRegion_pred) %>% 
     mutate(newRegion_group = replace(newRegion_group, newRegion_pred<.5, "dryShrubGrass"), 
            newRegion_group = replace(newRegion_group, newRegion_pred>.5, "forest")) %>% 
-    terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)) %>% 
+    terra::vect(geom = c("x", "y"), crs = crs(soilRastTemp)) %>% 
     terra::rasterize(y = 
                        terra::aggregate(soilRastTemp, fact = 2, fun = mean)
                      , field = "newRegion_pred")
@@ -1034,8 +1109,8 @@ lapply(predictors, FUN = function(x) {
   names(predsTemp) <- paste(x)
   # contemporary values
   contempTemp <- (modDat_testNew %>% 
-                    terra::vect(geom = c("Long", "Lat"), crs = crs(soilRastTemp)) %>% 
-                    terra::project(crs(ptCorrRast)) %>% 
+                    terra::vect(geom = c("x", "y"), crs = crs(soilRastTemp)) %>% 
+                    terra::project(crs(maxVPD_95_Rast)) %>% 
                     terra::rasterize(y = bioClim, field = predictors[!str_detect(string = predictors, pattern = x)]
                                        ))
   

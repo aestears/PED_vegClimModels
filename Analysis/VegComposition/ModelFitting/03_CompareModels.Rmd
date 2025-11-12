@@ -49,8 +49,8 @@ library(ggpubr)
 ```{r}
 # Load Data ---------------------------------------------------------------
 # data ready for modeling (that has been scaled)
-modDat_1_s <- readRDS("./models/scaledModelInputData.rds")
-  
+modDat_1_s <- base::readRDS("./models/scaledModelInputData.rds")
+  "./models/scaledModelInputData.rds"
 # get the soil raster, which we'll use for rasterizing the imagery
 soilRastTemp <- readRDS("../../../Data_processed/SoilsRaster.rds") %>% 
 terra::unwrap()
@@ -348,73 +348,73 @@ predictionDF[predictionDF$modelPreds < 0 & !is.na(predictionDF$modelPreds),"mode
 ```{r}
 filePath <- c("")
 # read in model specifications
-# no reduction of anomalies 
-grassShrub_totalHerb <- readRDS("./models/modelCoefficients_shrubGrass_TotalHerbaceousCover.rds")
-grassShrub_totalTree <- readRDS("./models/modelCoefficients_shrubGrass_TotalTreeCover.rds")
-#grassShrub_shrub <- readRDS("./models/modelCoefficients_shrubGrass_ShrubCover.rds")
-#grassShrub_bareGround <- readRDS("./models/modelCoefficients_shrubGrass_BareGroundCover.rds")
-forest_totalHerb <- readRDS("./models/modelCoefficients_forest_TotalHerbaceousCover.rds")
-forest_totalTree <- readRDS("./models/modelCoefficients_forest_TotalTreeCover.rds")
-#forest_shrub <- readRDS("./models/modelCoefficients_forest_ShrubCover.rds")
-#forest_bareGround <- readRDS("./models/modelCoefficients_forest_BareGroundCover.rds")
-CONUS_bareGround <- readRDS("./models/modelCoefficients_CONUS_BareGroundCover.rds")
-CONUS_shrub <- readRDS("./models/modelCoefficients_CONUS_ShrubCover.rds")
+# # no reduction of anomalies 
+# grassShrub_totalHerb <- readRDS("./models/modelCoefficients_trimAnom_shrubGrass_TotalHerbaceousCover_removeAnomaliesFALSE.rds")
+# grassShrub_totalTree <- readRDS("./models/modelCoefficients_trimAnom_shrubGrass_TotalTreeCover_removeAnomaliesTRUE.rds")
+# #grassShrub_shrub <- readRDS("./models/modelCoefficients_shrubGrass_ShrubCover.rds")
+# #grassShrub_bareGround <- readRDS("./models/modelCoefficients_shrubGrass_BareGroundCover.rds")
+# forest_totalHerb <- readRDS("./models/modelCoefficients_trimAnom_forest_TotalHerbaceousCover_removeAnomaliesFALSE.rds")
+# forest_totalTree <- readRDS("./models/modelCoefficients_trimAnom_forest_TotalTreeCover_removeAnomaliesTRUE.rds")
+# #forest_shrub <- readRDS("./models/modelCoefficients_forest_ShrubCover.rds")
+# #forest_bareGround <- readRDS("./models/modelCoefficients_forest_BareGroundCover.rds")
+# CONUS_bareGround <- readRDS("./models/modelCoefficients_trimAnom_CONUS_BareGroundCover_removeAnomaliesFALSE.rds")
+# CONUS_shrub <- readRDS("./models/modelCoefficients_trimAnom_CONUS_ShrubCover_removeAnomaliesFALSE.rds")
 
 # with reduction of anomalies 
-grassShrub_totalHerb_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_shrubGrass_TotalHerbaceousCover.rds")
-grassShrub_totalTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_shrubGrass_TotalTreeCover.rds")
+  grassShrub_totalHerb_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_shrubGrass_TotalHerbaceousCover_removeAnomaliesFALSE.rds")
+grassShrub_totalTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_shrubGrass_TotalTreeCover_removeAnomaliesTRUE.rds")
 #grassShrub_shrub_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_shrubGrass_ShrubCover.rds")
 #grassShrub_bareGround_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_shrubGrass_BareGroundCover.rds")
-forest_totalHerb_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_forest_TotalHerbaceousCover.rds")
-forest_totalTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_forest_TotalTreeCover.rds")
+forest_totalHerb_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_forest_TotalHerbaceousCover_removeAnomaliesFALSE.rds")
+forest_totalTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_forest_TotalTreeCover_removeAnomaliesTRUE.rds")
 #forest_shrub_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_forest_ShrubCover.rds")
 #forest_bareGround_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_forest_BareGroundCover.rds")
-CONUS_bareGround_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_CONUS_BareGroundCover.rds")
-CONUS_shrub_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_CONUS_ShrubCover.rds")
-CONUS_c3_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_CONUS_C3GramCover_prop.rds")
-CONUS_c4_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_CONUS_C4GramCover_prop.rds")
-CONUS_forb_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_CONUS_ForbCover_prop.rds")
-CONUS_broadLeavedTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_CONUS_AngioTreeCover_prop.rds")
-CONUS_needleLeavedTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_CONUS_ConifTreeCover_prop.rds")
+CONUS_bareGround_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_CONUS_BareGroundCover_removeAnomaliesFALSE.rds")
+CONUS_shrub_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_CONUS_ShrubCover_removeAnomaliesFALSE.rds")
+CONUS_c3_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_CONUS_C3GramCover_prop_removeAnomaliesFALSE.rds")
+CONUS_c4_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_CONUS_C4GramCover_prop_removeAnomaliesFALSE.rds")
+CONUS_forb_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_CONUS_ForbCover_prop_removeAnomaliesFALSE.rds")
+CONUS_broadLeavedTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_CONUS_AngioTreeCover_prop_removeAnomaliesFALSE.rds")
+  CONUS_needleLeavedTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_CONUS_ConifTreeCover_prop_removeAnomaliesFALSE.rds")
 
-forest_broadLeavedTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_forest_AngioTreeCover_prop.rds")
-forest_needleLeavedTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_forest_ConifTreeCover_prop.rds")
-grassShrub_broadLeavedTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_shrubGrass_AngioTreeCover_prop.rds")
-grassShrub_needleLeavedTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_shrubGrass_ConifTreeCover_prop.rds")
+forest_broadLeavedTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_forest_AngioTreeCover_prop_removeAnomaliesFALSE.rds")
+forest_needleLeavedTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_forest_ConifTreeCover_prop_removeAnomaliesFALSE.rds")
+grassShrub_broadLeavedTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_shrubGrass_AngioTreeCover_prop_removeAnomaliesFALSE.rds")
+grassShrub_needleLeavedTree_trimAnoms <- readRDS("./models/modelCoefficients_trimAnom_shrubGrass_ConifTreeCover_prop_removeAnomaliesFALSE.rds")
 
-# read in model metrics
-# no reduction of anomalies 
-modMetrics_grassShrub_totalHerb <- readRDS("./models/modelMetrics_shrubGrass_TotalHerbaceousCover.rds")
-modMetrics_grassShrub_totalTree <- readRDS("./models/modelMetrics_shrubGrass_TotalTreeCover.rds")
-#modMetrics_grassShrub_shrub <- readRDS("./models/modelMetrics_shrubGrass_ShrubCover.rds")
-#modMetrics_grassShrub_bareGround <- readRDS("./models/modelMetrics_shrubGrass_BareGroundCover.rds")
-modMetrics_forest_totalHerb <- readRDS("./models/modelMetrics_forest_TotalHerbaceousCover.rds")
-modMetrics_forest_totalTree <- readRDS("./models/modelMetrics_forest_TotalTreeCover.rds")
-#modMetrics_forest_shrub <- readRDS("./models/modelMetrics_forest_ShrubCover.rds")
-#modMetrics_forest_bareGround <- readRDS("./models/modelMetrics_forest_BareGroundCover.rds")
-modMetrics_CONUS_bareGround <- readRDS("./models/modelMetrics_CONUS_BareGroundCover.rds")
-modMetrics_CONUS_shrub <- readRDS("./models/modelMetrics_CONUS_ShrubCover.rds")
+# read in model metrics# read in model metrics# read in model metrics
+# # no reduction of anomalies 
+# modMetrics_grassShrub_totalHerb <- readRDS("./models/modelMetrics_shrubGrass_TotalHerbaceousCover.rds")
+# modMetrics_grassShrub_totalTree <- readRDS("./models/modelMetrics_shrubGrass_TotalTreeCover.rds")
+# #modMetrics_grassShrub_shrub <- readRDS("./models/modelMetrics_shrubGrass_ShrubCover.rds")
+# #modMetrics_grassShrub_bareGround <- readRDS("./models/modelMetrics_shrubGrass_BareGroundCover.rds")
+# modMetrics_forest_totalHerb <- readRDS("./models/modelMetrics_forest_TotalHerbaceousCover.rds")
+# modMetrics_forest_totalTree <- readRDS("./models/modelMetrics_forest_TotalTreeCover.rds")
+# #modMetrics_forest_shrub <- readRDS("./models/modelMetrics_forest_ShrubCover.rds")
+# #modMetrics_forest_bareGround <- readRDS("./models/modelMetrics_forest_BareGroundCover.rds")
+# modMetrics_CONUS_bareGround <- readRDS("./models/modelMetrics_CONUS_BareGroundCover.rds")
+# modMetrics_CONUS_shrub <- readRDS("./models/modelMetrics_CONUS_ShrubCover.rds")
 
 # with reduction of anomalies 
-modMetrics_grassShrub_totalHerb_trimAnom <- readRDS("./models/modelMetrics_trimAnom_shrubGrass_TotalHerbaceousCover.rds")
-modMetrics_grassShrub_totalTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_shrubGrass_TotalTreeCover.rds")
+modMetrics_grassShrub_totalHerb_trimAnom <- readRDS("./models/modelMetrics_trimAnom_shrubGrass_TotalHerbaceousCover_removeAnomaliesFALSE.rds")
+modMetrics_grassShrub_totalTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_shrubGrass_TotalTreeCover_removeAnomaliesTRUE.rds")
 #modMetrics_grassShrub_shrub_trimAnom <- readRDS("./models/modelMetrics_trimAnom_shrubGrass_ShrubCover.rds")
 #modMetrics_grassShrub_bareGround_trimAnom <- readRDS("./models/modelMetrics_trimAnom_shrubGrass_BareGroundCover.rds")
-modMetrics_forest_totalHerb_trimAnom <- readRDS("./models/modelMetrics_trimAnom_forest_TotalHerbaceousCover.rds")
-modMetrics_forest_totalTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_forest_TotalTreeCover.rds")
+modMetrics_forest_totalHerb_trimAnom <- readRDS("./models/modelMetrics_trimAnom_forest_TotalHerbaceousCover_removeAnomaliesFALSE.rds")
+modMetrics_forest_totalTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_forest_TotalTreeCover_removeAnomaliesTRUE.rds")
 #modMetrics_forest_shrub_trimAnom <- readRDS("./models/modelMetrics_trimAnom_forest_ShrubCover.rds")
 #modMetrics_forest_bareGround_trimAnom <- readRDS("./models/modelMetrics_trimAnom_forest_BareGroundCover.rds")
-modMetrics_CONUS_bareGround_trimAnom <- readRDS("./models/modelMetrics_trimAnom_CONUS_BareGroundCover.rds")
-modMetrics_CONUS_shrub_trimAnom <- readRDS("./models/modelMetrics_trimAnom_CONUS_ShrubCover.rds")
-modMetrics_CONUS_C3_trimAnom <- readRDS("./models/modelMetrics_trimAnom_CONUS_C3GramCover_prop.rds")
-modMetrics_CONUS_C4_trimAnom <- readRDS("./models/modelMetrics_trimAnom_CONUS_C4GramCover_prop.rds")
-modMetrics_CONUS_forb_trimAnom <- readRDS("./models/modelMetrics_trimAnom_CONUS_ForbCover_prop.rds")
-modMetrics_CONUS_broadLeavedTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_CONUS_AngioTreeCover_prop.rds")
-modMetrics_CONUS_needleLeavedTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_CONUS_ConifTreeCover_prop.rds")
-modMetrics_forest_broadLeavedTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_forest_AngioTreeCover_prop.rds")
-modMetrics_forest_needleLeavedTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_forest_ConifTreeCover_prop.rds")
-modMetrics_grassShrub_broadLeavedTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_shrubGrass_AngioTreeCover_prop.rds")
-modMetrics_grassShrub_needleLeavedTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_shrubGrass_ConifTreeCover_prop.rds")
+modMetrics_CONUS_bareGround_trimAnom <- readRDS("./models/modelMetrics_trimAnom_CONUS_BareGroundCover_removeAnomaliesFALSE.rds")
+modMetrics_CONUS_shrub_trimAnom <- readRDS("./models/modelMetrics_trimAnom_CONUS_ShrubCover_removeAnomaliesFALSE.rds")
+modMetrics_CONUS_C3_trimAnom <- readRDS("./models/modelMetrics_trimAnom_CONUS_C3GramCover_prop_removeAnomaliesFALSE.rds")
+modMetrics_CONUS_C4_trimAnom <- readRDS("./models/modelMetrics_trimAnom_CONUS_C4GramCover_prop_removeAnomaliesFALSE.rds")
+modMetrics_CONUS_forb_trimAnom <- readRDS("./models/modelMetrics_trimAnom_CONUS_ForbCover_prop_removeAnomaliesFALSE.rds")
+modMetrics_CONUS_broadLeavedTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_CONUS_AngioTreeCover_prop_removeAnomaliesFALSE.rds")
+modMetrics_CONUS_needleLeavedTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_CONUS_ConifTreeCover_prop_removeAnomaliesFALSE.rds")
+modMetrics_forest_broadLeavedTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_forest_AngioTreeCover_prop_removeAnomaliesFALSE.rds")
+modMetrics_forest_needleLeavedTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_forest_ConifTreeCover_prop_removeAnomaliesFALSE.rds")
+modMetrics_grassShrub_broadLeavedTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_shrubGrass_AngioTreeCover_prop_removeAnomaliesFALSE.rds")
+modMetrics_grassShrub_needleLeavedTree_trimAnom <- readRDS("./models/modelMetrics_trimAnom_shrubGrass_ConifTreeCover_prop_removeAnomaliesFALSE.rds")
 ```
   
 Now, show the different model performance metrics for each group (for now, only showing models that remove anomalies whose corresponding weather variables aren't present in the LASSO model)
@@ -1731,6 +1731,7 @@ rename("tmin" = tmin_meanAnnAvg_CLIM,
 
 ## Model # 2
 # forecastClimSoilsDat_2 <- readRDS("../../../Data_processed/CoverData/IntermediateAnalysisFiles/Final_ForecastedClimateDataAndSoilsDataForPredictions_IPSL-CM5A-MR_rcp8_5.rds")
+forecastClimSoilsDat_2 <- st_as_sf(forecastClimSoilsDat_2, coords )
 forecastClimSoilsDat_2$x <- st_coordinates(forecastClimSoilsDat_2)[,1]
 forecastClimSoilsDat_2$y <- st_coordinates(forecastClimSoilsDat_2)[,2]
 # get ecoregions
@@ -1844,40 +1845,50 @@ forecastClimSoilsDatPred_2 <- forecastClimSoilsDat_2 %>%
   cbind(forecastClimSoilsDat_scaled_2)
 names(forecastClimSoilsDatPred_2)[5:54] <- str_remove(names(forecastClimSoilsDatPred_2)[5:54], pattern = "_s$")
 
-## save the data for the first model 
+## save the scaled data for the first climate model 
 saveRDS(forecastClimSoilsDatPred_1, "../../../Data_processed/CoverData/IntermediateAnalysisFiles/Final_ForecastedClimateDataAndSoilsDataForPredictions_BNU-ESM_rcp8_5.rds")
 
-## save the data for the second model 
+## save the scaled data for the second climate model 
 saveRDS(forecastClimSoilsDatPred_2, "../../../Data_processed/CoverData/IntermediateAnalysisFiles/Final_ForecastedClimateDataAndSoilsDataForPredictions_IPSL-CM5A-MR_rcp8_5.rds")
 
+# save the unscaled data for the first climate model
+saveRDS(forecastClimSoilsDat_1, "../../../Data_processed/CoverData/IntermediateAnalysisFiles/Final_ForecastedClimateDataAndSoilsDataForPredictions_BNU-ESM_rcp8_5_UNSCALED.rds")
+
+# save the unscaled data for the second climate model
+saveRDS(forecastClimSoilsDat_2, "../../../Data_processed/CoverData/IntermediateAnalysisFiles/Final_ForecastedClimateDataAndSoilsDataForPredictions_IPSL-CM5A-MR_rcp8_5_UNSCALED.rds")
 
 } else {
+  # read in scaled data
  forecastClimSoilsDatPred_1 <- readRDS(file = "../../../Data_processed/CoverData/IntermediateAnalysisFiles/Final_ForecastedClimateDataAndSoilsDataForPredictions_BNU-ESM_rcp8_5.rds")
  forecastClimSoilsDatPred_2 <- readRDS(file = "../../../Data_processed/CoverData/IntermediateAnalysisFiles/Final_ForecastedClimateDataAndSoilsDataForPredictions_IPSL-CM5A-MR_rcp8_5.rds")
+ # read in unscaled data 
+ forecastClimSoilsDat_1 <- readRDS("../../../Data_processed/CoverData/IntermediateAnalysisFiles/Final_ForecastedClimateDataAndSoilsDataForPredictions_BNU-ESM_rcp8_5_UNSCALED.rds")
+forecastClimSoilsDat_2 <- readRDS("../../../Data_processed/CoverData/IntermediateAnalysisFiles/Final_ForecastedClimateDataAndSoilsDataForPredictions_IPSL-CM5A-MR_rcp8_5_UNSCALED.rds")
+
 }
 
 ```
 
 ## Predict for 'level 1' of cover types
 
-### Predict for grass/shrub *total herbaceous cover*: best lambda model
+### Predict for grass/shrub *total herbaceous cover*: 1SE lambda model
 
 Read in the best lambda model object
 ```{r}
 # read in model objects (is the trim anomaly version)
-bestLambdaMod_GS_totHerb <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/TotalHerbaceousCover_shrubGrass_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+bestLambdaMod_GS_totHerb <- readRDS("./models/betaLASSO/TotalHerbaceousCover_shrubGrass_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_oneSELambdaGLM.rds")
 
 ModelSpec_bestLambda <- getModelStatement(coefficientTable = grassShrub_totalHerb_trimAnoms,
                                                     modelName <- "coefficientValue_bestLambda", 
                                                     responseVar <- "TotalHerbaceousCover")
 ```
 
-This is the **Best Lambda** model equation if the inputs *are* scaled: 
+This is the **1SE Lambda** model equation if the inputs *are* scaled: 
 ```{r}
 (ModelSpec_bestLambda$scaledInputVars_ModelStatement)
 ```
 
-This is the **Best Lambda** model equation if the inputs are *not* scaled: 
+This is the **1SE Lambda** model equation if the inputs are *not* scaled: 
 ```{r}
 (ModelSpec_bestLambda$unscaledInputVars_scaledModelStatement)
 ```
@@ -2138,12 +2149,283 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
             heights = c(3,1), ncol = 3, nrow = 4) %>% 
   annotate_figure(fig.lab = "Model Predictions with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
 ```
+### Predict for forest total herbaceous - best lambda model
+Read in the objects
+```{r}
+# read in model objects (is the trim anomaly version)
+ bestLambdaMod_F_totHerb <- readRDS("./models/betaLASSO/TotalHerbaceousCover_forest_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
+
+ModelSpec_bestLambda_F_totHerb <- getModelStatement(coefficientTable = forest_totalHerb_trimAnoms,
+                                                    modelName <- "coefficientValue_bestLambda", 
+                                                    responseVar <- "TotalHerbaceousCover")
+```
+
+This is the **best Lambda** model equation if the inputs *are* scaled: 
+```{r}
+(ModelSpec_bestLambda_F_totHerb$scaledInputVars_ModelStatement)
+```
+
+This is the **best Lambda** model equation if the inputs are *not* scaled: 
+```{r}
+(ModelSpec_bestLambda_F_totHerb$unscaledInputVars_scaledModelStatement)
+```
+
+
+Predict
+```{r fig.width = 16, fig.height = 18, message = FALSE}
+# predict w/ best SE lambda model
+bestLambda_F_totHerb_predict <- makePredictions(predictionDF = climDatPred, 
+                                                           modelObject = bestLambdaMod_F_totHerb)
+# predict with best SE lambda model w/ forecasted climate data
+bestLambda_F_totHerb_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
+                                                           modelObject = bestLambdaMod_F_totHerb)
+# predict with best SE lambda model w/ forecasted climate data
+bestLambda_F_totHerb_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
+                                                           modelObject = bestLambdaMod_F_totHerb)
+
+# predict w/ best model
+plotObs <- bestLambda_F_totHerb_predict %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "modelPreds", 
+                   fun = mean, na.rm = TRUE)  
+    
+  
+
+
+plotObs_2 <- plotObs %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+## map best SE lambda predictions for the future model #1
+plotObs_bestLambdaFuture1 <- bestLambda_F_totHerb_predictFuture_1 %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                     field = "modelPreds", 
+                   fun = mean, na.rm = TRUE)
+
+plotObs_bestLambdaFuture1_2 <- plotObs_bestLambdaFuture1 %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+## map best SE lambda predictions for the future model #2
+plotObs_bestLambdaFuture2 <- bestLambda_F_totHerb_predictFuture_2 %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                     field = "modelPreds", 
+                   fun = mean, na.rm = TRUE)
+
+plotObs_bestLambdaFuture2_2 <- plotObs_bestLambdaFuture2 %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+
+# get plot of observations
+plotObservations_F_totHerb <- modDat_1_s %>% 
+         #drop_na(paste(response)) %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                     field = "TotalHerbaceousCover", 
+                   fun = mean, na.rm = TRUE)
+
+plotObservations_F_totHerb_2 <- plotObservations_F_totHerb %>% 
+  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+           min(tempExt[,2]), max(tempExt[,2])) 
+       )
+# make figures
+map <- ggplot() +
+geom_spatraster(data = plotObs_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("Predictions of TotalHerbaceousCover in the 
+                    forest ecoregion 
+                    using contemporary climate data"),
+      subtitle = "bestLambda model") +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+map_bestlambda_future1 <- ggplot() +
+geom_spatraster(data = plotObs_bestLambdaFuture1_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("Predictions of TotalHerbaceousCover in the 
+                    forest ecoregion
+                    using modeled climate data from BNU-ESM model"),
+      subtitle = "best Lambda model") +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+map_bestlambda_future2 <- ggplot() +
+geom_spatraster(data = plotObs_bestLambdaFuture2_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("Predictions of TotalHerbaceousCover in the 
+                    forest ecoregion
+                    using modeled climate data from IPSL-CM5A-MR model"),
+      subtitle = "best Lambda model") +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+map_obs_F_totHerb <- ggplot() +
+  geom_spatraster(data = plotObservations_F_totHerb_2) + 
+  geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = paste0("Observations of TotalHerbaceousCover")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)])
+
+hist <- ggplot(bestLambda_F_totHerb_predict) + 
+  geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
+  geom_density(data = bestLambda_F_totHerb_predict[bestLambda_F_totHerb_predict$newRegion %in% c("westForest", "eastForest"),],
+               aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
+  xlab("Predicted Value") + 
+  ylab("frequency")
+
+hist_bestlambdaFuture1 <-  ggplot(bestLambda_F_totHerb_predictFuture_1) + 
+  geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
+  geom_density(data = bestLambda_F_totHerb_predictFuture_1[bestLambda_F_totHerb_predictFuture_1$newRegion == "Forest",],
+               aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
+  xlab("Predicted Value") + 
+  ylab("frequency")
+
+hist_bestlambdaFuture2 <-  ggplot(bestLambda_F_totHerb_predictFuture_2) + 
+  geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
+  geom_density(data = bestLambda_F_totHerb_predictFuture_2[bestLambda_F_totHerb_predictFuture_2$newRegion == "Forest",],
+               aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
+  xlab("Predicted Value") + 
+  ylab("frequency")
+
+hist_obs <- ggplot(modDat_1_s) + 
+  geom_density(aes(TotalHerbaceousCover), fill = "lightgrey", col = "darkgrey") + 
+  geom_density(data = modDat_1_s[modDat_1_s$newRegion == "Forest",],
+               aes(x = TotalHerbaceousCover), fill = "orchid", col = "orchid", alpha = .3) +
+  xlab("Predicted Value") + 
+  ggtitle("Pink = predictions within 
+          the focal ecoregion") +
+  ylab("frequency")
+
+## calculate residuals for contemporary prediction
+# (observed - predicted)
+resids <-  plotObservations_F_totHerb_2 - plotObs_2 
+map_resids_trimAnoms <- ggplot() +
+geom_spatraster(data = resids) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(resids)),fill=NA )  + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  labs(title = paste0("Resids. (obs. - pred.) from the 
+                      Forest model of TotalHerbaceousCover"),
+     subtitle = "using predictions from the Trim Anomalies 
+     bestLambda model with contemporary climate data") +
+  scale_fill_gradient2(low = "red",
+                       mid = "white" ,
+                       high = "blue" , 
+                       midpoint = 0,   na.value = "grey20",
+                       limits = c(-1,1)
+                       ) + 
+  xlim(st_bbox(resids)[c(1,3)]) + 
+  ylim(st_bbox(resids)[c(2,4)])
+
+hist_trimAnoms_resids <-  ggplot(resids) + 
+  geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
+  xlab("Predicted Value") + 
+  ylab("frequency") + 
+  geom_vline(aes(xintercept = mean(terra::values(resids$mean), na.rm = TRUE)))
+
+# calculate deltas from model 1(future model predictions - contemporary model predictions)
+predDeltas_model1 <-  plotObs_bestLambdaFuture1_2 - plotObs_2 
+
+map_deltas_model1 <- ggplot() +
+geom_spatraster(data = predDeltas_model1) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(predDeltas_model1)),fill=NA )  + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  labs(title = paste0("Future Climate Model Deltas for \n forest model of TotalHerbaceousCover; \n (models with predictions with modeled climate data from model BNU-ESM model - \n models with predictions from contemporary climate data)"),
+     subtitle = "using predictions from the Trim Anomalies 
+     bestLambda model") +
+  scale_fill_gradient2(low = "orange",
+                       mid = "white" ,
+                       high = "purple" , 
+                       midpoint = 0,   na.value = "grey20",
+                       limits = c(-1,1)
+                       ) + 
+  xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
+  ylim(st_bbox(predDeltas_model1)[c(2,4)])
+
+hist_deltas_model1 <-  ggplot(predDeltas_model1) + 
+  geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
+  xlab("Predicted Value") + 
+  ylab("frequency") 
+
+# calculate deltas from model 1(future model predictions - contemporary model predictions)
+predDeltas_model2 <-  plotObs_bestLambdaFuture2_2 - plotObs_2 
+
+map_deltas_model2 <- ggplot() +
+geom_spatraster(data = predDeltas_model2) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(predDeltas_model2)),fill=NA )  + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  labs(title = paste0("Future Climate Model Deltas for \n forest model of TotalHerbaceousCover; \n (models with predictions with modeled climate data from model IPSL-CM5A-MR model - \n models with predictions from contemporary climate data)"),
+     subtitle = "using predictions from the Trim Anomalies 
+     bestLambda model") +
+  scale_fill_gradient2(low = "orange",
+                       mid = "white" ,
+                       high = "purple" , 
+                       midpoint = 0,   na.value = "grey20",
+                       limits = c(-1,1)
+                       ) + 
+  xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
+  ylim(st_bbox(predDeltas_model2)[c(2,4)])
+
+hist_deltas_model2 <-  ggplot(predDeltas_model2) + 
+  geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
+  xlab("Predicted Value") + 
+  ylab("frequency") 
+
+## conglomerate figure
+
+  ggarrange(map_obs_F_totHerb, hist_obs, heights = c(3,1), ncol = 1, nrow  = 2)
+
+  # plot model forecasts with model that does not exclude anomalies
+       ggarrange(map, map_bestlambda_future1, map_bestlambda_future2,
+              hist, hist_bestlambdaFuture1, hist_bestlambdaFuture2, 
+            map_resids_trimAnoms, map_deltas_model1, map_deltas_model2,
+            hist_trimAnoms_resids, hist_deltas_model1, hist_deltas_model2,
+            heights = c(3,1), ncol = 3, nrow = 4) %>% 
+  annotate_figure(fig.lab = "Model Predictions of TotalHerbaceousCover with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
+```
+
+
 
 ### Predict for grass/shrub Total Tree cover - best lambda model
 ```{r}
 
 # read in model objects (is the trim anomaly version)
-  bestLambdaMod_GS_totTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/TotalTreeCover_shrubGrass_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+  bestLambdaMod_GS_totTree <- readRDS("./models/betaLASSO/TotalTreeCover_shrubGrass_noTLP_FALSE_removeAnomaliesTRUE_bestLambdaGLM.rds")
 
 ModelSpec_bestlambda_GS_totTree <- getModelStatement(coefficientTable = grassShrub_totalTree_trimAnoms,
                                                     modelName <- "coefficientValue_bestLambda", 
@@ -2418,294 +2700,24 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
   annotate_figure(fig.lab = "Model Predictions of TotalTreeCover with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
 ```
 
-### Predict for forest total herbaceous - best lambda model
+### Predict for forest total tree cover - 1/2SE lambda model
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
- bestLambdaMod_F_totHerb <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/TotalHerbaceousCover_forest_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
-
-ModelSpec_bestLambda_F_totHerb <- getModelStatement(coefficientTable = forest_totalHerb_trimAnoms,
-                                                    modelName <- "coefficientValue_bestLambda", 
-                                                    responseVar <- "TotalHerbaceousCover")
-```
-
-This is the **best Lambda** model equation if the inputs *are* scaled: 
-```{r}
-(ModelSpec_bestLambda_F_totHerb$scaledInputVars_ModelStatement)
-```
-
-This is the **best Lambda** model equation if the inputs are *not* scaled: 
-```{r}
-(ModelSpec_bestLambda_F_totHerb$unscaledInputVars_scaledModelStatement)
-```
-
-
-Predict
-```{r fig.width = 16, fig.height = 18, message = FALSE}
-# predict w/ best SE lambda model
-bestLambda_F_totHerb_predict <- makePredictions(predictionDF = climDatPred, 
-                                                           modelObject = bestLambdaMod_F_totHerb)
-# predict with best SE lambda model w/ forecasted climate data
-bestLambda_F_totHerb_predictFuture_1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1, 
-                                                           modelObject = bestLambdaMod_F_totHerb)
-# predict with best SE lambda model w/ forecasted climate data
-bestLambda_F_totHerb_predictFuture_2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2, 
-                                                           modelObject = bestLambdaMod_F_totHerb)
-
-# predict w/ best model
-plotObs <- bestLambda_F_totHerb_predict %>% 
-         #drop_na(paste(response)) %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("x", "y")) %>% 
-  terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "modelPreds", 
-                   fun = mean, na.rm = TRUE)  
-    
-  
-
-
-plotObs_2 <- plotObs %>% 
-  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
-           min(tempExt[,2]), max(tempExt[,2])) 
-       )
-
-## map best SE lambda predictions for the future model #1
-plotObs_bestLambdaFuture1 <- bestLambda_F_totHerb_predictFuture_1 %>% 
-         #drop_na(paste(response)) %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("x", "y")) %>% 
-  terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                     field = "modelPreds", 
-                   fun = mean, na.rm = TRUE)
-
-plotObs_bestLambdaFuture1_2 <- plotObs_bestLambdaFuture1 %>% 
-  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
-           min(tempExt[,2]), max(tempExt[,2])) 
-       )
-## map best SE lambda predictions for the future model #2
-plotObs_bestLambdaFuture2 <- bestLambda_F_totHerb_predictFuture_2 %>% 
-         #drop_na(paste(response)) %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("x", "y")) %>% 
-  terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                     field = "modelPreds", 
-                   fun = mean, na.rm = TRUE)
-
-plotObs_bestLambdaFuture2_2 <- plotObs_bestLambdaFuture2 %>% 
-  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
-           min(tempExt[,2]), max(tempExt[,2])) 
-       )
-
-# get plot of observations
-plotObservations_F_totHerb <- modDat_1_s %>% 
-         #drop_na(paste(response)) %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("Long", "Lat")) %>% 
-  terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                     field = "TotalHerbaceousCover", 
-                   fun = mean, na.rm = TRUE)
-
-plotObservations_F_totHerb_2 <- plotObservations_F_totHerb %>% 
-  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
-           min(tempExt[,2]), max(tempExt[,2])) 
-       )
-# make figures
-map <- ggplot() +
-geom_spatraster(data = plotObs_2) + 
-  geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
-labs(title = paste0("Predictions of TotalHerbaceousCover in the 
-                    forest ecoregion 
-                    using contemporary climate data"),
-      subtitle = "bestLambda model") +
-  scale_fill_gradient2(low = "brown",
-                       mid = "wheat" ,
-                       high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
-  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_2)[c(2,4)])
-
-map_bestlambda_future1 <- ggplot() +
-geom_spatraster(data = plotObs_bestLambdaFuture1_2) + 
-  geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
-labs(title = paste0("Predictions of TotalHerbaceousCover in the 
-                    forest ecoregion
-                    using modeled climate data from BNU-ESM model"),
-      subtitle = "best Lambda model") +
-  scale_fill_gradient2(low = "brown",
-                       mid = "wheat" ,
-                       high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
-  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_2)[c(2,4)])
-
-map_bestlambda_future2 <- ggplot() +
-geom_spatraster(data = plotObs_bestLambdaFuture2_2) + 
-  geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
-labs(title = paste0("Predictions of TotalHerbaceousCover in the 
-                    forest ecoregion
-                    using modeled climate data from IPSL-CM5A-MR model"),
-      subtitle = "best Lambda model") +
-  scale_fill_gradient2(low = "brown",
-                       mid = "wheat" ,
-                       high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
-  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_2)[c(2,4)])
-
-map_obs_F_totHerb <- ggplot() +
-  geom_spatraster(data = plotObservations_F_totHerb_2) + 
-  geom_sf(data = mapRegions, fill = NA, col = "rosybrown4", lwd = .5) +
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
-labs(title = paste0("Observations of TotalHerbaceousCover")) +
-  scale_fill_gradient2(low = "brown",
-                       mid = "wheat" ,
-                       high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
-  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_2)[c(2,4)])
-
-hist <- ggplot(bestLambda_F_totHerb_predict) + 
-  geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
-  geom_density(data = bestLambda_F_totHerb_predict[bestLambda_F_totHerb_predict$newRegion %in% c("westForest", "eastForest"),],
-               aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
-  xlab("Predicted Value") + 
-  ylab("frequency")
-
-hist_bestlambdaFuture1 <-  ggplot(bestLambda_F_totHerb_predictFuture_1) + 
-  geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
-  geom_density(data = bestLambda_F_totHerb_predictFuture_1[bestLambda_F_totHerb_predictFuture_1$newRegion == "Forest",],
-               aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
-  xlab("Predicted Value") + 
-  ylab("frequency")
-
-hist_bestlambdaFuture2 <-  ggplot(bestLambda_F_totHerb_predictFuture_2) + 
-  geom_density(aes(modelPreds), fill = "lightgrey", col = "darkgrey") + 
-  geom_density(data = bestLambda_F_totHerb_predictFuture_2[bestLambda_F_totHerb_predictFuture_2$newRegion == "Forest",],
-               aes(x = modelPreds), fill = "orchid", col = "orchid", alpha = .3) +
-  xlab("Predicted Value") + 
-  ylab("frequency")
-
-hist_obs <- ggplot(modDat_1_s) + 
-  geom_density(aes(TotalHerbaceousCover), fill = "lightgrey", col = "darkgrey") + 
-  geom_density(data = modDat_1_s[modDat_1_s$newRegion == "Forest",],
-               aes(x = TotalHerbaceousCover), fill = "orchid", col = "orchid", alpha = .3) +
-  xlab("Predicted Value") + 
-  ggtitle("Pink = predictions within 
-          the focal ecoregion") +
-  ylab("frequency")
-
-## calculate residuals for contemporary prediction
-# (observed - predicted)
-resids <-  plotObservations_F_totHerb_2 - plotObs_2 
-map_resids_trimAnoms <- ggplot() +
-geom_spatraster(data = resids) + 
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(resids)),fill=NA )  + 
-  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-  labs(title = paste0("Resids. (obs. - pred.) from the 
-                      Forest model of TotalHerbaceousCover"),
-     subtitle = "using predictions from the Trim Anomalies 
-     bestLambda model with contemporary climate data") +
-  scale_fill_gradient2(low = "red",
-                       mid = "white" ,
-                       high = "blue" , 
-                       midpoint = 0,   na.value = "grey20",
-                       limits = c(-1,1)
-                       ) + 
-  xlim(st_bbox(resids)[c(1,3)]) + 
-  ylim(st_bbox(resids)[c(2,4)])
-
-hist_trimAnoms_resids <-  ggplot(resids) + 
-  geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
-  xlab("Predicted Value") + 
-  ylab("frequency") + 
-  geom_vline(aes(xintercept = mean(terra::values(resids$mean), na.rm = TRUE)))
-
-# calculate deltas from model 1(future model predictions - contemporary model predictions)
-predDeltas_model1 <-  plotObs_bestLambdaFuture1_2 - plotObs_2 
-
-map_deltas_model1 <- ggplot() +
-geom_spatraster(data = predDeltas_model1) + 
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(predDeltas_model1)),fill=NA )  + 
-  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-  labs(title = paste0("Future Climate Model Deltas for \n forest model of TotalHerbaceousCover; \n (models with predictions with modeled climate data from model BNU-ESM model - \n models with predictions from contemporary climate data)"),
-     subtitle = "using predictions from the Trim Anomalies 
-     bestLambda model") +
-  scale_fill_gradient2(low = "orange",
-                       mid = "white" ,
-                       high = "purple" , 
-                       midpoint = 0,   na.value = "grey20",
-                       limits = c(-1,1)
-                       ) + 
-  xlim(st_bbox(predDeltas_model1)[c(1,3)]) + 
-  ylim(st_bbox(predDeltas_model1)[c(2,4)])
-
-hist_deltas_model1 <-  ggplot(predDeltas_model1) + 
-  geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
-  xlab("Predicted Value") + 
-  ylab("frequency") 
-
-# calculate deltas from model 1(future model predictions - contemporary model predictions)
-predDeltas_model2 <-  plotObs_bestLambdaFuture2_2 - plotObs_2 
-
-map_deltas_model2 <- ggplot() +
-geom_spatraster(data = predDeltas_model2) + 
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(predDeltas_model2)),fill=NA )  + 
-  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-  labs(title = paste0("Future Climate Model Deltas for \n forest model of TotalHerbaceousCover; \n (models with predictions with modeled climate data from model IPSL-CM5A-MR model - \n models with predictions from contemporary climate data)"),
-     subtitle = "using predictions from the Trim Anomalies 
-     bestLambda model") +
-  scale_fill_gradient2(low = "orange",
-                       mid = "white" ,
-                       high = "purple" , 
-                       midpoint = 0,   na.value = "grey20",
-                       limits = c(-1,1)
-                       ) + 
-  xlim(st_bbox(predDeltas_model2)[c(1,3)]) + 
-  ylim(st_bbox(predDeltas_model2)[c(2,4)])
-
-hist_deltas_model2 <-  ggplot(predDeltas_model2) + 
-  geom_density(aes(mean), fill = "lightgrey", col = "darkgrey") + 
-  xlab("Predicted Value") + 
-  ylab("frequency") 
-
-## conglomerate figure
-
-  ggarrange(map_obs_F_totHerb, hist_obs, heights = c(3,1), ncol = 1, nrow  = 2)
-
-  # plot model forecasts with model that does not exclude anomalies
-       ggarrange(map, map_bestlambda_future1, map_bestlambda_future2,
-              hist, hist_bestlambdaFuture1, hist_bestlambdaFuture2, 
-            map_resids_trimAnoms, map_deltas_model1, map_deltas_model2,
-            hist_trimAnoms_resids, hist_deltas_model1, hist_deltas_model2,
-            heights = c(3,1), ncol = 3, nrow = 4) %>% 
-  annotate_figure(fig.lab = "Model Predictions of TotalHerbaceousCover with Contemporary and Forecasted Climate Data", fig.lab.size = 20)
-```
-
-### Predict for forest total tree cover - best lambda model
-Read in the objects
-```{r}
-# read in model objects (is the trim anomaly version)
- bestLambdaMod_F_totTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/TotalTreeCover_forest_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+ bestLambdaMod_F_totTree <- readRDS("./models/betaLASSO/TotalTreeCover_forest_noTLP_FALSE_removeAnomaliesTRUE_halfSELambdaGLM.rds")
 
 ModelSpec_bestLambda_F_totTree <- getModelStatement(coefficientTable = forest_totalTree_trimAnoms,
-                                                    modelName <- "coefficientValue_bestLambda", 
+                                                    modelName <- "coefficientValue_halfseLambda", 
                                                     responseVar <- "TotalTreeCover")
 
 ```
 
-This is the **best Lambda** model equation if the inputs *are* scaled: 
+This is the **1/2SE Lambda** model equation if the inputs *are* scaled: 
 ```{r}
 (ModelSpec_bestLambda_F_totTree$scaledInputVars_ModelStatement)
 ```
 
-This is the **best Lambda** model equation if the inputs are *not* scaled: 
+This is the **1/2SE Lambda** model equation if the inputs are *not* scaled: 
 ```{r}
 (ModelSpec_bestLambda_F_totTree$unscaledInputVars_scaledModelStatement)
 ```
@@ -2793,7 +2805,7 @@ geom_spatraster(data = plotObs_2) +
 labs(title = paste0("Predictions of TotalTreeCover in the 
                     forest ecoregion 
                     using contemporary climate data"),
-      subtitle = "bestLambda model") +
+      subtitle = "halfseLambda model") +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
@@ -2808,7 +2820,7 @@ geom_spatraster(data = plotObs_bestLambdaFuture1_2) +
 labs(title = paste0("Predictions of TotalTreeCover in the 
                     forest ecoregion
                     using modeled climate data from BNU-ESM model"),
-      subtitle = "best Lambda model") +
+      subtitle = "halsfseLambda model") +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
@@ -2823,7 +2835,7 @@ geom_spatraster(data = plotObs_bestLambdaFuture2_2) +
 labs(title = paste0("Predictions of TotalTreeCover in the 
                     forest ecoregion
                     using modeled climate data from IPSL-CM5A-MR model"),
-      subtitle = "best Lambda model") +
+      subtitle = "halsfseLambda model") +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
@@ -2964,7 +2976,7 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
- bestLambdaMod_CONUS_shrub <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/ShrubCover_CONUS_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+ bestLambdaMod_CONUS_shrub <- readRDS("./models/betaLASSO/ShrubCover_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
 
 ModelSpec_bestLambda_CONUS_shrub <- getModelStatement(coefficientTable = CONUS_shrub_trimAnoms,
                                                     modelName <- "coefficientValue_bestLambda", 
@@ -3225,7 +3237,7 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
- oneSELambdaMod_CONUS_bareGround <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/BareGroundCover_CONUS_noTLP_FALSE_trimAnom_oneSELambdaGLM.rds")
+ oneSELambdaMod_CONUS_bareGround <- readRDS("./models/betaLASSO/BareGroundCover_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_oneSELambdaGLM.rds")
 
 ModelSpec_oneSELambdaMod_CONUS_bareGround <- getModelStatement(coefficientTable = CONUS_bareGround_trimAnoms,
                                                     modelName <- "coefficientValue_1seLambda", 
@@ -3482,11 +3494,11 @@ hist_deltas_model2 <-  ggplot(predDeltas_model2) +
 
 
 ## Predict for 'level 2' of cover types 
-## C3 as proportion of total herbaceous, CONUS-wide - 1SE lambda model
+### C3 as proportion of total herbaceous, CONUS-wide - 1SE lambda model
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
- oneSELambdaMod_CONUS_C3 <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/C3GramCover_prop_CONUS_noTLP_FALSE_trimAnom_oneSELambdaGLM.rds")
+ oneSELambdaMod_CONUS_C3 <- readRDS("./models/betaLASSO/C3GramCover_prop_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_oneSELambdaGLM.rds")
 
 ModelSpec_oneSELambdaMod_CONUS_C3 <- getModelStatement(coefficientTable = CONUS_c3_trimAnoms,
                                                     modelName <- "coefficientValue_1seLambda", 
@@ -3516,11 +3528,11 @@ bestLambda_CONUS_C3_predictFuture_2 <- makePredictions(predictionDF = forecastCl
 modelObject = oneSELambdaMod_CONUS_C3)
 ```
 
-## C4 as proportion of total herbaceous, CONUS-wide - 1SE lambda model
+### C4 as proportion of total herbaceous, CONUS-wide - best lambda model
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
- oneSELambdaMod_CONUS_C4 <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/C4GramCover_prop_CONUS_noTLP_FALSE_trimAnom_oneSELambdaGLM.rds")
+ oneSELambdaMod_CONUS_C4 <- readRDS("./models/betaLASSO/C4GramCover_prop_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
 
 ModelSpec_oneSELambdaMod_CONUS_C4 <- getModelStatement(coefficientTable = CONUS_c4_trimAnoms,
                                                     modelName <- "coefficientValue_1seLambda", 
@@ -3550,11 +3562,11 @@ bestLambda_CONUS_C4_predictFuture_2 <- makePredictions(predictionDF = forecastCl
 modelObject = oneSELambdaMod_CONUS_C4)
 ```
 
-## forb as proportion of total herbaceous, CONUS-wide - 1SE lambda model
+### forb as proportion of total herbaceous, CONUS-wide - best lambda model
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
- oneSELambdaMod_CONUS_forb <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/ForbCover_prop_CONUS_noTLP_FALSE_trimAnom_oneSELambdaGLM.rds")
+ oneSELambdaMod_CONUS_forb <- readRDS("./models/betaLASSO/ForbCover_prop_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
 
 ModelSpec_oneSELambdaMod_CONUS_forb <- getModelStatement(coefficientTable = CONUS_forb_trimAnoms,
                                                     modelName <- "coefficientValue_1seLambda", 
@@ -3584,11 +3596,11 @@ bestLambda_CONUS_forb_predictFuture_2 <- makePredictions(predictionDF = forecast
 modelObject = oneSELambdaMod_CONUS_forb)
 ```
 
-## needle-leaved tree as proportion of total tree, forest - best lambda model
+### needle-leaved tree as proportion of total tree, forest - best lambda model
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
- bestLambdaMod_forest_needleLeavedTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/ConifTreeCover_prop_forest_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+ bestLambdaMod_forest_needleLeavedTree <- readRDS("./models/betaLASSO/ConifTreeCover_prop_forest_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
 
 ModelSpec_bestLambdaMod_forest_needleLeavedTree <- getModelStatement(coefficientTable = forest_needleLeavedTree_trimAnoms,
                                                     modelName <- "coefficientValue_bestLambda", 
@@ -3619,11 +3631,11 @@ modelObject = bestLambdaMod_forest_needleLeavedTree)
 ```
 
 
-## needle-leaved tree as proportion of total tree, grass/shrub - best lambda model
+### needle-leaved tree as proportion of total tree, grass/shrub - best lambda model
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
- bestLambdaMod_grassShrub_needleLeavedTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/ConifTreeCover_prop_shrubGrass_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+ bestLambdaMod_grassShrub_needleLeavedTree <- readRDS("./models/betaLASSO/ConifTreeCover_prop_shrubGrass_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
 
 ModelSpec_bestLambdaMod_grassShrub_needleLeavedTree <- getModelStatement(coefficientTable = grassShrub_needleLeavedTree_trimAnoms,
                                                     modelName <- "coefficientValue_bestLambda", 
@@ -3653,11 +3665,11 @@ bestLambda_grassShrub_needleLeavedTree_predictFuture_2 <- makePredictions(predic
 modelObject = bestLambdaMod_grassShrub_needleLeavedTree)
 ```
 
-## broad-leaved tree as proportion of total tree, forest - best lambda model
+### broad-leaved tree as proportion of total tree, forest - best lambda model
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
- bestLambdaMod_forest_broadLeavedTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/AngioTreeCover_prop_forest_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+ bestLambdaMod_forest_broadLeavedTree <- readRDS("./models/betaLASSO/AngioTreeCover_prop_forest_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
 
 ModelSpec_bestLambdaMod_forest_broadLeavedTree <- getModelStatement(coefficientTable = forest_broadLeavedTree_trimAnoms,
                                                     modelName <- "coefficientValue_bestLambda", 
@@ -3688,11 +3700,11 @@ bestLambda_forest_broadLeavedTree_predictFuture_2 <- makePredictions(predictionD
 modelObject = bestLambdaMod_forest_broadLeavedTree)
 ```
 
-## broad-leaved tree as proportion of total tree, grassShrub - best lambda model
+### broad-leaved tree as proportion of total tree, grassShrub - best lambda model
 Read in the objects
 ```{r}
 # read in model objects (is the trim anomaly version)
- bestLambdaMod_grassShrub_broadLeavedTree <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Analysis/VegComposition/ModelFitting/models/AngioTreeCover_prop_shrubGrass_noTLP_FALSE_trimAnom_bestLambdaGLM.rds")
+ bestLambdaMod_grassShrub_broadLeavedTree <- readRDS("./models/betaLASSO/AngioTreeCover_prop_shrubGrass_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
 
 ModelSpec_bestLambdaMod_grassShrub_broadLeavedTree <- getModelStatement(coefficientTable = grassShrub_broadLeavedTree_trimAnoms,
                                                     modelName <- "coefficientValue_bestLambda", 
