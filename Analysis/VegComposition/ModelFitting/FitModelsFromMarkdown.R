@@ -1,5 +1,7 @@
 # # this script runs the '02_ModelFitting.Rmd" file for each cover variable and saves the output
 # 
+setwd("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/")
+
 # # Shrub/grass ecoregion ; yes trim anomalies---------------------------------------------------
 # # total herbaceous cover
 # rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd", 

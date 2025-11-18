@@ -11,13 +11,13 @@ output:
 params:
   run: FALSE      
   save_figs: TRUE
-  ecoregion: forest
+  ecoregion: shrubGrass
   response: TotalTreeCover
   removeTexasLouisianaPlain: FALSE
   removeAllAnoms: TRUE
   trimAnomalies: FALSE
   autoKfold: FALSE
-  whichSecondBestMod: auto # 1se OR halfse OR auto (chose the model w/ fewest # of predictors)
+  whichSecondBestMod: "auto"# 1se OR halfse OR auto (chose the model w/ fewest # of predictors)
 subtitle: "Based on code from Martin Holdrege's Sagebrush-Fire paper"
 ---
 The data consists of vegetation % cover by functional group from across CONUS (from AIM, FIA, LANDFIRE, and RAP), 
@@ -46,6 +46,7 @@ removeTLP <- params$removeTexasLouisianaPlain
 run <- params$run
 autoKfold <- params$autoKfold
 removeAllAnoms <- params$removeAllAnoms
+whichSecondBestMod <- params$whichSecondBestMod
 ```
 
 Load packages and source functions
@@ -1865,7 +1866,7 @@ if ( name_secondBestMod == "Intercept_Only") {
                                       response_vars = response_vars,
                                         pred_vars = prednames_secondBestMod, 
                                        cut_points = seq(0, 1, 0.01))
-}
+  }
 ```
 
 Below are quantile plots for the *best lambda model* 

@@ -42,6 +42,8 @@ library(knitr)
 library(USA.state.boundaries)
 library(tidyterra)
 library(ggpubr)
+# set ggplot theme default 
+theme_set(theme_classic())
 ```
 
 # Read in data

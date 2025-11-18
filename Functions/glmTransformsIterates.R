@@ -182,10 +182,10 @@ decile_dotplot_pq <- function(df, size = 0.5, response = response, IQR = FALSE, 
   yvar <- response[1]
   yvar_pred <-  response[2]
   
-  fig_letters <- str_to_upper(c("a", "b", "c", "d", "e", "f", "g", "f", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q","r", "s", "t", "u", "v", "w", "x", "y", "z"))
+  fig_letters <- str_to_upper(c("a", "b", "c", "d", "e", "f", "g",  "h", "i", "j", "k", "l", "m", "n", "o", "p", "q","r", "s", "t", "u", "v", "w", "x", "y", "z"))
   letter_df <- tibble(
     letter = fig_letters[1:length(unique(df2$name))],
-    name = (as.factor(unique(df2$name))),
+    name = sort(as.factor(unique(df2$name))),
     x = -Inf,
     y = Inf
   )
@@ -217,7 +217,7 @@ decile_dotplot_pq <- function(df, size = 0.5, response = response, IQR = FALSE, 
       # adding line segment on the right, for secondary axis
       annotate("segment", x=Inf, xend=Inf, y=-Inf, yend=Inf, size = 1) +
       labs(#y = "Total Tree Cover per decile" ,
-        x = "mean climate predictor value per decile") +
+        x = "mean climate predictor value per quantile") +
       # theme(legend.position = 'top',
       #       #legend.title = element_blank(),
       #       #strip.text = element_text(),
@@ -258,7 +258,7 @@ decile_dotplot_pq <- function(df, size = 0.5, response = response, IQR = FALSE, 
       # adding line segment on the right, for secondary axis
       annotate("segment", x=Inf, xend=Inf, y=-Inf, yend=Inf, size = 1) +
       labs(#y = "Total Tree Cover per decile" ,
-        x = "mean climate predictor value per decile") +
+        x = "mean climate predictor value per quantile") +
       # theme(legend.position = 'top',
       #       #legend.title = element_blank(),
       #       #strip.text = element_text(),
@@ -289,7 +289,7 @@ decile_dotplot_pq <- function(df, size = 0.5, response = response, IQR = FALSE, 
       # adding line segment on the right, for secondary axis
       annotate("segment", x=Inf, xend=Inf, y=-Inf, yend=Inf, size = 1) +
       labs(#y = "Total Tree Cover per decile" ,
-        x = "mean climate predictor value per decile") +
+        x = "mean climate predictor value per quantile") +
       # theme(legend.position = 'top',
       #       #legend.title = element_blank(),
       #       #strip.text = element_text(),
@@ -480,7 +480,7 @@ var2lab <- function(x = NULL, units_md = FALSE, add_letters = FALSE,
 #' @param add_smooth whether to add a smoother to the inset
 #' @param ... arguments passed to geom_smooth
 add_dotplot_inset <- function(g, df, response, dfRaw = NULL, add_smooth = FALSE,  deciles = TRUE, ...) {
-  fig_letters <- str_to_upper(c("a", "b", "c", "d", "e", "f", "g", "f", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q","r", "s", "t", "u", "v", "w", "x", "y", "z"))
+  fig_letters <- str_to_upper(c("a", "b", "c", "d", "e", "f", "g",  "h", "i", "j", "k", "l", "m", "n", "o", "p", "q","r", "s", "t", "u", "v", "w", "x", "y", "z"))
   yvar <- response[1]
   max <- df %>% 
     dplyr::select(all_of(yvar), all_of(response[2])) %>% 
