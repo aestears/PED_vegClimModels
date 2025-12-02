@@ -1,0 +1,106 @@
+---
+title: "Equations For Scaling Of Cover Results"
+output: pdf_document
+date: "2025-11-19"
+classoption: landscape
+---
+
+
+## Acquiring CONUS-wide predicitions of absolute cover of needle-leaved trees: Old version 
+##### Step 1: Get model predictions
+
+$$ percNLTree_{GS} \sim climate + weather + soils $$
+$$ percNLTree_{F}  \sim climate + weather + soils  $$ 
+$$ percBLTree_{GS}  \sim climate + weather + soils $$
+$$ percBLTree_{F}  \sim climate + weather + soils $$
+$$ absTotalTree_{GS}  \sim climate + soils $$
+$$ absTotalTree_{F} \sim climate + soils $$
+
+##### Step 2: Scale ecoregion predictions to be CONUS-wide
+$$ percNLtree_{CONUS} = (P(GS) * percNLTree_{GS}) + (P(F) * percNLTree_{F}) $$
+$$ percBLtree_{CONUS} = (P(GS) * percBLTree_{GS}) + (P(F) * percBLTree_{F}) $$
+$$ absTotalTree_{CONUS} = (P(GS) * absTotalTree_{GS}) + (P(F) * absTotalTree_{F}) $$
+
+##### Step 3: Scale the CONUS-wide predictions to sum to 1
+$$
+perNLtree\_scaled_{CONUS} = \frac{percNLtree_{CONUS}}{percNLtree_{CONUS} + percBLtree_{CONUS}} 
+$$
+
+##### Step 4: Convert these predictions of proportions to absolute cover
+$$
+absNLtree_{CONUS} = perNLtree\_scaled_{CONUS} * absTotalTree_{CONUS} 
+$$
+
+##### When we use substitution to combine these equations, we get: 
+$$
+absNLtree_{CONUS} = \frac{[(P(GS) * percNLTree_{GS}) + (P(F) * percNLTree_{F})]}{[(P(GS) * percNLTree_{GS}) + (P(F) * percNLTree_{F})] + [(P(GS) * percBLTree_{GS}) + (P(F) * percBLTree_{F})]}  * 
+$$
+
+$$
+[(P(GS) * absTotalTree_{GS}) + (P(F) * absTotalTree_{F})]
+$$
+
+
+
+## Acquiring CONUS-wide predicitions of absolute cover of needle-leaved trees: New version 
+##### Step 1: Get model predictions
+$$ percNLTree_{GS} \sim climate + weather + soils $$
+$$ percNLTree_{F}  \sim climate + weather + soils  $$ 
+$$ percBLTree_{GS}  \sim climate + weather + soils $$
+$$ percBLTree_{F}  \sim climate + weather + soils $$
+$$ absTotalTree_{GS}  \sim climate + soils $$
+$$ absTotalTree_{F} \sim climate + soils $$
+
+##### Step 2: For predictions of proportions, scale them so that they sum to 1 
+$$ percNLtree\_scaled_{GS} = \frac{percNLtree_{GS}}{percBLtree_{GS} + percNLtree_{GS}} $$
+$$ percNLtree\_scaled_{F} = \frac{percNLtree_{F}}{percBLtree_{F} + percNLtree_{F}} $$
+
+##### Step 3: Convert these predictions of proportions to absolute cover
+$$ absNLtree_{GS} = percNLtree\_scaled_{GS} * absTotalTree_{GS} $$
+$$ absNLtree_{F} = percNLtree\_scaled_{F} * absTotalTree_{F} $$
+
+##### Step 4: Convert these predictions of absolute cover by ecoregion to be CONUS-wide
+$$
+absNLtree_{CONUS} = (P(GS) * absNLtree_{GS}) + (P(F) * absNLtree_{F})
+$$
+
+##### When we use substitution to combine these equations, we get: 
+$$
+absNLtree_{CONUS} = (P(GS) * [ (\frac{percNLtree_{GS}}{percBLtree_{GS} + percNLtree_{GS}}) * absTotalTree_{GS}]) + (P(F) * 
+[(\frac{percNLtree_{F}}{percBLtree_{F} + percNLtree_{F}}) * absTotalTree_{F}])
+$$
+
+
+
+
+<!-- Are the two version mathematically identical?  -->
+<!-- updated notations for simplicity:  -->
+<!-- $$ -->
+<!-- percNLTree_{GS} = A -->
+<!-- percNLTree_{F} = B -->
+<!-- percBLTree_{GS} = C -->
+<!-- percBLTree_{F} = D -->
+<!-- absTotalTree_{GS} = E -->
+<!-- absTotalTree_{F} = F -->
+<!-- P(GS) = G -->
+<!-- P(F) = H -->
+<!-- $$ -->
+<!-- V1:  -->
+<!-- $$ -->
+<!-- absNLtree_{CONUS} = \frac{[(G* A) + (H * B)]}{[(G* A) + (H * B)] + [(G* C) + (H * D)]}  * [(G* E) + (H * F)] -->
+<!-- $$ -->
+<!-- simplified:  -->
+<!-- $$ -->
+<!-- absNLtree_{CONUS} = \frac{[(percNLTree_{GS}*G) + (percNLTree_{F}*P(F))][(absTotalTree_{GS}*P(GS)) + (absTotalTree_{F}*P(F))]}{(percNLTree_{GS} * P(GS)) + (percNLTree_{F} * P(F)) + (percBLTree_{GS} * P(GS)) + (percBLTree_{F} * P(F))} -->
+<!-- $$ -->
+
+
+<!-- V2:  -->
+<!-- $$ -->
+<!-- absNLtree_{CONUS} = (G* [ (\frac{A}{C + A}) * E]) + (H *  -->
+<!-- [(\frac{B}{D + B}) * F]) -->
+<!-- $$ -->
+<!-- simplified:  -->
+<!-- $$ -->
+<!-- absNLtree_{CONUS} = \frac{(percNLTree_{GS}*percNLTree_{F}*absTotalTree_{GS}*P(GS)) + (percNLTree_{GS}*percNLTree_{F}*absTotalTree_{F}*P(F)) + (percNLTree_{GS}*percBLTree_{F}*absTotalTree_{GS}*P(GS)) + (percNLTree_{F}*percBLTree_{GS}*absTotalTree_{F}*P(F))}{(percNLTree_{GS}+percBLTree_{GS}) * (percNLTree_{F}+percBLTree_{F})} -->
+<!-- $$ -->

@@ -490,3 +490,50 @@ ggplot(TREE_use) +
 
 ## save data
 saveRDS(TREE_use, "./Data_raw//FIA/TREEtable_use.rds")
+
+
+# Visualizations for checking purposes ------------------------------------
+test_rast <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
+  terra::aggregate(fact = 2, fun = "mean") %>% 
+  terra::project(crs(coverDat))
+
+# test_rast <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
+#   #terra::aggregate(fact = 8, fun = "mean") %>% 
+#   terra::project(crs(coverDat))
+
+
+# For LANDFIRE data -------------------------------------------------------
+test_rast <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
+  terra::aggregate(fact = 2, fun = "mean") %>% 
+  terra::project(crs(coverDat))
+
+
+# total tree cover data 
+# rasterize data
+treeCover_rast <- coverDat %>% 
+  filter(Source == "LANDFIRE") %>% 
+  #slice_sample(n = 5e4) %>%
+  terra::vect() %>% 
+  #terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "TtlTrCv", 
+                   fun = mean, na.rm = TRUE) %>% 
+  terra::crop(ext(-130, -65, 25, 50))
+(treeCov_plot_LF <- ggplot() + 
+    geom_spatraster(data = treeCover_rast, aes(fill = mean), na.rm = TRUE) +
+    theme_minimal() + 
+    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+                         limits = c(0,100)) +
+    ggtitle("LANDFIRE", subtitle = "Tree % cover" ))
+
+
+FIA_treeCover <- FIA_veg %>% 
+  sf::st_as_sf(coords = c("LON", "LAT")) %>% 
+  terra::vect() %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "TallyTree_AerialCover", 
+                   fun = mean, na.rm = TRUE) %>% 
+  terra::crop(ext(-130, -65, 25, 50))
+
+

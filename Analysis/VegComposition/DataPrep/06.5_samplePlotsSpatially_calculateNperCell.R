@@ -222,305 +222,305 @@
 # 
 # ## save the data
 # saveRDS(datAll, "./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_sf.rds")
-# datAll <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_sf.rds")
-# 
+datAll <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_sf.rds")
+
 # saveRDS(st_drop_geometry(datAll), "./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_NoSf.rds")
 # 
-# # Visualize results -------------------------------------------------------
-# ## shrub
-# temp <- test2[[1]] %>%
-#   terra::aggregate(fact = 8, fun = "max", na.rm = TRUE) %>%
-#   terra::crop(ext(-2060750, 2855250, -2395500, 1284500)) %>%
-#   terra::app(fun = function(x) {
-#     if(sum(!is.na(x))>0 ) {
-#       if(max(x, na.rm = TRUE) > 0) {
-#         tempTemp <- max(x, na.rm = TRUE)
-#       } else {
-#         tempTemp <- NA
-#       }
-#     } else {
-#     tempTemp <- NA
-#     }
-#     return(tempTemp)
-#     })
-# 
-# 
-# (shrubN_plot_full <- ggplot() +
-#     geom_spatraster(data = temp, aes(), na.rm = TRUE) +
-#     theme_minimal() +
-#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"),
-#                          limits = c(1,315)) +
-#     #facet_wrap(~lyr) +
-#     ggtitle("Maximum # of plots in a grid cell with Shrub Cover data", subtitle = "full range of values" )+
-#     theme_minimal())
-# 
-# 
-# (shrubN_plot_trimmed <- ggplot() +
-#     geom_spatraster(data = temp, aes(), na.rm = TRUE) +
-#     theme_minimal() +
-#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "trimmed scale"),
-#                          limits = c(1,5)) +
-#     #facet_wrap(~lyr) +
-#     ggtitle("Maximum # of plots in a grid cell with Shrub Cover data", subtitle = "truncated" ) +
-#     theme_minimal())
-# 
-# temp2 <- data.frame(terra::values(temp), "order" = 1:nrow(terra::values(temp)))
-# (shrubN_hist_full <- ggplot(temp2) +
-#     geom_histogram(aes(lyr.1))+
-#     theme_minimal()  +
-#     xlab("Number of plots") +
-#     ylab("Frequency")#+
-#     #xlim(0,315) +
-#     #ylim(0,60000)
-# )
-# (shrubN_hist_trimmed <- ggplot(temp2) +
-#     geom_histogram(aes(lyr.1)) +
-#     xlim(c(0.5,5)) +
-#     #ylim(0,7500) +
-#     theme_minimal() +
-#     xlab("Number of plots") +
-#     ylab("Frequency")
-# )
-# 
-# # total trees
-# 
-# temp <- test2[[2]] %>%
-#   terra::aggregate(fact = 8, fun = "max", na.rm = TRUE) %>%
-#   terra::crop(ext(-2060750, 2855250, -2395500, 1284500)) %>%
-#   terra::app(fun = function(x) {
-#     if(sum(!is.na(x))>0 ) {
-#       if(max(x, na.rm = TRUE) > 0) {
-#         tempTemp <- max(x, na.rm = TRUE)
-#       } else {
-#         tempTemp <- NA
-#       }
-#     } else {
-#       tempTemp <- NA
-#     }
-#     return(tempTemp)
-#   })
-# 
-# 
-# (treeN_plot_full <- ggplot() +
-#     geom_spatraster(data = temp, aes(), na.rm = TRUE) +
-#     theme_minimal() +
-#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"),
-#                          limits = c(1,24)) +
-#     #facet_wrap(~lyr) +
-#     ggtitle("Maximum # of plots in a grid cell with Tree Cover data", subtitle = "full range of values" )+
-#     theme_minimal())
-# 
-# 
-# (treeN_plot_trimmed <- ggplot() +
-#     geom_spatraster(data = temp, aes(), na.rm = TRUE) +
-#     theme_minimal() +
-#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "trimmed scale"),
-#                          limits = c(1,5)) +
-#     #facet_wrap(~lyr) +
-#     ggtitle("Maximum # of plots in a grid cell with Tree Cover data", subtitle = "truncated" ) +
-#     theme_minimal())
-# 
-# temp2 <- data.frame(terra::values(temp), "order" = 1:nrow(terra::values(temp)))
-# (TreeN_hist_full <- ggplot(temp2) +
-#     geom_histogram(aes(lyr.1), binwidth = 1)+
-#     theme_minimal()  +
-#     xlab("Number of plots") +
-#     ylab("Frequency")
-# )
-# (TreeN_hist_trimmed <- ggplot(temp2) +
-#     geom_histogram(aes(lyr.1), binwidth = 1) +
-#     xlim(c(0.5,5))+
-#     theme_minimal() +
-#     xlab("Number of plots") +
-#     ylab("Frequency")
-# )
-# 
-# 
-# # total herbaceous cover
-# 
-# temp <- test2[[3]] %>%
-#   terra::aggregate(fact = 8, fun = "max", na.rm = TRUE) %>%
-#   terra::crop(ext(-2060750, 2855250, -2395500, 1284500)) %>%
-#   terra::app(fun = function(x) {
-#     if(sum(!is.na(x))>0 ) {
-#       if(max(x, na.rm = TRUE) > 0) {
-#         tempTemp <- max(x, na.rm = TRUE)
-#       } else {
-#         tempTemp <- NA
-#       }
-#     } else {
-#       tempTemp <- NA
-#     }
-#     return(tempTemp)
-#   })
-# 
-# 
-# (herbN_plot_full <- ggplot() +
-#     geom_spatraster(data = temp, aes(), na.rm = TRUE) +
-#     theme_minimal() +
-#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"),
-#                          limits = c(1,320)) +
-#     #facet_wrap(~lyr) +
-#     ggtitle("Maximum # of plots in a grid cell with Total Herbaceous Cover data", subtitle = "full range of values" )+
-#     theme_minimal())
-# 
-# 
-# (herbN_plot_trimmed <- ggplot() +
-#     geom_spatraster(data = temp, aes(), na.rm = TRUE) +
-#     theme_minimal() +
-#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "trimmed scale"),
-#                          limits = c(1,5)) +
-#     #facet_wrap(~lyr) +
-#     ggtitle("Maximum # of plots in a grid cell with Total Herbaceous Cover data", subtitle = "truncated" ) +
-#     theme_minimal())
-# 
-# temp2 <- data.frame(terra::values(temp), "order" = 1:nrow(terra::values(temp)))
-# (herbN_hist_full <- ggplot(temp2) +
-#     geom_histogram(aes(lyr.1), binwidth = 1)+
-#     theme_minimal()  +
-#     xlab("Number of plots") +
-#     ylab("Frequency")
-# )
-# (herbN_hist_trimmed <- ggplot(temp2) +
-#     geom_histogram(aes(lyr.1), binwidth = 1) +
-#     xlim(c(0.5,5))+
-#     theme_minimal() +
-#     xlab("Number of plots") +
-#     ylab("Frequency")
-# )
-# 
-# # total CAM cover
-# 
-# temp <- test2[[4]] %>%
-#   terra::aggregate(fact = 8, fun = "max", na.rm = TRUE) %>%
-#   terra::crop(ext(-2060750, 2855250, -2395500, 1284500)) %>%
-#   terra::app(fun = function(x) {
-#     if(sum(!is.na(x))>0 ) {
-#       if(max(x, na.rm = TRUE) > 0) {
-#         tempTemp <- max(x, na.rm = TRUE)
-#       } else {
-#         tempTemp <- NA
-#       }
-#     } else {
-#       tempTemp <- NA
-#     }
-#     return(tempTemp)
-#   })
-# 
-# 
-# (camN_plot_full <- ggplot() +
-#     geom_spatraster(data = temp, aes(), na.rm = TRUE) +
-#     theme_minimal() +
-#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"),
-#                          limits = c(1,36)) +
-#     #facet_wrap(~lyr) +
-#     ggtitle("Maximum # of plots in a grid cell with CAM Cover data", subtitle = "full range of values" )+
-#     theme_minimal())
-# 
-# (camN_plot_trimmed <- ggplot() +
-#     geom_spatraster(data = temp, aes(), na.rm = TRUE) +
-#     theme_minimal() +
-#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "trimmed scale"),
-#                          limits = c(1,5)) +
-#     #facet_wrap(~lyr) +
-#     ggtitle("Maximum # of plots in a grid cell with CAM Cover data", subtitle = "truncated" ) +
-#     theme_minimal())
-# 
-# temp2 <- data.frame(terra::values(temp), "order" = 1:nrow(terra::values(temp)))
-# (camN_hist_full <- ggplot(temp2) +
-#     geom_histogram(aes(lyr.1), binwidth = 1)+
-#     theme_minimal()  +
-#     xlab("Number of plots") +
-#     ylab("Frequency")
-# )
-# (camN_hist_trimmed <- ggplot(temp2) +
-#     geom_histogram(aes(lyr.1), binwidth = 1) +
-#     xlim(c(0.5,5))+
-#     theme_minimal() +
-#     xlab("Number of plots") +
-#     ylab("Frequency")
-# )
-# 
-# # total bare ground cover
-# temp <- test2[[5]] %>%
-#   terra::aggregate(fact = 8, fun = "max", na.rm = TRUE) %>%
-#   terra::crop(ext(-2060750, 2855250, -2395500, 1284500)) %>%
-#   terra::app(fun = function(x) {
-#     if(sum(!is.na(x))>0 ) {
-#       if(max(x, na.rm = TRUE) > 0) {
-#         tempTemp <- max(x, na.rm = TRUE)
-#       } else {
-#         tempTemp <- NA
-#       }
-#     } else {
-#       tempTemp <- NA
-#     }
-#     return(tempTemp)
-#   })
-# 
-# 
-# (bareGroundN_plot_full <- ggplot() +
-#     geom_spatraster(data = temp, aes(), na.rm = TRUE) +
-#     theme_minimal() +
-#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"),
-#                          limits = c(1,166)) +
-#     #facet_wrap(~lyr) +
-#     ggtitle("Maximum # of plots in a grid cell with Bare Ground Cover data", subtitle = "full range of values" )+
-#     theme_minimal())
-# 
-# 
-# (bareGroundN_plot_trimmed <- ggplot() +
-#     geom_spatraster(data = temp, aes(), na.rm = TRUE) +
-#     theme_minimal() +
-#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "trimmed scale"),
-#                          limits = c(1,5)) +
-#     #facet_wrap(~lyr) +
-#     ggtitle("Maximum # of plots in a grid cell with Bare Ground Cover data", subtitle = "truncated" ) +
-#     theme_minimal())
-# 
-# temp2 <- data.frame(terra::values(temp), "order" = 1:nrow(terra::values(temp)))
-# (bareGroundN_hist_full <- ggplot(temp2) +
-#     geom_histogram(aes(lyr.1), binwidth = 1)+
-#     theme_minimal() +
-#     xlab("Number of plots") +
-#     ylab("Frequency")
-# )
-# (bareGroundN_hist_trimmed <- ggplot(temp2) +
-#     geom_histogram(aes(lyr.1), binwidth = 1) +
-#     xlim(c(0.5,5))+
-#     theme_minimal() +
-#     xlab("Number of plots") +
-#     ylab("Frequency")
-# )
-# 
-# #
-# 
-# # put figures together into one -------------------------------------------
-# 
-# bigPlot_N <- ggarrange(ggarrange(shrubN_plot_full,    shrubN_hist_full,
-#           shrubN_plot_trimmed, shrubN_hist_trimmed,
-#           ncol = 2, nrow = 2,
-#           widths = c(2,1)),
-# ggarrange(treeN_plot_full,    TreeN_hist_full,
-#           treeN_plot_trimmed, TreeN_hist_trimmed,
-#           ncol = 2, nrow = 2,
-#           widths = c(2,1)),
-# ggarrange(herbN_plot_full,    herbN_hist_full,
-#           herbN_plot_trimmed, herbN_hist_trimmed,
-#           ncol = 2, nrow = 2,
-#           widths = c(2,1)),
-# ggarrange(camN_plot_full,    camN_hist_full,
-#           camN_plot_trimmed, camN_hist_trimmed,
-#           ncol = 2, nrow = 2,
-#           widths = c(2,1)),
-# ggarrange(bareGroundN_plot_full, bareGroundN_hist_full,
-#           bareGroundN_plot_trimmed, bareGroundN_hist_trimmed,
-#           ncol = 2, nrow = 2,
-#           widths = c(2,1)),
-# ncol = 1)
-# 
-# # forbs, herbaceous, Shrub, and CAM figures
-# bigPlot_N %>%
-#   ggexport(
-#     filename = "./Figures/coverDatFigures/NumberOfPlotsPerGridcellFigure.pdf",
-#     width = 14, height = 35)
+# Visualize results -------------------------------------------------------
+## shrub
+temp <- test2[[1]] %>%
+  terra::aggregate(fact = 8, fun = "max", na.rm = TRUE) %>%
+  terra::crop(ext(-2060750, 2855250, -2395500, 1284500)) %>%
+  terra::app(fun = function(x) {
+    if(sum(!is.na(x))>0 ) {
+      if(max(x, na.rm = TRUE) > 0) {
+        tempTemp <- max(x, na.rm = TRUE)
+      } else {
+        tempTemp <- NA
+      }
+    } else {
+    tempTemp <- NA
+    }
+    return(tempTemp)
+    })
+
+
+(shrubN_plot_full <- ggplot() +
+    geom_spatraster(data = temp, aes(), na.rm = TRUE) +
+    theme_minimal() +
+    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"),
+                         limits = c(1,315)) +
+    #facet_wrap(~lyr) +
+    ggtitle("Maximum # of plots in a grid cell with Shrub Cover data", subtitle = "full range of values" )+
+    theme_minimal())
+
+
+(shrubN_plot_trimmed <- ggplot() +
+    geom_spatraster(data = temp, aes(), na.rm = TRUE) +
+    theme_minimal() +
+    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "trimmed scale"),
+                         limits = c(1,5)) +
+    #facet_wrap(~lyr) +
+    ggtitle("Maximum # of plots in a grid cell with Shrub Cover data", subtitle = "truncated" ) +
+    theme_minimal())
+
+temp2 <- data.frame(terra::values(temp), "order" = 1:nrow(terra::values(temp)))
+(shrubN_hist_full <- ggplot(temp2) +
+    geom_histogram(aes(lyr.1))+
+    theme_minimal()  +
+    xlab("Number of plots") +
+    ylab("Frequency")#+
+    #xlim(0,315) +
+    #ylim(0,60000)
+)
+(shrubN_hist_trimmed <- ggplot(temp2) +
+    geom_histogram(aes(lyr.1)) +
+    xlim(c(0.5,5)) +
+    #ylim(0,7500) +
+    theme_minimal() +
+    xlab("Number of plots") +
+    ylab("Frequency")
+)
+
+# total trees
+
+temp <- test2[[2]] %>%
+  terra::aggregate(fact = 8, fun = "max", na.rm = TRUE) %>%
+  terra::crop(ext(-2060750, 2855250, -2395500, 1284500)) %>%
+  terra::app(fun = function(x) {
+    if(sum(!is.na(x))>0 ) {
+      if(max(x, na.rm = TRUE) > 0) {
+        tempTemp <- max(x, na.rm = TRUE)
+      } else {
+        tempTemp <- NA
+      }
+    } else {
+      tempTemp <- NA
+    }
+    return(tempTemp)
+  })
+
+
+(treeN_plot_full <- ggplot() +
+    geom_spatraster(data = temp, aes(), na.rm = TRUE) +
+    theme_minimal() +
+    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"),
+                         limits = c(1,24)) +
+    #facet_wrap(~lyr) +
+    ggtitle("Maximum # of plots in a grid cell with Tree Cover data", subtitle = "full range of values" )+
+    theme_minimal())
+
+
+(treeN_plot_trimmed <- ggplot() +
+    geom_spatraster(data = temp, aes(), na.rm = TRUE) +
+    theme_minimal() +
+    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "trimmed scale"),
+                         limits = c(1,5)) +
+    #facet_wrap(~lyr) +
+    ggtitle("Maximum # of plots in a grid cell with Tree Cover data", subtitle = "truncated" ) +
+    theme_minimal())
+
+temp2 <- data.frame(terra::values(temp), "order" = 1:nrow(terra::values(temp)))
+(TreeN_hist_full <- ggplot(temp2) +
+    geom_histogram(aes(lyr.1), binwidth = 1)+
+    theme_minimal()  +
+    xlab("Number of plots") +
+    ylab("Frequency")
+)
+(TreeN_hist_trimmed <- ggplot(temp2) +
+    geom_histogram(aes(lyr.1), binwidth = 1) +
+    xlim(c(0.5,5))+
+    theme_minimal() +
+    xlab("Number of plots") +
+    ylab("Frequency")
+)
+
+
+# total herbaceous cover
+
+temp <- test2[[3]] %>%
+  terra::aggregate(fact = 8, fun = "max", na.rm = TRUE) %>%
+  terra::crop(ext(-2060750, 2855250, -2395500, 1284500)) %>%
+  terra::app(fun = function(x) {
+    if(sum(!is.na(x))>0 ) {
+      if(max(x, na.rm = TRUE) > 0) {
+        tempTemp <- max(x, na.rm = TRUE)
+      } else {
+        tempTemp <- NA
+      }
+    } else {
+      tempTemp <- NA
+    }
+    return(tempTemp)
+  })
+
+
+(herbN_plot_full <- ggplot() +
+    geom_spatraster(data = temp, aes(), na.rm = TRUE) +
+    theme_minimal() +
+    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"),
+                         limits = c(1,320)) +
+    #facet_wrap(~lyr) +
+    ggtitle("Maximum # of plots in a grid cell with Total Herbaceous Cover data", subtitle = "full range of values" )+
+    theme_minimal())
+
+
+(herbN_plot_trimmed <- ggplot() +
+    geom_spatraster(data = temp, aes(), na.rm = TRUE) +
+    theme_minimal() +
+    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "trimmed scale"),
+                         limits = c(1,5)) +
+    #facet_wrap(~lyr) +
+    ggtitle("Maximum # of plots in a grid cell with Total Herbaceous Cover data", subtitle = "truncated" ) +
+    theme_minimal())
+
+temp2 <- data.frame(terra::values(temp), "order" = 1:nrow(terra::values(temp)))
+(herbN_hist_full <- ggplot(temp2) +
+    geom_histogram(aes(lyr.1), binwidth = 1)+
+    theme_minimal()  +
+    xlab("Number of plots") +
+    ylab("Frequency")
+)
+(herbN_hist_trimmed <- ggplot(temp2) +
+    geom_histogram(aes(lyr.1), binwidth = 1) +
+    xlim(c(0.5,5))+
+    theme_minimal() +
+    xlab("Number of plots") +
+    ylab("Frequency")
+)
+
+# total CAM cover
+
+temp <- test2[[4]] %>%
+  terra::aggregate(fact = 8, fun = "max", na.rm = TRUE) %>%
+  terra::crop(ext(-2060750, 2855250, -2395500, 1284500)) %>%
+  terra::app(fun = function(x) {
+    if(sum(!is.na(x))>0 ) {
+      if(max(x, na.rm = TRUE) > 0) {
+        tempTemp <- max(x, na.rm = TRUE)
+      } else {
+        tempTemp <- NA
+      }
+    } else {
+      tempTemp <- NA
+    }
+    return(tempTemp)
+  })
+
+
+(camN_plot_full <- ggplot() +
+    geom_spatraster(data = temp, aes(), na.rm = TRUE) +
+    theme_minimal() +
+    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"),
+                         limits = c(1,36)) +
+    #facet_wrap(~lyr) +
+    ggtitle("Maximum # of plots in a grid cell with CAM Cover data", subtitle = "full range of values" )+
+    theme_minimal())
+
+(camN_plot_trimmed <- ggplot() +
+    geom_spatraster(data = temp, aes(), na.rm = TRUE) +
+    theme_minimal() +
+    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "trimmed scale"),
+                         limits = c(1,5)) +
+    #facet_wrap(~lyr) +
+    ggtitle("Maximum # of plots in a grid cell with CAM Cover data", subtitle = "truncated" ) +
+    theme_minimal())
+
+temp2 <- data.frame(terra::values(temp), "order" = 1:nrow(terra::values(temp)))
+(camN_hist_full <- ggplot(temp2) +
+    geom_histogram(aes(lyr.1), binwidth = 1)+
+    theme_minimal()  +
+    xlab("Number of plots") +
+    ylab("Frequency")
+)
+(camN_hist_trimmed <- ggplot(temp2) +
+    geom_histogram(aes(lyr.1), binwidth = 1) +
+    xlim(c(0.5,5))+
+    theme_minimal() +
+    xlab("Number of plots") +
+    ylab("Frequency")
+)
+
+# total bare ground cover
+temp <- test2[[5]] %>%
+  terra::aggregate(fact = 8, fun = "max", na.rm = TRUE) %>%
+  terra::crop(ext(-2060750, 2855250, -2395500, 1284500)) %>%
+  terra::app(fun = function(x) {
+    if(sum(!is.na(x))>0 ) {
+      if(max(x, na.rm = TRUE) > 0) {
+        tempTemp <- max(x, na.rm = TRUE)
+      } else {
+        tempTemp <- NA
+      }
+    } else {
+      tempTemp <- NA
+    }
+    return(tempTemp)
+  })
+
+
+(bareGroundN_plot_full <- ggplot() +
+    geom_spatraster(data = temp, aes(), na.rm = TRUE) +
+    theme_minimal() +
+    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"),
+                         limits = c(1,166)) +
+    #facet_wrap(~lyr) +
+    ggtitle("Maximum # of plots in a grid cell with Bare Ground Cover data", subtitle = "full range of values" )+
+    theme_minimal())
+
+
+(bareGroundN_plot_trimmed <- ggplot() +
+    geom_spatraster(data = temp, aes(), na.rm = TRUE) +
+    theme_minimal() +
+    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "trimmed scale"),
+                         limits = c(1,5)) +
+    #facet_wrap(~lyr) +
+    ggtitle("Maximum # of plots in a grid cell with Bare Ground Cover data", subtitle = "truncated" ) +
+    theme_minimal())
+
+temp2 <- data.frame(terra::values(temp), "order" = 1:nrow(terra::values(temp)))
+(bareGroundN_hist_full <- ggplot(temp2) +
+    geom_histogram(aes(lyr.1), binwidth = 1)+
+    theme_minimal() +
+    xlab("Number of plots") +
+    ylab("Frequency")
+)
+(bareGroundN_hist_trimmed <- ggplot(temp2) +
+    geom_histogram(aes(lyr.1), binwidth = 1) +
+    xlim(c(0.5,5))+
+    theme_minimal() +
+    xlab("Number of plots") +
+    ylab("Frequency")
+)
+
+#
+
+# put figures together into one -------------------------------------------
+
+bigPlot_N <- ggarrange(ggarrange(shrubN_plot_full,    shrubN_hist_full,
+          shrubN_plot_trimmed, shrubN_hist_trimmed,
+          ncol = 2, nrow = 2,
+          widths = c(2,1)),
+ggarrange(treeN_plot_full,    TreeN_hist_full,
+          treeN_plot_trimmed, TreeN_hist_trimmed,
+          ncol = 2, nrow = 2,
+          widths = c(2,1)),
+ggarrange(herbN_plot_full,    herbN_hist_full,
+          herbN_plot_trimmed, herbN_hist_trimmed,
+          ncol = 2, nrow = 2,
+          widths = c(2,1)),
+ggarrange(camN_plot_full,    camN_hist_full,
+          camN_plot_trimmed, camN_hist_trimmed,
+          ncol = 2, nrow = 2,
+          widths = c(2,1)),
+ggarrange(bareGroundN_plot_full, bareGroundN_hist_full,
+          bareGroundN_plot_trimmed, bareGroundN_hist_trimmed,
+          ncol = 2, nrow = 2,
+          widths = c(2,1)),
+ncol = 1)
+
+# forbs, herbaceous, Shrub, and CAM figures
+bigPlot_N %>%
+  ggexport(
+    filename = "./Figures/coverDatFigures/NumberOfPlotsPerGridcellFigure.pdf",
+    width = 14, height = 35)

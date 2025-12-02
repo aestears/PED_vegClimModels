@@ -764,92 +764,136 @@ predsFuture2 <- totalHerb_F_predsFuture2  %>%
   cbind(preds_future2_byHand %>% select(pred)) %>% 
   rename(prob_Forest = "pred") %>% 
   mutate(prob_grassShrub = 1 - prob_Forest)
-
 ```
 
-Once we generate predictions using each of these models, we transform the ecoregion-level predictions into CONUS-wide predictions by scaling them according to predicted ecoregion probability from the ecoregion classification model. 
+Once we generate predictions using each of these models, we transform the ecoregion-level predictions for total herbaceous cover and total tree cover into CONUS-wide predictions by scaling them according to predicted ecoregion probability from the ecoregion classification model.
+We retain the ecoregion-level predictions for later use in calculating CONUS-wide predictions of 'level 2' functional types 
+
 e.g.:absolute total tree cover in CONUS = (absolute total tree cover in grass/shrub * P(grass/shrub)) + (absolute total tree cover in forest * P(forest))
 ```{r}
 ## for contemporary data
 contempPreds <- contempPreds %>% 
   mutate(absTotalHerb_CONUS = (prob_grassShrub * absTotalHerb_GS) + (prob_Forest * absTotalHerb_F),
-         absTotalTree_CONUS = (prob_grassShrub * absTotalTree_GS) + (prob_Forest * absTotalTree_F),
-         percBLTree_CONUS = (prob_grassShrub * percBLTree_GS) + (prob_Forest * percBLTree_F),
-         percNLTree_CONUS = (prob_grassShrub * percNLTree_GS) + (prob_Forest * percNLTree_F)
+         absTotalTree_CONUS = (prob_grassShrub * absTotalTree_GS) + (prob_Forest * absTotalTree_F)
          )
 
 ## for first climate model
 predsFuture1 <- predsFuture1 %>% 
   mutate(absTotalHerb_CONUS = (prob_grassShrub * absTotalHerb_GS) + (prob_Forest * absTotalHerb_F),
-         absTotalTree_CONUS = (prob_grassShrub * absTotalTree_GS) + (prob_Forest * absTotalTree_F),
-         percBLTree_CONUS = (prob_grassShrub * percBLTree_GS) + (prob_Forest * percBLTree_F),
-         percNLTree_CONUS = (prob_grassShrub * percNLTree_GS) + (prob_Forest * percNLTree_F)
+         absTotalTree_CONUS = (prob_grassShrub * absTotalTree_GS) + (prob_Forest * absTotalTree_F)
          )
 
 ## for second climate model 
 predsFuture2 <- predsFuture2 %>% 
   mutate(absTotalHerb_CONUS = (prob_grassShrub * absTotalHerb_GS) + (prob_Forest * absTotalHerb_F),
-         absTotalTree_CONUS = (prob_grassShrub * absTotalTree_GS) + (prob_Forest * absTotalTree_F),
-         percBLTree_CONUS = (prob_grassShrub * percBLTree_GS) + (prob_Forest * percBLTree_F),
-         percNLTree_CONUS = (prob_grassShrub * percNLTree_GS) + (prob_Forest * percNLTree_F)
+         absTotalTree_CONUS = (prob_grassShrub * absTotalTree_GS) + (prob_Forest * absTotalTree_F)
          )
 ```
 
-Then, for those models that are predicting proportions, we scale all of the relevant predictions so they sum to one. 
+Then, for those models that are predicting proportions, we scale all of the relevant predictions so they sum to one. If models are ecoregion-level, we do this process at the ecoregion scale. 
 (e.g. Model predictions of the proportion of total herbaceous cover that is forbs, the proportion of total herbaceous cover that is C3 grass, and the proportion of total herbaceous cover that is C4 grass should sum to 1, so: scaled proportion of total herbaceous cover that is forbs = proportion of total herbaceous cover that is forbs/(proportion of total herbaceous cover that is forbs + proportion of total herbaceous cover that is C3 grass + proportion of total herbaceous cover that is C4 grass))
 ```{r}
 contempPreds <- contempPreds %>% 
-  mutate(percBLTree_scaled_CONUS = percBLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
-         percNLTree_scaled_CONUS = percNLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
+    mutate(percBLTree_scaled_GS = percBLTree_GS/(percBLTree_GS + percNLTree_GS),
+         percNLTree_scaled_GS = percNLTree_GS/(percBLTree_GS + percNLTree_GS),
+         percBLTree_scaled_F = percBLTree_F/(percBLTree_F + percNLTree_F),
+         percNLTree_scaled_F = percNLTree_F/(percBLTree_F + percNLTree_F),
          percC3grass_scaled_CONUS = percC3grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
          percC4grass_scaled_CONUS = percC4grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
          percForb_scaled_CONUS = percForb_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS))
 
 predsFuture1 <- predsFuture1  %>% 
-  mutate(percBLTree_scaled_CONUS = percBLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
-         percNLTree_scaled_CONUS = percNLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
+   mutate(percBLTree_scaled_GS = percBLTree_GS/(percBLTree_GS + percNLTree_GS),
+         percNLTree_scaled_GS = percNLTree_GS/(percBLTree_GS + percNLTree_GS),
+         percBLTree_scaled_F = percBLTree_F/(percBLTree_F + percNLTree_F),
+         percNLTree_scaled_F = percNLTree_F/(percBLTree_F + percNLTree_F),
          percC3grass_scaled_CONUS = percC3grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
          percC4grass_scaled_CONUS = percC4grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
          percForb_scaled_CONUS = percForb_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS))
 
 predsFuture2 <- predsFuture2  %>% 
-  mutate(percBLTree_scaled_CONUS = percBLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
-         percNLTree_scaled_CONUS = percNLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
+   mutate(percBLTree_scaled_GS = percBLTree_GS/(percBLTree_GS + percNLTree_GS),
+         percNLTree_scaled_GS = percNLTree_GS/(percBLTree_GS + percNLTree_GS),
+         percBLTree_scaled_F = percBLTree_F/(percBLTree_F + percNLTree_F),
+         percNLTree_scaled_F = percNLTree_F/(percBLTree_F + percNLTree_F),
          percC3grass_scaled_CONUS = percC3grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
          percC4grass_scaled_CONUS = percC4grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
          percForb_scaled_CONUS = percForb_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS))
 ```
 
-Finally, we convert these predicted proportions into predictions of absolute cover. 
-(e.g.  absolute cover of needle-leaved trees  = scaled proportion of total herbaceous cover that is forbs * absolute cover of total trees)
+Then, we convert these predicted proportions into predictions of absolute cover. For the functional types that are predicted at the ecoregion level, we do this process for each ecoregion. 
+(e.g.  absolute cover of needle-leaved trees in grass/shrub = scaled proportion of total tree cover that is needle-leaved in grass/shrub * absolute cover of total treesin grass/shrub)
 ```{r}
 ## for contemporary data
 contempPreds <- contempPreds %>% 
-  mutate(absNLTree_CONUS = (percNLTree_scaled_CONUS * absTotalTree_CONUS), 
-         absBLTree_CONUS = (percBLTree_scaled_CONUS * absTotalTree_CONUS), 
-         absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS),
-         absC4grass_CONUS = (percC4grass_scaled_CONUS * absTotalHerb_CONUS),
-         absForb_CONUS = (percForb_scaled_CONUS * absTotalHerb_CONUS)
+    mutate(absNLTree_GS = (percNLTree_scaled_GS * absTotalTree_GS), 
+         absBLTree_GS = (percBLTree_scaled_GS * absTotalTree_GS), 
+         absNLTree_F = (percNLTree_scaled_F * absTotalTree_F), 
+         absBLTree_F = (percBLTree_scaled_F * absTotalTree_F), 
+         absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C3 grass isn't ecoregion-level
+         absC4grass_CONUS = (percC4grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C4 grass isn't ecoregion-level
+         absForb_CONUS = (percForb_scaled_CONUS * absTotalHerb_CONUS) # can use CONUS-wide total herbaceous since forb grass isn't ecoregion-level
   )
 
 ## for first climate model
 predsFuture1 <- predsFuture1 %>% 
-  mutate(absNLTree_CONUS = (percNLTree_scaled_CONUS * absTotalTree_CONUS), 
-         absBLTree_CONUS = (percBLTree_scaled_CONUS * absTotalTree_CONUS), 
-         absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS),
-         absC4grass_CONUS = (percC4grass_scaled_CONUS * absTotalHerb_CONUS),
-         absForb_CONUS = (percForb_scaled_CONUS * absTotalHerb_CONUS)
+    mutate(absNLTree_GS = (percNLTree_scaled_GS * absTotalTree_GS), 
+         absBLTree_GS = (percBLTree_scaled_GS * absTotalTree_GS), 
+         absNLTree_F = (percNLTree_scaled_F * absTotalTree_F), 
+         absBLTree_F = (percBLTree_scaled_F * absTotalTree_F), 
+         absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C3 grass isn't ecoregion-level
+         absC4grass_CONUS = (percC4grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C4 grass isn't ecoregion-level
+         absForb_CONUS = (percForb_scaled_CONUS * absTotalHerb_CONUS) # can use CONUS-wide total herbaceous since forb grass isn't ecoregion-level
   )
 
 ## for second climate model 
 predsFuture2 <- predsFuture2 %>% 
-  mutate(absNLTree_CONUS = (percNLTree_scaled_CONUS * absTotalTree_CONUS), 
-         absBLTree_CONUS = (percBLTree_scaled_CONUS * absTotalTree_CONUS), 
-         absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS),
-         absC4grass_CONUS = (percC4grass_scaled_CONUS * absTotalHerb_CONUS),
-         absForb_CONUS = (percForb_scaled_CONUS * absTotalHerb_CONUS)
+     mutate(absNLTree_GS = (percNLTree_scaled_GS * absTotalTree_GS), 
+         absBLTree_GS = (percBLTree_scaled_GS * absTotalTree_GS), 
+         absNLTree_F = (percNLTree_scaled_F * absTotalTree_F), 
+         absBLTree_F = (percBLTree_scaled_F * absTotalTree_F), 
+         absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C3 grass isn't ecoregion-level
+         absC4grass_CONUS = (percC4grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C4 grass isn't ecoregion-level
+         absForb_CONUS = (percForb_scaled_CONUS * absTotalHerb_CONUS) # can use CONUS-wide total herbaceous since forb grass isn't ecoregion-level
   )
 
+```
+
+Finally, for those functional types that are predicted at the ecoregion level, we scale them to be CONUS-wide.
+```{r}
+contempPreds <- contempPreds %>% 
+  mutate(absBLTree_CONUS = (prob_grassShrub * absBLTree_GS) + (prob_Forest * absBLTree_F),
+         absNLTree_CONUS = (prob_grassShrub * absNLTree_GS) + (prob_Forest * absNLTree_F)
+  )
+
+predsFuture1 <- predsFuture1 %>% 
+    mutate(absBLTree_CONUS = (prob_grassShrub * absBLTree_GS) + (prob_Forest * absBLTree_F),
+         absNLTree_CONUS = (prob_grassShrub * absNLTree_GS) + (prob_Forest * absNLTree_F)
+  )
+
+predsFuture2 <- predsFuture2 %>% 
+    mutate(absBLTree_CONUS = (prob_grassShrub * absBLTree_GS) + (prob_Forest * absBLTree_F),
+         absNLTree_CONUS = (prob_grassShrub * absNLTree_GS) + (prob_Forest * absNLTree_F)
+  )
+```
+
+
+```{r comparingScalingOptions, eval = FALSE}
+contempPreds <- contempPreds %>% 
+  mutate(
+     absNLTrees_V1 = ((prob_grassShrub * percNLTree_GS) + (prob_Forest * percNLTree_F))/((prob_grassShrub * percBLTree_GS) + (prob_Forest * percBLTree_F) + ((prob_grassShrub * percNLTree_GS) + (prob_Forest * percNLTree_F))) * ((prob_grassShrub * absTotalTree_GS) + (prob_Forest * absTotalTree_F)) ,# option 1 (old approach)
+         
+         absNLTrees_V2 =  (prob_grassShrub * ((percNLTree_GS/(percBLTree_GS + percNLTree_GS)) * absTotalTree_GS)) + (prob_Forest * 
+((percNLTree_F/(percBLTree_F + percNLTree_F)) * absTotalTree_F)# option 2 (new approach)
+)
+)
+
+ggplot(contempPreds) + 
+  geom_density(aes(absNLTree_CONUS)) + # in-code calculation
+  geom_density(aes(absNLTrees_V1), col = "red") + # old version of calculation
+  geom_density(aes(absNLTrees_V2), col = "blue") # new version of calculation
+
+  
 ```
 
 Below are maps of predicted absolute cover for each functional group we modeled, after predictions have been scaled using the process outlined above. 
@@ -1042,6 +1086,7 @@ absoluteCoverMaps_contemp <- lapply(responseNames,
 names(absoluteCoverMaps_contemp) <- c("absTotalTree_CONUS", "absTotalHerb_CONUS", "absShrub_CONUS", "absBareGround_CONUS", "absNLTree_CONUS", "absBLTree_CONUS", "absC3grass_CONUS", "absC4grass_CONUS", "absForb_CONUS")
 
 ```
+
 ```{r  fig.height=60, fig.width=18}
 ggarrange(
 ggarrange(absoluteCoverMaps_contemp$absTotalTree_CONUS$map, 
@@ -1255,29 +1300,38 @@ preds_quantile <- totalHerb_F_predsQuantile  %>%
   mutate(prob_grassShrub = 1 - prob_Forest) %>% 
   cbind(preds_byHand_quantile %>% select(newRegion))
 
-# scale according to ecoregion
+# for total herbaceous and total tree, scale according to ecoregion
 preds_quantile <- preds_quantile %>% 
   mutate(absTotalHerb_CONUS = (prob_grassShrub * absTotalHerb_GS) + (prob_Forest * absTotalHerb_F),
          absTotalTree_CONUS = (prob_grassShrub * absTotalTree_GS) + (prob_Forest * absTotalTree_F),
-         percBLTree_CONUS = (prob_grassShrub * percBLTree_GS) + (prob_Forest * percBLTree_F),
-         percNLTree_CONUS = (prob_grassShrub * percNLTree_GS) + (prob_Forest * percNLTree_F)
          )
-## For percentages (NL/BL tree and C4/C3/Forb), scale so that they sum to one 
+
+## For percentages (NL/BL tree and C4/C3/Forb), scale so that they sum to one (for C4/C3/Forb, already have CONUS-wide models) (for NL/BL tree, have versions for both grass/shrub and forest)
 preds_quantile <- preds_quantile %>% 
-  mutate(percBLTree_scaled_CONUS = percBLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
-         percNLTree_scaled_CONUS = percNLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
+  mutate(percBLTree_scaled_GS = percBLTree_GS/(percBLTree_GS + percNLTree_GS),
+         percNLTree_scaled_GS = percNLTree_GS/(percBLTree_GS + percNLTree_GS),
+         percBLTree_scaled_F = percBLTree_F/(percBLTree_F + percNLTree_F),
+         percNLTree_scaled_F = percNLTree_F/(percBLTree_F + percNLTree_F),
          percC3grass_scaled_CONUS = percC3grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
          percC4grass_scaled_CONUS = percC4grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
          percForb_scaled_CONUS = percForb_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS))
 
 ## Convert percentages for level 2 cover into absolute cover values
 preds_quantile <- preds_quantile %>% 
-  mutate(absNLTree_CONUS = (percNLTree_scaled_CONUS * absTotalTree_CONUS), 
-         absBLTree_CONUS = (percBLTree_scaled_CONUS * absTotalTree_CONUS), 
-         absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS),
-         absC4grass_CONUS = (percC4grass_scaled_CONUS * absTotalHerb_CONUS),
-         absForb_CONUS = (percForb_scaled_CONUS * absTotalHerb_CONUS)
+  mutate(absNLTree_GS = (percNLTree_scaled_GS * absTotalTree_GS), 
+         absBLTree_GS = (percBLTree_scaled_GS * absTotalTree_GS), 
+         absNLTree_F = (percNLTree_scaled_F * absTotalTree_F), 
+         absBLTree_F = (percBLTree_scaled_F * absTotalTree_F), 
+         absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C3 grass isn't ecoregion-level
+         absC4grass_CONUS = (percC4grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C4 grass isn't ecoregion-level
+         absForb_CONUS = (percForb_scaled_CONUS * absTotalHerb_CONUS) # can use CONUS-wide total herbaceous since forb grass isn't ecoregion-level
   )
+
+## For tree level 2 cover, scale by ecoregion probability prediction to be CONUS_wide
+preds_quantile <- preds_quantile %>%
+  mutate(absBLTree_CONUS = (prob_grassShrub * absBLTree_GS) + (prob_Forest * absBLTree_F),
+         absNLTree_CONUS = (prob_grassShrub * absNLTree_GS) + (prob_Forest * absNLTree_F)
+         )
 
 ## with the observed data, convert proportions to absolute cover
 preds_quantile <- preds_quantile %>% 
@@ -1393,10 +1447,87 @@ cut_points = seq(0, 1, 0.01)
 ```
 
 ```{r testingToFixTreePropIssueMaybe, eval = FALSE}
+## save prediction data for comparison purposes 
+saveRDS(preds_quantile, "../../../Data_processed/CoverData/IntermediateAnalysisFiles/ModelPredictionDataWithObservations.rds")
 ## "raw" proportion of trees that are needle leaved
+## subset the predictions so that we are only making quantile plots using data points where we observations for both total tree and proportion of tree that is needle-leaved and broad-leaved
+preds_herb <- preds_quantile %>% 
+  select(TotalHerbaceousCover, absTotalHerb_F, absTotalHerb_GS,
+         #C3GramCover_prop, C4GramCover_prop, ForbCover_prop, 
+         tmean:AWHC, newRegion, prob_Forest, prob_grassShrub) %>%
+  drop_na()
+
+#### total herbaceous ####
+# for the entire CONUS using the GS model
+deciles_totalHerb_GS_entire <- predvars2deciles(df = preds_herb %>% select(TotalHerbaceousCover, absTotalHerb_GS,
+                                                                               "prcp", "prcpTempCorr", "isothermality", "sand", "coarse", "AWHC") %>% drop_na()
+                                   , response_vars = c("TotalHerbaceousCover", "absTotalHerb_GS"), # name of observations, followed by name of predictions
+                                   pred_vars = c("prcp", "prcpTempCorr", "isothermality", "sand", "coarse", "AWHC"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc NL tree for GS and F)
+cut_points = seq(0, 1, 0.01))
+
+quantPlot_totalHerb_GS_entire <- decile_dotplot_pq(df = deciles_totalHerb_GS_entire, response= c("TotalHerbaceousCover", "absTotalHerb_GS"), IQR = TRUE,
+                        CI = FALSE
+                        ) + ggtitle("Absolute Total Herbaceous Cover - Grass/shrub model in CONUS")
+
+quantPlot_totalHerb_GS_entire <- add_dotplot_inset(quantPlot_totalHerb_GS_entire, df = deciles_totalHerb_GS_entire, response = c("TotalHerbaceousCover", "absTotalHerb_GS"), dfRaw = preds_herb %>% select(TotalHerbaceousCover, absTotalHerb_GS,  "prcp", "prcpTempCorr", "isothermality", "sand", "coarse", "AWHC") %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+
+
+# for only GS (EPA defined) using the GS model
+
+deciles_totalHerb_GS_GS <- predvars2deciles(df = preds_herb %>% filter(newRegion == "dryShrubGrass") %>% select(TotalHerbaceousCover, absTotalHerb_GS,
+                                                                               "prcp", "prcpTempCorr", "isothermality", "sand", "coarse", "AWHC") %>% drop_na()
+                                   , response_vars = c("TotalHerbaceousCover", "absTotalHerb_GS"), # name of observations, followed by name of predictions
+                                   pred_vars = c("prcp", "prcpTempCorr", "isothermality", "sand", "coarse", "AWHC"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc NL tree for GS and F)
+cut_points = seq(0, 1, 0.01)
+                                     )
+quantPlot_totalHerb_GS_GS <- decile_dotplot_pq(df = deciles_totalHerb_GS_GS, response= c("TotalHerbaceousCover", "absTotalHerb_GS"), IQR = TRUE,
+                        CI = FALSE
+                        ) + ggtitle("Absolute Total Herbaceous Cover - Grass/shrub model in Grass/shrub")
+
+quantPlot_totalHerb_GS_GS <- add_dotplot_inset(quantPlot_totalHerb_GS_GS, df = deciles_totalHerb_GS_GS, response = c("TotalHerbaceousCover", "absTotalHerb_GS"), dfRaw = preds_herb %>% filter(newRegion == "dryShrubGrass") %>% select(TotalHerbaceousCover, absTotalHerb_GS,
+                                                                               "prcp", "prcpTempCorr", "isothermality", "sand", "coarse", "AWHC")  %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+
+
+# for the entire CONUS using the F model
+deciles_totalHerb_F_entire <- predvars2deciles(df = preds_herb %>% select(TotalHerbaceousCover, absTotalHerb_F,
+                                                                               "prcp", "prcp_dry", "prcpTempCorr", "isothermality", "sand", "coarse", "AWHC", "isothermality_anom", "tmean", "prcp_anom", "clay", "carbon") %>% drop_na()
+                                   , response_vars = c("TotalHerbaceousCover", "absTotalHerb_F"), # name of observations, followed by name of predictions
+                                   pred_vars = c("prcp", "prcp_dry", "prcpTempCorr", "isothermality", "sand", "coarse", "AWHC", "isothermality_anom", "tmean", "prcp_anom", "clay", "carbon"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc NL tree for F and F)
+cut_points = seq(0, 1, 0.01)
+                                     )
+quantPlot_totalHerb_F_entire <- decile_dotplot_pq(df = deciles_totalHerb_F_entire, response= c("TotalHerbaceousCover", "absTotalHerb_F"), IQR = TRUE,
+                        CI = FALSE
+                        ) + ggtitle("Absolute Total Herbaceous Cover - Forest model in CONUS")
+
+quantPlot_totalHerb_F_entire <- add_dotplot_inset(quantPlot_totalHerb_F_entire, df = deciles_totalHerb_F_entire, response = c("TotalHerbaceousCover", "absTotalHerb_F"), dfRaw = preds_herb %>% select(TotalHerbaceousCover, absTotalHerb_F,  "prcp", "prcp_dry", "prcpTempCorr", "isothermality", "sand", "coarse", "AWHC", "isothermality_anom", "tmean", "prcp_anom", "clay", "carbon") %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+
+# for only F (EPA defined) using the F model
+deciles_totalHerb_F_F <- predvars2deciles(df = preds_herb %>% filter(newRegion != "dryShrubGrass") %>% select(TotalHerbaceousCover, absTotalHerb_F,"prcp", "prcp_dry", "prcpTempCorr", "isothermality", "sand", "coarse", "AWHC", "isothermality_anom", "tmean", "prcp_anom", "clay", "carbon") %>% drop_na()
+                                   , response_vars = c("TotalHerbaceousCover", "absTotalHerb_F"), # name of observations, followed by name of predictions
+                                   pred_vars = c("prcp", "prcp_dry", "prcpTempCorr", "isothermality", "sand", "coarse", "AWHC", "isothermality_anom", "tmean", "prcp_anom", "clay", "carbon"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc NL tree for F and F)
+cut_points = seq(0, 1, 0.01)
+                                     )
+quantPlot_totalHerb_F_F <- decile_dotplot_pq(df = deciles_totalHerb_F_F, response= c("TotalHerbaceousCover", "absTotalHerb_F"), IQR = TRUE,
+                        CI = FALSE
+                        ) + ggtitle("Absolute Total Herbaceous Cover - Forest model in Forest")
+
+quantPlot_totalHerb_F_F <- add_dotplot_inset(quantPlot_totalHerb_F_F, df = deciles_totalHerb_F_F, response = c("TotalHerbaceousCover", "absTotalHerb_F"), dfRaw = preds_herb %>% filter(newRegion != "dryShrubGrass") %>% select(TotalHerbaceousCover, absTotalHerb_F,
+                                                                              "prcp", "prcp_dry", "prcpTempCorr", "isothermality", "sand", "coarse", "AWHC", "isothermality_anom", "tmean", "prcp_anom", "clay", "carbon")  %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+
+
+## "raw" proportion of trees that are needle leaved
+## subset the predictions so that we are only making quantile plots using data points where we observations for both total tree and proportion of tree that is needle-leaved and broad-leaved
+preds_trees <- preds_quantile %>% 
+  select(TotalTreeCover, absTotalTree_F, absTotalTree_GS,
+         ConifTreeCover_prop, percNLTree_GS, percNLTree_F, percNLTree_scaled_F, percNLTree_scaled_GS, NLTreeCover_abs, absNLTree_CONUS, absNLTree_GS, absNLTree_F,
+         AngioTreeCover_prop, percBLTree_GS, percBLTree_F, percBLTree_scaled_F, percBLTree_scaled_GS, BLTreeCover_abs, absBLTree_CONUS,
+         absBLTree_GS, absBLTree_F,
+         tmean:AWHC, newRegion, prob_Forest, prob_grassShrub) %>%
+  drop_na()
+
 #### total trees ####
 # for the entire CONUS using the GS model
-deciles_totalTree_GS_entire <- predvars2deciles(df = preds_quantile %>% select(TotalTreeCover, absTotalTree_GS,
+deciles_totalTree_GS_entire <- predvars2deciles(df = preds_trees %>% select(TotalTreeCover, absTotalTree_GS,
                                                                                prcp, prcp_seasonality, sand ,AWHC) %>% drop_na()
                                    , response_vars = c("TotalTreeCover", "absTotalTree_GS"), # name of observations, followed by name of predictions
                                    pred_vars = c("prcp", "prcp_seasonality","sand" ,"AWHC"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc NL tree for GS and F)
@@ -1406,12 +1537,12 @@ quantPlot_totalTree_GS_entire <- decile_dotplot_pq(df = deciles_totalTree_GS_ent
                         CI = FALSE
                         ) + ggtitle("Absolute Total Tree Cover - Grass/shrub model in CONUS")
 
-quantPlot_totalTree_GS_entire <- add_dotplot_inset(quantPlot_totalTree_GS_entire, df = deciles_totalTree_GS_entire, response = c("TotalTreeCover", "absTotalTree_GS"), dfRaw = preds_quantile %>% select(TotalTreeCover, absTotalTree_GS,  prcp, prcp_seasonality, sand ,AWHC) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_totalTree_GS_entire <- add_dotplot_inset(quantPlot_totalTree_GS_entire, df = deciles_totalTree_GS_entire, response = c("TotalTreeCover", "absTotalTree_GS"), dfRaw = preds_trees %>% select(TotalTreeCover, absTotalTree_GS,  prcp, prcp_seasonality, sand ,AWHC) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
 
 # for only GS (EPA defined) using the GS model
 
-deciles_totalTree_GS_GS <- predvars2deciles(df = preds_quantile %>% filter(newRegion == "dryShrubGrass") %>% select(TotalTreeCover, absTotalTree_GS,
+deciles_totalTree_GS_GS <- predvars2deciles(df = preds_trees %>% filter(newRegion == "dryShrubGrass") %>% select(TotalTreeCover, absTotalTree_GS,
                                                                                prcp, prcp_seasonality, sand ,AWHC) %>% drop_na()
                                    , response_vars = c("TotalTreeCover", "absTotalTree_GS"), # name of observations, followed by name of predictions
                                    pred_vars = c("prcp", "prcp_seasonality","sand" ,"AWHC"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc NL tree for GS and F)
@@ -1421,11 +1552,11 @@ quantPlot_totalTree_GS_GS <- decile_dotplot_pq(df = deciles_totalTree_GS_GS, res
                         CI = FALSE
                         ) + ggtitle("Absolute Total Tree Cover - Grass/shrub model in Grass/shrub")
 
-quantPlot_totalTree_GS_GS <- add_dotplot_inset(quantPlot_totalTree_GS_GS, df = deciles_totalTree_GS_GS, response = c("TotalTreeCover", "absTotalTree_GS"), dfRaw = preds_quantile %>% filter(newRegion == "dryShrubGrass") %>% select(TotalTreeCover, absTotalTree_GS,
+quantPlot_totalTree_GS_GS <- add_dotplot_inset(quantPlot_totalTree_GS_GS, df = deciles_totalTree_GS_GS, response = c("TotalTreeCover", "absTotalTree_GS"), dfRaw = preds_trees %>% filter(newRegion == "dryShrubGrass") %>% select(TotalTreeCover, absTotalTree_GS,
                                                                                prcp, prcp_seasonality, sand ,AWHC)  %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
 # for only GS (model-defined using the GS model
-deciles_totalTree_GS_GSprob <- predvars2deciles(df = preds_quantile %>% filter(prob_Forest<0.5) %>% select(TotalTreeCover, absTotalTree_GS,
+deciles_totalTree_GS_GSprob <- predvars2deciles(df = preds_trees %>% filter(prob_Forest<0.5) %>% select(TotalTreeCover, absTotalTree_GS,
                                                                                prcp, prcp_seasonality, sand ,AWHC) %>% drop_na()
                                    , response_vars = c("TotalTreeCover", "absTotalTree_GS"), # name of observations, followed by name of predictions
                                    pred_vars = c("prcp", "prcp_seasonality","sand" ,"AWHC"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc NL tree for GS and F)
@@ -1435,11 +1566,11 @@ quantPlot_totalTree_GS_GSprob <- decile_dotplot_pq(df = deciles_totalTree_GS_GSp
                         CI = FALSE
                         ) + ggtitle("Absolute Total Tree Cover - Grass/shrub model in Grass/shrub")
 
-quantPlot_totalTree_GS_GSprob <- add_dotplot_inset(quantPlot_totalTree_GS_GSprob, df = deciles_totalTree_GS_GSprob, response = c("TotalTreeCover", "absTotalTree_GS"), dfRaw = preds_quantile %>% filter(prob_Forest<0.5) %>% select(TotalTreeCover, absTotalTree_GS,
+quantPlot_totalTree_GS_GSprob <- add_dotplot_inset(quantPlot_totalTree_GS_GSprob, df = deciles_totalTree_GS_GSprob, response = c("TotalTreeCover", "absTotalTree_GS"), dfRaw = preds_trees %>% filter(prob_Forest<0.5) %>% select(TotalTreeCover, absTotalTree_GS,
                                                                                prcp, prcp_seasonality, sand ,AWHC)  %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
 # for the entire CONUS using the F model
-deciles_totalTree_F_entire <- predvars2deciles(df = preds_quantile %>% select(TotalTreeCover, absTotalTree_F,
+deciles_totalTree_F_entire <- predvars2deciles(df = preds_trees %>% select(TotalTreeCover, absTotalTree_F,
                                                                                tmean, prcp, prcp_dry, isothermality, AWHC, prcpTempCorr, clay, carbon, coarse, sand) %>% drop_na()
                                    , response_vars = c("TotalTreeCover", "absTotalTree_F"), # name of observations, followed by name of predictions
                                    pred_vars = c("tmean", "prcp", "prcp_dry", "isothermality", "AWHC", "prcpTempCorr", "clay", "carbon", "coarse", "sand"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc NL tree for F and F)
@@ -1449,10 +1580,10 @@ quantPlot_totalTree_F_entire <- decile_dotplot_pq(df = deciles_totalTree_F_entir
                         CI = FALSE
                         ) + ggtitle("Absolute Total Tree Cover - Forest model in CONUS")
 
-quantPlot_totalTree_F_entire <- add_dotplot_inset(quantPlot_totalTree_F_entire, df = deciles_totalTree_F_entire, response = c("TotalTreeCover", "absTotalTree_F"), dfRaw = preds_quantile %>% select(TotalTreeCover, absTotalTree_F,  tmean, prcp, prcp_dry, isothermality, AWHC, prcpTempCorr, clay, carbon, coarse, sand) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_totalTree_F_entire <- add_dotplot_inset(quantPlot_totalTree_F_entire, df = deciles_totalTree_F_entire, response = c("TotalTreeCover", "absTotalTree_F"), dfRaw = preds_trees %>% select(TotalTreeCover, absTotalTree_F,  tmean, prcp, prcp_dry, isothermality, AWHC, prcpTempCorr, clay, carbon, coarse, sand) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
 # for only F (EPA defined) using the F model
-deciles_totalTree_F_F <- predvars2deciles(df = preds_quantile %>% filter(newRegion != "dryShrubGrass") %>% select(TotalTreeCover, absTotalTree_F,tmean, prcp, prcp_dry, isothermality, AWHC, prcpTempCorr, clay, carbon, coarse, sand) %>% drop_na()
+deciles_totalTree_F_F <- predvars2deciles(df = preds_trees %>% filter(newRegion != "dryShrubGrass") %>% select(TotalTreeCover, absTotalTree_F,tmean, prcp, prcp_dry, isothermality, AWHC, prcpTempCorr, clay, carbon, coarse, sand) %>% drop_na()
                                    , response_vars = c("TotalTreeCover", "absTotalTree_F"), # name of observations, followed by name of predictions
                                    pred_vars = c("tmean", "prcp", "prcp_dry", "isothermality", "AWHC", "prcpTempCorr", "clay", "carbon", "coarse", "sand"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc NL tree for F and F)
 cut_points = seq(0, 1, 0.01)
@@ -1461,11 +1592,11 @@ quantPlot_totalTree_F_F <- decile_dotplot_pq(df = deciles_totalTree_F_F, respons
                         CI = FALSE
                         ) + ggtitle("Absolute Total Tree Cover - Forest model in Forest")
 
-quantPlot_totalTree_F_F <- add_dotplot_inset(quantPlot_totalTree_F_F, df = deciles_totalTree_F_F, response = c("TotalTreeCover", "absTotalTree_F"), dfRaw = preds_quantile %>% filter(newRegion != "dryShrubGrass") %>% select(TotalTreeCover, absTotalTree_F,
+quantPlot_totalTree_F_F <- add_dotplot_inset(quantPlot_totalTree_F_F, df = deciles_totalTree_F_F, response = c("TotalTreeCover", "absTotalTree_F"), dfRaw = preds_trees %>% filter(newRegion != "dryShrubGrass") %>% select(TotalTreeCover, absTotalTree_F,
                                                                               tmean, prcp, prcp_dry, isothermality, AWHC, prcpTempCorr, clay, carbon, coarse, sand)  %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
 # for only F (model-defined using the F model
-deciles_totalTree_F_Fprob <- predvars2deciles(df = preds_quantile %>% filter(prob_Forest>=0.5) %>% select(TotalTreeCover, absTotalTree_F,
+deciles_totalTree_F_Fprob <- predvars2deciles(df = preds_trees %>% filter(prob_Forest>=0.5) %>% select(TotalTreeCover, absTotalTree_F,
                                                                                tmean, prcp, prcp_dry, isothermality, AWHC, prcpTempCorr, clay, carbon, coarse, sand) %>% drop_na()
                                    , response_vars = c("TotalTreeCover", "absTotalTree_F"), # name of observations, followed by name of predictions
                                    pred_vars = c("tmean", "prcp", "prcp_dry", "isothermality", "AWHC", "prcpTempCorr", "clay", "carbon", "coarse", "sand"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc NL tree for F and F)
@@ -1475,12 +1606,12 @@ quantPlot_totalTree_F_Fprob <- decile_dotplot_pq(df = deciles_totalTree_F_Fprob,
                         CI = FALSE
                         ) + ggtitle("Absolute Total Tree Cover - Forest model in Forest")
 
-quantPlot_totalTree_F_Fprob <- add_dotplot_inset(quantPlot_totalTree_F_Fprob, df = deciles_totalTree_F_Fprob, response = c("TotalTreeCover", "absTotalTree_F"), dfRaw = preds_quantile %>% filter(prob_Forest>=0.5) %>% select(TotalTreeCover, absTotalTree_F,
+quantPlot_totalTree_F_Fprob <- add_dotplot_inset(quantPlot_totalTree_F_Fprob, df = deciles_totalTree_F_Fprob, response = c("TotalTreeCover", "absTotalTree_F"), dfRaw = preds_trees %>% filter(prob_Forest>=0.5) %>% select(TotalTreeCover, absTotalTree_F,
                                                                                prcp, prcp_seasonality, sand ,AWHC)  %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
 #### NL trees ####
 # for the entire CONUS using the GS model
-deciles_NLtree_RawGS_entire <- predvars2deciles(df = preds_quantile %>% select(ConifTreeCover_prop, percNLTree_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na()
+deciles_NLtree_RawGS_entire <- predvars2deciles(df = preds_trees %>% select(ConifTreeCover_prop, percNLTree_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na()
                                    , response_vars = c("ConifTreeCover_prop", "percNLTree_GS"), # name of observations, followed by name of predictions
                                    pred_vars = c("tmean", "prcp", "AWHC", "prcpTempCorr", "isothermality", "prcpTempCorr_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc NL tree for GS and F)
 cut_points = seq(0, 1, 0.01)
@@ -1489,11 +1620,11 @@ quantPlot_NLtree_RawGS_entire <- decile_dotplot_pq(df = deciles_NLtree_RawGS_ent
                         CI = FALSE
                         ) + ggtitle("Proportion of trees that are Needle-Leaved - Grass/shrub model in CONUS")
 
-quantPlot_NLtree_RawGS_entire <- add_dotplot_inset(quantPlot_NLtree_RawGS_entire, df = deciles_NLtree_RawGS_entire, response = c("ConifTreeCover_prop", "percNLTree_GS"), dfRaw = preds_quantile %>% select(ConifTreeCover_prop, percNLTree_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_NLtree_RawGS_entire <- add_dotplot_inset(quantPlot_NLtree_RawGS_entire, df = deciles_NLtree_RawGS_entire, response = c("ConifTreeCover_prop", "percNLTree_GS"), dfRaw = preds_trees %>% select(ConifTreeCover_prop, percNLTree_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
 
 # for only GS using the GS model (EPA-defined)
-deciles_NLtree_RawGS_GS <- predvars2deciles(df = preds_quantile %>% filter(newRegion == "dryShrubGrass") %>% select(ConifTreeCover_prop, percNLTree_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na() 
+deciles_NLtree_RawGS_GS <- predvars2deciles(df = preds_trees %>% filter(newRegion == "dryShrubGrass") %>% select(ConifTreeCover_prop, percNLTree_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na() 
                                    , response_vars = c("ConifTreeCover_prop", "percNLTree_GS"), # name of observations, followed by name of predictions
                                    pred_vars = c("tmean", "prcp", "AWHC", "prcpTempCorr", "isothermality", "prcpTempCorr_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc NL tree for GS and F)
 cut_points = seq(0, 1, 0.01)
@@ -1502,10 +1633,10 @@ quantPlot_NLtree_RawGS_GS <- decile_dotplot_pq(df = deciles_NLtree_RawGS_GS, res
                         CI = FALSE
                         ) + ggtitle("Proportion of trees that are Needle-Leaved - Grass/shrub model in Grass/shrub")
 
-quantPlot_NLtree_RawGS_GS <- add_dotplot_inset(quantPlot_NLtree_RawGS_GS, df = deciles_NLtree_RawGS_GS, response = c("ConifTreeCover_prop", "percNLTree_GS"), dfRaw = preds_quantile %>% filter(newRegion == "dryShrubGrass") %>% select(ConifTreeCover_prop, percNLTree_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_NLtree_RawGS_GS <- add_dotplot_inset(quantPlot_NLtree_RawGS_GS, df = deciles_NLtree_RawGS_GS, response = c("ConifTreeCover_prop", "percNLTree_GS"), dfRaw = preds_trees %>% filter(newRegion == "dryShrubGrass") %>% select(ConifTreeCover_prop, percNLTree_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
 # for only GS using the GS model (model-defined)
-deciles_NLtree_RawGS_GSprob <- predvars2deciles(df = preds_quantile %>% filter(prob_Forest < 0.5) %>% select(ConifTreeCover_prop, percNLTree_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na() 
+deciles_NLtree_RawGS_GSprob <- predvars2deciles(df = preds_trees %>% filter(prob_Forest < 0.5) %>% select(ConifTreeCover_prop, percNLTree_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na() 
                                    , response_vars = c("ConifTreeCover_prop", "percNLTree_GS"), # name of observations, followed by name of predictions
                                    pred_vars = c("tmean", "prcp", "AWHC", "prcpTempCorr", "isothermality", "prcpTempCorr_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc NL tree for GS and F)
 cut_points = seq(0, 1, 0.01)
@@ -1514,11 +1645,11 @@ quantPlot_NLtree_RawGS_GSprob <- decile_dotplot_pq(df = deciles_NLtree_RawGS_GSp
                         CI = FALSE
                         ) + ggtitle("Proportion of trees that are Needle-Leaved - Grass/shrub model in Grass/shrub")
 
-quantPlot_NLtree_RawGS_GSprob <- add_dotplot_inset(quantPlot_NLtree_RawGS_GSprob, df = deciles_NLtree_RawGS_GSprob, response = c("ConifTreeCover_prop", "percNLTree_GS"), dfRaw = preds_quantile %>% filter(prob_Forest < 0.5) %>% select(ConifTreeCover_prop, percNLTree_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_NLtree_RawGS_GSprob <- add_dotplot_inset(quantPlot_NLtree_RawGS_GSprob, df = deciles_NLtree_RawGS_GSprob, response = c("ConifTreeCover_prop", "percNLTree_GS"), dfRaw = preds_trees %>% filter(prob_Forest < 0.5) %>% select(ConifTreeCover_prop, percNLTree_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
 
 # for the entire CONUS using the F model
-deciles_NLtree_RawF_entire <- predvars2deciles(df = preds_quantile %>% select(ConifTreeCover_prop, percNLTree_F, tmean, prcp_dry, sand, carbon, AWHC, isothermality, prcpTempCorr, prcpTempCorr_anom, isothermality_anom, coarse) %>% drop_na()
+deciles_NLtree_RawF_entire <- predvars2deciles(df = preds_trees %>% select(ConifTreeCover_prop, percNLTree_F, tmean, prcp_dry, sand, carbon, AWHC, isothermality, prcpTempCorr, prcpTempCorr_anom, isothermality_anom, coarse) %>% drop_na()
                                    , response_vars = c("ConifTreeCover_prop", "percNLTree_F"), # name of observations, followed by name of predictions
                                    pred_vars = c("tmean", "prcp_dry", "sand", "carbon", "AWHC", "isothermality", "prcpTempCorr", "prcpTempCorr_anom", "isothermality_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc NL tree for GS and F)
 cut_points = seq(0, 1, 0.01)
@@ -1527,10 +1658,10 @@ quantPlot_NLtree_RawF_entire <- decile_dotplot_pq(df = deciles_NLtree_RawF_entir
                         CI = FALSE
                         ) + ggtitle("Proportion of trees that are Needle-Leaved - forest model in CONUS")
 
-quantPlot_NLtree_RawF_entire <- add_dotplot_inset(quantPlot_NLtree_RawF_entire, df = deciles_NLtree_RawF_entire, response = c("ConifTreeCover_prop", "percNLTree_F"), dfRaw = preds_quantile %>% select(ConifTreeCover_prop, percNLTree_F, tmean, prcp_dry, sand, carbon, AWHC, isothermality, prcpTempCorr, prcpTempCorr_anom, isothermality_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_NLtree_RawF_entire <- add_dotplot_inset(quantPlot_NLtree_RawF_entire, df = deciles_NLtree_RawF_entire, response = c("ConifTreeCover_prop", "percNLTree_F"), dfRaw = preds_trees %>% select(ConifTreeCover_prop, percNLTree_F, tmean, prcp_dry, sand, carbon, AWHC, isothermality, prcpTempCorr, prcpTempCorr_anom, isothermality_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
 # for only F (EPA defined) using the F model
-deciles_NLtree_RawF_F <- predvars2deciles(df = preds_quantile %>% filter(newRegion != "dryShrubGrass") %>% select(ConifTreeCover_prop, percNLTree_F, tmean, prcp_dry, sand, carbon, AWHC, isothermality, prcpTempCorr, prcpTempCorr_anom, isothermality_anom, coarse) %>% drop_na() 
+deciles_NLtree_RawF_F <- predvars2deciles(df = preds_trees %>% filter(newRegion != "dryShrubGrass") %>% select(ConifTreeCover_prop, percNLTree_F, tmean, prcp_dry, sand, carbon, AWHC, isothermality, prcpTempCorr, prcpTempCorr_anom, isothermality_anom, coarse) %>% drop_na() 
                                    , response_vars = c("ConifTreeCover_prop", "percNLTree_F"), # name of observations, followed by name of predictions
                                    pred_vars = c("tmean", "prcp_dry", "sand", "carbon", "AWHC", "isothermality", "prcpTempCorr", "prcpTempCorr_anom", "isothermality_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc NL tree for F and F)
 cut_points = seq(0, 1, 0.01)
@@ -1539,10 +1670,10 @@ quantPlot_NLtree_RawF_F <- decile_dotplot_pq(df = deciles_NLtree_RawF_F, respons
                         CI = FALSE
                         ) + ggtitle("Proportion of trees that are Needle-Leaved - forest model in forest")
 
-quantPlot_NLtree_RawF_F <- add_dotplot_inset(quantPlot_NLtree_RawF_F, df = deciles_NLtree_RawF_F, response = c("ConifTreeCover_prop", "percNLTree_F"), dfRaw = preds_quantile %>% filter(newRegion != "dryShrubGrass")%>% select(ConifTreeCover_prop, percNLTree_F, tmean, prcp_dry, sand, carbon, AWHC, isothermality, prcpTempCorr, prcpTempCorr_anom, isothermality_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_NLtree_RawF_F <- add_dotplot_inset(quantPlot_NLtree_RawF_F, df = deciles_NLtree_RawF_F, response = c("ConifTreeCover_prop", "percNLTree_F"), dfRaw = preds_trees %>% filter(newRegion != "dryShrubGrass")%>% select(ConifTreeCover_prop, percNLTree_F, tmean, prcp_dry, sand, carbon, AWHC, isothermality, prcpTempCorr, prcpTempCorr_anom, isothermality_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
 # for only F (Model-defined) using the F model
-deciles_NLtree_RawF_Fprob <- predvars2deciles(df = preds_quantile %>% filter(prob_Forest > 0.5) %>% select(ConifTreeCover_prop, percNLTree_F, tmean, prcp_dry, sand, carbon, AWHC, isothermality, prcpTempCorr, prcpTempCorr_anom, isothermality_anom, coarse) %>% drop_na() 
+deciles_NLtree_RawF_Fprob <- predvars2deciles(df = preds_trees %>% filter(prob_Forest > 0.5) %>% select(ConifTreeCover_prop, percNLTree_F, tmean, prcp_dry, sand, carbon, AWHC, isothermality, prcpTempCorr, prcpTempCorr_anom, isothermality_anom, coarse) %>% drop_na() 
                                    , response_vars = c("ConifTreeCover_prop", "percNLTree_F"), # name of observations, followed by name of predictions
                                    pred_vars = c("tmean", "prcp_dry", "sand", "carbon", "AWHC", "isothermality", "prcpTempCorr", "prcpTempCorr_anom", "isothermality_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc NL tree for F and F)
 cut_points = seq(0, 1, 0.01)
@@ -1551,187 +1682,579 @@ quantPlot_NLtree_RawF_Fprob <- decile_dotplot_pq(df = deciles_NLtree_RawF_Fprob,
                         CI = FALSE
                         ) + ggtitle("Proportion of trees that are Needle-Leaved - forest model in forest")
 
-quantPlot_NLtree_RawF_Fprob <- add_dotplot_inset(quantPlot_NLtree_RawF_Fprob, df = deciles_NLtree_RawF_Fprob, response = c("ConifTreeCover_prop", "percNLTree_F"), dfRaw = preds_quantile %>% filter(prob_Forest > 0.5) %>% select(ConifTreeCover_prop, percNLTree_F, tmean, prcp_dry, sand, carbon, AWHC, isothermality, prcpTempCorr, prcpTempCorr_anom, isothermality_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_NLtree_RawF_Fprob <- add_dotplot_inset(quantPlot_NLtree_RawF_Fprob, df = deciles_NLtree_RawF_Fprob, response = c("ConifTreeCover_prop", "percNLTree_F"), dfRaw = preds_trees %>% filter(prob_Forest > 0.5) %>% select(ConifTreeCover_prop, percNLTree_F, tmean, prcp_dry, sand, carbon, AWHC, isothermality, prcpTempCorr, prcpTempCorr_anom, isothermality_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
-## proportion of trees that are needle leaved -- scaled according to ecoregion probability 
-# NL trees for the entire CONUS (scaled according to model-predicted ecoregion probability)
-deciles_NLtree_ScaledByEco_entire <- predvars2deciles(df = preds_quantile %>% select(ConifTreeCover_prop, percNLTree_CONUS, tmean,  prcp,  prcp_dry , isothermality, AWHC, prcpTempCorr, clay,  carbon, coarse, sand ,  prcp_seasonality,   prcpTempCorr_anom , isothermality_anom) %>% drop_na()
-                                   , response_vars = c("ConifTreeCover_prop", "percNLTree_CONUS"), # name of observations, followed by name of predictions
-                                   pred_vars = c("tmean",  "prcp",  "prcp_dry" , "isothermality", "AWHC", "prcpTempCorr", "clay",  "carbon", "coarse", "sand" ,  "prcp_seasonality",   "prcpTempCorr_anom" , "isothermality_anom"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc NL tree for GS and F)
+## prediction of proportion of NL tree in Grass/Shrub, scaled w/ BL tree to sum to 1 
+# grass/shrub model predicting in Grass/Shrub (EPA-defined)
+deciles_NLtree_scaledGS_GS <- predvars2deciles(df = preds_trees %>% filter(newRegion == "dryShrubGrass") %>% select(ConifTreeCover_prop, percNLTree_scaled_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na() 
+                                   , response_vars = c("ConifTreeCover_prop", "percNLTree_scaled_GS"), # name of observations, followed by name of predictions
+                                   pred_vars = c("tmean", "prcp", "AWHC", "prcpTempCorr", "isothermality", "prcpTempCorr_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc NL tree for GS and F)
 cut_points = seq(0, 1, 0.01)
                                      )
-quantPlot_NLtree_ScaledByEco_entire <- decile_dotplot_pq(df = deciles_NLtree_ScaledByEco_entire, response= c("ConifTreeCover_prop", "percNLTree_CONUS"), IQR = TRUE,
+quantPlot_NLtree_scaledGS_GS <- decile_dotplot_pq(df = deciles_NLtree_scaledGS_GS, response= c("ConifTreeCover_prop", "percNLTree_scaled_GS"), IQR = TRUE,
                         CI = FALSE
-                        ) + ggtitle("Proportion of trees that are Needle-Leaved - scaled by ecoregion to CONUS")
+                        ) + ggtitle("Proportion of trees that are Needle-Leaved \n(scaled to sum to 1 w/ BL tree) - Grass/shrub model in Grass/shrub")
 
-quantPlot_NLtree_ScaledByEco_entire <- add_dotplot_inset(quantPlot_NLtree_ScaledByEco_entire, df = deciles_NLtree_ScaledByEco_entire, response = c("ConifTreeCover_prop", "percNLTree_CONUS"), dfRaw = preds_quantile %>% select(ConifTreeCover_prop, percNLTree_CONUS, tmean,  prcp,  prcp_dry , isothermality, AWHC, prcpTempCorr, clay,  carbon, coarse, sand ,  prcp_seasonality,   prcpTempCorr_anom , isothermality_anom) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_NLtree_scaledGS_GS <- add_dotplot_inset(quantPlot_NLtree_scaledGS_GS, df = deciles_NLtree_scaledGS_GS, response = c("ConifTreeCover_prop", "percNLTree_scaled_GS"), dfRaw = preds_trees %>% filter(newRegion == "dryShrubGrass") %>% select(ConifTreeCover_prop, percNLTree_scaled_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
-## proportion of trees that are needle leaved -- scaled to sum to 1 w/ prop of broad-leaved tree
-# NL trees for the entire CONUS 
-deciles_NLtree_ScaledFinal_entire <- predvars2deciles(df = preds_quantile %>% select(ConifTreeCover_prop, percNLTree_scaled_CONUS, tmean,  prcp,  prcp_dry , isothermality, AWHC, prcpTempCorr, clay,  carbon, coarse, sand ,  prcp_seasonality,   prcpTempCorr_anom , isothermality_anom) %>% drop_na()
-                                   , response_vars = c("ConifTreeCover_prop", "percNLTree_scaled_CONUS"), # name of observations, followed by name of predictions
-                                   pred_vars = c("tmean",  "prcp",  "prcp_dry" , "isothermality", "AWHC", "prcpTempCorr", "clay",  "carbon", "coarse", "sand" ,  "prcp_seasonality",   "prcpTempCorr_anom" , "isothermality_anom"), # for predictors, combine list of predictors for all models (total tree for  and F, and perc NL tree for  and F)
+# grass/shrub model predicting in CONUS
+deciles_NLtree_scaledGS_entire <- predvars2deciles(df = preds_trees %>% select(ConifTreeCover_prop, percNLTree_scaled_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na()
+                                   , response_vars = c("ConifTreeCover_prop", "percNLTree_scaled_GS"), # name of observations, followed by name of predictions
+                                   pred_vars = c("tmean", "prcp", "AWHC", "prcpTempCorr", "isothermality", "prcpTempCorr_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc NL tree for GS and F)
 cut_points = seq(0, 1, 0.01)
                                      )
-quantPlot_NLtree_ScaledFinal_entire <- decile_dotplot_pq(df = deciles_NLtree_ScaledFinal_entire, response= c("ConifTreeCover_prop", "percNLTree_scaled_CONUS"), IQR = TRUE,
+quantPlot_NLtree_scaledGS_entire <- decile_dotplot_pq(df = deciles_NLtree_scaledGS_entire, response= c("ConifTreeCover_prop", "percNLTree_scaled_GS"), IQR = TRUE,
                         CI = FALSE
-                        ) + ggtitle("Proportion of trees that are Needle-Leaved - scaled so NL and BL tree prop sums to 1")
+                        ) + ggtitle("Proportion of trees that are Needle-Leaved \n(scaled to sum to 1 w/ BL tree) - Grass/shrub model in CONUS")
 
-quantPlot_NLtree_ScaledFinal_entire <- add_dotplot_inset(quantPlot_NLtree_ScaledFinal_entire, df = deciles_NLtree_ScaledFinal_entire, response = c("ConifTreeCover_prop", "percNLTree_scaled_CONUS"), dfRaw = preds_quantile %>% select(ConifTreeCover_prop, percNLTree_scaled_CONUS, tmean,  prcp,  prcp_dry , isothermality, AWHC, prcpTempCorr, clay,  carbon, coarse, sand ,  prcp_seasonality,   prcpTempCorr_anom , isothermality_anom) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_NLtree_scaledGS_entire <- add_dotplot_inset(quantPlot_NLtree_scaledGS_entire, df = deciles_NLtree_scaledGS_entire, response = c("ConifTreeCover_prop", "percNLTree_scaled_GS"), dfRaw = preds_trees %>% select(ConifTreeCover_prop, percNLTree_scaled_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
-## Absolute cover of NL trees
-# NL trees
-# for the entire CONUS using the  model
-deciles_NLtree_Abs_entire <- predvars2deciles(df = preds_quantile %>% select(NLTreeCover_abs, absNLTree_CONUS, tmean,  prcp,  prcp_dry , isothermality, AWHC, prcpTempCorr, clay,  carbon, coarse, sand ,  prcp_seasonality,   prcpTempCorr_anom , isothermality_anom) %>% drop_na()
+ 
+## prediction of absolute cover of NL tree in Grass/Shrub
+# grass/shrub model predicting in Grass/Shrub (EPA-defined)
+deciles_NLtree_absoluteGS_GS <- predvars2deciles(df = preds_trees %>% filter(newRegion == "dryShrubGrass") %>% select(NLTreeCover_abs, absNLTree_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na() 
+                                   , response_vars = c("NLTreeCover_abs", "absNLTree_GS"), # name of observations, followed by name of predictions
+                                   pred_vars = c("tmean", "prcp", "AWHC", "prcpTempCorr", "isothermality", "prcpTempCorr_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc NL tree for GS and F)
+cut_points = seq(0, 1, 0.01)
+                                     )
+quantPlot_NLtree_absoluteGS_GS <- decile_dotplot_pq(df = deciles_NLtree_absoluteGS_GS, response= c("NLTreeCover_abs", "absNLTree_GS"), IQR = TRUE,
+                        CI = FALSE
+                        ) + ggtitle("Absolute cover of needle-leaved trees - \nGrass/shrub model in Grass/shrub")
+
+quantPlot_NLtree_absoluteGS_GS <- add_dotplot_inset(quantPlot_NLtree_absoluteGS_GS, df = deciles_NLtree_absoluteGS_GS, response = c("NLTreeCover_abs", "absNLTree_GS"), dfRaw = preds_trees %>% filter(newRegion == "dryShrubGrass") %>% select(NLTreeCover_abs, absNLTree_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+
+# grass/shrub model predicting in CONUS
+deciles_NLtree_absoluteGS_entire <- predvars2deciles(df = preds_trees %>% select(NLTreeCover_abs, absNLTree_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na()
+                                   , response_vars = c("NLTreeCover_abs", "absNLTree_GS"), # name of observations, followed by name of predictions
+                                   pred_vars = c("tmean", "prcp", "AWHC", "prcpTempCorr", "isothermality", "prcpTempCorr_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc NL tree for GS and F)
+cut_points = seq(0, 1, 0.01)
+                                     )
+quantPlot_NLtree_absoluteGS_entire <- decile_dotplot_pq(df = deciles_NLtree_absoluteGS_entire, response= c("NLTreeCover_abs", "absNLTree_GS"), IQR = TRUE,
+                        CI = FALSE
+                        ) + ggtitle("Absolute cover of needle-leaved trees -\nGrass/shrub model in CONUS")
+
+quantPlot_NLtree_absoluteGS_entire <- add_dotplot_inset(quantPlot_NLtree_absoluteGS_entire, df = deciles_NLtree_absoluteGS_entire, response = c("NLTreeCover_abs", "absNLTree_GS"), dfRaw = preds_trees %>% select(NLTreeCover_abs, absNLTree_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+
+## prediction of proportion of NL tree in forest, scaled w/ BL tree to sum to 1 
+# forest model predicting in forest (EPA-defined)
+deciles_NLtree_scaledF_F <- predvars2deciles(df = preds_trees %>% filter(newRegion != "dryShrubGrass") %>% select(ConifTreeCover_prop, percNLTree_scaled_F,"tmean", "prcp_dry", "sand", "carbon", "AWHC", "isothermality", "prcpTempCorr", "prcpTempCorr_anom", "isothermality_anom", "coarse") %>% drop_na() 
+                                   , response_vars = c("ConifTreeCover_prop", "percNLTree_scaled_F"), # name of observations, followed by name of predictions
+                                   pred_vars = c("tmean", "prcp_dry", "sand", "carbon", "AWHC", "isothermality", "prcpTempCorr", "prcpTempCorr_anom", "isothermality_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc NL tree for F and F)
+cut_points = seq(0, 1, 0.01)
+                                     )
+quantPlot_NLtree_scaledF_F <- decile_dotplot_pq(df = deciles_NLtree_scaledF_F, response= c("ConifTreeCover_prop", "percNLTree_scaled_F"), IQR = TRUE,
+                        CI = FALSE
+                        ) + ggtitle("Proportion of trees that are Needle-Leaved \n(scaled to sum to 1 w/ BL tree) - forest model in forest")
+
+quantPlot_NLtree_scaledF_F <- add_dotplot_inset(quantPlot_NLtree_scaledF_F, df = deciles_NLtree_scaledF_F, response = c("ConifTreeCover_prop", "percNLTree_scaled_F"), dfRaw = preds_trees %>% filter(newRegion != "dryShrubGrass") %>% select(ConifTreeCover_prop, percNLTree_scaled_F, "tmean", "prcp_dry", "sand", "carbon", "AWHC", "isothermality", "prcpTempCorr", "prcpTempCorr_anom", "isothermality_anom", "coarse") %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+
+# forest model predicting in CONUS
+deciles_NLtree_scaledF_entire <- predvars2deciles(df = preds_trees %>% select(ConifTreeCover_prop, percNLTree_scaled_F, "tmean", "prcp_dry", "sand", "carbon", "AWHC", "isothermality", "prcpTempCorr", "prcpTempCorr_anom", "isothermality_anom", "coarse") %>% drop_na()
+                                   , response_vars = c("ConifTreeCover_prop", "percNLTree_scaled_F"), # name of observations, followed by name of predictions
+                                   pred_vars = c("tmean", "prcp_dry", "sand", "carbon", "AWHC", "isothermality", "prcpTempCorr", "prcpTempCorr_anom", "isothermality_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc NL tree for F and F)
+cut_points = seq(0, 1, 0.01)
+                                     )
+quantPlot_NLtree_scaledF_entire <- decile_dotplot_pq(df = deciles_NLtree_scaledF_entire, response= c("ConifTreeCover_prop", "percNLTree_scaled_F"), IQR = TRUE,
+                        CI = FALSE
+                        ) + ggtitle("Proportion of trees that are Needle-Leaved \n(scaled to sum to 1 w/ BL tree) - forest model in CONUS")
+
+quantPlot_NLtree_scaledF_entire <- add_dotplot_inset(quantPlot_NLtree_scaledF_entire, df = deciles_NLtree_scaledF_entire, response = c("ConifTreeCover_prop", "percNLTree_scaled_F"), dfRaw = preds_trees %>% select(ConifTreeCover_prop, percNLTree_scaled_F, "tmean", "prcp_dry", "sand", "carbon", "AWHC", "isothermality", "prcpTempCorr", "prcpTempCorr_anom", "isothermality_anom", "coarse") %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+
+ 
+## prediction of absolute cover of NL tree in forest
+# forest model predicting in forest (EPA-defined)
+deciles_NLtree_absoluteF_F <- predvars2deciles(df = preds_trees %>% filter(newRegion != "dryShrubGrass") %>% select(NLTreeCover_abs, absNLTree_F, "tmean", "prcp_dry", "sand", "carbon", "AWHC", "isothermality", "prcpTempCorr", "prcpTempCorr_anom", "isothermality_anom", "coarse") %>% drop_na() 
+                                   , response_vars = c("NLTreeCover_abs", "absNLTree_F"), # name of observations, followed by name of predictions
+                                   pred_vars = c("tmean", "prcp_dry", "sand", "carbon", "AWHC", "isothermality", "prcpTempCorr", "prcpTempCorr_anom", "isothermality_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc NL tree for F and F)
+cut_points = seq(0, 1, 0.01)
+                                     )
+quantPlot_NLtree_absoluteF_F <- decile_dotplot_pq(df = deciles_NLtree_absoluteF_F, response= c("NLTreeCover_abs", "absNLTree_F"), IQR = TRUE,
+                        CI = FALSE
+                        ) + ggtitle("Absolute cover of needle-leaved trees - \nforest model in forest")
+
+quantPlot_NLtree_absoluteF_F <- add_dotplot_inset(quantPlot_NLtree_absoluteF_F, df = deciles_NLtree_absoluteF_F, response = c("NLTreeCover_abs", "absNLTree_F"), dfRaw = preds_trees %>% filter(newRegion != "dryShrubGrass") %>% select(NLTreeCover_abs, absNLTree_F, "tmean", "prcp_dry", "sand", "carbon", "AWHC", "isothermality", "prcpTempCorr", "prcpTempCorr_anom", "isothermality_anom", "coarse") %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+
+# forest model predicting in CONUS
+deciles_NLtree_absoluteF_entire <- predvars2deciles(df = preds_trees %>% select(NLTreeCover_abs, absNLTree_F, "tmean", "prcp_dry", "sand", "carbon", "AWHC", "isothermality", "prcpTempCorr", "prcpTempCorr_anom", "isothermality_anom", "coarse") %>% drop_na()
+                                   , response_vars = c("NLTreeCover_abs", "absNLTree_F"), # name of observations, followed by name of predictions
+                                   pred_vars = c("tmean", "prcp_dry", "sand", "carbon", "AWHC", "isothermality", "prcpTempCorr", "prcpTempCorr_anom", "isothermality_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc NL tree for F and F)
+cut_points = seq(0, 1, 0.01)
+                                     )
+quantPlot_NLtree_absoluteF_entire <- decile_dotplot_pq(df = deciles_NLtree_absoluteF_entire, response= c("NLTreeCover_abs", "absNLTree_F"), IQR = TRUE,
+                        CI = FALSE
+                        ) + ggtitle("Absolute cover of needle-leaved trees - \nforest model in CONUS")
+
+quantPlot_NLtree_absoluteF_entire <- add_dotplot_inset(quantPlot_NLtree_absoluteF_entire, df = deciles_NLtree_absoluteF_entire, response = c("NLTreeCover_abs", "absNLTree_F"), dfRaw = preds_trees %>% select(NLTreeCover_abs, absNLTree_F, "tmean", "prcp_dry", "sand", "carbon", "AWHC", "isothermality", "prcpTempCorr", "prcpTempCorr_anom", "isothermality_anom", "coarse") %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+
+
+## prediction of absolute cover of NL tree, scaled by ecoregion probability to be CONUS-wide 
+deciles_NLtree_absolute_CONUS <- predvars2deciles(df = preds_trees %>% select(NLTreeCover_abs, absNLTree_CONUS, AWHC, carbon, clay, coarse, isothermality_anom, isothermality, tmean, prcp, prcp_dry, prcp_seasonality, prcpTempCorr_anom, prcpTempCorr, sand) %>% drop_na()
                                    , response_vars = c("NLTreeCover_abs", "absNLTree_CONUS"), # name of observations, followed by name of predictions
-                                   pred_vars = c("tmean",  "prcp",  "prcp_dry" , "isothermality", "AWHC", "prcpTempCorr", "clay",  "carbon", "coarse", "sand" ,  "prcp_seasonality",   "prcpTempCorr_anom" , "isothermality_anom"), # for predictors, combine list of predictors for all models (total tree for  and F, and perc NL tree for  and F)
+                                   pred_vars = c("AWHC", "carbon", "clay", "coarse", "isothermality_anom", "isothermality", "tmean", "prcp", "prcp_dry", "prcp_seasonality", "prcpTempCorr_anom", "prcpTempCorr", "sand"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc NL tree for F and F)
 cut_points = seq(0, 1, 0.01)
                                      )
-quantPlot_NLtree_Abs_entire <- decile_dotplot_pq(df = deciles_NLtree_Abs_entire, response= c("NLTreeCover_abs", "absNLTree_CONUS"), IQR = TRUE,
+quantPlot_NLtree_absolute_CONUS <- decile_dotplot_pq(df = deciles_NLtree_absolute_CONUS, response= c("NLTreeCover_abs", "absNLTree_CONUS"), IQR = TRUE,
                         CI = FALSE
-                        ) + ggtitle("Absolute Needle-Leaved tree cover")
+                        ) + ggtitle("Absolute cover of needle-leaved trees - CONUS-wide")
 
-quantPlot_NLtree_Abs_entire <- add_dotplot_inset(quantPlot_NLtree_Abs_entire, df = deciles_NLtree_Abs_entire, response = c("NLTreeCover_abs", "absNLTree_CONUS"), dfRaw = preds_quantile %>% select(NLTreeCover_abs, absNLTree_CONUS, tmean,  prcp,  prcp_dry , isothermality, AWHC, prcpTempCorr, clay,  carbon, coarse, sand ,  prcp_seasonality,   prcpTempCorr_anom , isothermality_anom) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_NLtree_absolute_CONUS <- add_dotplot_inset(quantPlot_NLtree_absolute_CONUS, df = deciles_NLtree_absolute_CONUS, response = c("NLTreeCover_abs", "absNLTree_CONUS"), dfRaw = preds_trees %>% select(NLTreeCover_abs, absNLTree_CONUS, "AWHC", "carbon", "clay", "coarse", "isothermality_anom", "isothermality", "tmean", "prcp", "prcp_dry", "prcp_seasonality", "prcpTempCorr_anom", "prcpTempCorr", "sand") %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+
+
 #### BL trees ####
 # for the entire CONUS using the GS model
-deciles_BLtree_RawGS_entire <- predvars2deciles(df = preds_quantile %>% select(AngioTreeCover_prop, percBLTree_GS, tmean, prcp, prcpTempCorr, sand, coarse, AWHC, prcp_seasonality_anom, isothermality_anom, isothermality, prcp_seasonality, prcpTempCorr_anom, sand) %>% drop_na()
+deciles_BLtree_RawGS_entire <- predvars2deciles(df = preds_trees %>% select(AngioTreeCover_prop, percBLTree_GS, tmean, prcp, prcpTempCorr, sand, coarse, AWHC, prcp_seasonality_anom, isothermality_anom, isothermality, prcp_seasonality, prcpTempCorr_anom) %>% drop_na()
                                    , response_vars = c("AngioTreeCover_prop", "percBLTree_GS"), # name of observations, followed by name of predictions
-                                   pred_vars = c("tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom", "sand"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc BL tree for GS and F)
+                                   pred_vars = c("tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc BL tree for GS and F)
 cut_points = seq(0, 1, 0.01)
                                      )
 quantPlot_BLtree_RawGS_entire <- decile_dotplot_pq(df = deciles_BLtree_RawGS_entire, response= c("AngioTreeCover_prop", "percBLTree_GS"), IQR = TRUE,
                         CI = FALSE
                         ) + ggtitle("Proportion of trees that are Broad-leaved - Grass/shrub model in CONUS")
 
-quantPlot_BLtree_RawGS_entire <- add_dotplot_inset(quantPlot_BLtree_RawGS_entire, df = deciles_BLtree_RawGS_entire, response = c("AngioTreeCover_prop", "percBLTree_GS"), dfRaw = preds_quantile %>% select(AngioTreeCover_prop, percBLTree_GS, tmean, prcp, prcpTempCorr, sand, coarse, AWHC, prcp_seasonality_anom, isothermality_anom, isothermality, prcp_seasonality, prcpTempCorr_anom, sand) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_BLtree_RawGS_entire <- add_dotplot_inset(quantPlot_BLtree_RawGS_entire, df = preds_trees %>% select(AngioTreeCover_prop, percBLTree_GS, tmean, prcp, prcpTempCorr, sand, coarse, AWHC, prcp_seasonality_anom, isothermality_anom, isothermality, prcp_seasonality, prcpTempCorr_anom) %>% drop_na(), response = c("AngioTreeCover_prop", "percBLTree_GS"), dfRaw = preds_trees %>% select(AngioTreeCover_prop, percBLTree_GS, "tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom") %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
 
-# for only GS using the GS model (EPA-defined)
-deciles_BLtree_RawGS_GS <- predvars2deciles(df = preds_quantile %>% filter(newRegion == "dryShrubGrass") %>% select(AngioTreeCover_prop, percBLTree_GS, tmean, prcp, prcpTempCorr, sand, coarse, AWHC, prcp_seasonality_anom, isothermality_anom, isothermality, prcp_seasonality, prcpTempCorr_anom, sand) %>% drop_na() 
+# for oBLy GS using the GS model (EPA-defined)
+deciles_BLtree_RawGS_GS <- predvars2deciles(df = preds_trees %>% filter(newRegion == "dryShrubGrass") %>% select(AngioTreeCover_prop, percBLTree_GS, "tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom") %>% drop_na() 
                                    , response_vars = c("AngioTreeCover_prop", "percBLTree_GS"), # name of observations, followed by name of predictions
-                                   pred_vars = c("tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom", "sand"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc BL tree for GS and F)
+                                   pred_vars = c("tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc BL tree for GS and F)
 cut_points = seq(0, 1, 0.01)
                                      )
 quantPlot_BLtree_RawGS_GS <- decile_dotplot_pq(df = deciles_BLtree_RawGS_GS, response= c("AngioTreeCover_prop", "percBLTree_GS"), IQR = TRUE,
                         CI = FALSE
                         ) + ggtitle("Proportion of trees that are Broad-leaved - Grass/shrub model in Grass/shrub")
 
-quantPlot_BLtree_RawGS_GS <- add_dotplot_inset(quantPlot_BLtree_RawGS_GS, df = deciles_BLtree_RawGS_GS, response = c("AngioTreeCover_prop", "percBLTree_GS"), dfRaw = preds_quantile %>% filter(newRegion == "dryShrubGrass") %>% select(AngioTreeCover_prop, percBLTree_GS, tmean, prcp, prcpTempCorr, sand, coarse, AWHC, prcp_seasonality_anom, isothermality_anom, isothermality, prcp_seasonality, prcpTempCorr_anom, sand) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_BLtree_RawGS_GS <- add_dotplot_inset(quantPlot_BLtree_RawGS_GS, df = deciles_BLtree_RawGS_GS, response = c("AngioTreeCover_prop", "percBLTree_GS"), dfRaw = preds_trees %>% filter(newRegion == "dryShrubGrass") %>% select(AngioTreeCover_prop, percBLTree_GS, "tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom") %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
-# for only GS using the GS model (model-defined)
-deciles_BLtree_RawGS_GSprob <- predvars2deciles(df = preds_quantile %>% filter(prob_Forest < 0.5) %>% select(AngioTreeCover_prop, percBLTree_GS, tmean, prcp, prcpTempCorr, sand, coarse, AWHC, prcp_seasonality_anom, isothermality_anom, isothermality, prcp_seasonality, prcpTempCorr_anom, sand) %>% drop_na() 
+# for oBLy GS using the GS model (model-defined)
+deciles_BLtree_RawGS_GSprob <- predvars2deciles(df = preds_trees %>% filter(prob_Forest < 0.5) %>% select(AngioTreeCover_prop, percBLTree_GS, "tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom") %>% drop_na() 
                                    , response_vars = c("AngioTreeCover_prop", "percBLTree_GS"), # name of observations, followed by name of predictions
-                                   pred_vars = c("tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom", "sand"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc BL tree for GS and F)
+                                   pred_vars = c("tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc BL tree for GS and F)
 cut_points = seq(0, 1, 0.01)
                                      )
 quantPlot_BLtree_RawGS_GSprob <- decile_dotplot_pq(df = deciles_BLtree_RawGS_GSprob, response= c("AngioTreeCover_prop", "percBLTree_GS"), IQR = TRUE,
                         CI = FALSE
                         ) + ggtitle("Proportion of trees that are Broad-leaved - Grass/shrub model in Grass/shrub")
 
-quantPlot_BLtree_RawGS_GSprob <- add_dotplot_inset(quantPlot_BLtree_RawGS_GSprob, df = deciles_BLtree_RawGS_GSprob, response = c("AngioTreeCover_prop", "percBLTree_GS"), dfRaw = preds_quantile %>% filter(prob_Forest < 0.5) %>% select(AngioTreeCover_prop, percBLTree_GS, tmean, prcp, prcpTempCorr, sand, coarse, AWHC, prcp_seasonality_anom, isothermality_anom, isothermality, prcp_seasonality, prcpTempCorr_anom, sand) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_BLtree_RawGS_GSprob <- add_dotplot_inset(quantPlot_BLtree_RawGS_GSprob, df = deciles_BLtree_RawGS_GSprob, response = c("AngioTreeCover_prop", "percBLTree_GS"), dfRaw = preds_trees %>% filter(prob_Forest < 0.5) %>% select(AngioTreeCover_prop, percBLTree_GS, "tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom") %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
 
 # for the entire CONUS using the F model
-deciles_BLtree_RawF_entire <- predvars2deciles(df = preds_quantile %>% select(AngioTreeCover_prop, percBLTree_F, tmean, prcp_dry, prcpTempCorr, sand, carbon, AWHC, prcpTempCorr_anom, isothermality, prcp, isothermality_anom, coarse) %>% drop_na()
+deciles_BLtree_RawF_entire <- predvars2deciles(df = preds_trees %>% select(AngioTreeCover_prop, percBLTree_F, tmean, prcp_dry, sand, carbon, AWHC, isothermality, prcpTempCorr, prcpTempCorr_anom, isothermality_anom, coarse) %>% drop_na()
                                    , response_vars = c("AngioTreeCover_prop", "percBLTree_F"), # name of observations, followed by name of predictions
-                                   pred_vars = c("tmean", "prcp_dry", "prcpTempCorr", "sand", "carbon", "AWHC", "prcpTempCorr_anom", "isothermality", "prcp", "isothermality_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc BL tree for GS and F)
+                                   pred_vars = c("tmean", "prcp_dry", "prcpTempCorr", "sand", "carbon", "AWHC", "prcpTempCorr_anom", "isothermality", "isothermality_anom", "coarse"), 
+                                   # for predictors, combine list of predictors for all models (total tree for GS and F, and perc BL tree for GS and F)
 cut_points = seq(0, 1, 0.01)
                                      )
 quantPlot_BLtree_RawF_entire <- decile_dotplot_pq(df = deciles_BLtree_RawF_entire, response= c("AngioTreeCover_prop", "percBLTree_F"), IQR = TRUE,
                         CI = FALSE
                         ) + ggtitle("Proportion of trees that are Broad-leaved - forest model in CONUS")
 
-quantPlot_BLtree_RawF_entire <- add_dotplot_inset(quantPlot_BLtree_RawF_entire, df = deciles_BLtree_RawF_entire, response = c("AngioTreeCover_prop", "percBLTree_F"), dfRaw = preds_quantile %>% select(AngioTreeCover_prop, percBLTree_F, tmean, prcp_dry, prcpTempCorr, sand, carbon, AWHC, prcpTempCorr_anom, isothermality, prcp, isothermality_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_BLtree_RawF_entire <- add_dotplot_inset(quantPlot_BLtree_RawF_entire, df = deciles_BLtree_RawF_entire, response = c("AngioTreeCover_prop", "percBLTree_F"), dfRaw = preds_trees %>% select(AngioTreeCover_prop, percBLTree_F, tmean, prcp_dry, sand, carbon, AWHC, isothermality, prcpTempCorr, prcpTempCorr_anom, isothermality_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
 # for only F (EPA defined) using the F model
-deciles_BLtree_RawF_F <- predvars2deciles(df = preds_quantile %>% filter(newRegion != "dryShrubGrass") %>% select(AngioTreeCover_prop, percBLTree_F, tmean, prcp_dry, prcpTempCorr, sand, carbon, AWHC, prcpTempCorr_anom, isothermality, prcp, isothermality_anom, coarse) %>% drop_na() 
+deciles_BLtree_RawF_F <- predvars2deciles(df = preds_trees %>% filter(newRegion != "dryShrubGrass") %>% select(AngioTreeCover_prop, percBLTree_F, tmean, prcp_dry, sand, carbon, AWHC, isothermality, prcpTempCorr, prcpTempCorr_anom, isothermality_anom, coarse) %>% drop_na() 
                                    , response_vars = c("AngioTreeCover_prop", "percBLTree_F"), # name of observations, followed by name of predictions
-                                   pred_vars = c("tmean", "prcp_dry", "prcpTempCorr", "sand", "carbon", "AWHC", "prcpTempCorr_anom", "isothermality", "prcp", "isothermality_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc BL tree for F and F)
+                                   pred_vars = c("tmean", "prcp_dry", "prcpTempCorr", "sand", "carbon", "AWHC", "prcpTempCorr_anom", "isothermality", "isothermality_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc BL tree for F and F)
 cut_points = seq(0, 1, 0.01)
                                      )
 quantPlot_BLtree_RawF_F <- decile_dotplot_pq(df = deciles_BLtree_RawF_F, response= c("AngioTreeCover_prop", "percBLTree_F"), IQR = TRUE,
                         CI = FALSE
                         ) + ggtitle("Proportion of trees that are Broad-leaved - forest model in forest")
 
-quantPlot_BLtree_RawF_F <- add_dotplot_inset(quantPlot_BLtree_RawF_F, df = deciles_BLtree_RawF_F, response = c("AngioTreeCover_prop", "percBLTree_F"), dfRaw = preds_quantile %>% filter(newRegion != "dryShrubGrass")%>% select(AngioTreeCover_prop, percBLTree_F, tmean, prcp_dry, prcpTempCorr, sand, carbon, AWHC, prcpTempCorr_anom, isothermality, prcp, isothermality_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_BLtree_RawF_F <- add_dotplot_inset(quantPlot_BLtree_RawF_F, df = deciles_BLtree_RawF_F, response = c("AngioTreeCover_prop", "percBLTree_F"), dfRaw = preds_trees %>% filter(newRegion != "dryShrubGrass")%>% select(AngioTreeCover_prop, percBLTree_F, tmean, prcp_dry, sand, carbon, AWHC, isothermality, prcpTempCorr, prcpTempCorr_anom, isothermality_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
 # for only F (Model-defined) using the F model
-deciles_BLtree_RawF_Fprob <- predvars2deciles(df = preds_quantile %>% filter(prob_Forest >= 0.5) %>% select(AngioTreeCover_prop, percBLTree_F, tmean, prcp_dry, prcpTempCorr, sand, carbon, AWHC, prcpTempCorr_anom, isothermality, prcp, isothermality_anom, coarse) %>% drop_na() 
+deciles_BLtree_RawF_Fprob <- predvars2deciles(df = preds_trees %>% filter(prob_Forest > 0.5) %>% select(AngioTreeCover_prop, percBLTree_F, tmean, prcp_dry, sand, carbon, AWHC, isothermality, prcpTempCorr, prcpTempCorr_anom, isothermality_anom, coarse) %>% drop_na() 
                                    , response_vars = c("AngioTreeCover_prop", "percBLTree_F"), # name of observations, followed by name of predictions
-                                   pred_vars = c("tmean", "prcp_dry", "prcpTempCorr", "sand", "carbon", "AWHC", "prcpTempCorr_anom", "isothermality", "prcp", "isothermality_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc BL tree for F and F)
+                                   pred_vars = c("tmean", "prcp_dry", "prcpTempCorr", "sand", "carbon", "AWHC", "prcpTempCorr_anom", "isothermality", "isothermality_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc BL tree for F and F)
 cut_points = seq(0, 1, 0.01)
                                      )
 quantPlot_BLtree_RawF_Fprob <- decile_dotplot_pq(df = deciles_BLtree_RawF_Fprob, response= c("AngioTreeCover_prop", "percBLTree_F"), IQR = TRUE,
                         CI = FALSE
                         ) + ggtitle("Proportion of trees that are Broad-leaved - forest model in forest")
 
-quantPlot_BLtree_RawF_Fprob <- add_dotplot_inset(quantPlot_BLtree_RawF_Fprob, df = deciles_BLtree_RawF_Fprob, response = c("AngioTreeCover_prop", "percBLTree_F"), dfRaw = preds_quantile %>% filter(prob_Forest >= 0.5) %>% select(AngioTreeCover_prop, percBLTree_F, tmean, prcp_dry, prcpTempCorr, sand, carbon, AWHC, prcpTempCorr_anom, isothermality, prcp, isothermality_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_BLtree_RawF_Fprob <- add_dotplot_inset(quantPlot_BLtree_RawF_Fprob, df = deciles_BLtree_RawF_Fprob, response = c("AngioTreeCover_prop", "percBLTree_F"), dfRaw = preds_trees %>% filter(prob_Forest > 0.5) %>% select(AngioTreeCover_prop, percBLTree_F, tmean, prcp_dry, sand, carbon, AWHC, isothermality, prcpTempCorr, prcpTempCorr_anom, isothermality_anom, coarse) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
-## proportion of trees that are needle leaved -- scaled according to ecoregion probability 
-# BL trees for the entire CONUS (scaled according to model-predicted ecoregion probability)
-deciles_BLtree_ScaledByEco_entire <- predvars2deciles(df = preds_quantile %>% select(AngioTreeCover_prop, percBLTree_CONUS, tmean,  prcp,  prcpTempCorr, sand, coarse,  AWHC  , prcp_seasonality_anom, isothermality_anom, isothermality, prcp_seasonality,     
-prcpTempCorr_anom , prcp_dry , carbon ) %>% drop_na()
-                                   , response_vars = c("AngioTreeCover_prop", "percBLTree_CONUS"), # name of observations, followed by name of predictions
-                                   pred_vars = c("tmean",  "prcp",  "prcpTempCorr", "sand", "coarse",  "AWHC"  , "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality",     
-"prcpTempCorr_anom" , "prcp_dry" , "carbon" ), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc BL tree for GS and F)
+## prediction of proportion of BL tree in Grass/Shrub, scaled w/ BL tree to sum to 1 
+# grass/shrub model predicting in Grass/Shrub (EPA-defined)
+deciles_BLtree_scaledGS_GS <- predvars2deciles(df = preds_trees %>% filter(newRegion == "dryShrubGrass") %>% select(AngioTreeCover_prop, percBLTree_scaled_GS, "tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom") %>% drop_na() 
+                                   , response_vars = c("AngioTreeCover_prop", "percBLTree_scaled_GS"), # name of observations, followed by name of predictions
+                                   pred_vars = c("tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc BL tree for GS and F)
 cut_points = seq(0, 1, 0.01)
                                      )
-quantPlot_BLtree_ScaledByEco_entire <- decile_dotplot_pq(df = deciles_BLtree_ScaledByEco_entire, response= c("AngioTreeCover_prop", "percBLTree_CONUS"), IQR = TRUE,
+quantPlot_BLtree_scaledGS_GS <- decile_dotplot_pq(df = deciles_BLtree_scaledGS_GS, response= c("AngioTreeCover_prop", "percBLTree_scaled_GS"), IQR = TRUE,
                         CI = FALSE
-                        ) + ggtitle("Proportion of trees that are Broad-leaved - scaled by ecoregion to CONUS")
+                        ) + ggtitle("Proportion of trees that are Broad-leaved (scaled to sum to 1 w/ BL tree) - Grass/shrub model in Grass/shrub")
 
-quantPlot_BLtree_ScaledByEco_entire <- add_dotplot_inset(quantPlot_BLtree_ScaledByEco_entire, df = deciles_BLtree_ScaledByEco_entire, response = c("AngioTreeCover_prop", "percBLTree_CONUS"), dfRaw = preds_quantile %>% select(AngioTreeCover_prop, percBLTree_CONUS, tmean,  tmean,  prcp,  prcpTempCorr, sand, coarse,  AWHC  , prcp_seasonality_anom, isothermality_anom, isothermality, prcp_seasonality,     
-prcpTempCorr_anom , prcp_dry , carbon ) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_BLtree_scaledGS_GS <- add_dotplot_inset(quantPlot_BLtree_scaledGS_GS, df = deciles_BLtree_scaledGS_GS, response = c("AngioTreeCover_prop", "percBLTree_scaled_GS"), dfRaw = preds_trees %>% filter(newRegion == "dryShrubGrass") %>% select(AngioTreeCover_prop, percBLTree_scaled_GS, "tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom") %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
-## proportion of trees that are needle leaved -- scaled to sum to 1 w/ prop of broad-leaved tree
-# BL trees for the entire CONUS 
-deciles_BLtree_ScaledFinal_entire <- predvars2deciles(df = preds_quantile %>% select(AngioTreeCover_prop, percBLTree_scaled_CONUS, tmean,  prcp,  prcpTempCorr, sand, coarse,  AWHC  , prcp_seasonality_anom, isothermality_anom, isothermality, prcp_seasonality,     
-prcpTempCorr_anom , prcp_dry , carbon ) %>% drop_na()
-                                   , response_vars = c("AngioTreeCover_prop", "percBLTree_scaled_CONUS"), # name of observations, followed by name of predictions
-                                   pred_vars = c("tmean",  "prcp",  "prcpTempCorr", "sand", "coarse",  "AWHC"  , "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality",     
-"prcpTempCorr_anom" , "prcp_dry" , "carbon" ), # for predictors, combine list of predictors for all models (total tree for  and F, and perc BL tree for  and F)
+# grass/shrub model predicting in CONUS
+deciles_BLtree_scaledGS_entire <- predvars2deciles(df = preds_trees %>% select(AngioTreeCover_prop, percBLTree_scaled_GS, "tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom") %>% drop_na()
+                                   , response_vars = c("AngioTreeCover_prop", "percBLTree_scaled_GS"), # name of observations, followed by name of predictions
+                                   pred_vars = c("tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc BL tree for GS and F)
 cut_points = seq(0, 1, 0.01)
                                      )
-quantPlot_BLtree_ScaledFinal_entire <- decile_dotplot_pq(df = deciles_BLtree_ScaledFinal_entire, response= c("AngioTreeCover_prop", "percBLTree_scaled_CONUS"), IQR = TRUE,
+quantPlot_BLtree_scaledGS_entire <- decile_dotplot_pq(df = deciles_BLtree_scaledGS_entire, response= c("AngioTreeCover_prop", "percBLTree_scaled_GS"), IQR = TRUE,
                         CI = FALSE
-                        ) + ggtitle("Proportion of trees that are Broad-leaved - scaled so BL and BL tree prop sums to 1")
+                        ) + ggtitle("Proportion of trees that are Broad-leaved (scaled to sum to 1 w/ BL tree) - Grass/shrub model in CONUS")
 
-quantPlot_BLtree_ScaledFinal_entire <- add_dotplot_inset(quantPlot_BLtree_ScaledFinal_entire, df = deciles_BLtree_ScaledFinal_entire, response = c("AngioTreeCover_prop", "percBLTree_scaled_CONUS"), dfRaw = preds_quantile %>% select(AngioTreeCover_prop, percBLTree_scaled_CONUS, tmean,  prcp,  prcpTempCorr, sand, coarse,  AWHC  , prcp_seasonality_anom, isothermality_anom, isothermality, prcp_seasonality,     
-prcpTempCorr_anom , prcp_dry , carbon ) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_BLtree_scaledGS_entire <- add_dotplot_inset(quantPlot_BLtree_scaledGS_entire, df = deciles_BLtree_scaledGS_entire, response = c("AngioTreeCover_prop", "percBLTree_scaled_GS"), dfRaw = preds_trees %>% select(AngioTreeCover_prop, percBLTree_scaled_GS, "tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom") %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
-## Absolute cover of BL trees
-# BL trees for the entire CONUS 
-deciles_BLtree_Abs_entire <- predvars2deciles(df = preds_quantile %>% select(BLTreeCover_abs, absBLTree_CONUS,tmean,  prcp,  prcpTempCorr, sand, coarse,  AWHC  , prcp_seasonality_anom, isothermality_anom, isothermality, prcp_seasonality,     
-prcpTempCorr_anom , prcp_dry , carbon ) %>% drop_na()
+ 
+## prediction of absolute cover of BL tree in Grass/Shrub
+# grass/shrub model predicting in Grass/Shrub (EPA-defined)
+deciles_BLtree_absoluteGS_GS <- predvars2deciles(df = preds_trees %>% filter(newRegion == "dryShrubGrass") %>% select(BLTreeCover_abs, absBLTree_GS, "tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom") %>% drop_na() 
+                                   , response_vars = c("BLTreeCover_abs", "absBLTree_GS"), # name of observations, followed by name of predictions
+                                   pred_vars = c("tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc BL tree for GS and F)
+cut_points = seq(0, 1, 0.01)
+                                     )
+quantPlot_BLtree_absoluteGS_GS <- decile_dotplot_pq(df = deciles_BLtree_absoluteGS_GS, response= c("BLTreeCover_abs", "absBLTree_GS"), IQR = TRUE,
+                        CI = FALSE
+                        ) + ggtitle("Absolute cover of Broad-leaved trees - Grass/shrub model in Grass/shrub")
+
+quantPlot_BLtree_absoluteGS_GS <- add_dotplot_inset(quantPlot_BLtree_absoluteGS_GS, df = deciles_BLtree_absoluteGS_GS, response = c("BLTreeCover_abs", "absBLTree_GS"), dfRaw = preds_trees %>% filter(newRegion == "dryShrubGrass") %>% select(BLTreeCover_abs, absBLTree_GS, "tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom") %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+
+# grass/shrub model predicting in CONUS
+deciles_BLtree_absoluteGS_entire <- predvars2deciles(df = preds_trees %>% select(BLTreeCover_abs, absBLTree_GS, "tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom") %>% drop_na()
+                                   , response_vars = c("BLTreeCover_abs", "absBLTree_GS"), # name of observations, followed by name of predictions
+                                   pred_vars = c("tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom"), # for predictors, combine list of predictors for all models (total tree for GS and F, and perc BL tree for GS and F)
+cut_points = seq(0, 1, 0.01)
+                                     )
+quantPlot_BLtree_absoluteGS_entire <- decile_dotplot_pq(df = deciles_BLtree_absoluteGS_entire, response= c("BLTreeCover_abs", "absBLTree_GS"), IQR = TRUE,
+                        CI = FALSE
+                        ) + ggtitle("Absolute cover of Broad-leaved trees - Grass/shrub model in CONUS")
+
+quantPlot_BLtree_absoluteGS_entire <- add_dotplot_inset(quantPlot_BLtree_absoluteGS_entire, df = deciles_BLtree_absoluteGS_entire, response = c("BLTreeCover_abs", "absBLTree_GS"), dfRaw = preds_trees %>% select(BLTreeCover_abs, absBLTree_GS, "tmean", "prcp", "prcpTempCorr", "sand", "coarse", "AWHC", "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality", "prcpTempCorr_anom") %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+
+## prediction of proportion of BL tree in forest, scaled w/ BL tree to sum to 1 
+# forest model predicting in forest (EPA-defined)
+deciles_BLtree_scaledF_F <- predvars2deciles(df = preds_trees %>% filter(newRegion != "dryShrubGrass") %>% select(AngioTreeCover_prop, percBLTree_scaled_F,"tmean", "prcp_dry", "prcpTempCorr", "sand", "carbon", "AWHC", "prcpTempCorr_anom", "isothermality", "isothermality_anom", "coarse") %>% drop_na() 
+                                   , response_vars = c("AngioTreeCover_prop", "percBLTree_scaled_F"), # name of observations, followed by name of predictions
+                                   pred_vars = c("tmean", "prcp_dry", "prcpTempCorr", "sand", "carbon", "AWHC", "prcpTempCorr_anom", "isothermality", "isothermality_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc BL tree for F and F)
+cut_points = seq(0, 1, 0.01)
+                                     )
+quantPlot_BLtree_scaledF_F <- decile_dotplot_pq(df = deciles_BLtree_scaledF_F, response= c("AngioTreeCover_prop", "percBLTree_scaled_F"), IQR = TRUE,
+                        CI = FALSE
+                        ) + ggtitle("Proportion of trees that are Broad-leaved (scaled to sum to 1 w/ BL tree) - forest model in forest")
+
+quantPlot_BLtree_scaledF_F <- add_dotplot_inset(quantPlot_BLtree_scaledF_F, df = deciles_BLtree_scaledF_F, response = c("AngioTreeCover_prop", "percBLTree_scaled_F"), dfRaw = preds_trees %>% filter(newRegion != "dryShrubGrass") %>% select(AngioTreeCover_prop, percBLTree_scaled_F, "tmean", "prcp_dry", "prcpTempCorr", "sand", "carbon", "AWHC", "prcpTempCorr_anom", "isothermality", "isothermality_anom", "coarse") %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+
+# forest model predicting in CONUS
+deciles_BLtree_scaledF_entire <- predvars2deciles(df = preds_trees %>% select(AngioTreeCover_prop, percBLTree_scaled_F, "tmean", "prcp_dry", "prcpTempCorr", "sand", "carbon", "AWHC", "prcpTempCorr_anom", "isothermality", "isothermality_anom", "coarse") %>% drop_na()
+                                   , response_vars = c("AngioTreeCover_prop", "percBLTree_scaled_F"), # name of observations, followed by name of predictions
+                                   pred_vars = c("tmean", "prcp_dry", "prcpTempCorr", "sand", "carbon", "AWHC", "prcpTempCorr_anom", "isothermality", "isothermality_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc BL tree for F and F)
+cut_points = seq(0, 1, 0.01)
+                                     )
+quantPlot_BLtree_scaledF_entire <- decile_dotplot_pq(df = deciles_BLtree_scaledF_entire, response= c("AngioTreeCover_prop", "percBLTree_scaled_F"), IQR = TRUE,
+                        CI = FALSE
+                        ) + ggtitle("Proportion of trees that are Broad-leaved (scaled to sum to 1 w/ BL tree) - forest model in CONUS")
+
+quantPlot_BLtree_scaledF_entire <- add_dotplot_inset(quantPlot_BLtree_scaledF_entire, df = deciles_BLtree_scaledF_entire, response = c("AngioTreeCover_prop", "percBLTree_scaled_F"), dfRaw = preds_trees %>% select(AngioTreeCover_prop, percBLTree_scaled_F, "tmean", "prcp_dry", "prcpTempCorr", "sand", "carbon", "AWHC", "prcpTempCorr_anom", "isothermality", "isothermality_anom", "coarse") %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+
+ 
+## prediction of absolute cover of BL tree in forest
+# forest model predicting in forest (EPA-defined)
+deciles_BLtree_absoluteF_F <- predvars2deciles(df = preds_trees %>% filter(newRegion != "dryShrubGrass") %>% select(BLTreeCover_abs, absBLTree_F, "tmean", "prcp_dry", "prcpTempCorr", "sand", "carbon", "AWHC", "prcpTempCorr_anom", "isothermality", "isothermality_anom", "coarse") %>% drop_na() 
+                                   , response_vars = c("BLTreeCover_abs", "absBLTree_F"), # name of observations, followed by name of predictions
+                                   pred_vars = c("tmean", "prcp_dry", "prcpTempCorr", "sand", "carbon", "AWHC", "prcpTempCorr_anom", "isothermality", "isothermality_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc BL tree for F and F)
+cut_points = seq(0, 1, 0.01)
+                                     )
+quantPlot_BLtree_absoluteF_F <- decile_dotplot_pq(df = deciles_BLtree_absoluteF_F, response= c("BLTreeCover_abs", "absBLTree_F"), IQR = TRUE,
+                        CI = FALSE
+                        ) + ggtitle("Absolute cover of Broad-leaved trees - forest model in forest")
+
+quantPlot_BLtree_absoluteF_F <- add_dotplot_inset(quantPlot_BLtree_absoluteF_F, df = deciles_BLtree_absoluteF_F, response = c("BLTreeCover_abs", "absBLTree_F"), dfRaw = preds_trees %>% filter(newRegion != "dryShrubGrass") %>% select(BLTreeCover_abs, absBLTree_F, "tmean", "prcp_dry", "prcpTempCorr", "sand", "carbon", "AWHC", "prcpTempCorr_anom", "isothermality", "isothermality_anom", "coarse") %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+
+# forest model predicting in CONUS
+deciles_BLtree_absoluteF_entire <- predvars2deciles(df = preds_trees %>% select(BLTreeCover_abs, absBLTree_F, "tmean", "prcp_dry", "prcpTempCorr", "sand", "carbon", "AWHC", "prcpTempCorr_anom", "isothermality", "isothermality_anom", "coarse") %>% drop_na()
+                                   , response_vars = c("BLTreeCover_abs", "absBLTree_F"), # name of observations, followed by name of predictions
+                                   pred_vars = c("tmean", "prcp_dry", "prcpTempCorr", "sand", "carbon", "AWHC", "prcpTempCorr_anom", "isothermality", "isothermality_anom", "coarse"), # for predictors, combine list of predictors for all models (total tree for F and F, and perc BL tree for F and F)
+cut_points = seq(0, 1, 0.01)
+                                     )
+quantPlot_BLtree_absoluteF_entire <- decile_dotplot_pq(df = deciles_BLtree_absoluteF_entire, response= c("BLTreeCover_abs", "absBLTree_F"), IQR = TRUE,
+                        CI = FALSE
+                        ) + ggtitle("Absolute cover of Broad-leaved trees - forest model in CONUS")
+
+quantPlot_BLtree_absoluteF_entire <- add_dotplot_inset(quantPlot_BLtree_absoluteF_entire, df = deciles_BLtree_absoluteF_entire, response = c("BLTreeCover_abs", "absBLTree_F"), dfRaw = preds_trees %>% select(BLTreeCover_abs, absBLTree_F, "tmean", "prcp_dry", "prcpTempCorr", "sand", "carbon", "AWHC", "prcpTempCorr_anom", "isothermality", "isothermality_anom", "coarse") %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+
+
+## prediction of absolute cover of BL tree, scaled by ecoregion probability to be CONUS-wide 
+deciles_BLtree_absolute_CONUS <- predvars2deciles(df = preds_trees %>% select(BLTreeCover_abs, absBLTree_CONUS, "tmean",  "prcp" , "prcpTempCorr" , "sand"  ,   "coarse"   , "AWHC",   "prcp_seasonality_anom" ,"isothermality_anom" ,  "isothermality"  ,       "prcp_seasonality",  "prcpTempCorr_anom" ,    "prcp_dry" ,   "carbon" 
+                                                                              
+                                                                              ) %>% drop_na()
                                    , response_vars = c("BLTreeCover_abs", "absBLTree_CONUS"), # name of observations, followed by name of predictions
-                                   pred_vars = c("tmean",  "prcp",  "prcpTempCorr", "sand", "coarse",  "AWHC"  , "prcp_seasonality_anom", "isothermality_anom", "isothermality", "prcp_seasonality",     
-"prcpTempCorr_anom" , "prcp_dry" , "carbon" ), # for predictors, combine list of predictors for all models (total tree for  and F, and perc BL tree for  and F)
+                                   pred_vars = c("tmean",  "prcp" , "prcpTempCorr" , "sand"  ,   "coarse"   , "AWHC",   "prcp_seasonality_anom" ,"isothermality_anom" ,  "isothermality"  ,       "prcp_seasonality",  "prcpTempCorr_anom" ,    "prcp_dry" ,   "carbon" ), # for predictors, combine list of predictors for all models (total tree for F and F, and perc BL tree for F and F)
 cut_points = seq(0, 1, 0.01)
                                      )
-quantPlot_BLtree_Abs_entire <- decile_dotplot_pq(df = deciles_BLtree_Abs_entire, response= c("BLTreeCover_abs", "absBLTree_CONUS"), IQR = TRUE,
+quantPlot_BLtree_absolute_CONUS <- decile_dotplot_pq(df = deciles_BLtree_absolute_CONUS, response= c("BLTreeCover_abs", "absBLTree_CONUS"), IQR = TRUE,
                         CI = FALSE
-                        ) + ggtitle("Absolute Broad-leaved tree cover")
+                        ) + ggtitle("Absolute cover of Broad-leaved trees - forest model in CONUS")
 
-quantPlot_BLtree_Abs_entire <- add_dotplot_inset(quantPlot_BLtree_Abs_entire, df = deciles_BLtree_Abs_entire, response = c("BLTreeCover_abs", "absBLTree_CONUS"), dfRaw = preds_quantile %>% 
-                                                   select(BLTreeCover_abs, absBLTree_CONUS, tmean,  prcp,  prcpTempCorr, sand, coarse,  AWHC  , prcp_seasonality_anom, isothermality_anom, isothermality, prcp_seasonality,     
-prcpTempCorr_anom , prcp_dry , carbon ) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
+quantPlot_BLtree_absolute_CONUS <- add_dotplot_inset(quantPlot_BLtree_absolute_CONUS, df = deciles_BLtree_absolute_CONUS, response = c("BLTreeCover_abs", "absBLTree_CONUS"), dfRaw = preds_trees %>% select(BLTreeCover_abs, absBLTree_CONUS, "tmean",  "prcp" , "prcpTempCorr" , "sand"  ,   "coarse"   , "AWHC",   "prcp_seasonality_anom" ,"isothermality_anom" ,  "isothermality"  ,       "prcp_seasonality",  "prcpTempCorr_anom" ,    "prcp_dry" ,   "carbon" ) %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
+#### Get quantile plots in order for google doc ####
+### Total herb
+## Forest model
+#Predictions of absolute total tree cover (absTotalTree_F) in forest (EPA ecoregion-defined) using the forest model
+quantPlot_totalHerb_F_F
+#Predictions of absolute total tree cover (absTotalTree_F) in CONUS using the forest model
+quantPlot_totalHerb_F_entire
+## Grass/shrub model
+# Predictions of absolute total tree cover (absTotalTree_GS) in grass/shrub (EPA ecoregion-defined) using the grass/shrub model
+quantPlot_totalHerb_GS_GS
+# Predictions of absolute total tree cover (absTotalTree_GS) in CONUS using the grass/shrub model
+quantPlot_totalHerb_GS_entire
+
+### total trees
+## Forest model
+#Predictions of absolute total tree cover (absTotalTree_F) in forest (EPA ecoregion-defined) using the forest model 
+quantPlot_totalTree_F_F
+#Predictions of absolute total tree cover (absTotalTree_F) in forest (model-defined) using the forest model 
+quantPlot_totalTree_F_Fprob
+#Predictions of absolute total tree cover (absTotalTree_F) in CONUS using the forest model
+quantPlot_totalTree_F_entire
+## Grass/shrub model
+# Predictions of absolute total tree cover (absTotalTree_GS) in grass/shrub (EPA ecoregion-defined) using the grass/shrub model
+quantPlot_totalTree_GS_GS
+# Predictions of absolute total tree cover (absTotalTree_GS) in grass/shrub (model-defined) using the grass/shrub model
+quantPlot_totalTree_GS_GSprob
+# Predictions of absolute total tree cover (absTotalTree_GS) in CONUS using the grass/shrub model
+quantPlot_totalTree_GS_entire
+
+### NL trees
+##Forest model
+#Predictions of proportion of trees that are needle-leaved (percNLTree_F) in forest (EPA ecoregion-defined) using the forest model
+quantPlot_NLtree_RawF_F
+#Predictions of proportion of trees that are needle-leaved (percNLTree_F) in forest (model-defined) using the forest model 
+quantPlot_NLtree_RawF_Fprob
+#Predictions of proportion of trees that are needle-leaved (percNLTree_F) in CONUS using the forest model
+quantPlot_NLtree_RawF_entire
+
+##Grass/shrub model
+#Predictions of proportion of trees that are needle-leaved (percNLTree_GS) in grass/shrub (EPA ecoregion-defined) using the grass/shrub model
+quantPlot_NLtree_RawGS_GS
+#Predictions of proportion of trees that are needle-leaved (percNLTree_GS) in grass/shrub (model-defined) using the grass/shrub model
+quantPlot_NLtree_RawGS_GSprob
+#Predictions of proportion of trees that are needle-leaved (percNLTree_GS) in CONUS using the grass/shrub model
+quantPlot_NLtree_RawGS_entire
+
+## scaling
+#Predictions of proportion of trees that are needle-leaved in Grass/Shrub, scaled w/ broad-leaved tree in GS to sum to 1 (percNLTree_scaled_GS = percNLTree_GS/(percBLTree_GS + percNLTree_GS))
+quantPlot_NLtree_scaledGS_GS
+quantPlot_NLtree_scaledGS_entire
+# Predictions of proportion of trees that are needle-leaved in Forest, scaled w/ broad-leaved tree in F to sum to 1 (percNLTree_scaled_F = percNLTree_F/(percBLTree_F + percNLTree))
+quantPlot_NLtree_scaledF_F
+quantPlot_NLtree_scaledF_entire
+# Predictions of absolute cover of needle-leaved in Grass/Shrub (absNLTree_GS = (percNLTree_scaled_GS * absTotalTree_GS) )
+quantPlot_NLtree_absoluteGS_GS
+quantPlot_NLtree_absoluteGS_entire
+# Predictions of  absolute cover of trees that are needle-leaved in Forest (absNLTree_F =(percNLTree_scaled_F * absTotalTree_F))
+quantPlot_NLtree_absoluteF_F
+quantPlot_NLtree_absoluteF_entire
+# Scale the predictions of proportion of trees that are needle-leaved CONUS-wide (Equation: absNLTree_CONUS = (prob_Forest * absNLTree_F)  + (prob_grassShrub * absNLTree_GS))
+quantPlot_NLtree_absolute_CONUS
+
+### BL trees
+##Forest model
+#Predictions of proportion of trees that are broad-leaved (percBLTree_F) in forest (EPA ecoregion-defined) using the forest model
+quantPlot_BLtree_RawF_F
+#Predictions of proportion of trees that are broad-leaved (percBLTree_F) in forest (model-defined) using the forest model 
+quantPlot_BLtree_RawF_Fprob
+#Predictions of proportion of trees that are broad-leaved (percBLTree_F) in CONUS using the forest model
+quantPlot_BLtree_RawF_entire
+
+##Grass/shrub model
+#Predictions of proportion of trees that are broad-leaved (percBLTree_GS) in grass/shrub (EPA ecoregion-defined) using the grass/shrub model
+quantPlot_BLtree_RawGS_GS
+#Predictions of proportion of trees that are broad-leaved (percBLTree_GS) in grass/shrub (model-defined) using the grass/shrub model
+quantPlot_BLtree_RawGS_GSprob
+#Predictions of proportion of trees that are broad-leaved (percBLTree_GS) in CONUS using the grass/shrub model
+quantPlot_BLtree_RawGS_entire
+
+## scaling
+#Predictions of proportion of trees that are broad-leaved in Grass/Shrub, scaled w/ broad-leaved tree in GS to sum to 1 (percBLTree_scaled_GS = percBLTree_GS/(percBLTree_GS + percBLTree_GS))
+quantPlot_BLtree_scaledGS_GS
+quantPlot_BLtree_scaledGS_entire
+# Predictions of proportion of trees that are broad-leaved in Forest, scaled w/ broad-leaved tree in F to sum to 1 (percBLTree_scaled_F = percBLTree_F/(percBLTree_F + percBLTree))
+quantPlot_BLtree_scaledF_F
+quantPlot_BLtree_scaledF_entire
+# Predictions of absolute cover of broad-leaved in Grass/Shrub (absBLTree_GS = (percBLTree_scaled_GS * absTotalTree_GS) )
+quantPlot_BLtree_absoluteGS_GS
+quantPlot_BLtree_absoluteGS_entire
+# Predictions of  absolute cover of trees that are broad-leaved in Forest (absBLTree_F =(percBLTree_scaled_F * absTotalTree_F))
+quantPlot_BLtree_absoluteF_F
+quantPlot_BLtree_absoluteF_entire
+# Scale the predictions of proportion of trees that are broad-leaved CONUS-wide (Equation: absBLTree_CONUS = (prob_Forest * absBLTree_F)  + (prob_grassShrub * absBLTree_GS))
+quantPlot_BLtree_absolute_CONUS
 #### Compare raw data for absolute needle leaved tree cover ####
-# observations
-ggplot(preds_quantile) + 
+# observations in grass/shrub
+ggplot(preds_trees %>% filter(newRegion == "dryShrubGrass")) + 
   geom_density(aes(TotalTreeCover)) + # observed total tree cover
   geom_density(aes(ConifTreeCover_prop), col = "orange") + # % of needle-leaved tree 
   geom_density(aes(NLTreeCover_abs), col = "red") + # observed absolute NL tree cover
   #geom_density(aes(TotalTreeCover * ConifTreeCover_prop), col = "grey") + 
-  labs(title = "Observed needle-leaved tree cover", subtitle = "black = total tree cover \norange = % of tree cover that is needle-leaved \nred = absolute needle-leaved tree cover")
+  labs(title = "Observed needle-leaved tree cover = Grass/Shrub", subtitle = "black = total tree cover \norange = % of tree cover that is needle-leaved \nred = absolute needle-leaved tree cover")
+# observations in forest
+ggplot(preds_trees %>% filter(newRegion != "dryShrubGrass")) + 
+  geom_density(aes(TotalTreeCover)) + # observed total tree cover
+  geom_density(aes(ConifTreeCover_prop), col = "orange") + # % of needle-leaved tree 
+  geom_density(aes(NLTreeCover_abs), col = "red") + # observed absolute NL tree cover
+  #geom_density(aes(TotalTreeCover * ConifTreeCover_prop), col = "grey") + 
+  labs(title = "Observed needle-leaved tree cover = Forest", subtitle = "black = total tree cover \norange = % of tree cover that is needle-leaved \nred = absolute needle-leaved tree cover")
   
-ggplot(preds_quantile) + 
-  geom_density(aes(absTotalTree_CONUS), col = "black") +# modeled total tree cover
-  geom_density(aes(percNLTree_scaled_CONUS), col = "orange") + # % of needle-leaved tree (scaled to CONUS-wide)
-  geom_density(aes(absNLTree_CONUS), col = "red") + # observed absolute NL tree cover
+#grass/shrub
+ggplot(preds_trees) + 
+    geom_density(aes(absTotalTree_GS), col = "black") +# modeled total tree cover
+  geom_density(aes(percNLTree_scaled_GS), col = "orange") + # % of needle-leaved tree (scaled to CONUS-wide)
+    geom_density(aes(absNLTree_GS), col = "red") + # modeled absolute NL tree cover
   #geom_density(aes(absTotalTree_CONUS * percNLTree_scaled_CONUS), col = "grey") + 
-  labs(title = "Modeled needle-leaved tree cover", subtitle = "black = total tree cover \norange = % of tree cover that is needle-leaved (CONUS-wide) \nred = absolute needle-leaved tree cover (CONUS-wide)")
+  labs(title = "Modeled needle-leaved tree cover - Grass/Shrub Ecoregion", subtitle = "black = total tree cover \norange = % of tree cover that is needle-leaved  \nred = absolute needle-leaved tree cover ")
+#forest
+ggplot(preds_trees) + 
+    geom_density(aes(absTotalTree_F), col = "black") +# modeled total tree cover
+  geom_density(aes(percNLTree_scaled_F), col = "orange") + # % of needle-leaved tree (scaled to CONUS-wide)
+    geom_density(aes(absNLTree_F), col = "red") + # modeled absolute NL tree cover
+  #geom_density(aes(absTotalTree_CONUS * percNLTree_scaled_CONUS), col = "grey") + 
+  labs(title = "Modeled needle-leaved tree cover - Forest Ecoregion", subtitle = "black = total tree cover \norange = % of tree cover that is needle-leaved  \nred = absolute needle-leaved tree cover ")
 
+
+## comparing distributions of raw values for NL trees by hand 
+# scaled percentage of NL tree in forest - grass/shrub
+violin_GS_obs <- preds_trees %>% 
+  filter(prob_Forest < 0.5) %>% 
+  select(ConifTreeCover_prop, percNLTree_scaled_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% 
+  drop_na() %>% 
+  pivot_longer(cols = c(tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse)) %>%
+  ggplot() +
+  facet_wrap(~name, scales = "free") +
+  geom_point(aes(x = value, y = ConifTreeCover_prop), alpha = .1, col = "grey") + # observed
+ # geom_point(aes(x = value, y = percNLTree_scaled_GS), alpha = .1, col = "lightblue") + # predicted
+  geom_violin(aes(x = value, y = ConifTreeCover_prop, group = cut_number(value,n = 10)), col = "black") #+ # observed 
+  #geom_violin(aes(x = jitter(value), y = percNLTree_scaled_GS, group = cut_number(value,n = 10)), col = "blue") # predicted
+violin_GS_preds <- preds_trees %>% 
+  filter(prob_Forest < 0.5) %>% 
+  select(ConifTreeCover_prop, percNLTree_scaled_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% 
+  drop_na() %>% 
+  pivot_longer(cols = c(tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse)) %>%
+  ggplot() +
+  facet_wrap(~name, scales = "free") +
+  #geom_point(aes(x = value, y = ConifTreeCover_prop), alpha = .1, col = "grey") + # observed
+  geom_point(aes(x = value, y = percNLTree_scaled_GS), alpha = .1, col = "lightblue") + # predicted
+  #geom_violin(aes(x = value, y = ConifTreeCover_prop, group = cut_number(value,n = 10)), col = "black") #+ # observed 
+  geom_violin(aes(x = jitter(value), y = percNLTree_scaled_GS, group = cut_number(value,n = 10)), col = "blue") # predicted
+ggarrange(violin_GS_obs, violin_GS_preds, ncol = 1)
+
+
+### locations where we have cover for total trees vs locations where we have values for cover of NL or BL trees
+totTreeLocations <- preds_quantile %>% 
+  select(TotalTreeCover, x, y) %>% 
+  drop_na() %>% 
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "TotalTreeCover", 
+                   fun = mean, na.rm = TRUE) 
+ggarrange(
+  ggplot() +
+  geom_spatraster(data = totTreeLocations) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_future1_2)),fill=NA ) +
+labs(title = paste0("Observations of total cover (all available points)")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey",
+                       labels = c("grassShrub", "0.25", "0.50", "0.75", "forest")) + 
+  xlim(st_bbox(plotObs_future1_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_future1_2)[c(2,4)])
+  ,
+  ggplot() + 
+    geom_density(data = data.frame("TotalTreeCover" = as.numeric(na.omit(terra::values(totTreeLocations$mean)))), aes(x = TotalTreeCover)),
+ncol = 1
+)
+
+totTreeLocations_trim <- preds_quantile %>% 
+  select(TotalTreeCover, AngioTreeCover_prop, ConifTreeCover_prop, x, y) %>% 
+  drop_na() %>% 
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "TotalTreeCover", 
+                   fun = mean, na.rm = TRUE) 
+ggarrange(
+  ggplot() +
+  geom_spatraster(data = totTreeLocations_trim) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_future1_2)),fill=NA ) +
+labs(title = paste0("Observations of total cover (locations w/ NL and BL cover)")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey",
+                       labels = c("grassShrub", "0.25", "0.50", "0.75", "forest")) + 
+  xlim(st_bbox(plotObs_future1_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_future1_2)[c(2,4)])
+  ,
+  ggplot() + 
+    geom_density(data = data.frame("TotalTreeCover" = as.numeric(na.omit(terra::values(totTreeLocations_trim$mean)))), aes(x = TotalTreeCover)),
+ncol = 1
+)
+# 
+### locations where we have cover for total herbaceous vs locations where we have values for cover of C3/C4/forbs
+totHerbLocations <- preds_quantile %>% 
+  select(TotalHerbaceousCover, x, y) %>% 
+  drop_na() %>% 
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "TotalHerbaceousCover", 
+                   fun = mean, na.rm = TRUE) 
+ggarrange(
+  ggplot() +
+  geom_spatraster(data = totHerbLocations) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_future1_2)),fill=NA ) +
+labs(title = paste0("Observations of total herbaceous cover (all available points)")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey",
+                       labels = c("grassShrub", "0.25", "0.50", "0.75", "forest")) + 
+  xlim(st_bbox(plotObs_future1_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_future1_2)[c(2,4)])
+  ,
+  ggplot() + 
+    geom_density(data = data.frame("TotalHerbaceousCover" = as.numeric(na.omit(terra::values(totHerbLocations$mean)))), aes(x = TotalHerbaceousCover)),
+ncol = 1
+)
+
+totHerbLocations_trim <- preds_quantile %>% 
+  select(TotalHerbaceousCover, C3GramCover_prop, C4GramCover_prop, ForbCover_prop, x, y) %>% 
+  drop_na() %>% 
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
+  terra::rasterize(y = test_rast, 
+                   field = "TotalHerbaceousCover", 
+                   fun = mean, na.rm = TRUE) 
+ggarrange(
+  ggplot() +
+  geom_spatraster(data = totHerbLocations_trim) + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_future1_2)),fill=NA ) +
+labs(title = paste0("Observations of total herbaceous cover (locations w/ C3/C4/forb cover)")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "darkgreen" , 
+                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey",
+                       labels = c("grassShrub", "0.25", "0.50", "0.75", "forest")) + 
+  xlim(st_bbox(plotObs_future1_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_future1_2)[c(2,4)])
+  ,
+  ggplot() + 
+    geom_density(data = data.frame("TotalHerbaceousCover" = as.numeric(na.omit(terra::values(totHerbLocations_trim$mean)))), aes(x = TotalHerbaceousCover)),
+ncol = 1
+)
 ```
 
 

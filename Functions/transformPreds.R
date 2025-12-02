@@ -414,3 +414,39 @@ filter_by_climate <- function(df, add_mid = FALSE,
   df_filtered
 }
 
+## function to turn predicted variables into deciles -- for multiple observations
+predvars2deciles_multObs <- function(df, response_vars, pred_vars,
+                             filter_var = FALSE,
+                             filter_vars = NULL,
+                             weighted_mean = FALSE,
+                             add_mid = FALSE,
+                             cut_points = seq(0, 1, 0.01)) {
+  
+  stopifnot(
+    is.logical(filter_var)
+  )
+  
+  if (filter_var) {
+    stopifnot(is.character(filter_vars))
+    df <- filter_by_climate(df, add_mid = add_mid,
+                            filter_vars = filter_vars)
+  }
+  
+  # longformat df
+  long_df <- predvars2long(df, response_vars = response_vars, 
+                           pred_vars = pred_vars,
+                           filter_var = filter_var)
+  # mean of deciles
+  out <- longdf2deciles(long_df, response_vars = response_vars,
+                        filter_var = filter_var,
+                        weighted_mean = weighted_mean,
+                        cut_points = cut_points)
+  
+  if (filter_var == FALSE) {
+    names(out)[str_which(names(out), pattern = "_mean$")] <- response_vars
+  } else {
+    #names(out)[c(6, 11)] <- response_vars
+  }
+  
+  out
+}

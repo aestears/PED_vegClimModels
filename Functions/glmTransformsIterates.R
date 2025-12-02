@@ -715,3 +715,242 @@ generate_all_legends <- function(df) {
   legends
 }
 
+
+
+## version of decile plot for multiple observed datasets
+decile_dotplot_MultObs <- function(df, size = 0.5, response = response, IQR = FALSE, CI = FALSE) {
+  
+  if('filter_var' %in% names(df)) {
+    stop('filter_var column present, you should used decile_dotplot_filtered()')
+  } 
+  
+  # if there are deciles that have been calculated for the observed values, then remove then from the input data.frame
+  if(c("newObservedVal") %in% df$name) {
+    df <- df %>% 
+      filter(name != "newObservedVal")
+  }
+  
+  df2 <- df %>% 
+    #filter(!name %in% response) %>% 
+    mutate(name = var2lab(name, units_md = TRUE)) %>% 
+    arrange(name)
+  
+  # fix the levels to correspond to the predictor values we actually use in this model
+  df2$name <-factor(as.character(df2$name))
+  
+ 
+  fig_letters <- str_to_upper(c("a", "b", "c", "d", "e", "f", "g",  "h", "i", "j", "k", "l", "m", "n", "o", "p", "q","r", "s", "t", "u", "v", "w", "x", "y", "z"))
+  letter_df <- tibble(
+    letter = fig_letters[1:length(unique(df2$name))],
+    name = sort(as.factor(unique(df2$name))),
+    x = -Inf,
+    y = Inf
+  )
+  
+  if (length(response) == 6) {
+    
+    yvar_obs1 <- response[str_which(response, pattern = "FIA")] # FIA
+    yvar_obs2 <- response[str_which(response, pattern = "LANDFIRE")] # LANDFIRE
+    yvar_obs3 <- response[str_which(response, pattern = "LDC")] # AIM
+    yvar_obs4 <- response[str_which(response, pattern = "RAP")] # RAP
+    yvar_obs5 <- response[5] # averaged
+    yvar_pred <- response[6] # observed
+    
+    
+    g <- ggplot(df2) +
+      geom_ribbon(aes(x = mean_value, y = .data[[yvar_obs1]],
+                          ymin = .data[[paste0(yvar_obs1, "_IQR_low")]], 
+                      ymax = .data[[paste0(yvar_obs1, "_IQR_high")]], 
+                      #color = 'Observed', 
+                      fill = 'Observed_FIA'), 
+                  alpha = .2) + 
+      geom_line(aes(x = mean_value, y = .data[[yvar_obs1]],
+                     color = "Observed_FIA", linewidth = "Observed_FIA", linetype = "Observed_FIA"),
+                 #size = size, 
+                 alpha = 0.6) +
+      geom_ribbon(aes(x = mean_value, y = .data[[yvar_obs2]],
+                      ymin = .data[[paste0(yvar_obs2, "_IQR_low")]], 
+                      ymax = .data[[paste0(yvar_obs2, "_IQR_high")]], 
+                      #color = 'Observed', 
+                      fill = 'Observed_LANDFIRE'), 
+                  alpha = .2) + 
+      geom_line(aes(x = mean_value, y = .data[[yvar_obs2]],
+                     color = "Observed_LANDFIRE", linewidth = "Observed_LANDFIRE", linetype = "Observed_LANDFIRE"),
+                 #size = size, 
+                 alpha = 0.6) +
+      geom_ribbon(aes(x = mean_value, y = .data[[yvar_obs3]],
+                      ymin = .data[[paste0(yvar_obs3, "_IQR_low")]], 
+                      ymax = .data[[paste0(yvar_obs3, "_IQR_high")]], 
+                      #color = 'Observed', 
+                      fill = 'Observed_AIM'), 
+                  alpha = .2) + 
+      geom_line(aes(x = mean_value, y = .data[[yvar_obs3]],
+                     color = "Observed_AIM", linewidth = "Observed_AIM", linetype = "Observed_AIM"),
+                 #size = size, 
+                 alpha = 0.6) +
+      geom_ribbon(aes(x = mean_value, y = .data[[yvar_obs4]],
+                      ymin = .data[[paste0(yvar_obs4, "_IQR_low")]], 
+                      ymax = .data[[paste0(yvar_obs4, "_IQR_high")]], 
+                      #color = 'Observed', 
+                      fill = 'Observed_RAP'), 
+                  alpha = .2) + 
+      geom_line(aes(x = mean_value, y = .data[[yvar_obs4]],
+                     color = "Observed_RAP", linewidth = "Observed_RAP", linetype = "Observed_RAP"),
+                 #size = size, 
+                 alpha = 0.6) + 
+      geom_line(aes(x = mean_value, y = .data[[yvar_obs5]],
+                    color = "Observed_Averaged", linewidth = "Observed_Averaged", linetype = "Observed_Averaged"),
+                #size = size, 
+                alpha = 0.6) + 
+      geom_ribbon(aes(x = mean_value, y = .data[[yvar_pred]],
+                       ymin = .data[[paste0(yvar_pred, "_IQR_low")]],
+                      ymax = .data[[paste0(yvar_pred, "_IQR_high")]],
+                      #color = 'Predicted',
+                      fill = 'Predicted'),
+                  alpha = .2) +
+      geom_line(aes(x = mean_value, y = .data[[yvar_pred]], color = 'Predicted',
+                     linewidth = 'Predicted'), size = size, alpha = 0.75) +
+      geom_text(data = letter_df, aes(x = x, y = y, label = letter),
+                hjust = -0.8,
+                vjust = 1) +
+      facet_wrap(~name, scales = 'free', strip.position = "bottom") +
+      # using annotate to add in line segements because lemon package (facet_rep_wrap)
+      # isn't being maintained anymore
+      annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf, size = 1) +
+      # adding line segment on the right, for secondary axis
+      annotate("segment", x=Inf, xend=Inf, y=-Inf, yend=Inf, size = 1) +
+      labs(#y = "Total Tree Cover per decile" ,
+        x = "mean climate predictor value per quantile") +
+      scale_color_manual(name = 'legend', values = c("Observed_FIA" = "darkgreen", "Observed_AIM" = "darkred", "Observed_LANDFIRE" = "darkblue","Observed_RAP" = "darkorange", "Observed_Averaged" = "grey20", "Predicted" = "black")) +
+      scale_fill_manual(name = 'legend', values = c("Observed_FIA" = "darkgreen", "Observed_AIM" = "darkred", "Observed_LANDFIRE" = "darkblue","Observed_RAP" = "darkorange","Observed_Averaged" = "grey20", "Predicted" = "black")) +
+      scale_linewidth_manual(name = 'legend', values =  c("Observed_FIA" = .5, "Observed_AIM" = .5, "Observed_LANDFIRE" = .5,"Observed_RAP" =.5, "Observed_Averaged" = 1, "Predicted" = 1.5))  + 
+      scale_linetype_manual(name = 'legend', values =  c("Observed_FIA" = 1, "Observed_AIM" = 1, "Observed_LANDFIRE" = 1,"Observed_RAP" =1, "Observed_Averaged" = 2, "Predicted" = 1)) 
+    
+  } else if  (length(response) == 5) {
+    
+    yvar_obs1 <- response[str_which(response, pattern = "FIA")]
+    yvar_obs2 <- response[str_which(response, pattern = "LANDFIRE")]
+    yvar_obs3 <- response[str_which(response, pattern = "LDC")]
+    yvar_obs4 <- response[4]
+    yvar_pred <- response[5]
+    
+    g <- ggplot(df2) +
+      geom_ribbon(aes(x = mean_value, y = .data[[yvar_obs1]],
+                      ymin = .data[[paste0(yvar_obs1, "_IQR_low")]], 
+                      ymax = .data[[paste0(yvar_obs1, "_IQR_high")]], 
+                      #color = 'Observed', 
+                      fill = 'Observed_FIA'), 
+                  alpha = .2) + 
+      geom_line(aes(x = mean_value, y = .data[[yvar_obs1]],
+                    color = "Observed_FIA", linewidth = "Observed_FIA", linetype = "Observed_FIA"),
+                #size = size, 
+                alpha = 0.6) +
+      geom_ribbon(aes(x = mean_value, y = .data[[yvar_obs2]],
+                      ymin = .data[[paste0(yvar_obs2, "_IQR_low")]], 
+                      ymax = .data[[paste0(yvar_obs2, "_IQR_high")]], 
+                      #color = 'Observed', 
+                      fill = 'Observed_LANDFIRE'), 
+                  alpha = .2) + 
+      geom_line(aes(x = mean_value, y = .data[[yvar_obs2]],
+                    color = "Observed_LANDFIRE", linewidth = "Observed_LANDFIRE", linetype = "Observed_LANDFIRE"),
+                #size = size, 
+                alpha = 0.6) +
+      geom_ribbon(aes(x = mean_value, y = .data[[yvar_obs3]],
+                      ymin = .data[[paste0(yvar_obs3, "_IQR_low")]], 
+                      ymax = .data[[paste0(yvar_obs3, "_IQR_high")]], 
+                      #color = 'Observed', 
+                      fill = 'Observed_AIM'), 
+                  alpha = .2) + 
+      geom_line(aes(x = mean_value, y = .data[[yvar_obs3]],
+                    color = "Observed_AIM", linewidth = "Observed_AIM", linetype = "Observed_AIM"),
+                #size = size, 
+                alpha = 0.6) +
+      geom_line(aes(x = mean_value, y = .data[[yvar_obs4]],
+                    color = "Observed_Averaged", linewidth = "Observed_Averaged", linetype = "Observed_Averaged"),
+                #size = size, 
+                alpha = 0.6) + 
+      geom_ribbon(aes(x = mean_value, y = .data[[yvar_pred]],
+                      ymin = .data[[paste0(yvar_pred, "_IQR_low")]],
+                      ymax = .data[[paste0(yvar_pred, "_IQR_high")]],
+                      #color = 'Predicted',
+                      fill = 'Predicted'),
+                  alpha = .2) +
+      geom_line(aes(x = mean_value, y = .data[[yvar_pred]], color = 'Predicted',
+                    linewidth = 'Predicted'), size = size, alpha = 0.75) +
+      geom_text(data = letter_df, aes(x = x, y = y, label = letter),
+                hjust = -0.8,
+                vjust = 1) +
+      facet_wrap(~name, scales = 'free', strip.position = "bottom") +
+      # using annotate to add in line segements because lemon package (facet_rep_wrap)
+      # isn't being maintained anymore
+      annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf, size = 1) +
+      # adding line segment on the right, for secondary axis
+      annotate("segment", x=Inf, xend=Inf, y=-Inf, yend=Inf, size = 1) +
+      labs(#y = "Total Tree Cover per decile" ,
+        x = "mean climate predictor value per quantile") +
+      scale_color_manual(name = 'legend', values = c("Observed_FIA" = "darkgreen", "Observed_AIM" = "darkred", "Observed_LANDFIRE" = "darkblue", "Observed_Averaged" = "grey20", "Predicted" = "black")) +
+      scale_fill_manual(name = 'legend', values = c("Observed_FIA" = "darkgreen", "Observed_AIM" = "darkred", "Observed_LANDFIRE" = "darkblue","Observed_Averaged" = "grey20", "Predicted" = "black")) +
+      scale_linewidth_manual(name = 'legend', values =  c("Observed_FIA" = .5, "Observed_AIM" = .5, "Observed_LANDFIRE" = .5, "Observed_Averaged" = 1, "Predicted" = 1.5))  + 
+      scale_linetype_manual(name = 'legend', values =  c("Observed_FIA" = 1, "Observed_AIM" = 1, "Observed_LANDFIRE" = 1, "Observed_Averaged" = 2, "Predicted" = 1)) 
+    
+  } else if (length(response) == 4) {
+    response
+    
+    yvar_obs1 <- response[str_which(response, pattern = "LANDFIRE")]
+    yvar_obs2 <- response[str_which(response, pattern = "LDC")]
+    yvar_obs3 <- response[3]
+    yvar_pred <- response[4]
+    
+    g <- ggplot(df2) +
+      geom_ribbon(aes(x = mean_value, y = .data[[yvar_obs1]],
+                      ymin = .data[[paste0(yvar_obs1, "_IQR_low")]], 
+                      ymax = .data[[paste0(yvar_obs1, "_IQR_high")]], 
+                      #color = 'Observed', 
+                      fill = 'Observed_LANDFIRE'), 
+                  alpha = .2) + 
+      geom_line(aes(x = mean_value, y = .data[[yvar_obs1]],
+                    color = "Observed_LANDFIRE", linewidth = "Observed_LANDFIRE", linetype = "Observed_LANDFIRE"),
+                #size = size, 
+                alpha = 0.6) +
+      geom_ribbon(aes(x = mean_value, y = .data[[yvar_obs2]],
+                      ymin = .data[[paste0(yvar_obs2, "_IQR_low")]], 
+                      ymax = .data[[paste0(yvar_obs2, "_IQR_high")]], 
+                      #color = 'Observed', 
+                      fill = 'Observed_AIM'), 
+                  alpha = .2) + 
+      geom_line(aes(x = mean_value, y = .data[[yvar_obs2]],
+                    color = "Observed_AIM", linewidth = "Observed_AIM", linetype = "Observed_AIM"),
+                #size = size, 
+                alpha = 0.6) +
+      geom_line(aes(x = mean_value, y = .data[[yvar_obs3]],
+                    color = "Observed_Averaged", linewidth = "Observed_Averaged", linetype = "Observed_Averaged"),
+                #size = size, 
+                alpha = 0.6) + 
+      geom_ribbon(aes(x = mean_value, y = .data[[yvar_pred]],
+                      ymin = .data[[paste0(yvar_pred, "_IQR_low")]],
+                      ymax = .data[[paste0(yvar_pred, "_IQR_high")]],
+                      #color = 'Predicted',
+                      fill = 'Predicted'),
+                  alpha = .2) +
+      geom_line(aes(x = mean_value, y = .data[[yvar_pred]], color = 'Predicted',
+                    linewidth = 'Predicted'), size = size, alpha = 0.75) +
+      geom_text(data = letter_df, aes(x = x, y = y, label = letter),
+                hjust = -0.8,
+                vjust = 1) +
+      facet_wrap(~name, scales = 'free', strip.position = "bottom") +
+      # using annotate to add in line segements because lemon package (facet_rep_wrap)
+      # isn't being maintained anymore
+      annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf, size = 1) +
+      # adding line segment on the right, for secondary axis
+      annotate("segment", x=Inf, xend=Inf, y=-Inf, yend=Inf, size = 1) +
+      labs(#y = "Total Tree Cover per decile" ,
+        x = "mean climate predictor value per quantile") +
+      scale_color_manual(name = 'legend', values = c("Observed_FIA" = "darkgreen", "Observed_AIM" = "darkred", "Observed_LANDFIRE" = "darkblue", "Observed_Averaged" = "grey20", "Predicted" = "black")) +
+      scale_fill_manual(name = 'legend', values = c("Observed_FIA" = "darkgreen", "Observed_AIM" = "darkred", "Observed_LANDFIRE" = "darkblue","Observed_Averaged" = "grey20", "Predicted" = "black")) +
+      scale_linewidth_manual(name = 'legend', values =  c("Observed_FIA" = .5, "Observed_AIM" = .5, "Observed_LANDFIRE" = .5, "Observed_Averaged" = 1, "Predicted" = 1.5))  + 
+      scale_linetype_manual(name = 'legend', values =  c("Observed_FIA" = 1, "Observed_AIM" = 1, "Observed_LANDFIRE" = 1, "Observed_Averaged" = 2, "Predicted" = 1)) 
+    
+  }
+  
+  g
+}
