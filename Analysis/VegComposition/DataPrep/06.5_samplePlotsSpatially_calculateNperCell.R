@@ -407,7 +407,6 @@ temp <- test2[[4]] %>%
     return(tempTemp)
   })
 
-
 (camN_plot_full <- ggplot() +
     geom_spatraster(data = temp, aes(), na.rm = TRUE) +
     theme_minimal() +
@@ -458,7 +457,6 @@ temp <- test2[[5]] %>%
     return(tempTemp)
   })
 
-
 (bareGroundN_plot_full <- ggplot() +
     geom_spatraster(data = temp, aes(), na.rm = TRUE) +
     theme_minimal() +
@@ -467,7 +465,6 @@ temp <- test2[[5]] %>%
     #facet_wrap(~lyr) +
     ggtitle("Maximum # of plots in a grid cell with Bare Ground Cover data", subtitle = "full range of values" )+
     theme_minimal())
-
 
 (bareGroundN_plot_trimmed <- ggplot() +
     geom_spatraster(data = temp, aes(), na.rm = TRUE) +
