@@ -90,7 +90,7 @@ dat2 <- ungroup(dat2)
 
 # Get the 'name' of the daymet cell that each observation lies wit --------
 dat2 <- dat2 %>% 
-  filter(Year >= 1980) #%>% 
+  filter(Year >= 2000) #%>% 
   #slice_sample(n = 100000)
 
 dat2_cellID <- dat2 %>% 
@@ -100,57 +100,75 @@ layerNames <- c("ShrubCover", "TotalHerbaceousCover",  "TotalTreeCover", "C3Gram
                 "ForbCover_prop", "AngioTreeCover_prop", "ConifTreeCover_prop",
                 "BareGroundCover")
 
-dat2Test_avgsBySource <- dat2_cellID %>% 
+dat2_avgsBySource <- dat2_cellID %>% 
   st_drop_geometry() %>% 
   group_by(Year, cell, x, y 
            ,Source
            ) %>% 
   #summarize(across(all_of(layerNames), list(mean = mean, n = sum(!is.na(.)))), na.rm = TRUE)
   summarize(ShrubCover_n = sum(!is.na(ShrubCover)),
+            ShrubCover_sd = sd(ShrubCover, na.rm = TRUE),
             ShrubCover = mean(ShrubCover, na.rm = TRUE), 
             TotalHerbaceousCover_n = sum(!is.na(TotalHerbaceousCover)),
+            TotalHerbaceousCover_sd = sd(TotalHerbaceousCover, na.rm = TRUE),
             TotalHerbaceousCover = mean(TotalHerbaceousCover, na.rm = TRUE), 
-            TotalHerbaceousCover_n2 = n(),
+            #TotalHerbaceousCover_n2 = n(),
             TotalTreeCover_n = sum(!is.na(TotalTreeCover)),
+            TotalTreeCover_sd = sd(TotalTreeCover, na.rm = TRUE),
             TotalTreeCover = mean(TotalTreeCover, na.rm = TRUE), 
             C3GramCover_prop_n = sum(!is.na(C3GramCover_prop)),
+            C3GramCover_prop_sd = sd(C3GramCover_prop, na.rm = TRUE),
             C3GramCover_prop = mean(C3GramCover_prop, na.rm = TRUE), 
             C4GramCover_prop_n = sum(!is.na(C4GramCover_prop)),
+            C4GramCover_prop_sd = sd(C4GramCover_prop, na.rm = TRUE),
             C4GramCover_prop = mean(C4GramCover_prop, na.rm = TRUE), 
             ForbCover_prop_n = sum(!is.na(ForbCover_prop)),
+            ForbCover_prop_sd = sd(ForbCover_prop, na.rm = TRUE),
             ForbCover_prop = mean(ForbCover_prop, na.rm = TRUE), 
             AngioTreeCover_prop_n = sum(!is.na(AngioTreeCover_prop)),
+            AngioTreeCover_prop_sd = sd(AngioTreeCover_prop, na.rm = TRUE),
             AngioTreeCover_prop = mean(AngioTreeCover_prop, na.rm = TRUE), 
             ConifTreeCover_prop_n = sum(!is.na(ConifTreeCover_prop)),
+            ConifTreeCover_prop_sd = sd(ConifTreeCover_prop, na.rm = TRUE),
             ConifTreeCover_prop = mean(ConifTreeCover_prop, na.rm = TRUE), 
             BareGroundCover_n = sum(!is.na(BareGroundCover)),
+            BareGroundCover_sd = sd(BareGroundCover, na.rm = TRUE),
             BareGroundCover = mean(BareGroundCover, na.rm = TRUE)
             )
 
-dat2Test_avgs <- dat2_cellID %>% 
+dat2_avgs <- dat2_cellID %>% 
   st_drop_geometry() %>% 
   group_by(Year, cell, x, y 
            #,Source
   ) %>% 
   #summarize(across(all_of(layerNames), list(mean = mean, n = sum(!is.na(.)))), na.rm = TRUE)
   summarize(ShrubCover_n = sum(!is.na(ShrubCover)),
+            ShrubCover_sd = sd(ShrubCover, na.rm = TRUE),
             ShrubCover = mean(ShrubCover, na.rm = TRUE), 
             TotalHerbaceousCover_n = sum(!is.na(TotalHerbaceousCover)),
+            TotalHerbaceousCover_sd = sd(TotalHerbaceousCover, na.rm = TRUE),
             TotalHerbaceousCover = mean(TotalHerbaceousCover, na.rm = TRUE), 
-            TotalHerbaceousCover_n2 = n(),
+            #TotalHerbaceousCover_n2 = n(),
             TotalTreeCover_n = sum(!is.na(TotalTreeCover)),
+            TotalTreeCover_sd = sd(TotalTreeCover, na.rm = TRUE),
             TotalTreeCover = mean(TotalTreeCover, na.rm = TRUE), 
             C3GramCover_prop_n = sum(!is.na(C3GramCover_prop)),
+            C3GramCover_prop_sd = sd(C3GramCover_prop, na.rm = TRUE),
             C3GramCover_prop = mean(C3GramCover_prop, na.rm = TRUE), 
             C4GramCover_prop_n = sum(!is.na(C4GramCover_prop)),
+            C4GramCover_prop_sd = sd(C4GramCover_prop, na.rm = TRUE),
             C4GramCover_prop = mean(C4GramCover_prop, na.rm = TRUE), 
             ForbCover_prop_n = sum(!is.na(ForbCover_prop)),
+            ForbCover_prop_sd = sd(ForbCover_prop, na.rm = TRUE),
             ForbCover_prop = mean(ForbCover_prop, na.rm = TRUE), 
             AngioTreeCover_prop_n = sum(!is.na(AngioTreeCover_prop)),
+            AngioTreeCover_prop_sd = sd(AngioTreeCover_prop, na.rm = TRUE),
             AngioTreeCover_prop = mean(AngioTreeCover_prop, na.rm = TRUE), 
             ConifTreeCover_prop_n = sum(!is.na(ConifTreeCover_prop)),
+            ConifTreeCover_prop_sd = sd(ConifTreeCover_prop, na.rm = TRUE),
             ConifTreeCover_prop = mean(ConifTreeCover_prop, na.rm = TRUE), 
             BareGroundCover_n = sum(!is.na(BareGroundCover)),
+            BareGroundCover_sd = sd(BareGroundCover, na.rm = TRUE),
             BareGroundCover = mean(BareGroundCover, na.rm = TRUE)
   )
 
@@ -518,45 +536,140 @@ dat2Test_avgs <- dat2_cellID %>%
 #   terra::crop(ext(-140, -60, 20, 55))
 
 
-dat2_totalTree <- dat2_avgs %>% 
+# visualizations  ---------------------------
+
+## No. of observations per cell
+# plots show the maximum # of obs / cell across all years of sampling
+# histograms show all values 
+
+averagingFigs <- lapply(X = layerNames, FUN = function(x) {
+  
+if (x %in% c("ShrubCover", "TotalHerbaceousCover", "TotalTreeCover","BareGroundCover")) {
+  cov_label <- "% Cover"
+  cov_title_fig <- paste0("% ",x, ", after spatial averaging process \n(dayMet grid aggregated x 4)")
+  cov_title_hist <- paste0("% ",x, ", after spatial averaging process")
+} else {
+  cov_label <- "prop."
+  cov_title_fig <- paste0(x, ", after spatial averaging process \n(dayMet grid aggregated x 4)")
+  cov_title_hist <- paste0(x, ", after spatial averaging process")
+} 
+dat2_n <- dat2_avgs %>% 
+  filter(is.finite(x)) %>% 
   sf::st_as_sf(coords = c("x", "y"), crs = crs(test)) %>% 
   terra::vect() %>% 
-  terra::rasterize(y = test, field = "TotalTreeCover", fun = mean, na.rm = TRUE) %>% 
-  terra::aggregate(fact = 2, fun = "max", na.rm = TRUE) %>% 
-  terra::crop(ext(-140, -60, 20, 55))
+  terra::rasterize(y = test, field = paste0(x,"_n"), fun = max, na.rm = TRUE) %>% 
+  terra::aggregate(fact = 4, fun = "max", na.rm = TRUE) %>% 
+  terra::crop(ext(-130, -65, 25, 50))
 
-diff <-  test5_totalTree - dat2_totalTree
-bigPosDiffs <- terra::app(x = diff, fun = function(x) {
-  x>10
-})
-bigNegDiffs <- terra::app(x = diff, fun = function(x) {
-  x<10
-})
-
-
-ggarrange(
+n_figs <- ggarrange(
   ggplot() +
-  geom_spatraster(data = test5_totalTree, aes(), na.rm = TRUE) +
-  theme_minimal() +
- scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"),
- limits = c(1,100)) +
-  ggtitle("Old dataset" )+
-  theme_minimal(),
- ggplot() +
-   geom_spatraster(data = dat2_totalTree, aes(), na.rm = TRUE) +
-   theme_minimal() +
-   scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"),
-   limits = c(1,100)) +
-   ggtitle("New dataset" )+
-   theme_minimal(),
- ggplot() +
-   geom_spatraster(data = log(test5_totalTree - dat2_totalTree), aes(), na.rm = TRUE) +
-   theme_minimal() +
-   scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover")
-                        #,limits = c(-60,60)
-                        ) +
-   ggtitle("Old - New" )+
-   theme_minimal()
+    geom_spatraster(data = log(dat2_n), aes(), na.rm = TRUE) +
+    theme_minimal() +
+    scale_fill_viridis_c(option = "D", guide = guide_colorbar(title = "log(#of plots)"),
+                         #limits = c(1,315)
+    ) +
+    #facet_wrap(~lyr) +
+    ggtitle(paste0("Maximum # of plots in a grid cell/year combo. with \n",x, " data (log-transformed)"))+
+    theme_minimal()
  ,
- ncol = 1
+  dat2_avgs %>% 
+    filter(is.finite(x)) %>% 
+  ggplot() + 
+    geom_density(aes((.data[[paste0(x,"_n")]]))) + 
+   xlim(c(0,50)) + 
+   geom_text(aes(x = 40, y = 1, label = paste0("max No. of plots = ",max(.data[[paste0(x,"_n")]])))) + 
+   ggtitle(paste0("Maximum # of plots in a grid/cell combo. \nwith",x," data (curtailed)")),
+    #geom_density(aes(log(ShrubCover_n))),
+ ncol = 2, widths = c(1,.5)
 )
+
+## Cover Values 
+dat2_cov <- dat2_avgs %>% 
+  filter(is.finite(x)) %>% 
+  sf::st_as_sf(coords = c("x", "y"), crs = crs(test)) %>% 
+  terra::vect() %>% 
+  terra::rasterize(y = test, field = x, fun = mean, na.rm = TRUE) %>% 
+  terra::aggregate(fact = 4, fun = "mean", na.rm = TRUE) %>% 
+  terra::crop(ext(-130, -65, 25, 50))
+
+cov_figs <- ggarrange(
+  ggplot() +
+    geom_spatraster(data = (dat2_cov), aes(), na.rm = TRUE) +
+    theme_minimal() +
+    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = cov_label),
+                         #limits = c(1,315)
+    ) +
+    #facet_wrap(~lyr) +
+    ggtitle(cov_title_fig)+
+    theme_minimal()
+  ,
+  dat2_avgs %>% 
+    filter(is.finite(x)) %>% 
+    ggplot() + 
+    geom_density(aes(.data[[x]])) + 
+    #xlim(c(0,50)) + 
+    ggtitle(cov_title_hist),
+  #geom_density(aes(log(ShrubCover_n))),
+  ncol = 2, widths = c(1,.5)
+)
+
+
+## SD of cover values within a cell
+dat2_sd <- dat2_avgs %>% 
+  filter(is.finite(x)) %>% 
+  sf::st_as_sf(coords = c("x", "y"), crs = crs(test)) %>% 
+  terra::vect() %>% 
+  terra::rasterize(y = test, field = paste0(x, "_sd"), fun = mean, na.rm = TRUE) %>% 
+  terra::aggregate(fact = 4, fun = "mean", na.rm = TRUE) %>% 
+  terra::crop(ext(-130, -65, 25, 50))
+
+sd_figs <- ggarrange(
+  ggplot() +
+    geom_spatraster(data = (dat2_sd), aes(), na.rm = TRUE) +
+    theme_minimal() +
+    scale_fill_viridis_c(option = "F", guide = guide_colorbar(title = "sd"),
+                         #limits = c(1,315)
+    ) +
+    #facet_wrap(~lyr) +
+    ggtitle(paste0("Stnd. Dev. of ",x," within a grid cell \n(dayMet grid aggregated x 4)"))+
+    theme_minimal()
+  ,
+  dat2_avgs %>% 
+    filter(is.finite(x)) %>% 
+    ggplot() + 
+    geom_density(aes(.data[[paste0(x, "_sd")]])) + 
+    #xlim(c(0,50)) + 
+    ggtitle(paste0("% ",x,", after spatial averaging process")),
+  #geom_density(aes(log(ShrubCover_n))),
+  ncol = 2, widths = c(1,.5)
+)
+
+
+## add all together
+allFigs <- ggarrange(
+  cov_figs,
+  sd_figs,
+  n_figs,
+  ncol = 1
+)
+return(allFigs)
+}
+)
+
+# save figures
+
+bitmap(file = "./Figures/CoverDatFigures/SpatiallyAveragedCoverData_noFiltering.bmp", 
+       width = 14, height = 100, res = 200)
+ggarrange(
+averagingFigs[[1]],
+averagingFigs[[2]],
+averagingFigs[[3]],
+averagingFigs[[4]],
+averagingFigs[[5]],
+averagingFigs[[6]],
+averagingFigs[[7]],
+averagingFigs[[8]],
+averagingFigs[[9]],
+ncol = 1
+)
+dev.off()
