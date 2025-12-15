@@ -17,7 +17,7 @@ library(mapview)
 # data ready for model fitting
 #modDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_sf.rds")
 
-modDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_sf.rds")
+modDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_sf_sampledRAP_LF.rds")
 modDat %>% 
   #st_drop_geometry() %>% 
   filter(!is.na(TotalHerbaceousCover)) %>% 
@@ -84,7 +84,7 @@ ggplot(newDat[1:100000,]) +
   geom_sf(aes(fill = newRegion))
 
 # Save Data for further analysis ------------------------------------------
-saveRDS(newDat, "./Data_processed/CoverData/DataForModels_withEcoregion.rds")
+saveRDS(newDat, "./Data_processed/CoverData/DataForModels_withEcoregion_sampledRAP_LF.rds")
 # 
 # newDat %>%
 #   st_drop_geometry() %>%

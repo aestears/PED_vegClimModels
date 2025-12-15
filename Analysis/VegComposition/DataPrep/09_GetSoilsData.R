@@ -14,7 +14,7 @@ library(sf)
 library(rSOILWAT2)
 
 # read in veg data --------------------------------------------------------
-vegDat_temp <- readRDS("./Data_processed/CoverData/DataForModels_withEcoregion.rds")
+vegDat_temp <- readRDS("./Data_processed/CoverData/DataForModels_withEcoregion_sampledRAP_LF.rds")
 # should change the geometry to points (was small polygons for spatial joins) 
 
 vegDat <- vegDat_temp %>% 
@@ -432,7 +432,7 @@ temp <- vegSoils_new %>%
   #           ] <- 0
   
   saveRDS(newFinalDat, 
-          "./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
+          "./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf_sampledRAP_LF.rds")
   #vegSoils_final <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
 
   
