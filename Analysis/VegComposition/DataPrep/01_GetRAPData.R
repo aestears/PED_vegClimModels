@@ -10,8 +10,9 @@
 library(tidyverse)
 library(sf)
 library(terra)
+library(rapr)
 
-# generate random points to sample RAP data with --------------------------
+# generarapr# generate random points to sample RAP data with --------------------------
 ## first, get a shapefile of CONUS
 CONUS <- st_read(dsn = "./Data_raw/CONUS_extent/", layer = "CONUS_boundary") %>% 
   st_make_valid()%>% 
@@ -32,11 +33,9 @@ ecoregions_new <- CONUS %>%
   st_make_valid() %>% 
   st_intersection(ecoregions%>%
                     st_make_valid())
-# 
-# # get the test area
-# testArea <- st_read(
-#   dsn = "../shortTermDroughtForescaster/gridSTDF/projects/07_TestOutputForFRESC/FRESC_testBox/", 
-#   layer = "GriddedDroughtSubset") 
+# get ecoregion locations only for grass/shrub
+ecoregions_new <- ecoregions_new %>% 
+  filter(NA_L1NAME %in% c("GREAT PLAINS", "MEDITERRANEAN CALIFORNIA", "NORTH AMERICAN DESERTS","SOUTHERN SEMIARID HIGHLANDS"))
 
 ## use a mask to remove agricultural or developed area get the masks from land
 #use data from LCMAP (used data from 2021, since it's likely the most
@@ -59,155 +58,225 @@ LCMAP_use <- LCMAP_use %>%
 # save reclassified data
 #saveRDS(LCMAP_use, file = "./data/LCMAP/LCMAP_reclassifiedToUse.rds")
 # LCMAP_use <- readRDS("./Data_raw/LCMAP/LCMAP_reclassifiedToUse.rds")
-terra::plot(LCMAP_use)
-# function to sample spatial points
-ecoSample <- function(x, sampSize) {
-  x_new <- x %>% 
-    spatSample(size = sampSize, method = "random", na.rm = TRUE, replace = FALSE, as.points = TRUE) %>% 
-    st_as_sf()
+
+## get dayMet raster that we'll use to generate sampling points
+dayMetGrid <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") #%>% 
+dayMetGrid <- dayMetGrid %>% terra::project(y = crs(LCMAP_use))
+
+# first, remove raster cells that aren't in the grass/shrub ecoregion (change those values to NA)
+dayMet_crop <- dayMetGrid$daymet_v4_prcp_monttl_na_1980_1 %>% 
+  terra::mask(mask = terra::vect(ecoregions_new)) %>% 
+  terra::crop(y = terra::vect(ecoregions_new))
+
+# then, remove raster cells that are in developed/undesirable areas (change those values to NA) 
+LCMAP_use_crop <- (LCMAP_use %>% terra::mask(mask = terra::vect(ecoregions_new)) %>% 
+                     terra::crop(y = dayMet_crop) %>% 
+                     terra::resample(y = dayMet_crop))
+
+dayMet_crop2 <- dayMet_crop * LCMAP_use_crop
+
+
+## then, generate a random point within each dayMet cell 
+# turn the raster into a grid polygon using the sp package
+dayMet_grid <- raster::rasterToPolygons(raster::raster(dayMet_crop2))
+# temp <- st_as_sf(dayMet_grid)
+# plot(temp$geometry[1:10000,])
+
+# use the sp package to generate a random point within each dayMet grid 
+samplePoints_temp <- sapply(dayMet_grid@polygons, sp::spsample, n = 1, type = "random")
+# take out of 
+samplePoints <- samplePoints_temp %>% lapply(FUN = function(x) {
+  data.frame("test" = 1, "geometry" = st_as_sf(x))
+}) %>% 
+  purrr::list_rbind()
+samplePoints <- st_as_sf(samplePoints)
+st_crs(samplePoints) <- st_crs(dayMet_crop2)
+
+## make a rectangle around each point that's 60m square (should encompass the closes 4 RAP cells?)
+samplePoints_squares <- samplePoints %>% 
+  st_buffer(dist = 30, endCapStyle = "SQUARE")
+
+#plot(temp$geometry[1:10])
+#points(samplePoints[1:10,"geometry"])
+#plot(samplePoints_squares[1:10,"geometry"], add = TRUE)
+ 
+## save the sample point data (w/ buffer squares)
+sf::st_write(samplePoints_squares, dsn = "Data_processed/RAP_samplePoints/", layer = "singlePointPerDayMetCell_withBuffer", 
+             driver = "ESRI Shapefile", overwrite = TRUE, append = FALSE)
+## save two point rectangles for experimentation purposes
+sf::st_write(samplePoints_squares[1:10,], dsn = "Data_processed/RAP_samplePoints/", layer = "singlePointPerDayMetCell_withBuffer_TEST", 
+             driver = "ESRI Shapefile", overwrite = TRUE, append = FALSE)
+## save the sample point data
+sf::st_write(samplePoints, dsn = "Data_processed/RAP_samplePoints/", layer = "singlePointPerDayMetCell", 
+             driver = "ESRI Shapefile", overwrite = TRUE, append = FALSE)
+
+
+# samplePoints_squares <- sf::st_read(dsn = "Data_processed/RAP_samplePoints/", layer = "singlePointPerDayMetCell_withBuffer")
+# samplePoints <- sf::st_read(dsn = "Data_processed/RAP_samplePoints",  layer = "singlePointPerDayMetCell")
+
+## save the upscaled dayMet grid 
+dayMet_13 <- dayMetGrid$daymet_v4_prcp_monttl_na_1980_1 %>% 
+  terra::crop(y = dayMet_crop2) %>% 
+  terra::aggregate(fact = 13, fun = "mean") 
+terra::writeRaster(dayMet_13, filename = "Data_processed/RAP_samplePoints/dayMetGrid_times13_forSampling.tif", overwrite = TRUE)
+
+## for each samplePoint w/ square buffer, give it an ID indicating which dayMet_13 grid cell it's in
+# get dayMet_13 grid 
+dayMet_13_grid <- raster::rasterToPolygons(raster::raster(dayMet_13))
+dayMet_13_grid2 <- dayMet_13_grid %>% 
+  st_as_sf() %>% 
+  sf::st_transform(crs = st_crs(samplePoints))
+
+# get uniqueIDs for each each gridcell and assign to sample points
+temp <- terra::extract(x = dayMet_13, y = vect(samplePoints), xy = TRUE)
+temp$uniqueID <- paste0(temp$x, "_", temp$y)
+samplePoints <- samplePoints %>% 
+  select(test, geometry) %>% 
+  cbind(temp[,"uniqueID"]) %>% 
+  rename(uniqueID = `temp....uniqueID..`)
+
+samplePoints_squares <- samplePoints_squares %>% 
+  select(test, geometry) %>% 
+  cbind(temp$uniqueID) %>% 
+  dplyr::rename(uniqueID = temp.uniqueID)
+
+# # test GEE outputs
+# # load GEE output
+# tempRast <- rast("../../../../../../Downloads/RAP_custom_grid_2000.tif")  %>%
+#   terra::project(samplePoints_squares)
+# 
+# tempsf <- st_read(dsn = "../../../../../../Downloads/RAP_VegCover/", layer = "RAP_VegCover")
+# tempsf_point <- st_read(dsn = "../../../../../../Downloads/RAP_VegCover_points/", layer = "RAP_VegCover")
+# mapview(tempsf) + mapview(tempsf_point, col.regions = "red")
+# 
+# # tempRast <- tempRast %>%
+# #   terra::project(samplePoints_squares)
+# # # get grid of the GEE output
+# # tempRast_grid <- raster::rasterToPolygons(raster::raster(tempRast))
+# # get the grid of the dayMet aggregated by 4 raster
+# dayMet_4 <- dayMetGrid$daymet_v4_prcp_monttl_na_1980_1 %>%
+#   terra::aggregate(fact = 13, fun = "mean")  %>%
+#   terra::project(samplePoints_squares) %>%
+#   terra::crop(ext(c(-1182699.77885738, -1122699.77885738), ylim = c(2021269.29775776, 2041269.29775776)))
+# dayMet_4_grid <- raster::rasterToPolygons(raster::raster(dayMet_4))
+# 
+# # # plot 
+# # par(mfrow = c(2,1))
+# # plot(tempRast$PFG, xlim = c(-1182699.77885738, -1122699.77885738), ylim = c(2021269.29775776, 2041269.29775776))
+# # plot(tempRast_grid, add = TRUE)
+# # plot(dayMet_4_grid[1:2,], col = "red", add = TRUE)
+# # plot(dayMet_crop2, xlim = c(-1182699.77885738, -1122699.77885738), ylim = c(2021269.29775776, 2041269.29775776))
+# # plot(tempRast_grid, add = TRUE)
+# # plot(dayMet_4_grid[1:2,], col = "red", add = TRUE)
+# # 
+# # par(mfrow = c(1,1))
+# 
+# # distance between centroids of new plots
+# tempCentroids <- terra::xyFromCell(dayMet_4, cell = c(1:4)) %>% 
+#   as.data.frame() %>% 
+#   st_as_sf(coords = c("x", "y"), crs = st_crs(tempRast))
+# tempDistances <- st_distance(tempCentroids) %>% 
+#   apply(MARGIN = 1, FUN = function(x) {
+#     x <- as.numeric(x)
+#     min(x[x != 0])
+#   })
+
+
+# Try using rapr R package, since GEE is very frustrating -----------------
+# for each set of points that are in the same dayMetx13 gridcell (sampleIDs that have the same 'uniqueID')
+uniqueIDs <- samplePoints %>% st_drop_geometry() %>% select(uniqueID) %>% unique()
+# make sure everything is in the correct crs ("EPSG:4326" required for get_rap() function)
+samplePoints_squares <- samplePoints_squares %>% 
+  st_transform(crs = "EPSG:4326")
+samplePoints <- samplePoints %>% 
+  st_transform(crs = "EPSG:4326")
+dayMet_13_grid2 <- dayMet_13_grid2 %>% 
+  st_transform(crs = "EPSG:4326")
+
+for (i in 1:nrow(uniqueIDs)
+     ) {
+  # get unique dayMetx13 gridcell ID 
+  uniqueID_i <- uniqueIDs[i,]
+  # get unique points just in that raster cell 
+  points_i <- samplePoints_squares %>% 
+    filter(uniqueID == uniqueID_i)
+  # get the corresponding raster cell boundary 
+  gridCell_id_i <- st_nearest_feature(points_i[1,], dayMet_13_grid2, sparse = FALSE)
+  gridCell_i <- dayMet_13_grid2[gridCell_id_i,]
+  #mapview(gridCell_i) + mapview(points_i, col.regions = "red")
+  ## get the RAP values that lie within this boundary
+  rap_i <- rapr::get_rap(x = gridCell_i, years = c(2000:2024), 
+                source = "rap-30m", 
+                product = "vegetation-cover", 
+                verbose = FALSE
+                )
+  ## for each 'point', get teh averaged RAP value w/in that rectangle for each get/year combo (150 of them!)
+  ## create a matrix to hold the information
+  for (j in 1:nrow(points_i)) {
+    points_ij <- points_i[j,]
+    rap_ij <- terra::extract(x = rap_i, y = points_ij, fun = "mean")
+    #rap_ij_test <- terra::crop(x = rap_i, y = points_ij)
+    # save info
+    if(j == 1) {
+      outDat_j <- rap_ij
+    } else {
+      outDat_j <- rbind(outDat_j, rap_ij)
+    }
+  }
+  ## now, average all of the outDat information in the same dayMet gridcell and save! 
+  outDat_i <- as_tibble(outDat_j) %>% 
+    group_by(ID) %>% 
+    summarize(across('vegetation-cover_v3_2000_annual_forb_and_grass':'vegetation-cover_v3_2024_tree', mean))
+  ## add information for the centroid of the given dayMet gridcell
+  outDat_i <- outDat_i %>% 
+    cbind(gridCell_i$geometry)
+    
+  print(paste0("iteration ", i," completed"))
   
-  return(x_new)
+  if (i == 1) {
+    outDat <- outDat_i
+  } else {
+    outDat <- rbind(outDat, outDat_i)
+    if (i %in% c(seq(from = 1000, to = 22238, by = 1000))) {
+      assign(paste0("tempDatThrough_",i), outDat)
+    } 
+  }
 }
 
-LCMAP_samplePoints <- ecoSample(LCMAP_use, sampSize = 7900)
-
-## save the sample point data
-sf::st_write(LCMAP_samplePoints, dsn = "data/RAP_samplePoints/", layer = "randomPoints_100Thousand", 
-             driver = "ESRI Shapefile")
-# ## subdivide the raster by ecoregions (to make it smaller, and also may be useful for deciding which part to use...?)
-# # northern forests (5)
-# ecoRast_5 <- LCMAP_use %>% 
-#   crop(ecoregions_new[ecoregions_new$NA_L1CODE==5,]) %>% 
-#   mask(ecoregions_new[ecoregions_new$NA_L1CODE==5,]) 
-# ecoRast_5  <- ecoRast_5 %>% 
-#   mask(ecoRast_5, maskvalues = 0)
-# 
-# # northwestern forested mountains (6)
-# ecoRast_6 <- LCMAP_use %>% 
-#   crop(ecoregions_new[ecoregions_new$NA_L1CODE==6,]) %>% 
-#   mask(ecoregions_new[ecoregions_new$NA_L1CODE==6,])
-# ecoRast_6  <- ecoRast_6 %>% 
-#   mask(ecoRast_6, maskvalues = 0)
-# 
-# # marine west coast forest (7)
-# ecoRast_7 <- LCMAP_use %>% 
-#   crop(ecoregions_new[ecoregions_new$NA_L1CODE==7,]) %>% 
-#   mask(ecoregions_new[ecoregions_new$NA_L1CODE==7,])
-# ecoRast_7  <- ecoRast_7 %>% 
-#   mask(ecoRast_7, maskvalues = 0)
-# 
-# # eastern temperature forests (8)
-# ecoRast_8 <- LCMAP_use %>% 
-#   crop(ecoregions_new[ecoregions_new$NA_L1CODE==8,]) %>% 
-#   mask(ecoregions_new[ecoregions_new$NA_L1CODE==8,])
-# ecoRast_8  <- ecoRast_8 %>% 
-#   mask(ecoRast_8, maskvalues = 0)
-# 
-# # great plains (9)
-# ecoRast_9 <- LCMAP_use %>% 
-#   crop(ecoregions_new[ecoregions_new$NA_L1CODE==9,]) %>% 
-#   mask(ecoregions_new[ecoregions_new$NA_L1CODE==9,])
-# ecoRast_9  <- ecoRast_9 %>% 
-#   mask(ecoRast_9, maskvalues = 0)
-# 
-# # north american deserts (10)
-# ecoRast_10 <- LCMAP_use %>% 
-#   crop(ecoregions_new[ecoregions_new$NA_L1CODE==10,]) %>% 
-#   mask(ecoregions_new[ecoregions_new$NA_L1CODE==10,])
-# ecoRast_10  <- ecoRast_10 %>% 
-#   mask(ecoRast_10, maskvalues = 0)
-# 
-# # mediterranean California (11)
-# ecoRast_11 <- LCMAP_use %>% 
-#   crop(ecoregions_new[ecoregions_new$NA_L1CODE==11,]) %>% 
-#   mask(ecoregions_new[ecoregions_new$NA_L1CODE==11,])
-# ecoRast_11  <- ecoRast_11 %>% 
-#   mask(ecoRast_11, maskvalues = 0)
-# 
-# # southern semiarid highlands (12)
-# ecoRast_12 <- LCMAP_use %>% 
-#   crop(ecoregions_new[ecoregions_new$NA_L1CODE==12,]) %>% 
-#   mask(ecoregions_new[ecoregions_new$NA_L1CODE==12,])
-# ecoRast_12  <- ecoRast_12 %>% 
-#   mask(ecoRast_12, maskvalues = 0)
-# # temperate forests (13)
-# ecoRast_13 <- LCMAP_use %>% 
-#   crop(ecoregions_new[ecoregions_new$NA_L1CODE==13,]) %>% 
-#   mask(ecoregions_new[ecoregions_new$NA_L1CODE==13,])
-# ecoRast_13  <- ecoRast_13 %>% 
-#   mask(ecoRast_13, maskvalues = 0)
-# # tropical wet forests (15)
-# ecoRast_15 <- LCMAP_use %>% 
-#   crop(ecoregions_new[ecoregions_new$NA_L1CODE==15,]) %>% 
-#   mask(ecoregions_new[ecoregions_new$NA_L1CODE==15,])
-# ecoRast_15  <- ecoRast_15 %>% 
-#   mask(ecoRast_15, maskvalues = 0)
-# 
-# ecoRast_5_samplePoints <- ecoSample(ecoRast_5, sampSize = 1000)
-# ecoRast_6_samplePoints <- ecoSample(ecoRast_6, sampSize = 1000)
-# ecoRast_7_samplePoints <- ecoSample(ecoRast_7, sampSize = 1000)
-# ecoRast_8_samplePoints <- ecoSample(ecoRast_8, sampSize = 1000)
-# ecoRast_9_samplePoints <- ecoSample(ecoRast_9, sampSize = 1000)
-# ecoRast_10_samplePoints <- ecoSample(ecoRast_10, sampSize = 1000)
-# ecoRast_11_samplePoints <- ecoSample(ecoRast_11, sampSize = 1000)
-# ecoRast_12_samplePoints <- ecoSample(ecoRast_12, sampSize = 1000)
-# ecoRast_13_samplePoints <- ecoSample(ecoRast_13, sampSize = 1000)
-# ecoRast_15_samplePoints <- ecoSample(ecoRast_15, sampSize = 1000)
-# 
-# plot(ecoRast_9)
-# plot(ecoRast_9_samplePoints$geometry, add = TRUE)
-# 
-# 
-# # add all points together 
-# samplePoints <- rbind(ecoRast_5_samplePoints, ecoRast_6_samplePoints, ecoRast_7_samplePoints, 
-#                       ecoRast_8_samplePoints,  ecoRast_9_samplePoints, ecoRast_10_samplePoints, 
-#                       ecoRast_11_samplePoints, ecoRast_12_samplePoints, ecoRast_13_samplePoints, 
-#                       ecoRast_15_samplePoints)
-
+outDat <- outDat %>% 
+  st_as_sf()
+mapview(outDat, zcol = 'vegetation-cover_v3_2000_annual_forb_and_grass')
 
 # read in RAP points sampled from Google Earth Engine ---------------------
-RAPdat <- read.csv("~/Downloads/RAP_VegCover.csv")
+## get RAP information downloaded from GEE
+# file names
+RAPnames <- list.files("./Data_processed/RAP_samplePoints/SampledData/")
+for (i in 1:length(RAPnames)) {
+  ## read in the raster
+  tempRast <- rast(x = paste0("./Data_processed/RAP_samplePoints/SampledData/", RAPnames[i])) %>% 
+    ## transform the raster to the crs of samplePoints
+    terra::project(crs(samplePoints))
+  ## save the raster
+  assign(paste0("RAPraster_", str_extract(RAPnames[i], "[:digit:]{4}")), value = tempRast)
+  ## get the values of the raster
+  tempValues <- tempRast %>% 
+    terra::extract(y = as.data.frame(terra::xyFromCell(tempRast, cell = c(1:94094))),
+                   xy = TRUE) %>% drop_na() %>% 
+    mutate(Year = str_extract(RAPnames[i], "[:digit:]{4}")) %>% 
+    dplyr::select(-ID)
+  ## save output 
+  if (i == 1) {
+    RAPvaluesDF <- tempValues
+  } else {
+    RAPvaluesDF <- RAPvaluesDF %>% 
+      rbind(tempValues)
+  }
+}
 
-RAPdat$LON<- apply(RAPdat, MARGIN = 1, FUN = function(x) 
-  stringr::str_extract(string =x[".geo"], pattern = regex("-\\d+.\\d+"))
-  )
-
-RAPdat$LAT <- 
-  apply(RAPdat, MARGIN = 1, FUN = function(x) 
-    #x[".geo"]
-  stringr::str_extract(string =x[".geo"], pattern = regex(",\\d+.\\d+")) %>% 
-    str_extract(, pattern = regex("\\d+.\\d+"))
-)
-
-RAPdat_2 <- st_as_sf(RAPdat, coords = c("LON", "LAT"))
-# get the correct year information
-RAPdat_2$Year <- str_sub(RAPdat_2$system.index, start = 1, end = 4)
-
-## we want to sample from each year of data from 1986-2024, and want ~300,000 observations total
-## to do this, we'll sample 8000 points, and then get those for each year. 
-
-# find 8000 random points 
-set.seed(12011993)
-# get the RAP x and y data points 
-RAPdat_2$LON <- round(sf::st_coordinates(RAPdat_2)[,1],5)
-RAPdat_2$LAT <- round(sf::st_coordinates(RAPdat_2)[,2],5)
-
-## randomly select three years (will equal ~300,000 data points, a few less than in the field-collected data)
-randPoints <- unique(RAPdat_2[,c("LON", "LAT")]) %>% 
-  st_drop_geometry() %>% 
-  sample_n(8000)
-
-RAPdat_3 <- RAPdat_2[RAPdat_2$LON %in% randPoints$LON & 
-                       RAPdat_2$LAT %in% randPoints$LAT,]
-
-#indices <- round(runif(n = 3, min = 1, max = length(unique(RAPdat_2$Year))))
-plot(RAPdat_3$geometry)
-
-## looks good! Fewer points in places we filtered out for ag. and developed land uses
 ## change cover value column titles to be meaningful 
-RAPdat_4 <- RAPdat_3 %>% 
-  rename(Lat = LAT, 
-         Lon = LON, 
+RAPdat_4 <- RAPvaluesDF %>% 
+  rename(Lat = y, 
+         Lon = x, 
          AnnualHerbGramCover = AFG,
          PerennialHerbGramCover = PFG,
          BareGroundCover = BGR, 
@@ -216,7 +285,7 @@ RAPdat_4 <- RAPdat_3 %>%
          TotalTreeCover = TRE
          ) %>% 
   mutate(
-         UniqueID = system.index, 
+         UniqueID = 1:nrow(.), 
          StateUnitCounty = NA,
          Plot = NA, 
          PlotCondition = NA,
