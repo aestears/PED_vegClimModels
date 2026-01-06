@@ -49,11 +49,7 @@ my_fn <- function(data, mapping, method="p", use="pairwise", ...){
 
 
 here::i_am("Analysis/VegComposition/ModelFitting/01_PredictorVarSelection.Rmd")
-dat <- readRDS( here("Data_processed", "CoverData", "DataForModels_spatiallyAveraged_withSoils_noSf.rds"))
-## there are some values of the annual wet degree days 5th percentile that have -Inf?? change to lowest value for now? 
-dat[is.infinite(dat$annWetDegDays_5percentile_3yrAnom), "annWetDegDays_5percentile_3yrAnom"] <- -47.8
-## same, but for annual water deficit 95th percentile 
-dat[is.infinite(dat$annWaterDeficit_95percentile_3yrAnom), "annWaterDeficit_95percentile_3yrAnom"] <- -600
+dat <- readRDS( here("Data_processed", "CoverData", "DataForModels_spatiallyAveraged_withSoils_noSf_sampledLANDFIRE.rds"))
 ```
 
 ## Background
