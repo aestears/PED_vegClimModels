@@ -9,7 +9,6 @@
 
 library(tidyverse)
 library(terra)
-library(statmod)
 #library(betareg)
 library(glmmTMB)
 library(corrplot)

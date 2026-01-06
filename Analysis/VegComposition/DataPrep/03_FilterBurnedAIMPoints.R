@@ -28,7 +28,7 @@ sapply(paste0("./Functions/",list.files("./Functions/")), source)
 # Destination folders
 
 # use here to get current directory
-here::i_am("Analysis/VegComposition/DataPrep/04_FilterBurnedAIMPoints.R")
+here::i_am("Analysis/VegComposition/DataPrep/03_FilterBurnedAIMPoints.R")
 
 # input where you will download the Zip files from Science Base
 # as well as the unzipped data files

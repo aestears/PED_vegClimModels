@@ -14,7 +14,7 @@ library(sf)
 library(rSOILWAT2)
 
 # read in veg data --------------------------------------------------------
-vegDat_temp <- readRDS("./Data_processed/CoverData/DataForModels_withEcoregion_sampledRAP_LF.rds")
+vegDat_temp <- readRDS("./Data_processed/CoverData/DataForModels_withEcoregion_sampledLANDFIRE.rds")
 # should change the geometry to points (was small polygons for spatial joins) 
 
 vegDat <- vegDat_temp %>% 
@@ -336,8 +336,10 @@ temp <- vegSoils_new %>%
   
 # calculate intermediate value 'tmp'
   # reference "temp" data frame (which has the raw soil variables), as well as vegSoil_p, a list which has matrices for p calculated above
-  vegSoil_tmp <- map(.x = c(1:nrow(temp)), 
+  vegSoil_tmp <- purrr::map(.x = c(1:nrow(temp)
+                            ), 
                     function (n) {
+                      print(n)
                       tmp <- rSOILWAT2::swrc_swp_to_vwc(
                         c(-1.5, -0.033), ##AES should I change this? not totally clear what these values indicate 
                         fcoarse = unlist(as.vector(temp[n,c("coarsePerc_2cm" ,                           
@@ -353,7 +355,7 @@ temp <- vegSoils_new %>%
   
   
 #   # calculate final value 'awc' 
-  vegSoil_awc <- map(.x = c(1:nrow(temp)), 
+  vegSoil_awc <- purrr::map(.x = c(1:nrow(temp)), 
                      function (n) {
                       awc <- temp[n,c("horizonThickness_cm_2cm"  ,                 
                                      "horizonThickness_cm_7cm"  ,                  "horizonThickness_cm_15cm"    ,              
@@ -432,18 +434,17 @@ temp <- vegSoils_new %>%
   #           ] <- 0
   
   saveRDS(newFinalDat, 
-          "./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf_sampledRAP_LF.rds")
+          "./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf_sampledLANDFIRE.rds")
   #vegSoils_final <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
 
   
- # plot(newFinalDat$tmean, 
+ # plot(newFinalDat$tmean,
  #      newFinalDat$tmin_annAvg)
  # 
- # newFinalDat %>% 
- #   filter(!is.na(TotalHerbaceousCover)) %>% 
- #   ggplot() + 
- #   facet_wrap(~Year) + 
+ # newFinalDat %>%
+ #   filter(!is.na(TotalHerbaceousCover)) %>%
+ #   ggplot() +
+ #   facet_wrap(~Year) +
  #   geom_point(aes(x = Long, y = Lat))
 
-   
-  
+

@@ -42,83 +42,88 @@ ecoregions_new <- ecoregions_new %>%
 #exclusive...?) from: https://eros.usgs.gov/lcmap/apps/data-downloads. LCMAP
 #uses LANDSAT analysis-ready data, just like RAP, so should be on the same grid,
 #right??
-LCMAP <- terra::rast("./Data_raw/LCMAP/LCMAP_CU_2021_V13_LCPRI.tif") #%>% 
- #terra::project(y = "EPSG:4269")
+#LCMAP <- terra::rast("./Data_raw/LCMAP/LCMAP_CU_2021_V13_LCPRI.tif") #%>% 
+#terra::project(y = "EPSG:4269")
 # reproject the ecoregions data according to LCMAP projection
-ecoregions_new <- 
-  ecoregions_new %>% 
-  st_transform(crs(LCMAP))
-
-# reclassify so that 0 = raster cells that are developed (1) or cropland (2)  or water (5) and 1 = any other land use
-LCMAP_use <- classify(LCMAP, rcl = matrix(c(1,2,3,4,5,6,7,8,0,0,1,1,0,1,1,1), nrow = 8))
-
-LCMAP_use <- LCMAP_use %>% 
-  mask(LCMAP_use, maskvalues = 0)
-
-# save reclassified data
-#saveRDS(LCMAP_use, file = "./data/LCMAP/LCMAP_reclassifiedToUse.rds")
-# LCMAP_use <- readRDS("./Data_raw/LCMAP/LCMAP_reclassifiedToUse.rds")
-
-## get dayMet raster that we'll use to generate sampling points
-dayMetGrid <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") #%>% 
-dayMetGrid <- dayMetGrid %>% terra::project(y = crs(LCMAP_use))
-
-# first, remove raster cells that aren't in the grass/shrub ecoregion (change those values to NA)
-dayMet_crop <- dayMetGrid$daymet_v4_prcp_monttl_na_1980_1 %>% 
-  terra::mask(mask = terra::vect(ecoregions_new)) %>% 
-  terra::crop(y = terra::vect(ecoregions_new))
-
-# then, remove raster cells that are in developed/undesirable areas (change those values to NA) 
-LCMAP_use_crop <- (LCMAP_use %>% terra::mask(mask = terra::vect(ecoregions_new)) %>% 
-                     terra::crop(y = dayMet_crop) %>% 
-                     terra::resample(y = dayMet_crop))
-
-dayMet_crop2 <- dayMet_crop * LCMAP_use_crop
-
-
-## then, generate a random point within each dayMet cell 
-# turn the raster into a grid polygon using the sp package
-dayMet_grid <- raster::rasterToPolygons(raster::raster(dayMet_crop2))
-# temp <- st_as_sf(dayMet_grid)
-# plot(temp$geometry[1:10000,])
-
-# use the sp package to generate a random point within each dayMet grid 
-samplePoints_temp <- sapply(dayMet_grid@polygons, sp::spsample, n = 1, type = "random")
-# take out of 
-samplePoints <- samplePoints_temp %>% lapply(FUN = function(x) {
-  data.frame("test" = 1, "geometry" = st_as_sf(x))
-}) %>% 
-  purrr::list_rbind()
-samplePoints <- st_as_sf(samplePoints)
-st_crs(samplePoints) <- st_crs(dayMet_crop2)
-
-## make a rectangle around each point that's 60m square (should encompass the closes 4 RAP cells?)
-samplePoints_squares <- samplePoints %>% 
-  st_buffer(dist = 30, endCapStyle = "SQUARE")
+# ecoregions_new <- 
+#   ecoregions_new %>% 
+#   st_transform(crs(LCMAP))
+# 
+# # reclassify so that 0 = raster cells that are developed (1) or cropland (2)  or water (5) and 1 = any other land use
+# LCMAP_use <- classify(LCMAP, rcl = matrix(c(1,2,3,4,5,6,7,8,0,0,1,1,0,1,1,1), nrow = 8))
+# 
+# LCMAP_use <- LCMAP_use %>% 
+#   mask(LCMAP_use, maskvalues = 0)
+# 
+# # save reclassified data
+#  saveRDS(LCMAP_use, file = "./Data_raw/LCMAP/LCMAP_reclassifiedToUse.rds")
+# LCMAP_use <- readRDS("./Data_raw/LCMAP/LCMAP_reclassifiedToUse.rds") 
+# 
+# ## get dayMet raster that we'll use to generate sampling points
+# dayMetGrid <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") #%>% 
+# dayMetGrid <- dayMetGrid %>% terra::project(y = crs(LCMAP_use))
+# 
+# crs(dayMetGrid) == crs(LCMAP_use)
+# 
+# ecoregions_new <- ecoregions_new %>% 
+#   sf::st_transform(crs = st_crs(LCMAP_use))
+# 
+# # first, remove raster cells that aren't in the grass/shrub ecoregion (change those values to NA)
+# dayMet_crop <- dayMetGrid$daymet_v4_prcp_monttl_na_1980_1 %>% 
+#   terra::mask(mask = terra::vect(ecoregions_new)) %>% 
+#   terra::crop(y = terra::vect(ecoregions_new))
+# 
+# # then, remove raster cells that are in developed/undesirable areas (change those values to NA) 
+# LCMAP_use_crop <- (LCMAP_use %>% terra::mask(mask = terra::vect(ecoregions_new)) %>% 
+#                      terra::crop(y = dayMet_crop) %>% 
+#                      terra::resample(y = dayMet_crop))
+# 
+# dayMet_crop2 <- dayMet_crop * LCMAP_use_crop
+# 
+# ## then, generate a random point within each dayMet cell 
+# # turn the raster into a grid polygon using the sp package
+# dayMet_grid <- raster::rasterToPolygons(raster::raster(dayMet_crop2))
+# # temp <- st_as_sf(dayMet_grid)
+# # plot(temp$geometry[1:10000,])
+# 
+# # use the sp package to generate a random point within each dayMet grid 
+# samplePoints_temp <- sapply(dayMet_grid@polygons, sp::spsample, n = 1, type = "random")
+# # take out of 
+# samplePoints <- samplePoints_temp %>% lapply(FUN = function(x) {
+#   data.frame("test" = 1, "geometry" = st_as_sf(x))
+# }) %>% 
+#   purrr::list_rbind()
+# samplePoints <- st_as_sf(samplePoints)
+# st_crs(samplePoints) <- st_crs(dayMet_crop2)
+# 
+# ## make a rectangle around each point that's 60m square (should encompass the closes 4 RAP cells?)
+# samplePoints_squares <- samplePoints %>% 
+#   st_buffer(dist = 30, endCapStyle = "SQUARE")
 
 #plot(temp$geometry[1:10])
 #points(samplePoints[1:10,"geometry"])
 #plot(samplePoints_squares[1:10,"geometry"], add = TRUE)
- 
-## save the sample point data (w/ buffer squares)
-sf::st_write(samplePoints_squares, dsn = "Data_processed/RAP_samplePoints/", layer = "singlePointPerDayMetCell_withBuffer", 
-             driver = "ESRI Shapefile", overwrite = TRUE, append = FALSE)
-## save two point rectangles for experimentation purposes
-sf::st_write(samplePoints_squares[1:10,], dsn = "Data_processed/RAP_samplePoints/", layer = "singlePointPerDayMetCell_withBuffer_TEST", 
-             driver = "ESRI Shapefile", overwrite = TRUE, append = FALSE)
-## save the sample point data
-sf::st_write(samplePoints, dsn = "Data_processed/RAP_samplePoints/", layer = "singlePointPerDayMetCell", 
-             driver = "ESRI Shapefile", overwrite = TRUE, append = FALSE)
 
+# ## save the sample point data (w/ buffer squares)
+# sf::st_write(samplePoints_squares, dsn = "Data_processed/RAP_samplePoints/", layer = "singlePointPerDayMetCell_withBuffer", 
+#              driver = "ESRI Shapefile", overwrite = TRUE, append = FALSE)
+# ## save two point rectangles for experimentation purposes
+# sf::st_write(samplePoints_squares[1:10,], dsn = "Data_processed/RAP_samplePoints/", layer = "singlePointPerDayMetCell_withBuffer_TEST", 
+#              driver = "ESRI Shapefile", overwrite = TRUE, append = FALSE)
+# ## save the sample point data
+# sf::st_write(samplePoints, dsn = "Data_processed/RAP_samplePoints/", layer = "singlePointPerDayMetCell", 
+#              driver = "ESRI Shapefile", overwrite = TRUE, append = FALSE)
+# 
 
-# samplePoints_squares <- sf::st_read(dsn = "Data_processed/RAP_samplePoints/", layer = "singlePointPerDayMetCell_withBuffer")
-# samplePoints <- sf::st_read(dsn = "Data_processed/RAP_samplePoints",  layer = "singlePointPerDayMetCell")
+samplePoints_squares <- sf::st_read(dsn = "Data_processed/RAP_samplePoints/", layer = "singlePointPerDayMetCell_withBuffer")
+samplePoints <- sf::st_read(dsn = "Data_processed/RAP_samplePoints",  layer = "singlePointPerDayMetCell")
 
 ## save the upscaled dayMet grid 
-dayMet_13 <- dayMetGrid$daymet_v4_prcp_monttl_na_1980_1 %>% 
-  terra::crop(y = dayMet_crop2) %>% 
-  terra::aggregate(fact = 13, fun = "mean") 
-terra::writeRaster(dayMet_13, filename = "Data_processed/RAP_samplePoints/dayMetGrid_times13_forSampling.tif", overwrite = TRUE)
+# dayMet_13 <- dayMetGrid$daymet_v4_prcp_monttl_na_1980_1 %>% 
+#   terra::crop(y = dayMet_crop2) %>% 
+#   terra::aggregate(fact = 13, fun = "mean") 
+# terra::writeRaster(dayMet_13, filename = "Data_processed/RAP_samplePoints/dayMetGrid_times13_forSampling.tif", overwrite = TRUE)
+dayMet_13 <- rast("./Data_processed/RAP_samplePoints/dayMetGrid_times13_forSampling.tif")
 
 ## for each samplePoint w/ square buffer, give it an ID indicating which dayMet_13 grid cell it's in
 # get dayMet_13 grid 
@@ -183,69 +188,69 @@ samplePoints_squares <- samplePoints_squares %>%
 
 
 # Try using rapr R package, since GEE is very frustrating -----------------
-# for each set of points that are in the same dayMetx13 gridcell (sampleIDs that have the same 'uniqueID')
-uniqueIDs <- samplePoints %>% st_drop_geometry() %>% select(uniqueID) %>% unique()
-# make sure everything is in the correct crs ("EPSG:4326" required for get_rap() function)
-samplePoints_squares <- samplePoints_squares %>% 
-  st_transform(crs = "EPSG:4326")
-samplePoints <- samplePoints %>% 
-  st_transform(crs = "EPSG:4326")
-dayMet_13_grid2 <- dayMet_13_grid2 %>% 
-  st_transform(crs = "EPSG:4326")
-
-for (i in 1:nrow(uniqueIDs)
-     ) {
-  # get unique dayMetx13 gridcell ID 
-  uniqueID_i <- uniqueIDs[i,]
-  # get unique points just in that raster cell 
-  points_i <- samplePoints_squares %>% 
-    filter(uniqueID == uniqueID_i)
-  # get the corresponding raster cell boundary 
-  gridCell_id_i <- st_nearest_feature(points_i[1,], dayMet_13_grid2, sparse = FALSE)
-  gridCell_i <- dayMet_13_grid2[gridCell_id_i,]
-  #mapview(gridCell_i) + mapview(points_i, col.regions = "red")
-  ## get the RAP values that lie within this boundary
-  rap_i <- rapr::get_rap(x = gridCell_i, years = c(2000:2024), 
-                source = "rap-30m", 
-                product = "vegetation-cover", 
-                verbose = FALSE
-                )
-  ## for each 'point', get teh averaged RAP value w/in that rectangle for each get/year combo (150 of them!)
-  ## create a matrix to hold the information
-  for (j in 1:nrow(points_i)) {
-    points_ij <- points_i[j,]
-    rap_ij <- terra::extract(x = rap_i, y = points_ij, fun = "mean")
-    #rap_ij_test <- terra::crop(x = rap_i, y = points_ij)
-    # save info
-    if(j == 1) {
-      outDat_j <- rap_ij
-    } else {
-      outDat_j <- rbind(outDat_j, rap_ij)
-    }
-  }
-  ## now, average all of the outDat information in the same dayMet gridcell and save! 
-  outDat_i <- as_tibble(outDat_j) %>% 
-    group_by(ID) %>% 
-    summarize(across('vegetation-cover_v3_2000_annual_forb_and_grass':'vegetation-cover_v3_2024_tree', mean))
-  ## add information for the centroid of the given dayMet gridcell
-  outDat_i <- outDat_i %>% 
-    cbind(gridCell_i$geometry)
-    
-  print(paste0("iteration ", i," completed"))
-  
-  if (i == 1) {
-    outDat <- outDat_i
-  } else {
-    outDat <- rbind(outDat, outDat_i)
-    if (i %in% c(seq(from = 1000, to = 22238, by = 1000))) {
-      assign(paste0("tempDatThrough_",i), outDat)
-    } 
-  }
-}
-
-outDat <- outDat %>% 
-  st_as_sf()
-mapview(outDat, zcol = 'vegetation-cover_v3_2000_annual_forb_and_grass')
+# # for each set of points that are in the same dayMetx13 gridcell (sampleIDs that have the same 'uniqueID')
+# uniqueIDs <- samplePoints %>% st_drop_geometry() %>% select(uniqueID) %>% unique()
+# # make sure everything is in the correct crs ("EPSG:4326" required for get_rap() function)
+# samplePoints_squares <- samplePoints_squares %>% 
+#   st_transform(crs = "EPSG:4326")
+# samplePoints <- samplePoints %>% 
+#   st_transform(crs = "EPSG:4326")
+# dayMet_13_grid2 <- dayMet_13_grid2 %>% 
+#   st_transform(crs = "EPSG:4326")
+# 
+# for (i in 1:nrow(uniqueIDs)
+#      ) {
+#   # get unique dayMetx13 gridcell ID 
+#   uniqueID_i <- uniqueIDs[i,]
+#   # get unique points just in that raster cell 
+#   points_i <- samplePoints_squares %>% 
+#     filter(uniqueID == uniqueID_i)
+#   # get the corresponding raster cell boundary 
+#   gridCell_id_i <- st_nearest_feature(points_i[1,], dayMet_13_grid2, sparse = FALSE)
+#   gridCell_i <- dayMet_13_grid2[gridCell_id_i,]
+#   #mapview(gridCell_i) + mapview(points_i, col.regions = "red")
+#   ## get the RAP values that lie within this boundary
+#   rap_i <- rapr::get_rap(x = gridCell_i, years = c(2023:2024), 
+#                 source = "rap-30m", 
+#                 product = "vegetation-cover", 
+#                 verbose = FALSE
+#                 )
+#   ## for each 'point', get teh averaged RAP value w/in that rectangle for each get/year combo (150 of them!)
+#   ## create a matrix to hold the information
+#   for (j in 1:nrow(points_i)) {
+#     points_ij <- points_i[j,]
+#     rap_ij <- terra::extract(x = rap_i, y = points_ij, fun = "mean")
+#     #rap_ij_test <- terra::crop(x = rap_i, y = points_ij)
+#     # save info
+#     if(j == 1) {
+#       outDat_j <- rap_ij
+#     } else {
+#       outDat_j <- rbind(outDat_j, rap_ij)
+#     }
+#   }
+#   ## now, average all of the outDat information in the same dayMet gridcell and save! 
+#   outDat_i <- as_tibble(outDat_j) %>% 
+#     group_by(ID) %>% 
+#     summarize(across('vegetation-cover_v3_2023_annual_forb_and_grass':'vegetation-cover_v3_2024_tree', mean))
+#   ## add information for the centroid of the given dayMet gridcell
+#   outDat_i <- outDat_i %>% 
+#     cbind(gridCell_i$geometry)
+#     
+#   print(paste0("iteration ", i," completed"))
+#   
+#   if (i == 1) {
+#     outDat <- outDat_i
+#   } else {
+#     outDat <- rbind(outDat, outDat_i)
+#     if (i %in% c(seq(from = 1000, to = 22238, by = 1000))) {
+#       assign(paste0("tempDatThrough_",i), outDat)
+#     } 
+#   }
+# }
+# 
+# outDat <- outDat %>% 
+#   st_as_sf()
+# #mapview(outDat, zcol = 'vegetation-cover_v3_2000_annual_forb_and_grass')
 
 # read in RAP points sampled from Google Earth Engine ---------------------
 ## get RAP information downloaded from GEE
@@ -253,9 +258,9 @@ mapview(outDat, zcol = 'vegetation-cover_v3_2000_annual_forb_and_grass')
 RAPnames <- list.files("./Data_processed/RAP_samplePoints/SampledData/")
 for (i in 1:length(RAPnames)) {
   ## read in the raster
-  tempRast <- rast(x = paste0("./Data_processed/RAP_samplePoints/SampledData/", RAPnames[i])) %>% 
+  tempRast <- rast(x = paste0("./Data_processed/RAP_samplePoints/SampledData/", RAPnames[i])) #%>% 
     ## transform the raster to the crs of samplePoints
-    terra::project(crs(samplePoints))
+    #terra::project(crs(samplePoints))
   ## save the raster
   assign(paste0("RAPraster_", str_extract(RAPnames[i], "[:digit:]{4}")), value = tempRast)
   ## get the values of the raster
@@ -283,31 +288,31 @@ RAPdat_4 <- RAPvaluesDF %>%
          LitterCover = LTR, 
          ShrubCover = SHR,
          TotalTreeCover = TRE
-         ) %>% 
+  ) %>% 
   mutate(
-         UniqueID = 1:nrow(.), 
-         StateUnitCounty = NA,
-         Plot = NA, 
-         PlotCondition = NA,
-         date = Year, 
-         Lat = Lat, 
-         Lon = Lon,
-         ShrubCover = ShrubCover,
-         HerbCover = NA,
-         AnnualHerbGramCover = AnnualHerbGramCover,
-         PerennialHerbGramCover = PerennialHerbGramCover,
-         TotalGramCover = NA,
-         C3GramCover = NA, 
-         C4GramCover = NA, 
-         AngioTreeCover = NA, 
-         ConifTreeCover = NA,
-         TotalTreeCover = TotalTreeCover,
-         TreeBasalArea_in2 = NA, 
-         BareGroundCover = BareGroundCover, 
-         LitterCover = LitterCover,
-         LitterDepth = NA,
-         Source = "RAP"
-         )
+    UniqueID = 1:nrow(.), 
+    StateUnitCounty = NA,
+    Plot = NA, 
+    PlotCondition = NA,
+    date = Year, 
+    Lat = Lat, 
+    Lon = Lon,
+    ShrubCover = ShrubCover,
+    HerbCover = NA,
+    AnnualHerbGramCover = AnnualHerbGramCover,
+    PerennialHerbGramCover = PerennialHerbGramCover,
+    TotalGramCover = NA,
+    C3GramCover = NA, 
+    C4GramCover = NA, 
+    AngioTreeCover = NA, 
+    ConifTreeCover = NA,
+    TotalTreeCover = TotalTreeCover,
+    TreeBasalArea_in2 = NA, 
+    BareGroundCover = BareGroundCover, 
+    LitterCover = LitterCover,
+    LitterDepth = NA,
+    Source = "RAP"
+  )
 
 ## save for further analysis! 
 write.csv(st_drop_geometry(RAPdat_4), "./Data_raw/RAP_samplePoints/RAPdata_use.csv", row.names = FALSE)

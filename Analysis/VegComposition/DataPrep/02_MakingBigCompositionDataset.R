@@ -204,6 +204,44 @@ RAP_all <- read.csv("./Data_raw/RAP_samplePoints/RAPdata_use.csv") %>%
          ForbCover_prop = ForbCover/TotalHerbaceousCover)
 
 
+
+# fix coordinate reference systems of each data source so they're  the same --------
+# transform the data into sf, and transform if necessary to WGS 84 ("EPSG: 4326")
+FIA_all <- FIA_all %>% 
+  st_as_sf(coords = c("Lon", "Lat"), crs = "EPSG:4269") %>% 
+  st_transform(crs = "EPSG:4326")
+
+LANDFIRE_all <- LANDFIRE_all %>% 
+  sf::st_as_sf( coords = c("Lon", "Lat"), crs = "EPSG:4326")
+
+RAP_all <- RAP_all %>% 
+  sf::st_as_sf(coords = c("Lon", "Lat"), crs = "EPSG:4326")
+
+LDC_all <- LDC_all %>% 
+  sf::st_as_sf(coords = c("Lon", "Lat"), crs = "EPSG:4269") %>% 
+  st_transform(crs = "EPSG:4326")
+  
+# update Lat and Lon
+LDC_all <- LDC_all %>% 
+  mutate(Lon = sf::st_coordinates(.)[,1],
+         Lat = sf::st_coordinates(.)[,2])
+
+RAP_all <- RAP_all %>% 
+  mutate(Lon = sf::st_coordinates(.)[,1],
+         Lat = sf::st_coordinates(.)[,2])
+
+LANDFIRE_all <- LANDFIRE_all %>% 
+  mutate(Lon = sf::st_coordinates(.)[,1],
+         Lat = sf::st_coordinates(.)[,2])
+
+FIA_all <- FIA_all %>% 
+  mutate(Lon = sf::st_coordinates(.)[,1],
+         Lat = sf::st_coordinates(.)[,2])
+# 
+# plot(LDC_all$Lon, LDC_all$Lat) 
+# points(RAP_all$Lon, RAP_all$Lat, col = "red")
+# points(FIA_all$Lon, FIA_all$Lat, col = "green")
+# points(LANDFIRE_all$Lon, LANDFIRE_all$Lat, col = "blue")
 # add datasets together ---------------------------------------------------
 dat_all <- FIA_all %>% 
   rbind(LANDFIRE_all, LDC_all, RAP_all)
@@ -293,17 +331,16 @@ dat_all %>%
   geom_point(aes(Lon, Lat))
 
 ## save dataset for further analysis
-write.csv(dat_all, file = "./Data_processed/CoverData/ForAnalysis.csv", row.names = FALSE)
+write.csv(dat_all %>% st_drop_geometry() , file = "./Data_processed/CoverData/ForAnalysis.csv", row.names = FALSE)
 #dat_all <- read.csv("./Data_processed/CoverData/DataForAnalysis.csv")
 
 ## make a shapefile of the sample points also and save
-dat_all_sf_full <- st_as_sf(dat_all, coords = c("Lon", "Lat")) %>% 
-  select(geometry) %>% 
-  #unique() %>% 
-  sf::st_set_crs("EPSG:4326") %>% 
-  cbind(dat_all)
-dat_all_sf <- dat_all_sf_full %>% 
-  unique()
+# dat_all_sf_full <- st_as_sf(dat_all, coords = c("Lon", "Lat")) %>% 
+#   select(geometry) %>% 
+#   #unique() %>% 
+#   sf::st_set_crs("EPSG:4326") %>% 
+#   cbind(dat_all)
+dat_all_sf <- dat_all
 
 st_write(dat_all_sf, dsn = "./Data_processed/CoverData/DataForAnalysisPoints", layer = "vegCompPoints", driver = "ESRI Shapefile", append = FALSE)
 

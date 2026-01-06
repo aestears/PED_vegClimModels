@@ -21,13 +21,13 @@ source("././Functions/transformPreds.R")
 
 dat <- #readRDS("./Data_processed/CoverData/DataForModels.RDS")  (## veg data before spatial averaging) 
 
-  readRDS("./Data_processed/CoverData/data_beforeSpatialAveraging_sampledRAP_LF.rds") ## veg data before spatial averaging w/ LANDFIRE filtered
+  readRDS("./Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds") ## veg data before spatial averaging w/ LANDFIRE filtered
 #readRDS("./Data_processed/CoverData/data_beforeSpatialAveraging_sampledRAP.rds") ## veg data before spatial averaging w/ RAP filtered
 #readRDS("./Data_processed/CoverData/data_beforeSpatialAveraging_sampledRAP.rds") ## veg data before spatial averaging w/ RAP and LANDFIRE filtered
 
 # data used for model fitting  (after spatial averaging) #with model predictions included 
 preds_quantile_raw <- #readRDS("./Data_processed/CoverData/IntermediateAnalysisFiles/ModelPredictionDataWithObservations.rds")
-  readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf_sampledRAP_LF.rds")
+  readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf_sampledLANDFIRE.rds")
 
 # climate data
 climDatNew <- readRDS("./Data_processed/CoverData/dayMetClimateValuesForAnalysis_final.rds")
@@ -67,7 +67,7 @@ dat2 <- dat %>%
   # st_buffer(.1)
   st_centroid() %>% 
   mutate("Year_char" = as.character(Year)) %>% 
-  select(Year, Year_char, UniqueID:Day, Lat:geometry)
+  select(Year, Year_char, UniqueID, ShrubCover:geometry)
 
 st_crs(dat2) == st_crs(climSF)
 # 
@@ -90,8 +90,7 @@ allDat_avg <- test7 %>%
   left_join(climDatNew, by = c("locID", "Year" = "year"))
 
 # add soils data to the unaveraged veg. data
-
-  soilRast <- readRDS("./Data_processed/SoilsRaster.rds")
+soilRast <- readRDS("./Data_processed/SoilsRaster.rds")
 
 # sample soils data for veg. points
 # sample raster to get values for the points in the cover dataset
@@ -250,7 +249,7 @@ vegSoil_p <- pmap(.l = temp[,c("sandPerc_2cm", "sandPerc_7cm", "sandPerc_15cm",
 
 # calculate intermediate value 'tmp'
 # reference "temp" data frame (which has the raw soil variables), as well as vegSoil_p, a list which has matrices for p calculated above
-vegSoil_tmp <- map(.x = c(1:nrow(temp)), 
+vegSoil_tmp <- purrr::map(.x = c(1:nrow(temp)), 
                    function (n) {
                      tmp <- rSOILWAT2::swrc_swp_to_vwc(
                        c(-1.5, -0.033), ##AES should I change this? not totally clear what these values indicate 
@@ -267,7 +266,7 @@ vegSoil_tmp <- map(.x = c(1:nrow(temp)),
 
 
 #   # calculate final value 'awc' 
-vegSoil_awc <- map(.x = c(1:nrow(temp)), 
+vegSoil_awc <- purrr::map(.x = c(1:nrow(temp)), 
                    function (n) {
                      awc <- temp[n,c("horizonThickness_cm_2cm"  ,                 
                                      "horizonThickness_cm_7cm"  ,                  "horizonThickness_cm_15cm"    ,              
@@ -300,7 +299,7 @@ vegSoils_finalTemp <-
 ## scale the climate/weather/soils data for use in models 
 # rename the climate variables
 vegSoils_final <- vegSoils_finalTemp %>% 
-  dplyr::select(Year, Lat.x, Lon, ShrubCover,#ShrbCvr, 
+  dplyr::select(Year, Lat.y, Long, ShrubCover,#ShrbCvr, 
                 ForbCover_prop,#ForbCvr, 
                 C3GramCover_prop, #C3GrmCv,
                 C4GramCover_prop,#C4GrmCv, 
@@ -311,8 +310,7 @@ vegSoils_final <- vegSoils_finalTemp %>%
                 BareGroundCover, #BrGrndC, 
                 Source, 
                 #C3GrmC_, C4GrmC_, FrbCvr_, AngTrC_, CnfTrC_,
-    tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_3yrAnom, NA_L1CODE, 
-                NA_L1NAME, NA_L1KEY, newRegion, x, y, soilDepth:totalAvailableWaterHoldingCapacity) %>% 
+    tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_3yrAnom, x, y, soilDepth:totalAvailableWaterHoldingCapacity) %>% 
   mutate(         "ForbCover_abs_obs" = ForbCover_prop * TotalHerbaceousCover, 
                   "C3GrassCover_abs_obs" = C3GramCover_prop * TotalHerbaceousCover, 
                   "C4GrassCover_abs_obs" = C4GramCover_prop * TotalHerbaceousCover, 
@@ -378,11 +376,54 @@ vegSoils_final <- vegSoils_finalTemp %>%
          annWetDegDays_5_anom = annWetDegDays_5percentile_3yrAnom ,  #34
          frostFreeDays_5_anom = durationFrostFreeDays_5percentile_3yrAnom, #35 
          frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_3yrAnom #36
-  ) %>% 
-  dplyr::select(-c(tmin_meanAnnAvg_29yr:durationFrostFreeDays_meanAnnAvg_2yr))
+  )
 
 rm(vegSoils_finalTemp) 
 gc()
+
+
+## add in ecoregion information
+# read in ecoregion data
+regions <- sf::st_read(dsn = "./Data_raw/Level2Ecoregions/", layer = "NA_CEC_Eco_Level2") 
+# reproject
+regions_2 <- st_transform(regions, crs = st_crs(test7)) %>% 
+  st_make_valid()
+crs(test7) == crs(regions_2)
+
+# transform modDat to sf to later use st_join
+#modDat_2 <- st_as_sf(modDat, coords = c("Lon", "Lat"))
+vegSoils_final_2 <- st_as_sf(vegSoils_final, coords = c("x","y"), crs = st_crs(test7))
+
+# check that crs matches
+crs(regions_2) == crs(vegSoils_final_2)
+
+# match the ecoregion to point data 
+modDat_3 <- sf::st_join(vegSoils_final_2, regions_2)
+badRows <- (duplicated(modDat_3[,1:101]))
+vegSoils_final <- modDat_3[!badRows,] %>% 
+  st_drop_geometry()
+
+# missing for places right on the coast... but not a big deal to not have those
+# ggplot(modDat_3) + 
+#   geom_point(aes(x, y, col = NA_L2NAME))
+
+# group into coarser ecoregions -------------------------------------------
+# make a lookup table
+# (eastern forest) put eastern temperate forests, tropical wet forests and northern forests together
+# (dry shrub and grass) put great plains, southern semiarid highlands, Mediterranean California and north american deserts together 
+# (western forest) put northwestern forested mountains, marine west coast forests together, and temperate sierras together
+
+ecoReg_lu <- data.frame("NA_L1NAME" = sort(unique(vegSoils_final$NA_L1NAME)), 
+                        "newRegion" = c("eastForest", "dryShrubGrass", "westForest",
+                                        "dryShrubGrass", "dryShrubGrass", "eastForest",
+                                        "westForest", "dryShrubGrass", "westForest", 
+                                        "eastForest", NA
+                        ))
+
+# add to main data.frame 
+vegSoils_final <- vegSoils_final %>% 
+  left_join(ecoReg_lu) %>% 
+  mutate(newRegion = as.factor(newRegion)) 
 
 ## now, scale the climate and weather and soils data for use in models 
 # get the scaling factors 
@@ -397,7 +438,7 @@ namesToScale <- vegSoils_final %>%
   dplyr::select(tmin:frostFreeDays, tmean_anom:frostFreeDays_anom, soilDepth:AWHC) %>% 
   names()
 
-climDat_scaled <- map(namesToScale, .f = function(x) {
+climDat_scaled <- purrr::map(namesToScale, .f = function(x) {
   x_new <- (vegSoils_final[,x] - scaleParams[,paste0(x, "_s")]$`scaled:center`)/scaleParams[,paste0(x, "_s")]$`scaled:scale`
   return(data.frame(x_new))
 }) %>% 
@@ -414,7 +455,7 @@ names(vegSoils_scaled)[19:68] <- str_remove(names(vegSoils_scaled)[19:68], patte
 modDat_ecoregionFitQuantile <- vegSoils_final %>% 
   #rename("Long" = x, "Lat" = y) %>% 
   dplyr::select(c(newRegion, t_warm, t_cold, prcp_wet, annWatDef, prcpTempCorr, isothermality, soilDepth, sand, coarse, carbon,
-                  Lon, Lat.x)) %>% 
+                  Long, Lat.y)) %>% 
   mutate(newRegion = as.factor(newRegion)) 
 
 # get climate data from dayMet (d.f. is "climDatPred_unscaled")
@@ -662,8 +703,7 @@ preds_quantile_raw <- preds_quantile_raw %>%
          frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_3yrAnom, #36
          Lon = x, 
          Lat = y
-  ) %>% 
-  dplyr::select(-c(tmin_meanAnnAvg_29yr:durationFrostFreeDays_meanAnnAvg_2yr))
+  ) 
 # scale climate/weather/soils data
 # get the scaling factors 
 
@@ -672,7 +712,7 @@ namesToScale <- preds_quantile_raw %>%
   dplyr::select(tmin:frostFreeDays, tmean_anom:frostFreeDays_anom, soilDepth:AWHC) %>% 
   names()
 
-climDat_scaled_spatAveraged <- map(namesToScale, .f = function(x) {
+climDat_scaled_spatAveraged <- purrr::map(namesToScale, .f = function(x) {
   x_new <- (preds_quantile_raw[,x] - scaleParams[,paste0(x, "_s")]$`scaled:center`)/scaleParams[,paste0(x, "_s")]$`scaled:scale`
   return(data.frame(x_new))
 }) %>% 
@@ -810,7 +850,7 @@ preds_spatAvg <- preds_spatAvg %>%
   )
 # Compare model predictions of total tree cover to observations -----------
 preds_totTrees <- preds_quantile %>% 
-  select(Year, Lat.x, Lon, Source, TotalTreeCover_obs, 
+  select(Year, Lat.y, Long, Source, TotalTreeCover_obs, 
          BLTree_abs_obs, BLTree_prop_obs, NLTree_abs_obs, NLTree_prop_obs, 
          tmean ,prcp ,   prcp_dry,  isothermality, AWHC ,                 
         prcpTempCorr ,  clay, carbon, coarse, sand, prcp_seasonality, 
@@ -826,7 +866,7 @@ preds_totTrees <- preds_quantile %>%
 # make dataset wide w/ a column for total tree observations for each data source
 preds_totTrees_GSall <- preds_totTrees %>%
   filter(newRegion == "dryShrubGrass") %>%
-  select(Year, Lat.x, Lon, TotalTreeCover_obs,  absTotalTree_GS, Source,
+  select(Year, Lat.y, Long, TotalTreeCover_obs,  absTotalTree_GS, Source,
          absTotalTree_F,
          prcp , prcp_seasonality, sand, AWHC) %>%
   mutate(uniqueID = 1:nrow(.)) %>% 
@@ -887,7 +927,7 @@ quantPlot_totTree_GSall <- ggarrange(quantPlot_totTree_GSall, ggarrange(#inset,
 preds_totTrees_GSsmall <- preds_totTrees %>%
   filter(!is.na(BLTree_prop_obs)) %>% 
   filter(newRegion == "dryShrubGrass") %>%
-  select(Year, Lat.x, Lon, TotalTreeCover_obs,  absTotalTree_GS, Source,
+  select(Year, Lat.y, Long, TotalTreeCover_obs,  absTotalTree_GS, Source,
          absTotalTree_F,
          prcp , prcp_seasonality, sand, AWHC) %>%
   mutate(uniqueID = 1:nrow(.)) %>% 
@@ -950,7 +990,7 @@ quantPlot_totTree_GSsmall <- ggarrange(quantPlot_totTree_GSsmall, ggarrange(#ins
 # make dataset wide w/ a column for total tree observations for each data source
 preds_totTrees_Fall <- preds_totTrees %>%
   filter(newRegion != "dryShrubGrass") %>%
-  select(Year, Lat.x, Lon, TotalTreeCover_obs,  absTotalTree_F, Source,
+  select(Year, Lat.y, Long, TotalTreeCover_obs,  absTotalTree_F, Source,
          absTotalTree_F,
          tmean, prcp, prcp_dry, isothermality, AWHC, prcpTempCorr, clay, carbon, coarse, sand
          ) %>%
@@ -1016,7 +1056,7 @@ quantPlot_totTree_Fall <- ggarrange(quantPlot_totTree_Fall, ggarrange(#inset,
 preds_totTrees_Fsmall <- preds_totTrees %>%
   filter(!is.na(BLTree_prop_obs)) %>% 
   filter(newRegion != "dryShrubGrass") %>%
-  select(Year, Lat.x, Lon, TotalTreeCover_obs,  absTotalTree_F, Source,
+  select(Year, Lat.y, Long, TotalTreeCover_obs,  absTotalTree_F, Source,
          absTotalTree_F,
          tmean, prcp, prcp_dry, isothermality, AWHC, prcpTempCorr, clay, carbon, coarse, sand) %>%
   mutate(uniqueID = 1:nrow(.)) %>% 
@@ -1203,7 +1243,7 @@ pcaFig_totTree_FCompare <-(fviz_pca_biplot(pca_Fcompare,
 
 # Compare model predictions of total herbaceous cover to observations -----------
 preds_totHerb <- preds_quantile %>% 
-  select(Year, Lat.x, Lon, Source, TotalHerbaceousCover_obs, 
+  select(Year,  Lat.y, Long, Source, TotalHerbaceousCover_obs, 
         ForbCover_abs_obs, C3GrassCover_abs_obs, C4GrassCover_abs_obs, ForbCover_prop_obs, C3GrassCover_prop_obs, C4GrassCover_prop_obs,
          prcp, prcp_dry, prcpTempCorr, isothermality, sand, coarse, AWHC, isothermality_anom,
          tmean, prcp_anom, clay, carbon,
@@ -1219,7 +1259,7 @@ preds_totHerb <- preds_quantile %>%
 # make dataset wide w/ a column for total tree observations for each data source
 preds_totHerb_GSall <- preds_totHerb %>%
   filter(newRegion == "dryShrubGrass") %>%
-  select(Year, Lat.x, Lon, TotalHerbaceousCover_obs,  absTotalHerb_GS, Source,
+  select(Year, Lat.y, Long, TotalHerbaceousCover_obs,  absTotalHerb_GS, Source,
          absTotalHerb_F, prcpTempCorr, isothermality, sand, coarse, AWHC) %>%
   mutate(uniqueID = 1:nrow(.)) %>% 
   pivot_wider(names_from = Source, values_from = TotalHerbaceousCover_obs, 
@@ -1279,7 +1319,7 @@ quantPlot_totHerb_GSall <- ggarrange(quantPlot_totHerb_GSall, ggarrange(#inset,
 preds_totHerb_GSsmall <- preds_totHerb %>%
   filter(!is.na(C3GrassCover_prop_obs)) %>% 
   filter(newRegion == "dryShrubGrass") %>%
-  select(Year, Lat.x, Lon, Source, TotalHerbaceousCover_obs, 
+  select(Year, Lat.y, Long, Source, TotalHerbaceousCover_obs, 
          ForbCover_abs_obs, C3GrassCover_abs_obs, C4GrassCover_abs_obs, ForbCover_prop_obs, C3GrassCover_prop_obs, C4GrassCover_prop_obs,
          prcp, prcp_dry, prcpTempCorr, isothermality, sand, coarse, AWHC, isothermality_anom,
          tmean, prcp_anom, clay, carbon,
@@ -1349,7 +1389,7 @@ quantPlot_totHerb_GSsmall <- ggarrange(quantPlot_totHerb_GSsmall, ggarrange(#ins
 # make dataset wide w/ a column for Total herbaceous observations for each data source
 preds_totHerb_Fall <- preds_totHerb %>%
   filter(newRegion != "dryShrubGrass") %>%
-  select(Year, Lat.x, Lon, TotalHerbaceousCover_obs,  absTotalHerb_F, Source,
+  select(Year, Lat.y, Long, TotalHerbaceousCover_obs,  absTotalHerb_F, Source,
          absTotalHerb_F,
          prcp, prcp_dry, prcpTempCorr, isothermality, sand, coarse, AWHC, isothermality_anom, 
          tmean, prcp_anom, clay, carbon
@@ -1416,7 +1456,7 @@ quantPlot_totHerb_Fall <- ggarrange(quantPlot_totHerb_Fall, ggarrange(#inset,
 preds_totHerb_Fsmall <- preds_totHerb %>%
   filter(!is.na(C3GrassCover_prop_obs)) %>% 
   filter(newRegion != "dryShrubGrass") %>%
-  select(Year, Lat.x, Lon, TotalHerbaceousCover_obs,  absTotalHerb_F, Source,
+  select(Year, Lat.y, Long, TotalHerbaceousCover_obs,  absTotalHerb_F, Source,
          absTotalHerb_F,
          prcp, prcp_dry, prcpTempCorr, isothermality, sand, coarse, AWHC, isothermality_anom, 
          tmean, prcp_anom, clay, carbon) %>%
@@ -1610,7 +1650,7 @@ pcaFig_totHerb_Fcompare <- (fviz_pca_biplot(pca_Fcompare,
 
 
 # print all figures and save ----------------------------------------------
-png(file = "./Figures/CoverDatFigures/ComparingFilteredDataPredictions_RAP_LFsampled.png", 
+png(file = "./Figures/CoverDatFigures/ComparingFilteredDataPredictions_LANDFIREsampled.png", 
     width = 2200, height = 22000#, res = 200
       )
 ggarrange(
@@ -1674,3 +1714,4 @@ ncol = 1
 )
 
 dev.off()
+

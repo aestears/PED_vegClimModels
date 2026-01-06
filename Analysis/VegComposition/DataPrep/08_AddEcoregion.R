@@ -17,7 +17,7 @@ library(mapview)
 # data ready for model fitting
 #modDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveragedWithN_sf.rds")
 
-modDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_sf_sampledRAP_LF.rds")
+modDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_sf_sampledLANDFIRE.rds")
 modDat %>% 
   #st_drop_geometry() %>% 
   filter(!is.na(TotalHerbaceousCover)) %>% 
@@ -58,9 +58,8 @@ badRows <- (duplicated(modDat_3[,1:105]))
 modDat_3_noDups <- modDat_3[!badRows,]
 
 # missing for places right on the coast... but not a big deal to not have those
-
-ggplot(modDat_3) + 
-  geom_point(aes(x, y, col = NA_L2NAME))
+# ggplot(modDat_3) + 
+#   geom_point(aes(x, y, col = NA_L2NAME))
 
 # group into coarser ecoregions -------------------------------------------
 # make a lookup table
@@ -80,11 +79,11 @@ newDat <- modDat_3_noDups %>%
   left_join(ecoReg_lu) %>% 
   mutate(newRegion = as.factor(newRegion)) 
 # 
-ggplot(newDat[1:100000,]) +
-  geom_sf(aes(fill = newRegion))
+# ggplot(newDat[1:100000,]) +
+#   geom_sf(aes(fill = newRegion))
 
 # Save Data for further analysis ------------------------------------------
-saveRDS(newDat, "./Data_processed/CoverData/DataForModels_withEcoregion_sampledRAP_LF.rds")
+saveRDS(newDat, "./Data_processed/CoverData/DataForModels_withEcoregion_sampledLANDFIRE.rds")
 # 
 # newDat %>%
 #   st_drop_geometry() %>%
