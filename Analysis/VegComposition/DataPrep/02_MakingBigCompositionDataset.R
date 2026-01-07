@@ -295,29 +295,37 @@ hist(dat_all$TotalHerbaceousCover)
 #          )
 
 
-## If the total herbaceous cover is 0, we can assume that fob, graminoid, c3, and c4 cover is also 0
+## If the total herbaceous cover is 0, we can assume that forb, graminoid, c3, and c4 cover is also 0
 dat_all[dat_all$TotalHerbaceousCover == 0 & !is.na(dat_all$TotalHerbaceousCover), 
-        c("ForbCover", "TotalGramCover","C3GramCover", "C4GramCover")] <- NA
+        c("ForbCover", "TotalGramCover","C3GramCover", "C4GramCover")] <- 0
+
+## If the total tree cover is 0, we can assume that conif and braod leaved tree cover is also 0
+dat_all[dat_all$TotalTreeCover == 0 & !is.na(dat_all$TotalTreeCover), 
+        c("AngioTreeCover", "ConifTreeCover")] <- 0
+
 ## fix "NaN" values caused by instances where there are NO herbaceous or tree cover (is a divide by zero problem)
-# also, change all values for proportion cover to NA when the corresponding umbrella variable is 0 (can't have a proportion of no cover)
-dat_all[dat_all$TotalTreeCover == 0 & !is.na(dat_all$TotalTreeCover) & 
-           +              dat_all$AngioTreeCover ==0 & !is.na(dat_all$AngioTreeCover), "AngioTreeCover_prop"] <- NA
+# also, change all values for proportion cover to NA when the corresponding umbrella variable is NA (can't have a proportion of no cover)
+dat_all[dat_all$TotalTreeCover == 0 & !is.na(dat_all$TotalTreeCover) &  dat_all$AngioTreeCover ==0 & !is.na(dat_all$AngioTreeCover), "AngioTreeCover_prop"] <- NA
 
-dat_all[dat_all$TotalTreeCover == 0 & !is.na(dat_all$TotalTreeCover) & 
-           +              dat_all$ConifTreeCover ==0 & !is.na(dat_all$ConifTreeCover), "ConifTreeCover_prop"] <- NA
+dat_all[dat_all$TotalTreeCover == 0 & !is.na(dat_all$TotalTreeCover) & dat_all$ConifTreeCover ==0 & !is.na(dat_all$ConifTreeCover), "ConifTreeCover_prop"] <- NA
 
+dat_all[dat_all$TotalHerbaceousCover == 0 & !is.na(dat_all$TotalHerbaceousCover) &  dat_all$ForbCover ==0 & !is.na(dat_all$ForbCover), "ForbCover_prop"] <- NA
 
-dat_all[dat_all$TotalHerbaceousCover == 0 & !is.na(dat_all$TotalHerbaceousCover) & 
-           +              dat_all$ForbCover ==0 & !is.na(dat_all$ForbCover), "ForbCover_prop"] <- NA
+dat_all[dat_all$TotalHerbaceousCover == 0 & !is.na(dat_all$TotalHerbaceousCover) &  dat_all$C3GramCover ==0 & !is.na(dat_all$C3GramCover), "C3GramCover_prop"] <- NA
 
-
-dat_all[dat_all$TotalHerbaceousCover == 0 & !is.na(dat_all$TotalHerbaceousCover) & 
-           +              dat_all$C3GramCover ==0 & !is.na(dat_all$C3GramCover), "C3GramCover_prop"] <- NA
+dat_all[dat_all$TotalHerbaceousCover == 0 & !is.na(dat_all$TotalHerbaceousCover) &  dat_all$C4GramCover ==0 & !is.na(dat_all$C4GramCover), "C4GramCover_prop"] <- NA
 
 
-dat_all[dat_all$TotalHerbaceousCover == 0 & !is.na(dat_all$TotalHerbaceousCover) & 
-           +              dat_all$C4GramCover ==0 & !is.na(dat_all$C4GramCover), "C4GramCover_prop"] <- NA
+# make extra sure that, when Total tree Cover is NA, then associated level 2 proportion value is NA also 
+dat_all[is.na(dat_all$TotalTreeCover) , "AngioTreeCover_prop"] <- NA
 
+dat_all[is.na(dat_all$TotalTreeCover), "ConifTreeCover_prop"] <- NA
+
+dat_all[is.na(dat_all$TotalHerbaceousCover), "ForbCover_prop"] <- NA
+
+dat_all[is.na(dat_all$TotalHerbaceousCover), "C3GramCover_prop"] <- NA
+
+dat_all[is.na(dat_all$TotalHerbaceousCover), "C4GramCover_prop"] <- NA
 
 test <- dat_all$C4GramCover_prop + dat_all$C3GramCover_prop + dat_all$ForbCover_prop
 hist(test)

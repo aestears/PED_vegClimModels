@@ -40,8 +40,8 @@ ecoregions_new <- ecoregions_new %>%
 ## use a mask to remove agricultural or developed area get the masks from land
 #use data from LCMAP (used data from 2021, since it's likely the most
 #exclusive...?) from: https://eros.usgs.gov/lcmap/apps/data-downloads. LCMAP
-#uses LANDSAT analysis-ready data, just like RAP, so should be on the same grid,
-#right??
+#uses LANDSAT analysis-ready data, just like RAP, so should be on the same grid
+
 #LCMAP <- terra::rast("./Data_raw/LCMAP/LCMAP_CU_2021_V13_LCPRI.tif") #%>% 
 #terra::project(y = "EPSG:4269")
 # reproject the ecoregions data according to LCMAP projection

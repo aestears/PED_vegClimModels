@@ -53,8 +53,6 @@ test <- test %>%
   terra::project(crs(y))
 st_crs(dat) == st_crs(test)
 
-#(xTest = st_rasterize(dat2[,"ShrubCover"], st_as_stars(st_bbox(test), nx = ncol(test), ny = nrow(test), values = NA_real_)))
-
 ## rename the columns in 'dat' 
 # fix names
 dat  <- dat %>%
@@ -436,51 +434,50 @@ dat2 <- dat2_noLF %>%
 #   rbind(dat2_AIMonly_filtered %>% select(-cell))
 # 
 
-
-# Calculate distance between 'coarisified' data ---------------------------
-yearDataset <- unique(dat2 %>%
-                        st_drop_geometry() %>%
-                        filter(Source == "LANDFIRE") %>% 
-                        select(Year, Source))
-dataTypes <- c("ShrubCover",  "ForbCover_prop", "C3GramCover_prop", "C4GramCover_prop", 
-               "AngioTreeCover_prop", "ConifTreeCover_prop", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover")
-
-dat2_avgDist_postFilter <- apply(X = yearDataset, MARGIN = 1, FUN = function(x) {
-  lapply(X = dataTypes, FUN = function(y) {
-    ## get the distance between each point in the given data source/year combination
-    tempDat <- dat2 %>%
-      filter((Year == x[[1]]) & (Source == "LANDFIRE")) %>%
-      filter(!is.na(.data[[y]])) %>%
-      sf::st_distance()
-    ## replace zeros on the diagonal of the matrix with NAs
-    diag(tempDat) <- NA
-    # for each observation (row), find the minimum value (distance to nearest neighbor)
-    tempDat2 <- apply(X = tempDat, MARGIN = 1, FUN = function(x) {min(x, na.rm = TRUE)})
-    ## calculate the mean distance between points in meters
-    avgDist <- mean(tempDat2, na.rm = TRUE)
-    ## save output
-    return(data.frame(Year = x[1], Source = x[2], DataType = y, avgDist = avgDist))
-  }
-  )
-})
-
-dat2_avgDist_postFilter_df <- list_rbind(lapply(dat2_avgDist_postFilter, FUN = purrr::list_rbind))
-
-## median distance between points in each dataset (across all years)
-dat2_avgDist_postFilter_df2 <- dat2_avgDist_postFilter_df %>%
-  filter(is.finite(avgDist)) %>%
-  group_by(Source, DataType) %>%
-  reframe(meanDist = mean(avgDist, na.rm = TRUE),
-          medianDist = median(avgDist, na.rm = TRUE)) %>%
-  pivot_wider(names_from = Source,
-              values_from = c(meanDist, medianDist))
-
-## get median distance between points across all data types and years
-dat2_avgDist_postFilter_df3 <- dat2_avgDist_postFilter_df %>%
-  filter(is.finite(avgDist)) %>%
-  group_by(Source) %>%
-  reframe(meanDist = mean(avgDist, na.rm = TRUE),
-          medianDist = median(avgDist, na.rm = TRUE))
+# # Calculate distance between 'coarisified' LANDFIRE data ---------------------------
+# yearDataset <- unique(dat2 %>%
+#                         st_drop_geometry() %>%
+#                         filter(Source == "LANDFIRE") %>% 
+#                         select(Year, Source))
+# dataTypes <- c("ShrubCover",  "ForbCover_prop", "C3GramCover_prop", "C4GramCover_prop", 
+#                "AngioTreeCover_prop", "ConifTreeCover_prop", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover")
+# 
+# dat2_avgDist_postFilter <- apply(X = yearDataset, MARGIN = 1, FUN = function(x) {
+#   lapply(X = dataTypes, FUN = function(y) {
+#     ## get the distance between each point in the given data source/year combination
+#     tempDat <- dat2 %>%
+#       filter((Year == x[[1]]) & (Source == "LANDFIRE")) %>%
+#       filter(!is.na(.data[[y]])) %>%
+#       sf::st_distance()
+#     ## replace zeros on the diagonal of the matrix with NAs
+#     diag(tempDat) <- NA
+#     # for each observation (row), find the minimum value (distance to nearest neighbor)
+#     tempDat2 <- apply(X = tempDat, MARGIN = 1, FUN = function(x) {min(x, na.rm = TRUE)})
+#     ## calculate the mean distance between points in meters
+#     avgDist <- mean(tempDat2, na.rm = TRUE)
+#     ## save output
+#     return(data.frame(Year = x[1], Source = x[2], DataType = y, avgDist = avgDist))
+#   }
+#   )
+# })
+# 
+# dat2_avgDist_postFilter_df <- list_rbind(lapply(dat2_avgDist_postFilter, FUN = purrr::list_rbind))
+# 
+# ## median distance between points in each dataset (across all years)
+# dat2_avgDist_postFilter_df2 <- dat2_avgDist_postFilter_df %>%
+#   filter(is.finite(avgDist)) %>%
+#   group_by(Source, DataType) %>%
+#   reframe(meanDist = mean(avgDist, na.rm = TRUE),
+#           medianDist = median(avgDist, na.rm = TRUE)) %>%
+#   pivot_wider(names_from = Source,
+#               values_from = c(meanDist, medianDist))
+# 
+# ## get median distance between points across all data types and years
+# dat2_avgDist_postFilter_df3 <- dat2_avgDist_postFilter_df %>%
+#   filter(is.finite(avgDist)) %>%
+#   group_by(Source) %>%
+#   reframe(meanDist = mean(avgDist, na.rm = TRUE),
+#           medianDist = median(avgDist, na.rm = TRUE))
 
 # compare sample size per dataset before and after 'coarsifying' ----------
 # before coarsifying

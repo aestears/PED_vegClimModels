@@ -90,3 +90,6 @@ saveRDS(newDat, "./Data_processed/CoverData/DataForModels_withEcoregion_sampledL
 #   ggplot() +
 #   facet_wrap(~Year) +
 #   geom_point(aes(x = Long, y = Lat, col = NA_L1NAME))
+
+
+

@@ -427,15 +427,56 @@ temp <- vegSoils_new %>%
     #dplyr::left_join(test %>% st_drop_geometry() %>% select(CAMCover, uniqueID), by = "uniqueID")
   
   
-  # save data  --------------------------------------------------------------
-
-  # newFinalDat[newFinalDat$precip_driestMonth_meanAnnAvg_3yr == newFinalDat$precip_driestMonth_meanAnnAvg_CLIM, 
-  #            c("precip_driestMonth_meanAnnAvg_3yrAnom")
-  #           ] <- 0
+  # Double-check that no data from developed/ag. locations has been  included --------
+  # get LCMAP data that has been reclassified (# # reclassify so that 0 = raster cells that are developed (1) or cropland (2)  or water (5) and 1 = any other land use
+  # LCMAP_use <- classify(LCMAP, rcl = matrix(c(1,2,3,4,5,6,7,8,0,0,1,1,0,1,1,1), nrow = 8)))
+  LCMAP_use <- readRDS("./Data_raw/LCMAP/LCMAP_reclassifiedToUse.rds") #%>% 
+   # terra::project(y = vegDat)
   
-  saveRDS(newFinalDat, 
+  # give coordinates
+  newFinalDat <- newFinalDat %>% 
+    #slice_sample(n = 1000) %>% 
+    st_as_sf(coords = c("Long", "Lat"), crs = st_crs(vegDat)) %>% 
+    st_transform(crs = crs(LCMAP_use))
+  
+  crs(LCMAP_use) == crs(newFinalDat)
+  
+  ## there are some RAP points that are in areas that we excluded according to LCMAP class (random points w/in dayMet cells originally excluded these areas, but because of the upscaling appraoch, we ended up w/ some values from areas that we wanted to exclude according to LCMAP use... so just to be safe, remove those values now)
+  newFinalDat_removeLCMAP <- terra::extract(x = LCMAP_use, y = newFinalDat, ID = TRUE)
+  newFinalDat <- newFinalDat %>% 
+    mutate("LCMAP_use" = newFinalDat_removeLCMAP$LCMAP_CU_2021_V13_LCPRI)
+  
+  newFinalDat_new <- newFinalDat %>% 
+    filter(!is.na(LCMAP_use))
+  
+  ## filter the values for the un-spatially averaged data also
+  dat_preAvg <- #readRDS("./Data_processed/CoverData/DataForModels.RDS")  (## veg data before spatial averaging) 
+    readRDS("./Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds") %>% 
+    st_transform(crs = crs(LCMAP_use))
+  dat_preAvg_removeLCMAP <- terra::extract(x = LCMAP_use, y =   dat_preAvg, ID = TRUE)
+  
+  dat_preAvg <- dat_preAvg %>% 
+    mutate("LCMAP_use" = dat_preAvg_removeLCMAP$LCMAP_CU_2021_V13_LCPRI)
+  
+  dat_preAvg_new <- dat_preAvg %>% 
+    filter(!is.na(LCMAP_use))
+ 
+  
+  # plot(LCMAP_use, 
+  #      xlim = c(-500000,-300000), 
+  #      ylim = c(2200000, 2400000))
+  # points(dat_preAvg_new$geometry[1:100000])
+  
+  # save data  --------------------------------------------------------------
+  
+  ## save the PRE-spatially averaged data after LCMAP filtering
+  saveRDS(dat_preAvg_new, 
+          "./Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds")
+  
+  ## save the spatially averaged data w/ soil added and after LCMAP filtering
+  saveRDS(newFinalDat_new, 
           "./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf_sampledLANDFIRE.rds")
-  #vegSoils_final <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
+  #newFinalDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf_sampledLANDFIRE.rds")
 
   
  # plot(newFinalDat$tmean,

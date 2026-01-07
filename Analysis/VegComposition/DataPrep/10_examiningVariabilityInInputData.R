@@ -20,7 +20,6 @@ source("././Functions/transformPreds.R")
 # read in data ------------------------------------------------------------
 
 dat <- #readRDS("./Data_processed/CoverData/DataForModels.RDS")  (## veg data before spatial averaging) 
-
   readRDS("./Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds") ## veg data before spatial averaging w/ LANDFIRE filtered
 #readRDS("./Data_processed/CoverData/data_beforeSpatialAveraging_sampledRAP.rds") ## veg data before spatial averaging w/ RAP filtered
 #readRDS("./Data_processed/CoverData/data_beforeSpatialAveraging_sampledRAP.rds") ## veg data before spatial averaging w/ RAP and LANDFIRE filtered
@@ -712,6 +711,8 @@ namesToScale <- preds_quantile_raw %>%
   dplyr::select(tmin:frostFreeDays, tmean_anom:frostFreeDays_anom, soilDepth:AWHC) %>% 
   names()
 
+preds_quantile_raw <- preds_quantile_raw %>% 
+  st_drop_geometry()
 climDat_scaled_spatAveraged <- purrr::map(namesToScale, .f = function(x) {
   x_new <- (preds_quantile_raw[,x] - scaleParams[,paste0(x, "_s")]$`scaled:center`)/scaleParams[,paste0(x, "_s")]$`scaled:scale`
   return(data.frame(x_new))

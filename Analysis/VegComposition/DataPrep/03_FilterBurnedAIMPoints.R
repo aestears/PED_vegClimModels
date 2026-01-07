@@ -244,6 +244,9 @@ plotDat_noFireAll <- purrr::reduce(plotDat_noCWFList, rbind)
 plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$TtlTrCv <- NA
 plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$AngTrCv <- NA
 plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$CnfTrCv <- NA
+plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$AngTrC_ <- NA
+plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$CnfTrC_ <- NA
+
 # remove shrub values
 plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$ShrbCvr <- NA
 
@@ -253,5 +256,4 @@ ggplot(plotDat_noFireAll) +
   geom_sf(aes(col = Source))
 
 saveRDS(plotDat_noFireAll, file = "./Data_processed/CoverData/dataForAnalysis_fireRemoved.rds")
-
   
