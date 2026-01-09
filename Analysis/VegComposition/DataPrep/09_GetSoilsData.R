@@ -467,6 +467,15 @@ temp <- vegSoils_new %>%
   #      ylim = c(2200000, 2400000))
   # points(dat_preAvg_new$geometry[1:100000])
   
+
+# Fix issue w/ locations w/ total tree NA that still have %NL and %BL tree data--------
+# these are locations that were burned previously so have NA for tree cover, and where the % of tree types should have also be turned into NA
+  newFinalDat_new <- newFinalDat_new %>% 
+    mutate(AngioTreeCover_prop = replace(AngioTreeCover_prop, list = is.na(TotalTreeCover), values = NA),
+           ConifTreeCover_prop = replace(ConifTreeCover_prop, list = is.na(TotalTreeCover), values = NA))
+  # change all NaNs to NAs 
+  newFinalDat_new <- newFinalDat_new %>% 
+    mutate(across(c(ShrubCover_n:BareGroundCover), ~na_if(., NaN)))
   # save data  --------------------------------------------------------------
   
   ## save the PRE-spatially averaged data after LCMAP filtering
@@ -474,7 +483,7 @@ temp <- vegSoils_new %>%
           "./Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds")
   
   ## save the spatially averaged data w/ soil added and after LCMAP filtering
-  saveRDS(newFinalDat_new, 
+  saveRDS(newFinalDat_new %>% st_drop_geometry(), 
           "./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf_sampledLANDFIRE.rds")
   #newFinalDat <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf_sampledLANDFIRE.rds")
 

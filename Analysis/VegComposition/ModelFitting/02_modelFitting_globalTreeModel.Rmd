@@ -27,7 +27,7 @@ as well as climate variables from DayMet, which have been aggregated into mean i
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE,
-                      message = FALSE)
+                      message = FALSE, dpi = 72)
 ```
 
 # Dependencies 
@@ -89,8 +89,8 @@ library(USA.state.boundaries)
 Data compiled in the `prepDataForModels.R` script
 
 ```{r}
-here::i_am("Analysis/VegComposition/ModelFitting/02_ModelFitting.Rmd")
-modDat <- readRDS( here("Data_processed", "CoverData", "DataForModels_spatiallyAveraged_withSoils_noSf_sampledLANDFIRE.rds"))
+here::i_am("Analysis/VegComposition/ModelFitting/02_ModelFitting_globalTreeModel.Rmd")
+modDat <- readRDS( here("Data_processed", "CoverData", "DataForModels_spatiallyAveraged_withSoils_noSf_sampledLANDFIRE.rds")) %>% st_drop_geometry()
 ```
 
 # Prep data
@@ -200,18 +200,28 @@ modDat_1_s <- modDat_1_s[!is.na(modDat_1_s[,"TotalTreeCover_binom"]),]
 ```{r}
 # subset the data to only include these predictors, and remove any remaining NAs 
 modDat_1_s <- modDat_1_s %>% 
-  dplyr::select(prednames, paste0(prednames, "_s"), response, response_t, newRegion, Year, Long, Lat, NA_L1NAME, NA_L2NAME) %>% 
+  dplyr::select(prednames, paste0(prednames, "_s"), TotalTreeCover, TotalTreeCover_binom, newRegion, Year, x, y, NA_L1NAME, NA_L2NAME) %>% 
   drop_na()
 
 names(prednames) <- prednames
 df_pred <- modDat_1_s[, prednames]
+
+response <- "TotalTreeCover"
 ```
 
 
 ## Visualize the response variable 
 ```{r visualize response variable}
-hist(modDat_1_s[,response], main = paste0("Histogram of ",response),
-     xlab = paste0(response))
+ggplot(modDat_1_s) + 
+  geom_histogram(aes(TotalTreeCover/100), fill = "darkgreen", col = "darkgreen", alpha = .5) + 
+  xlab("Tree Cover") + 
+  ggtitle("Untransformed, observed tree cover")
+
+ggplot(modDat_1_s) + 
+  geom_histogram(aes(TotalTreeCover_binom), fill = "purple", alpha = .5, col = "purple") +
+  xlab("Tree Cover") + 
+  ggtitle("Tree cover, converted to binomial with a 10% 'cutoff'")
+
 ```
 
 ```{r summary_table}
@@ -236,12 +246,12 @@ kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```{r}
   
 scaleFigDat_1 <- modDat_1_s %>% 
-  dplyr::select(c(Long, Lat, Year, prednames)) %>% 
+  dplyr::select(c(x, y, Year, prednames)) %>% 
   pivot_longer(cols = all_of(names(prednames)), 
                names_to = "predNames", 
                values_to = "predValues_unScaled")
 scaleFigDat_2 <- modDat_1_s %>% 
-  dplyr::select(c(Long, Lat, Year, paste0(prednames, "_s"))) %>% 
+  dplyr::select(c(x, y, Year, paste0(prednames, "_s"))) %>% 
   pivot_longer(cols = all_of(paste0(prednames,"_s"
                                     )), 
                names_to = "predNames", 
@@ -269,7 +279,6 @@ modDat_1_s <- modDat_1_s %>%
   
 ```
 
-
 ## Predictor variables compared to binned response variables
 
 ```{r climVar_boxplots, fig.height=9, fig.width=8, eval=FALSE}
@@ -279,12 +288,10 @@ vars_response <- response
 # longformat dataframes for making boxplots
 df_sample_plots <-  modDat_1_s  %>% 
   slice_sample(n = 5e4) %>% 
-   rename(response = all_of(response_t)) %>% 
+   rename(response = all_of("TotalTreeCover_binom")) %>% 
   mutate(response = case_when(
-    response <= .25 ~ ".25", 
-    response > .25 & response <=.50 ~ ".50", 
-    response > .50 & response <=.75 ~ ".75", 
-    response >= .75  ~ "1", 
+    response == 0 ~ "0", 
+    response > 0  ~ "1", 
   )) %>% 
   dplyr::select(c(response, prednames)) %>% 
   tidyr::pivot_longer(cols = unname(prednames), 
@@ -309,7 +316,7 @@ First, if there are observations in Louisiana, sub-sample them so they're not so
 ```{r}
 ## make data into spatial format
 modDat_1_sf <- modDat_1_s %>% 
-  st_as_sf(coords = c("Long", "Lat"), crs = st_crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"))
+  st_as_sf(coords = c("x", "y"), crs = st_crs("EPSG:4326"))
 
 
 # download map info for visualization
@@ -324,35 +331,35 @@ cropped_states <- suppressMessages(state_boundaries_wgs84 %>%
   dplyr::filter(NAME!="Commonwealth of the Northern Mariana Islands") %>%
   dplyr::filter(NAME!="United States Virgin Islands") %>%
   sf::st_sf() %>%
-  sf::st_transform(sf::st_crs(modDat_1_sf))) #%>%
-  #sf::st_crop(sf::st_bbox(modDat_1_sf)+c(-1,-1,1,1))
-if (ecoregion %in% c("Forest", "eastForest", "forest")){
-modDat_1_s$uniqueID <- 1:nrow(modDat_1_s)
-modDat_1_sf$uniqueID <- 1:nrow(modDat_1_sf)
+  sf::st_transform(sf::st_crs(modDat_1_sf))) 
 
-# find which observations overlap with Louisiana
-obs_LA_temp <- st_intersects(modDat_1_sf, cropped_states[cropped_states$NAME == "Louisiana",], sparse = FALSE)
-if (sum(obs_LA_temp) > 0) {
- obs_LA_1 <- modDat_1_sf[which(obs_LA_temp == TRUE, arr.ind = TRUE)[,1],]
-# now, find only those within the oversampled area (near the coast)
-dims <- c(xmin = 730439.1, xmax = 1042195.5, ymax = -1222745.2, ymin = -1390430.9)
-badBox <- st_bbox(dims) %>% 
-  st_as_sfc() %>% 
-  st_set_crs(value = st_crs(modDat_1_sf))
-  
-obs_LA_temp2 <- st_intersects(obs_LA_1, badBox, sparse = FALSE)
-obs_LA_2 <- obs_LA_1[which(obs_LA_temp2 == TRUE, arr.ind = TRUE)[,1],]
-
-# subsample so there aren't so many 
-# get every 7th observation
-obs_LA_sampled <- obs_LA_2[seq(from = 1, to = nrow(obs_LA_2), by = 10),]
-# remove observations that aren't sampled from the larger dataset
-obsToRemove <- obs_LA_2[!(obs_LA_2$uniqueID %in% obs_LA_sampled$uniqueID),]
-
-modDat_1_sf <- modDat_1_sf[!(modDat_1_sf$uniqueID %in% obsToRemove$uniqueID),]
-modDat_1_s <- modDat_1_s[!(modDat_1_s$uniqueID %in% obsToRemove$uniqueID),] 
-}
-}
+# if (ecoregion %in% c("Forest", "eastForest", "forest")){
+# modDat_1_s$uniqueID <- 1:nrow(modDat_1_s)
+# modDat_1_sf$uniqueID <- 1:nrow(modDat_1_sf)
+# 
+# # find which observations overlap with Louisiana
+# obs_LA_temp <- st_intersects(modDat_1_sf, cropped_states[cropped_states$NAME == "Louisiana",], sparse = FALSE)
+# if (sum(obs_LA_temp) > 0) {
+#  obs_LA_1 <- modDat_1_sf[which(obs_LA_temp == TRUE, arr.ind = TRUE)[,1],]
+# # now, find only those within the oversampled area (near the coast)
+# dims <- c(xmin = 730439.1, xmax = 1042195.5, ymax = -1222745.2, ymin = -1390430.9)
+# badBox <- st_bbox(dims) %>% 
+#   st_as_sfc() %>% 
+#   st_set_crs(value = st_crs(modDat_1_sf))
+#   
+# obs_LA_temp2 <- st_intersects(obs_LA_1, badBox, sparse = FALSE)
+# obs_LA_2 <- obs_LA_1[which(obs_LA_temp2 == TRUE, arr.ind = TRUE)[,1],]
+# 
+# # subsample so there aren't so many 
+# # get every 7th observation
+# obs_LA_sampled <- obs_LA_2[seq(from = 1, to = nrow(obs_LA_2), by = 10),]
+# # remove observations that aren't sampled from the larger dataset
+# obsToRemove <- obs_LA_2[!(obs_LA_2$uniqueID %in% obs_LA_sampled$uniqueID),]
+# 
+# modDat_1_sf <- modDat_1_sf[!(modDat_1_sf$uniqueID %in% obsToRemove$uniqueID),]
+# modDat_1_s <- modDat_1_s[!(modDat_1_s$uniqueID %in% obsToRemove$uniqueID),] 
+# }
+#}
 
 ```
 
@@ -363,169 +370,170 @@ pca <- prcomp(modDat_1_s[,paste0(prednames)])
 library(factoextra)
 (fviz_pca_ind(pca, habillage = modDat_1_s$NA_L2NAME, label = "none", addEllipses = TRUE, ellipse.level = .95, ggtheme = theme_minimal(), alpha.ind = .1))
 
-if (ecoregion == "shrubGrass") {
-  print("We'll combine the 'Mediterranean California' and 'Western Sierra Madre Piedmont' ecoregions (into 'Mediterranean Piedmont'). We'll also combine `Tamaulipas-Texas semiarid plain,' 'Texas-Lousiana Coastal plain,' and 'South Central semiarid prairies' ecoregions (into (`Semiarid plain and prairies`)." )
-
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "WESTERN SIERRA MADRE PIEDMONT"), "NA_L2NAME"] <- "MEDITERRANEAN PIEDMONT"
-
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("TAMAULIPAS-TEXAS SEMIARID PLAIN", "TEXAS-LOUISIANA COASTAL PLAIN", "SOUTH CENTRAL SEMIARID PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES"
-
-    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND WEST COAST FOREST"
-
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "UPPER GILA MOUNTAINS"), "NA_L2NAME"] <- "MEDITERRANEAN CALIFORNIA AND UPPER GILA MOUNTAINS"
-
-modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS"
-#////
-modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "WESTERN SIERRA MADRE PIEDMONT"), "NA_L2NAME"] <- "MEDITERRANEAN PIEDMONT"
-
-  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("TAMAULIPAS-TEXAS SEMIARID PLAIN", "TEXAS-LOUISIANA COASTAL PLAIN", "SOUTH CENTRAL SEMIARID PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES"
-
-    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND WEST COAST FOREST"
-
-  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "UPPER GILA MOUNTAINS"), "NA_L2NAME"] <- "MEDITERRANEAN CALIFORNIA AND UPPER GILA MOUNTAINS"
-
-modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS"
- if (response == "CAMCover") {
-   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN PIEDMONT", "SEMIARID PLAIN AND PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES AND PIEDMONT"
-   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MEDITERRANEAN PIEDMONT", "SEMIARID PLAIN AND PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES AND PIEDMONT"
- } else if (response %in% c("C4GramCover_prop", "C3GramCover_prop")) {
-     modDat_1_s[modDat_1_s$NA_L2NAME %in% c("SEMIARID PLAIN AND PRAIRIES", "TEMPERATE PRAIRIES"), "NA_L2NAME"] <- "SEMIARID AND TEMPERATE PRAIRIES"
-   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("SEMIARID PLAIN AND PRAIRIES", "TEMPERATE PRAIRIES"), "NA_L2NAME"] <- "SEMIARID AND TEMPERATE PRAIRIES"
- }
-
-} else if (ecoregion == "CONUS") {
-
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("EVERGLADES", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"
-
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND WEST COAST FOREST"
-
-   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS"
-
-   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "UPPER GILA MOUNTAINS"), "NA_L2NAME"] <- "MEDITERRANEAN CALIFORNIA AND UPPER GILA MOUNTAINS"
-
-   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS", "SOUTHEASTERN USA PLAINS",  "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN AND MIXED WOOD PLAINS"
-
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("SOUTH CENTRAL SEMIARID PRAIRIES", "TEXAS-LOUISIANA COASTAL PLAIN"), "NA_L2NAME"] <- "SOUTH CENTRAL SEMIARID PRAIRIES"
-  #///
-
-  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("EVERGLADES", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"
-
-  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND WEST COAST FOREST"
-
-   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS"
-
-   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "UPPER GILA MOUNTAINS"), "NA_L2NAME"] <- "MEDITERRANEAN CALIFORNIA AND UPPER GILA MOUNTAINS"
-
-   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS", "SOUTHEASTERN USA PLAINS",  "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN AND MIXED WOOD PLAINS"
-
-  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("SOUTH CENTRAL SEMIARID PRAIRIES", "TEXAS-LOUISIANA COASTAL PLAIN"), "NA_L2NAME"] <- "SOUTH CENTRAL SEMIARID PRAIRIES"
-
-  if (response %in% c("C4GramCover_prop")) {
-    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("CENTRAL USA PLAINS", "TEMPERATE PRAIRIES", "SOUTHEASTERN AND MIXED WOOD PLAINS", "ATLANTIC HIGHLANDS", "MIXED WOOD SHIELD"), "NA_L2NAME"] <- "EASTERN AND MIXED WOOD PLAINS AND FOREST"
-  #///
-
-  modDat_1_sf[modDat_1_sf$NA_L2NAME %in%c("CENTRAL USA PLAINS", "TEMPERATE PRAIRIES", "SOUTHEASTERN AND MIXED WOOD PLAINS", "ATLANTIC HIGHLANDS", "MIXED WOOD SHIELD"), "NA_L2NAME"] <- "EASTERN AND MIXED WOOD PLAINS AND FOREST"
-  }
-} else if (ecoregion == "forest"  & response != "CAMCover") {
-   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "EVERGLADES"), "NA_L2NAME"] <- "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS	AND EVERGLADES"
-
-   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("UPPER GILA MOUNTAINS", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS"
-
-   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS\tAND EVERGLADES", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS"
-
-   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("ATLANTIC HIGHLANDS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "HIGHLANDS AND APPALACHIAN FORESTS"
-
-   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("CENTRAL USA PLAINS", "MIXED WOOD PLAINS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOOD PLAINS"
-
-   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD SHIELD", "CENTRAL AND MIXED WOOD PLAINS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOOD PLAINS AND MIXED WOOD SHIELD"
-
-       ## divide southeastern US plains into two regions, since it's by far the largest group
-  modDat_1_s[modDat_1_s$NA_L2NAME == "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS" &
-               modDat_1_s$Long < -966595#-1773969
-               , "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"
-  modDat_1_s[modDat_1_s$NA_L2NAME == "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS", "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 2"
-   #///
-   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "EVERGLADES"), "NA_L2NAME"] <- "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS	AND EVERGLADES"
-
-   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("UPPER GILA MOUNTAINS", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS"
-
-   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS\tAND EVERGLADES", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS"
-
-   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("ATLANTIC HIGHLANDS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "HIGHLANDS AND APPALACHIAN FORESTS"
-
-   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("CENTRAL USA PLAINS", "MIXED WOOD PLAINS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOOD PLAINS"
-
-   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD SHIELD", "CENTRAL AND MIXED WOOD PLAINS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOOD PLAINS AND MIXED WOOD SHIELD"
-          ## divide southeastern US plains into two regions, since it's by far the largest group
-  modDat_1_sf[modDat_1_sf$NA_L2NAME == "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS" &
-              st_coordinates(modDat_1_sf)[,1] < -966595#-1773969
-                , ]$NA_L2NAME <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"
-  modDat_1_sf[modDat_1_sf$NA_L2NAME == "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS", "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 2"
-
-  if (response %in% c("C3GramCover_prop", "C4GramCover_prop") ) {
-     modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"
-     modDat_1_s[modDat_1_s$NA_L2NAME %in% c("CENTRAL AND MIXED WOOD PLAINS AND MIXED WOOD SHIELD", "HIGHLANDS AND APPALACHIAN FORESTS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOODS AND HIGHLANDS FORESTS"
-     #//
-  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"
-  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("CENTRAL AND MIXED WOOD PLAINS AND MIXED WOOD SHIELD", "HIGHLANDS AND APPALACHIAN FORESTS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOODS AND HIGHLANDS FORESTS"
-
-  }
-
-} else if (ecoregion == "forest" & response == "CAMCover") {
-
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
-
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "MARINE WEST COAST AND WESTERN CORDILLERA"
-
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
-
-  #///
-   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
-
-  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "MARINE WEST COAST AND WESTERN CORDILLERA"
-
-  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
-
-} else if (ecoregion == "eastForest") {
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("EVERGLADES", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"
-
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS","CENTRAL USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN AND CENTRAL USA PLAINS"
-
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD SHIELD", "ATLANTIC HIGHLANDS"), "NA_L2NAME"] <- "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD"
-
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD"), "NA_L2NAME"] <- "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD AND PLAINS"
-
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("SOUTHEASTERN AND CENTRAL USA PLAINS", "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD AND PLAINS"), "NA_L2NAME"] <- "PLAINS AND HIGHLANDS AND SHIELD"
-
-  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND COAST"
-
-  # #////
-   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("EVERGLADES", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"
-
-   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS","CENTRAL USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN AND CENTRAL USA PLAINS"
-
-   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD SHIELD", "ATLANTIC HIGHLANDS"), "NA_L2NAME"] <- "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD"
-
-   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD"), "NA_L2NAME"] <- "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD AND PLAINS"
-
-   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("SOUTHEASTERN AND CENTRAL USA PLAINS", "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD AND PLAINS"), "NA_L2NAME"] <- "PLAINS AND HIGHLANDS AND SHIELD"
-
-   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND COAST"
-
-   ## divide southeastern US plains into two regions, since it's by far the largest group
-  # modDat_1_s[modDat_1_s$NA_L2NAME == "SOUTHEASTERN USA PLAINS" &
-  #              modDat_1_s$Lat < -590062, "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS 1"
-  # modDat_1_s[modDat_1_s$NA_L2NAME == "SOUTHEASTERN USA PLAINS", #&
-  #             # modDat_1_s$Lat < -590062,
-  #            "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS 2"
-
-  #   ## divide southeastern US plains into two regions, since it's by far the largest group
-  # modDat_1_s[modDat_1_s$NA_L2NAME == "OZARK/OUACHITA-APPALACHIAN FORESTS" &
-  #              modDat_1_s$Long < 854862.2, "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS 1"
-  # modDat_1_s[modDat_1_s$NA_L2NAME == "OZARK/OUACHITA-APPALACHIAN FORESTS" &
-  #              modDat_1_s$Long  >=   854862.2, "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS 2"
-}
+# if (ecoregion == "shrubGrass") {
+#   print("We'll combine the 'Mediterranean California' and 'Western Sierra Madre Piedmont' ecoregions (into 'Mediterranean Piedmont'). We'll also combine `Tamaulipas-Texas semiarid plain,' 'Texas-Lousiana Coastal plain,' and 'South Central semiarid prairies' ecoregions (into (`Semiarid plain and prairies`)." )
+# 
+#   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "WESTERN SIERRA MADRE PIEDMONT"), "NA_L2NAME"] <- "MEDITERRANEAN PIEDMONT"
+# 
+#   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("TAMAULIPAS-TEXAS SEMIARID PLAIN", "TEXAS-LOUISIANA COASTAL PLAIN", "SOUTH CENTRAL SEMIARID PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES"
+# 
+#     modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND WEST COAST FOREST"
+# 
+#   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "UPPER GILA MOUNTAINS"), "NA_L2NAME"] <- "MEDITERRANEAN CALIFORNIA AND UPPER GILA MOUNTAINS"
+# 
+# modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS"
+# #////
+# modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "WESTERN SIERRA MADRE PIEDMONT"), "NA_L2NAME"] <- "MEDITERRANEAN PIEDMONT"
+# 
+#   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("TAMAULIPAS-TEXAS SEMIARID PLAIN", "TEXAS-LOUISIANA COASTAL PLAIN", "SOUTH CENTRAL SEMIARID PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES"
+# 
+#     modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND WEST COAST FOREST"
+# 
+#   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "UPPER GILA MOUNTAINS"), "NA_L2NAME"] <- "MEDITERRANEAN CALIFORNIA AND UPPER GILA MOUNTAINS"
+# 
+# modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS"
+#  if (response == "CAMCover") {
+#    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN PIEDMONT", "SEMIARID PLAIN AND PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES AND PIEDMONT"
+#    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MEDITERRANEAN PIEDMONT", "SEMIARID PLAIN AND PRAIRIES"), "NA_L2NAME"] <- "SEMIARID PLAIN AND PRAIRIES AND PIEDMONT"
+#  } else if (response %in% c("C4GramCover_prop", "C3GramCover_prop")) {
+#      modDat_1_s[modDat_1_s$NA_L2NAME %in% c("SEMIARID PLAIN AND PRAIRIES", "TEMPERATE PRAIRIES"), "NA_L2NAME"] <- "SEMIARID AND TEMPERATE PRAIRIES"
+#    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("SEMIARID PLAIN AND PRAIRIES", "TEMPERATE PRAIRIES"), "NA_L2NAME"] <- "SEMIARID AND TEMPERATE PRAIRIES"
+#  }
+# 
+# } else if (ecoregion == "CONUS") {
+# 
+#   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("EVERGLADES", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"
+# 
+#   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND WEST COAST FOREST"
+# 
+#    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS"
+# 
+#    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "UPPER GILA MOUNTAINS"), "NA_L2NAME"] <- "MEDITERRANEAN CALIFORNIA AND UPPER GILA MOUNTAINS"
+# 
+#    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS", "SOUTHEASTERN USA PLAINS",  "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN AND MIXED WOOD PLAINS"
+# 
+#   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("SOUTH CENTRAL SEMIARID PRAIRIES", "TEXAS-LOUISIANA COASTAL PLAIN"), "NA_L2NAME"] <- "SOUTH CENTRAL SEMIARID PRAIRIES"
+#   #///
+# 
+#   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("EVERGLADES", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"
+# 
+#   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND WEST COAST FOREST"
+# 
+#    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS"
+# 
+#    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MEDITERRANEAN CALIFORNIA", "UPPER GILA MOUNTAINS"), "NA_L2NAME"] <- "MEDITERRANEAN CALIFORNIA AND UPPER GILA MOUNTAINS"
+# 
+#    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS AND MIXED WOOD PLAINS", "SOUTHEASTERN USA PLAINS",  "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN AND MIXED WOOD PLAINS"
+# 
+#   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("SOUTH CENTRAL SEMIARID PRAIRIES", "TEXAS-LOUISIANA COASTAL PLAIN"), "NA_L2NAME"] <- "SOUTH CENTRAL SEMIARID PRAIRIES"
+# 
+#   if (response %in% c("C4GramCover_prop")) {
+#     modDat_1_s[modDat_1_s$NA_L2NAME %in% c("CENTRAL USA PLAINS", "TEMPERATE PRAIRIES", "SOUTHEASTERN AND MIXED WOOD PLAINS", "ATLANTIC HIGHLANDS", "MIXED WOOD SHIELD"), "NA_L2NAME"] <- "EASTERN AND MIXED WOOD PLAINS AND FOREST"
+#   #///
+# 
+#   modDat_1_sf[modDat_1_sf$NA_L2NAME %in%c("CENTRAL USA PLAINS", "TEMPERATE PRAIRIES", "SOUTHEASTERN AND MIXED WOOD PLAINS", "ATLANTIC HIGHLANDS", "MIXED WOOD SHIELD"), "NA_L2NAME"] <- "EASTERN AND MIXED WOOD PLAINS AND FOREST"
+#   }
+# } else if (ecoregion == "forest"  & response != "CAMCover") {
+#    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "EVERGLADES"), "NA_L2NAME"] <- "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS	AND EVERGLADES"
+# 
+#    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("UPPER GILA MOUNTAINS", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS"
+# 
+#    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS\tAND EVERGLADES", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS"
+# 
+#    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("ATLANTIC HIGHLANDS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "HIGHLANDS AND APPALACHIAN FORESTS"
+# 
+#    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("CENTRAL USA PLAINS", "MIXED WOOD PLAINS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOOD PLAINS"
+# 
+#    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD SHIELD", "CENTRAL AND MIXED WOOD PLAINS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOOD PLAINS AND MIXED WOOD SHIELD"
+# 
+#        ## divide southeastern US plains into two regions, since it's by far the largest group
+#   modDat_1_s[modDat_1_s$NA_L2NAME == "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS" &
+#                modDat_1_s$Long < -966595#-1773969
+#                , "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"
+#   modDat_1_s[modDat_1_s$NA_L2NAME == "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS", "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 2"
+#    #///
+#    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "EVERGLADES"), "NA_L2NAME"] <- "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS	AND EVERGLADES"
+# 
+#    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("UPPER GILA MOUNTAINS", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS"
+# 
+#    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS\tAND EVERGLADES", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS"
+# 
+#    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("ATLANTIC HIGHLANDS", "OZARK/OUACHITA-APPALACHIAN FORESTS"), "NA_L2NAME"] <- "HIGHLANDS AND APPALACHIAN FORESTS"
+# 
+#    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("CENTRAL USA PLAINS", "MIXED WOOD PLAINS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOOD PLAINS"
+# 
+#    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD SHIELD", "CENTRAL AND MIXED WOOD PLAINS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOOD PLAINS AND MIXED WOOD SHIELD"
+#           ## divide southeastern US plains into two regions, since it's by far the largest group
+#   modDat_1_sf[modDat_1_sf$NA_L2NAME == "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS" &
+#               st_coordinates(modDat_1_sf)[,1] < -966595#-1773969
+#                 , ]$NA_L2NAME <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"
+#   modDat_1_sf[modDat_1_sf$NA_L2NAME == "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS", "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 2"
+# 
+#   if (response %in% c("C3GramCover_prop", "C4GramCover_prop") ) {
+#      modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"
+#      modDat_1_s[modDat_1_s$NA_L2NAME %in% c("CENTRAL AND MIXED WOOD PLAINS AND MIXED WOOD SHIELD", "HIGHLANDS AND APPALACHIAN FORESTS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOODS AND HIGHLANDS FORESTS"
+#      #//
+#   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"), "NA_L2NAME"] <- "WESTERN CORDILLERA AND UPPER GILA MOUNTAINS 1"
+#   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("CENTRAL AND MIXED WOOD PLAINS AND MIXED WOOD SHIELD", "HIGHLANDS AND APPALACHIAN FORESTS"), "NA_L2NAME"] <- "CENTRAL AND MIXED WOODS AND HIGHLANDS FORESTS"
+# 
+#   }
+# 
+# } else if (ecoregion == "forest" & response == "CAMCover") {
+# 
+#   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
+# 
+#   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "MARINE WEST COAST AND WESTERN CORDILLERA"
+# 
+#   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
+# 
+#   #///
+#    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("OZARK/OUACHITA-APPALACHIAN FORESTS", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
+# 
+#   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "MARINE WEST COAST AND WESTERN CORDILLERA"
+# 
+#   modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND APPALACHIAN FORESTS"
+# 
+# } else if (ecoregion == "eastForest") {
+#   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("EVERGLADES", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"
+# 
+#   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS","CENTRAL USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN AND CENTRAL USA PLAINS"
+# 
+#   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD SHIELD", "ATLANTIC HIGHLANDS"), "NA_L2NAME"] <- "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD"
+# 
+#   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD"), "NA_L2NAME"] <- "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD AND PLAINS"
+# 
+#   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("SOUTHEASTERN AND CENTRAL USA PLAINS", "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD AND PLAINS"), "NA_L2NAME"] <- "PLAINS AND HIGHLANDS AND SHIELD"
+# 
+#   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND COAST"
+# 
+#   # #////
+#    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("EVERGLADES", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"), "NA_L2NAME"] <- "EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS"
+# 
+#    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS","CENTRAL USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN AND CENTRAL USA PLAINS"
+# 
+#    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD SHIELD", "ATLANTIC HIGHLANDS"), "NA_L2NAME"] <- "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD"
+# 
+#    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD"), "NA_L2NAME"] <- "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD AND PLAINS"
+# 
+#    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("SOUTHEASTERN AND CENTRAL USA PLAINS", "ATLANTIC HIGHLANDS AND MIXED WOOD SHIELD AND PLAINS"), "NA_L2NAME"] <- "PLAINS AND HIGHLANDS AND SHIELD"
+# 
+#    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("EVERGLADES MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "SOUTHEASTERN USA PLAINS"), "NA_L2NAME"] <- "SOUTHEASTERN PLAINS AND COAST"
+# 
+#    ## divide southeastern US plains into two regions, since it's by far the largest group
+#   # modDat_1_s[modDat_1_s$NA_L2NAME == "SOUTHEASTERN USA PLAINS" &
+#   #              modDat_1_s$Lat < -590062, "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS 1"
+#   # modDat_1_s[modDat_1_s$NA_L2NAME == "SOUTHEASTERN USA PLAINS", #&
+#   #             # modDat_1_s$Lat < -590062,
+#   #            "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS 2"
+# 
+#   #   ## divide southeastern US plains into two regions, since it's by far the largest group
+#   # modDat_1_s[modDat_1_s$NA_L2NAME == "OZARK/OUACHITA-APPALACHIAN FORESTS" &
+#   #              modDat_1_s$Long < 854862.2, "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS 1"
+#   # modDat_1_s[modDat_1_s$NA_L2NAME == "OZARK/OUACHITA-APPALACHIAN FORESTS" &
+#   #              modDat_1_s$Long  >=   854862.2, "NA_L2NAME"] <- "OZARK/OUACHITA-APPALACHIAN FORESTS 2"
+# }
 # make a table of n for each region
+
 modDat_1_s %>% 
   group_by(NA_L2NAME) %>% 
   dplyr::summarize("Number_Of_Observations" = length(NA_L2NAME)) %>% 
@@ -548,7 +556,7 @@ map1 <- ggplot() +
   geom_point(data=modDat_1_s#[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS"),]
              ,
              alpha=0.5, 
-             aes(x = Long, y = Lat, color=as.factor(NA_L2NAME)), alpha = .1) +
+             aes(x = x, y = y, color=as.factor(NA_L2NAME)), alpha = .1) +
   #scale_fill_okabeito() +
   #scale_color_okabeito() +
  # theme_default() +
@@ -647,7 +655,7 @@ if (removeAllAnoms) { ## if the model parameters indicate that we don't want any
                                     , collapse = " + ")
               
   # get a text string of the possible untransformed model terms
-  mod_string <- paste(response_t, "~", paste0(c(prednames_clim, prednames_soils), collapse = "+"))
+  mod_string <- paste("TotalTreeCover_binom", "~", paste0(c(prednames_clim, prednames_soils), collapse = "+"))
   
   # make a text string of the model formula w/ interactions and transformations included
   modWithInteractions <- paste(mod_string, "+",int_string , "+", transform_string
@@ -702,7 +710,7 @@ if (removeAllAnoms) { ## if the model parameters indicate that we don't want any
                                     , collapse = " + ")
               
   # get a text string of the possible untransformed model terms
-  mod_string <- paste(response_t, "~", paste0(prednames, collapse = "+"))
+  mod_string <- paste("TotalTreeCover_binom", "~", paste0(prednames, collapse = "+"))
   
   # make a text string of the model formula w/ interactions and transformations included
   modWithInteractions <- paste(mod_string, "+",int_string , "+", transform_string
@@ -717,7 +725,7 @@ if (removeAllAnoms) { ## if the model parameters indicate that we don't want any
   # transform dataframe to model matrix
   X <- model.matrix(f, modDat_1_s)
   # get response variable
-  y <- as.matrix(modDat_1_s[,response_t])
+  y <- as.matrix(modDat_1_s[,"TotalTreeCover_binom"])
 
 ```
 Get rid of transformed predictions and interactions that are correlated 
@@ -780,7 +788,7 @@ if (run == TRUE) {
     fit <- cv.glmnet(
       x = X[,2:ncol(X)], 
       y = y, 
-      family = quasibeta_family(),
+      family = "binomial",
       keep = FALSE,
       alpha = 1,  # 0 == ridge regression, 1 == lasso, 0.5 ~~ elastic net
       lambda = lambdas,
@@ -793,9 +801,9 @@ if (run == TRUE) {
       standardize = FALSE, ## scales variables prior to the model sequence... coefficients are always returned on the original scale
       parallel = TRUE
     )
-    base::saveRDS(fit, paste0("../ModelFitting/models/betaLASSO/", response, "_globalLASSOmod_betaLogitLink_",ecoregion,"_removeAnomalies", removeAllAnoms,".rds"))
+    base::saveRDS(fit, paste0("../ModelFitting/models/yesOrNoTrees_globalLASSOmod_binomial.rds"))
     
-    
+  
      best_lambda <- fit$lambda.min
   # save the lambda for the most regularized model w/ an MSE that is still 1SE w/in the best lambda model
   lambda_1SE <- fit$lambda.1se
@@ -823,7 +831,7 @@ for (i in 1:n_iter) {
 
   # Fit Lasso model
   fit_stab_i <- glmnet(x = X_sub[,2:ncol(X_sub)], y = y_sub, 
-    family = quasibeta_family(),
+    family = "binomial",
     alpha = 1, lambda = lambda_val, standardize = FALSE)
 
   # Get non-zero coefficients (excluding intercept)
@@ -857,7 +865,7 @@ for (i in 1:n_iter) {
 
   # Fit Lasso model
   fit_stab_i <- glmnet(x = X_sub[,2:ncol(X_sub)], y = y_sub, 
-    family = quasibeta_family(),
+    family = "binomial",
     alpha = 1, lambda = lambda_val, standardize = FALSE)
 
   # Get non-zero coefficients (excluding intercept)
@@ -890,7 +898,7 @@ for (i in 1:n_iter) {
 
   # Fit Lasso model
   fit_stab_i <- glmnet(x = X_sub[,2:ncol(X_sub)], y = y_sub, 
-    family = stats::Gamma(link = "log"),
+    family = "binomial",
     alpha = 1, lambda = lambda_val, standardize = FALSE)
 
   # Get non-zero coefficients (excluding intercept)
@@ -909,151 +917,29 @@ selection_prob_halfseL_df <- data.frame(
 # get those variables that are selected_halfseL_halfseL in ≥70% of subsets (Meinshausen and Bühlmann, 2010)
 halfseLambda_coef <- selection_prob_halfseL_df[selection_prob_halfseL_df$SelectionProb>=.7, c("VariableName", "SelectionProb")]
 
-## If prompted to do so by the input arguments, remove any predictors that are for weather anomalies whose corresponding climate predictor is not included in the model 
-if (trimAnom == TRUE) {
-  # get unique predictors
-  bestLamb_all <- bestLambda_coef$VariableName %>% #[str_detect(bestLambda_coef$VariableName, pattern = "_anom_s")] %>% 
-    str_remove(pattern = "I\\(") %>% 
-    str_remove(pattern = "\\^2\\)") %>% 
-    str_remove(pattern = "\\^2\\)") %>% 
-    str_split(pattern = ":", simplify = TRUE) 
-  if (ncol(bestLamb_all) == 1) {
-    bestLamb_all <- unique(bestLamb_all)
-  } else {
-    bestLamb_all <-  c(bestLamb_all[bestLamb_all[,1] !="",1], bestLamb_all[bestLamb_all[,2] !="",2]) %>% 
-      unique()
-  }
-  # get anomalies
-   bestLamb_anom <- bestLamb_all[bestLamb_all %in% prednames_weath]
-  # get climate
-   bestLamb_clim <- bestLamb_all[bestLamb_all %in% prednames_clim]
-  # which anomalies are present in the predictors, but their corresponding climate variable isn't
-   bestLamb_anomsWithMissingClim <- bestLamb_anom[!(str_remove(bestLamb_anom, "_anom") %in% bestLamb_clim)]
-   # remove anomalies (and all interaction terms w/ those anomalies) from the predictor list
-
-   if (length(bestLamb_anomsWithMissingClim) != 0) {
-   
-        bestLambda_coef_NEW <- bestLambda_coef
-      for (i in 1:length(bestLamb_anomsWithMissingClim)) {
-     bestLambda_coef_NEW <- bestLambda_coef_NEW[!str_detect(bestLambda_coef_NEW$VariableName, pattern = bestLamb_anomsWithMissingClim[i]),]
-      }
-     
-   bestLambda_coef <- bestLambda_coef_NEW
-   }
-   
-   
-  #//// 1 se lambda model
-      if (nrow(seLambda_coef) !=0) {
-        # get unique predictors
-  seLamb_all <- seLambda_coef$VariableName %>% #[str_detect(seLambda_coef$VariableName, pattern = "_anom_s")] %>% 
-    str_remove(pattern = "I\\(") %>% 
-    str_remove(pattern = "_s\\^2\\)") %>% 
-    str_remove(pattern = "\\^2\\)") %>% 
-    str_split(pattern = ":", simplify = TRUE) 
-  if (ncol(seLamb_all) == 1) {
-    seLamb_all <- unique(seLamb_all)
-  } else {
-    seLamb_all <-  c(seLamb_all[seLamb_all[,1] !="",1], seLamb_all[seLamb_all[,2] !="",2]) %>% 
-      unique()
-  }
-  # get anomalies
-   seLamb_anom <- seLamb_all[seLamb_all %in% prednames_weath]
-  # get climate
-   seLamb_clim <- seLamb_all[seLamb_all %in% prednames_clim]
-  # which anomalies are present in the predictors, but their corresponding climate variable isn't
-   seLamb_anomsWithMissingClim <- seLamb_anom[!(str_remove(seLamb_anom, "_anom") %in%  seLamb_clim)]
-   # remove anomalies (and all interaction terms w/ those anomalies) from the predictor list
-      if (length(seLamb_anomsWithMissingClim) != 0) {
-    seLambda_coef_NEW <- seLambda_coef
-   for (i in 1:length(seLamb_anomsWithMissingClim)) {
-     seLambda_coef_NEW <- seLambda_coef_NEW[!str_detect(seLambda_coef_NEW$VariableName, pattern = seLamb_anomsWithMissingClim[i]),]
-   }
-   seLambda_coef <- seLambda_coef_NEW
-      }
-   }
-  
-  #//// 1 se lambda model
-      if (nrow(halfseLambda_coef) !=0) {
-        # get unique predictors
-  halfseLamball<- halfseLambda_coef$VariableName %>% #[str_detect(halfseLambda_coef$VariableName, pattern = "_anom_s")] %>% 
-    str_remove(pattern = "I\\(") %>% 
-    str_remove(pattern = "_s\\^2\\)") %>% 
-    str_remove(pattern = "\\^2\\)") %>% 
-    str_split(pattern = ":", simplify = TRUE) 
-  
-    if (ncol(halfseLamball) == 1) {
-    halfseLamball <- unique(halfseLamball)
-  } else {
-    halfseLamball <-  c(halfseLamball[halfseLamball[,1] !="",1], halfseLamball[halfseLamball[,2] !="",2]) %>% 
-      unique()
-  }
-  
-  # get anomalies
-   halfseLambanom <- halfseLamball[halfseLamball %in% prednames_weath]
-  # get climate
-   halfseLambclim <- halfseLamball[halfseLamball %in% prednames_clim]
-  # which anomalies are present in the predictors, but their corresponding climate variable isn't
-   halfseLambanomsWithMissingClim <- halfseLambanom[!(str_remove(halfseLambanom, "_anom_s") %in%  halfseLambclim)]
-   # remove anomalies (and all interaction terms w/ those anomalies) from the predictor list
-
-   
-   ##
-        if (length(halfseLambanomsWithMissingClim) != 0) {
-   halfseLambda_coef_NEW <- halfseLambda_coef
-   for (i in 1:length(halfseLambanomsWithMissingClim)) {
-     halfseLambda_coef_NEW <- halfseLambda_coef_NEW[!str_detect(halfseLambda_coef_NEW$VariableName, pattern = halfseLambanomsWithMissingClim[i]),]
-   }
-   halfseLambda_coef <- halfseLambda_coef_NEW
-      }
-   }
-    ##
-  
-      }
-
-
-## 
 ## fit w/ the identified coefficients from the 'best' lambda, but using the glm function
   mat_glmnet_best <- bestLambda_coef$VariableName 
 
   if (length(mat_glmnet_best) == 0) {
-    f_glm_bestLambda <- as.formula(paste0(response_t, "~ 1"))
+    f_glm_bestLambda <- as.formula(paste0("TotalTreeCover_binom", "~ 1"))
   } else {
-  f_glm_bestLambda <- as.formula(paste0(response_t, " ~ ", paste0(mat_glmnet_best, collapse = " + ")))
+  f_glm_bestLambda <- as.formula(paste0("TotalTreeCover_binom", " ~ ", paste0(mat_glmnet_best, collapse = " + ")))
   }
   
 ## fit using betareg
-  fit_glm_bestLambda <- fit_glm_bestLambda_quasiBETA <- glm(formula = f_glm_bestLambda, data = modDat_1_s, family =quasibeta_family(link = "logit") )
+  fit_glm_bestLambda <- fit_glm_bestLambda_binomial <- glm(formula = f_glm_bestLambda, data = modDat_1_s, family = binomial)
     
-  #fit_glm_bestLambda_BETAREG <- betareg(formula =  f_glm_bestLambda, data = modDat_1_s, link = "logit")
-  ## fit using quasi-beta
-  # ## compare coefficients
-  # modCoeffsTest <- data.frame("coefficientName" = names(coefficients(fit_glm_bestLambda_BETAREG)),
-  #                             "coefficientValue" = coefficients(fit_glm_bestLambda_BETAREG), 
-  #                             "confint_low" = confint(fit_glm_bestLambda_BETAREG)[,1],
-  #                             "confint_high" = confint(fit_glm_bestLambda_BETAREG)[,2],
-  #                             "type" = "betareg") %>% 
-  #   rbind(data.frame("coefficientName" = names(coefficients(fit_glm_bestLambda_quasiBETA)),
-  #                             "coefficientValue" = coefficients(fit_glm_bestLambda_quasiBETA), 
-  #                             "confint_low" = coefficients(fit_glm_bestLambda_quasiBETA) - ( summary(fit_glm_bestLambda_quasiBETA)$coefficients[,2] * 1.96) ,
-  #                             "confint_high" = coefficients(fit_glm_bestLambda_quasiBETA) + ( summary(fit_glm_bestLambda_quasiBETA)$coefficients[,2] * 1.96),
-  #                             "type" = "quasiBeta")) %>% 
-  #   filter(coefficientName != "(phi)")
-  # ggplot(data = modCoeffsTest) + 
-  #   geom_point(aes(x = coefficientValue, y = coefficientName, col = type)) + 
-  #   geom_errorbar(aes(xmin = confint_low, xmax = confint_high, y = coefficientName, col = type)) + 
-  #   geom_vline(aes(xintercept = 0), lty = 3)
-  # 
    ## fit w/ the identified coefficients from the '1se' lambda, but using the glm function
   mat_glmnet_1se <- seLambda_coef$VariableName
     
   if (length(mat_glmnet_1se) == 0) {
-    f_glm_1se <- as.formula(paste0(response_t, "~ 1"))
+    f_glm_1se <- as.formula(paste0("TotalTreeCover_binom", "~ 1"))
   } else {
-  f_glm_1se <- as.formula(paste0(response_t, " ~ ", paste0(mat_glmnet_1se, collapse = " + ")))
+  f_glm_1se <- as.formula(paste0("TotalTreeCover_binom", " ~ ", paste0(mat_glmnet_1se, collapse = " + ")))
   }
 
 
-  fit_glm_se <- glm(formula = f_glm_1se, data = modDat_1_s, family =quasibeta_family(link = "logit") )
+  fit_glm_se <- glm(formula = f_glm_1se, data = modDat_1_s, family = binomial)
   # glm(data = modDat_1_s, formula = f_glm_1se,
   #                   family =  stats::Gamma(link = "log"))
   
@@ -1061,48 +947,33 @@ if (trimAnom == TRUE) {
   mat_glmnet_halfse <- halfseLambda_coef$VariableName
   
   if (length(mat_glmnet_halfse) == 0) {
-    f_glm_halfse <- as.formula(paste0(response_t, "~ 1"))
+    f_glm_halfse <- as.formula(paste0("TotalTreeCover_binom", "~ 1"))
   } else {
-  f_glm_halfse <- as.formula(paste0(response_t, " ~ ", paste0(mat_glmnet_halfse, collapse = " + ")))
+  f_glm_halfse <- as.formula(paste0("TotalTreeCover_binom", " ~ ", paste0(mat_glmnet_halfse, collapse = " + ")))
   }
 
-  fit_glm_halfse <- glm(formula = f_glm_halfse, data = modDat_1_s, family =quasibeta_family(link = "logit") )
+  fit_glm_halfse <- glm(formula = f_glm_halfse, data = modDat_1_s, family = binomial )
   
   ## save models 
-  if (trimAnom == TRUE) {
-    saveRDS(fit_glm_bestLambda, paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_trimAnom_bestLambdaGLM.rds"))
-  saveRDS(fit_glm_halfse, paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_trimAnom_halfSELambdaGLM.rds"))
-  saveRDS(fit_glm_se, paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_trimAnom_oneSELambdaGLM.rds"))
-  } else {
-    saveRDS(fit_glm_bestLambda, paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_bestLambdaGLM.rds"))
-  saveRDS(fit_glm_halfse, paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_halfSELambdaGLM.rds"))
-  saveRDS(fit_glm_se, paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_oneSELambdaGLM.rds"))
+  saveRDS(fit_glm_bestLambda, paste0("./models/yesOrNoTrees_bestLambdaGLM.rds"))
+  saveRDS(fit_glm_halfse, paste0("./models/yesOrNoTrees_halfSELambdaGLM.rds"))
+  saveRDS(fit_glm_se, paste0("./models/yesOrNoTrees_oneSELambdaGLM.rds"))
     
-  }
-  
   ## save the R environment after running the models 
   save(f_glm_halfse, mat_glmnet_halfse, halfseLambda_coef,
               f_glm_1se, mat_glmnet_1se, seLambda_coef,
               f_glm_bestLambda, mat_glmnet_best, bestLambda_coef,
-              file = paste0("./models/interimModelFittingObjects_", response, "_", ecoregion, "_removeAnomalies", removeAllAnoms,"_betaReg.rds" ))
+              file = paste0("./models/interimModelFittingObjects_yesOrNoTrees_binomial.rds" ))
   } else {
     # read in LASSO object
-    fit <- readRDS(paste0("../ModelFitting/models/betaLASSO/", response, "_globalLASSOmod_betaLogitLink_",ecoregion,"_removeAnomalies", removeAllAnoms,".rds"))
+    fit <- readRDS("../ModelFitting/models/yesOrNoTrees_globalLASSOmod_binomial.rds")
     
     # read in R objects having to do w/ model fitting 
-    load(file = paste0("./models/interimModelFittingObjects_", response, "_", ecoregion, "_removeAnomalies", removeAllAnoms,"_betaReg.rds" ))
+    load(file = paste0("./models/interimModelFittingObjects_yesOrNoTrees_binomial.rds"))
       
-    if (trimAnom == TRUE) {
-    fit_glm_bestLambda <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_trimAnom_bestLambdaGLM.rds"))
-  fit_glm_halfse <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_trimAnom_halfSELambdaGLM.rds"))
- fit_glm_se <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_trimAnom_oneSELambdaGLM.rds"))
-  } else {
-    fit_glm_bestLambda <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_bestLambdaGLM.rds"))
-  fit_glm_halfse <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_halfSELambdaGLM.rds"))
-  fit_glm_se <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_oneSELambdaGLM.rds"))
-    
-  }
-    
+  fit_glm_bestLambda <- readRDS("./models/yesOrNoTrees_bestLambdaGLM.rds")
+  fit_glm_halfse <- readRDS("./models/yesOrNoTrees_halfSELambdaGLM.rds")
+  fit_glm_se <- readRDS("./models/yesOrNoTrees_oneSELambdaGLM.rds")
   }
 
 
@@ -1125,28 +996,19 @@ if (trimAnom == TRUE) {
 
 Then, we predict (on the training set) using both of these models (best lambda and 1se lambda) 
 ```{r}
-  
   ## predict on the test data
   # lasso model predictions with the optimal lambda
   optimal_pred <- predict(fit_glm_bestLambda, newx=X[,2:ncol(X)], type = "response")
   optimal_pred_1se <-  predict(fit_glm_se, newx=X[,2:ncol(X)], type = "response")
   optimal_pred_halfse <- predict(fit_glm_halfse, newx = X[,2:ncol(X)], type = "response")
   
-    null_fit <- glm(#data = data.frame("y" = y, X[,paste0(prednames, "_s")]), 
-      formula = y ~ 1, data = modDat_1_s, family =quasibeta_family(link = "logit")
-      #formula = y ~ 1, family = stats::Gamma(link = "log")
+    null_fit <- glm(
+      formula = y ~ 1, #data = modDat_1_s, 
+      family = binomial
       )
   null_pred <- predict(null_fit, newdata = as.data.frame(X), type = "response"
                        )
 
-  # ## snap values above 100 and below 0 to be 100 or z
-  # #optimal_pred[optimal_pred>100] <- 100
-  # optimal_pred[optimal_pred<0] <- 0
-  # #optimal_pred_1se[optimal_pred_1se>100] <- 100
-  # optimal_pred_1se[optimal_pred_1se<0] <- 0
-  # #optimal_pred_halfse[optimal_pred_halfse>100] <- 100
-  # optimal_pred_halfse[optimal_pred_halfse<0] <- 0
-  # 
   # save data
   fullModOut <- list(
     "modelObject" = fit,
@@ -1175,7 +1037,6 @@ ggplot() +
 
 The internal cross-validation process to fit the global LASSO model identified an optimal lambda value (regularization parameter) of `r{print(best_lambda)}`. The lambda value such that the cross validation error is within 1 standard error of the minimum ("1se lambda") was `r{print(fit$lambda.1se)}`` . The following coefficients were kept in each model: 
 ```{r coefficients in the global model}
-# the coefficient matrix from the 'best model' -- find and print those coefficients that aren't 0 in a table
 # the coefficient matrix from the 'best model' -- find and print those coefficients that aren't 0 in a table
 coef_glm_bestLambda <- coef(fit_glm_bestLambda) %>% 
   data.frame() 
@@ -1253,7 +1114,6 @@ RMSE_1se <- yardstick::rmse(fullModOut$modelPredictions[,c("obs", "pred_opt_se")
 bias_best <-  mean((fullModOut$modelPredictions$obs) - fullModOut$modelPredictions$pred_opt)
 bias_halfse <-  mean((fullModOut$modelPredictions$obs) - fullModOut$modelPredictions$pred_opt_halfse)
 bias_1se <- mean((fullModOut$modelPredictions$obs) - fullModOut$modelPredictions$pred_opt_se)
-
 
 uniqueCoeffs <- data.frame("Best lambda model" = c(signif(RMSE_best,3), as.character(signif(bias_best, 3)),
   as.integer(length(globModTerms)-1), as.integer(prednames_fig_num), 
@@ -1340,7 +1200,7 @@ if (alternativeModel2 == "X1.2.se.lambda.model") {
 # (i.e. for each fire proporation variable)
 predict_by_response <- function(mod, df) {
   df_out <- df
-  response_name <- paste0(response, "_pred")
+  response_name <- paste0("TotalTreeCover_binom", "_pred")
   preds <- predict(mod, newx= df_out, #s="lambda.min", 
                                      type = "response")
   preds[preds<0] <- 0
@@ -1355,15 +1215,15 @@ pred_glm1 <- predict_by_response(fit_glm_bestLambda, X[,2:ncol(X)])
 ## back-transform the 
 # add back in true y values
 pred_glm1 <- pred_glm1 %>% 
-  cbind(modDat_1_s[,c(response, response_t)])
+  cbind(data.frame("TotalTreeCover_binom" = modDat_1_s$TotalTreeCover_binom))
 
 # add back in lat/long data 
 pred_glm1 <- pred_glm1 %>% 
-  cbind(modDat_1_s[,c("Long", "Lat", "Year")])
+  cbind(modDat_1_s[,c("x", "y", "Year")])
 
-pred_glm1$resid <- pred_glm1[,response] - pred_glm1[,paste0(response, "_pred")]
+pred_glm1$resid <- pred_glm1[,"TotalTreeCover_binom"] - pred_glm1[,paste0("TotalTreeCover_binom", "_pred")]
 pred_glm1$extremeResid <- NA
-pred_glm1[pred_glm1$resid > 1 | pred_glm1$resid < 1,"extremeResid"] <- 1
+pred_glm1[pred_glm1$resid > .5 | pred_glm1$resid < -.5,"extremeResid"] <- 1
 
 ```
 
@@ -1376,29 +1236,29 @@ pred_glm1_1se <- predict_by_response(mod_secondBest, X[,2:ncol(X)])
 
 # add back in true y values
 pred_glm1_1se <- pred_glm1_1se %>% 
-  cbind(modDat_1_s[,c(response, response_t)])
+  cbind(data.frame("TotalTreeCover_binom" = modDat_1_s$TotalTreeCover_binom))
 
-# add back in lat/long data 
+# add back in lat/x data 
 pred_glm1_1se <- pred_glm1_1se %>% 
-  cbind(modDat_1_s[,c("Long", "Lat", "Year")])
+  cbind(modDat_1_s[,c("x", "y", "Year")])
 
-pred_glm1_1se$resid <- pred_glm1_1se[,response] - pred_glm1_1se[,paste0(response, "_pred")]
+pred_glm1_1se$resid <- pred_glm1_1se[,"TotalTreeCover_binom"] - pred_glm1_1se[,paste0("TotalTreeCover_binom", "_pred")]
 pred_glm1_1se$extremeResid <- NA
-pred_glm1_1se[pred_glm1_1se$resid > 1 | pred_glm1_1se$resid < -1,"extremeResid"] <- 1
+pred_glm1_1se[pred_glm1_1se$resid > .5 | pred_glm1_1se$resid < -.5,"extremeResid"] <- 1
 }
 ```
 
 ### Maps of Observations, Predictions, and Residuals=
 
 Observations across the temporal range of the dataset
-```{r Residual maps5, fig.height = 7, fig.width = 9, }
-pred_glm1 <- pred_glm1 %>% 
-  mutate(resid = .[[response]] - .[[paste0(response,"_pred")]]) 
-
+```{r Residual maps, fig.height = 7, fig.width = 9, }
 # rasterize
 # get reference raster
-test_rast <-  rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
-  terra::aggregate(fact = 8, fun = "mean")
+test_rast <-  rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>%
+  terra::aggregate(fact = 3, fun = "mean") %>% 
+  terra::project(crs("EPSG:4326"))
+  # transform to match format of veg. data 
+  
 ## add ecoregion boundaries (for our ecoregion level model)
 regions <- sf::st_read(dsn = "../../../Data_raw/Level2Ecoregions/", layer = "NA_CEC_Eco_Level2") 
 regions <- regions %>% 
@@ -1420,42 +1280,43 @@ mapRegions <- goodRegions %>%
   group_by(newRegion) %>% 
   summarise(geometry = sf::st_union(geometry)) %>% 
   ungroup() %>% 
-  st_simplify(dTolerance = 1000)
-#mapview(mapRegions)
+  st_simplify(dTolerance = 1000) %>% 
+  st_crop(ext(-130, -60, 20, 60))
+
 # rasterize data
 plotObs <- pred_glm1 %>% 
-         drop_na(paste(response)) %>% 
+         drop_na("TotalTreeCover_binom") %>% 
   #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::vect(geom = c("x", "y")) %>% 
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = response, 
-                   fun = mean) #%>% 
-  #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+                   field = "TotalTreeCover_binom", 
+                   fun = function(x) {
+                     round(mean(x))
+                   }) %>% 
+  terra::crop(ext(-130, -60, 20, 60))
 
-# get the extent of this particular raster, and crop it accordingly
-tempExt <- crds(plotObs, na.rm = TRUE)
+# make shapefile of cropped state boundaries in appropriate crs
+cropped_states_2 <- cropped_states %>% 
+  st_transform(crs = "EPSG:4326") %>% 
+  st_make_valid() %>% 
+  st_crop(ext(-130, -60, 20, 60))
 
-plotObs_2 <- plotObs %>% 
-  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
-           min(tempExt[,2]), max(tempExt[,2])) 
-       )
 # make figures
 map_obs <- ggplot() +
-geom_spatraster(data = plotObs_2) + 
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+geom_spatraster(data = plotObs) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-labs(title = paste0("Observations of ", response, " in the ",ecoregion, " ecoregion")) +
+labs(title = paste0("Observations of Binomial Total Tree Cover")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "darkgreen" , 
-                       midpoint = 0,   na.value = "grey20") + 
-  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_2)[c(2,4)])
+                       midpoint = 0,   na.value = "darkgrey") + 
+  xlim(-125, -65) + 
+  ylim(25, 50)
 
 hist_obs <- ggplot(pred_glm1) + 
-  geom_histogram(aes(.data[[response]]), fill = "lightgrey", col = "darkgrey")
+  geom_histogram(aes(TotalTreeCover_binom), fill = "lightgrey", col = "darkgrey")
 
 library(ggpubr)
 ggarrange(map_obs, hist_obs, heights = c(3,1), ncol = 1)
@@ -1466,46 +1327,32 @@ Predictions across the temporal range of the dataset
 
 # rasterize data
 plotPred <- pred_glm1 %>% 
-         drop_na(paste0(response,"_pred")) %>% 
+         drop_na(paste0("TotalTreeCover_binom","_pred")) %>% 
   #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::vect(geom = c("x", "y")) %>% 
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = paste0(response,"_pred"), 
-                   fun = mean) 
+                   field = paste0("TotalTreeCover_binom","_pred"), 
+                   fun = mean) %>% 
+  terra::crop(ext(-130, -60, 20, 60))
 
-# get the point location of those predictions that are > 100
-highPred_points <- pred_glm1 %>% 
-  filter(.[[paste0(response,"_pred")]] > 100 | 
-           .[[paste0(response, "_pred")]] < 0) %>% 
-  terra::vect(geom = c("Long", "Lat")) %>% 
-  terra::set.crs(crs(test_rast)) 
-
-# get the extent of this particular raster, and crop it accordingly
-tempExt <- crds(plotPred, na.rm = TRUE)
-
-plotPred_2 <- plotPred %>% 
-  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
-           min(tempExt[,2]), max(tempExt[,2])) 
-       )
 # make figures
 map_preds1 <- ggplot() +
-geom_spatraster(data = plotPred_2) + 
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA )  + 
+geom_spatraster(data = plotPred) + 
+  geom_sf(data=cropped_states_2,fill=NA )  + 
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-  geom_sf(data = highPred_points, col = "red") +
-labs(title = paste0("Predictions from the 'best lambda' fitted model of ", response, " in the ",ecoregion, " ecoregion"),
+labs(title = paste0("Predictions from the 'best lambda' fitted model of Yes/No Trees"),
      subtitle =  "bestLambda model")  +
   scale_fill_gradient2(low = "wheat",
                        mid = "darkgreen",
                        high = "red" , 
-                       midpoint = 1,   na.value = "grey20",
+                       midpoint = 1,   na.value = "darkgrey",
                        limits = c(0,1)) + 
-  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_2)[c(2,4)])
+  xlim(-125, -65) + 
+  ylim(25, 50)
 
 hist_preds1 <- ggplot(pred_glm1) + 
-  geom_histogram(aes(.data[[paste0(response, "_pred")]]), fill = "lightgrey", col = "darkgrey")+ 
+  geom_histogram(aes(.data[[paste0("TotalTreeCover_binom", "_pred")]]), fill = "lightgrey", col = "darkgrey")+ 
   xlim(c(0,1))
 
 ggarrange(map_preds1, hist_preds1, heights = c(3,1), ncol = 1)
@@ -1518,105 +1365,82 @@ if ( name_secondBestMod == "Intercept_Only") {
 
 # rasterize data
 plotPred <- pred_glm1_1se %>% 
-         drop_na(paste0(response,"_pred")) %>% 
+         drop_na(paste0("TotalTreeCover_binom","_pred")) %>% 
   #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::vect(geom = c("x", "y")) %>% 
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = paste0(response,"_pred"), 
-                   fun = mean) #%>% 
-  #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+                   field = paste0("TotalTreeCover_binom","_pred"), 
+                   fun = mean) %>% 
+     terra::crop(ext(-130, -60, 20, 60))
 
-# get the point location of those predictions that are > 100
-highPred_points <- pred_glm1_1se %>% 
-  filter(.[[paste0(response,"_pred")]] > 100 | 
-           .[[paste0(response, "_pred")]] < 0) %>% 
-  terra::vect(geom = c("Long", "Lat")) %>% 
-  terra::set.crs(crs(test_rast)) 
-
-# get the extent of this particular raster, and crop it accordingly
-tempExt <- crds(plotPred, na.rm = TRUE)
-
-plotPred_2 <- plotPred %>% 
-  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
-           min(tempExt[,2]), max(tempExt[,2])) 
-       )
 # make figures
 map_preds2 <- ggplot() +
-geom_spatraster(data = plotPred_2) + 
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA )  + 
+geom_spatraster(data = plotPred) + 
+  geom_sf(data=cropped_states_2,fill=NA )  + 
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-  geom_sf(data = highPred_points, col = "red") +
-labs(title = paste0("Predictions from the ", name_secondBestMod, "fitted model of ", response, " in the ",ecoregion, " ecoregion"),
+labs(title = paste0("Predictions from the ", name_secondBestMod, " of Yes/No Trees"),
      subtitle =  name_secondBestMod)  +
   scale_fill_gradient2(low = "wheat",
                        mid = "darkgreen",
                        high = "red" , 
-                       midpoint = 1,   na.value = "grey20",
-                       limits = c(0, 1)) + 
-  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_2)[c(2,4)])
+                       midpoint = 1,   na.value = "darkgrey",
+                       limits = c(0, 1))  + 
+  xlim(-125, -65) + 
+  ylim(25, 50)
 
 hist_preds2 <- ggplot(pred_glm1_1se) + 
-  geom_histogram(aes(.data[[paste0(response, "_pred")]]), fill = "lightgrey", col = "darkgrey")+ 
+  geom_histogram(aes(.data[[paste0("TotalTreeCover_binom", "_pred")]]), fill = "lightgrey", col = "darkgrey")+ 
   xlim(c(0,1))
 
 ggarrange(map_preds2, hist_preds2, heights = c(3,1), ncol = 1)
 }
 ```
+
 ```{r Residual map from best lambda model, fig.height = 12, fig.width = 9, warning = FALSE }
 
 # rasterize data
 plotResid_rast <- pred_glm1 %>% 
          drop_na(resid) %>% 
   #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::vect(geom = c("x", "y")) %>% 
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "resid", 
-                   fun = mean) #%>% 
-  #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+                   fun = mean) %>% 
+     terra::crop(ext(-130, -60, 20, 60))
 
-# get the extent of this particular raster, and crop it accordingly
-tempExt <- crds(plotResid_rast, na.rm = TRUE)
-
-plotResid_rast_2 <- plotResid_rast %>% 
-  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
-           min(tempExt[,2]), max(tempExt[,2])) 
-       )
-
-# identify locations where residuals are >100 or < -100
+# identify locations where residuals are >.5 or < -.5
 badResids_high <- pred_glm1 %>% 
-  filter(resid > 1)  %>% 
-  terra::vect(geom = c("Long", "Lat")) %>% 
+  filter(resid > .5)  %>% 
+  terra::vect(geom = c("x", "y")) %>% 
   terra::set.crs(crs(test_rast)) 
 badResids_low <- pred_glm1 %>% 
-  filter(resid < -1)  %>% 
-  terra::vect(geom = c("Long", "Lat")) %>% 
+  filter(resid < -.5)  %>% 
+  terra::vect(geom = c("x", "y")) %>% 
   terra::set.crs(crs(test_rast)) 
 # make figures
 map <- ggplot() +
-geom_spatraster(data =plotResid_rast_2) + 
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA )  + 
+geom_spatraster(data =plotResid_rast) + 
+  geom_sf(data=cropped_states_2,fill=NA )  + 
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-  geom_sf(data = badResids_high, col = "blue") +
-  geom_sf(data = badResids_low, col = "red") +
-labs(title = paste0("Resids. (obs. - pred.) from the ", ecoregion," ecoregion-wide model of ", response),
-     subtitle = "bestLambda model \n red points indicate locations that have residuals below -100 \n blue points indicate locatiosn that have residuals above 100") +
+  #geom_sf(data = badResids_high, col = "blue") +
+  #geom_sf(data = badResids_low, col = "red") +
+labs(title = paste0("Resids. (obs. - pred.) from the model of Yes/No Trees"),
+     subtitle = "bestLambda model \n red points indicate locations that have residuals below -.5 \n blue points indicate locations that have residuals above .5") +
   scale_fill_gradient2(low = "red",
                        mid = "white" ,
                        high = "blue" , 
-                       midpoint = 0,   na.value = "grey20",
+                       midpoint = 0,   na.value = "darkgrey",
                        limits = c(-1,1)
                        ) + 
-  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_2)[c(2,4)])
+  xlim(-125, -65) + 
+  ylim(25, 50)
+
 hist <- ggplot(pred_glm1) + 
   geom_histogram(aes(resid), fill = "lightgrey", col = "darkgrey") + 
-  geom_text(aes(x = min(resid)*.9, y = 1500, label = paste0("min = ", round(min(resid),2)))) +
-  geom_text(aes(x = max(resid)*.9, y = 1500, label = paste0("max = ", round(max(resid),2)))) + 
+  # geom_text(aes(x = min(resid)*.9, y = 1500, label = paste0("min = ", round(min(resid),2)))) +
+  # geom_text(aes(x = max(resid)*.9, y = 1500, label = paste0("max = ", round(max(resid),2)))) + 
   geom_vline(aes(xintercept = mean(resid)))
 
 ggarrange(map, hist, heights = c(3,1), ncol = 1)
@@ -1632,52 +1456,43 @@ if ( name_secondBestMod == "Intercept_Only") {
 plotResid_rast <- pred_glm1_1se %>% 
          drop_na(resid) %>% 
   #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("Long", "Lat")) %>% 
+  terra::vect(geom = c("x", "y")) %>% 
   terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "resid", 
-                   fun = mean) #%>% 
-  #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-  #terra::crop(ext(-1950000, .700000, -1800000, .700000))
-
-# get the extent of this particular raster, and crop it accordingly
-tempExt <- crds(plotResid_rast, na.rm = TRUE)
-
-plotResid_rast_2 <- plotResid_rast %>% 
-  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
-           min(tempExt[,2]), max(tempExt[,2])) 
-       )
+                   fun = mean) %>% 
+     terra::crop(ext(-130, -60, 20, 60))
 
 # identify locations where residuals are >10 or < -10
 badResids_high <- pred_glm1_1se %>% 
-  filter(resid > 100)  %>% 
-  terra::vect(geom = c("Long", "Lat")) %>% 
+  filter(resid > .5)  %>% 
+  terra::vect(geom = c("x", "y")) %>% 
   terra::set.crs(crs(test_rast)) 
 badResids_low <- pred_glm1_1se %>% 
-  filter(resid < -100)  %>% 
-  terra::vect(geom = c("Long", "Lat")) %>% 
+  filter(resid < -.5)  %>% 
+  terra::vect(geom = c("x", "y")) %>% 
   terra::set.crs(crs(test_rast)) 
 # make figures
 map <- ggplot() +
-geom_spatraster(data =plotResid_rast_2) + 
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA )  + 
+geom_spatraster(data =plotResid_rast) + 
+  geom_sf(data=cropped_states_2,fill=NA )  + 
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-  geom_sf(data = badResids_high, col = "blue") +
-  geom_sf(data = badResids_low, col = "red") +
-labs(title = paste0("Resids. (obs. - pred.) from the ", ecoregion," ecoregion-wide model of ", response),
-     subtitle = paste0(name_secondBestMod,"\n red points indicate locations that have residuals below -1 \n blue points indicate locatiosn that have residuals above 1")) +
+  # geom_sf(data = badResids_high, col = "blue") +
+  # geom_sf(data = badResids_low, col = "red") +
+labs(title = paste0("Resids. (obs. - pred.) from the model of Yes/No Trees"),
+     subtitle = paste0(name_secondBestMod,"\n red points indicate locations that have residuals below -.5 \n blue points indicate locations that have residuals above .5")) +
   scale_fill_gradient2(low = "red",
                        mid = "white" ,
                        high = "blue" , 
-                       midpoint = 0,   na.value = "grey20",
+                       midpoint = 0,   na.value = "darkgrey",
                        limits = c(-1,1)
-                       ) + 
-  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_2)[c(2,4)])
+                       )  + 
+  xlim(-125, -65) + 
+  ylim(25, 50)
 hist <- ggplot(pred_glm1_1se) + 
   geom_histogram(aes(resid), fill = "lightgrey", col = "darkgrey") + 
-  geom_text(aes(x = min(resid)*.9, y = 1500, label = paste0("min = ", round(min(resid),2)))) +
-  geom_text(aes(x = max(resid)*.9, y = 1500, label = paste0("max = ", round(max(resid),2))))+ 
+ # geom_text(aes(x = min(resid)*.9, y = 1500, label = paste0("min = ", round(min(resid),2)))) +
+  #geom_text(aes(x = max(resid)*.9, y = 1500, label = paste0("max = ", round(max(resid),2))))+ 
   geom_vline(aes(xintercept = mean(resid)))
 
 ggarrange(map, hist, heights = c(3,1), ncol = 1)
@@ -1698,16 +1513,16 @@ yearResidMod_bestLambda <- ggplot(pred_glm1) +
 
 # plot residuals against Lat
 latResidMod_bestLambda <- ggplot(pred_glm1) + 
-  geom_point(aes(x = Lat, y = resid), alpha = .1) + 
-  geom_smooth(aes(x = Lat, y = resid)) + 
+  geom_point(aes(x = y, y = resid), alpha = .1) + 
+  geom_smooth(aes(x = y, y = resid)) + 
   xlab("Latitude") + 
   ylab("Residuals") +
   ggtitle("from best lamba model")
 
 # plot residuals against Long
 longResidMod_bestLambda <- ggplot(pred_glm1) + 
-  geom_point(aes(x = Long, y = resid), alpha = .1) + 
-  geom_smooth(aes(x = Long, y = resid)) + 
+  geom_point(aes(x = x, y = resid), alpha = .1) + 
+  geom_smooth(aes(x = x, y = resid)) + 
   xlab("Longitude") + 
   ylab("Residuals") +
   ggtitle("from best lamba model")
@@ -1733,28 +1548,28 @@ yearResidMod_1seLambda <- ggplot(pred_glm1_1se) +
 
 # plot residuals against Lat
 latResidMod_bestLambda <- ggplot(pred_glm1) + 
-  geom_point(aes(x = Lat, y = resid), alpha = .1) + 
-  geom_smooth(aes(x = Lat, y = resid)) + 
+  geom_point(aes(x = y, y = resid), alpha = .1) + 
+  geom_smooth(aes(x = y, y = resid)) + 
   xlab("Latitude") + 
   ylab("Residuals") +
   ggtitle("from best lamba model")
 latResidMod_1seLambda <- ggplot(pred_glm1_1se) + 
-  geom_point(aes(x = Lat, y = resid), alpha = .1) + 
-  geom_smooth(aes(x = Lat, y = resid)) + 
+  geom_point(aes(x = y, y = resid), alpha = .1) + 
+  geom_smooth(aes(x = y, y = resid)) + 
   xlab("Latitude") + 
   ylab("Residuals") +
   ggtitle(paste0("from ", name_secondBestMod))
 
 # plot residuals against Long
 longResidMod_bestLambda <- ggplot(pred_glm1) + 
-  geom_point(aes(x = Long, y = resid), alpha = .1) + 
-  geom_smooth(aes(x = Long, y = resid)) + 
+  geom_point(aes(x = x, y = resid), alpha = .1) + 
+  geom_smooth(aes(x = x, y = resid)) + 
   xlab("Longitude") + 
   ylab("Residuals") +
   ggtitle("from best lamba model")
 longResidMod_1seLambda <- ggplot(pred_glm1_1se) + 
-  geom_point(aes(x = Long, y = resid), alpha = .1) + 
-  geom_smooth(aes(x = Long, y = resid)) + 
+  geom_point(aes(x = x, y = resid), alpha = .1) + 
+  geom_smooth(aes(x = x, y = resid)) + 
   xlab("Longitude") + 
   ylab("Residuals") +
   ggtitle(paste0("from ", name_secondBestMod))
@@ -1771,6 +1586,7 @@ library(patchwork)
 Binning predictor variables into "Quantiles"  and looking at the mean
 predicted probability for each percentile.
 ```{r}
+response_vars <- c("TotalTreeCover_binom", "TotalTreeCover_binom_pred")
 # get deciles for best lambda model 
 if (length(prednames_fig) == 0) {
   print("The best lambda model only contains one predictor (an intercept), so decile plots aren't possible to generate")
@@ -1798,11 +1614,11 @@ if (length(prednames_fig) == 0) {
 } else {
 
 # publication quality version
-g3 <- decile_dotplot_pq(df = pred_glm1_deciles, response = c(response, paste0(response, "_pred")), IQR = TRUE,
+g3 <- decile_dotplot_pq(df = pred_glm1_deciles, response = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred")), IQR = FALSE,
                         CI = FALSE
                         ) + ggtitle("Decile Plot")
 
-g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles, response = c(response, paste0(response, "_pred")), dfRaw = pred_glm1, add_smooth = TRUE, deciles = FALSE)
+g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles, response = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred")), dfRaw = pred_glm1, add_smooth = TRUE, deciles = FALSE)
 
   
 if(save_figs) {
@@ -1825,9 +1641,9 @@ if ( name_secondBestMod == "Intercept_Only") {
   } else {
 
 # publication quality version
-g3 <- decile_dotplot_pq(pred_glm1_deciles_1se, response = c(response, paste0(response, "_pred")), IQR = TRUE) + ggtitle("Decile Plot")
+g3 <- decile_dotplot_pq(pred_glm1_deciles_1se, response = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred")), IQR = FALSE) + ggtitle("Decile Plot")
 
-g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles_1se, response = c(response, paste0(response, "_pred")), dfRaw = pred_glm1_1se, add_smooth = TRUE, deciles = FALSE)
+g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles_1se, response = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred")), dfRaw = pred_glm1_1se, add_smooth = TRUE, deciles = FALSE)
 
   
 if(save_figs) {
@@ -1854,12 +1670,12 @@ if (length(prednames_fig) == 0) {
   print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate")
 } else {
 pred_glm1_deciles_filt <- predvars2deciles( pred_glm1, 
-                         response_vars = c(response, paste0(response, "_pred")),
+                         response_vars = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred")),
                          pred_vars = prednames_fig,
                          filter_var = TRUE,
                          filter_vars = prednames_fig,
                          cut_points = seq(0, 1, 0.01)) 
-g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt, response = response, 
+g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt, response = "TotalTreeCover_binom", 
                                 xvars = prednames_fig)
 
 if(save_figs) {
@@ -1879,14 +1695,14 @@ if ( name_secondBestMod == "Intercept_Only") {
   print("The next best lambda model only contains one predictor (an intercept)")
 } else {
 pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1, 
-                         response_vars = c(response, paste0(response, "_pred")),
+                         response_vars = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred")),
                          pred_vars = prednames_fig,
                          filter_vars = prednames_fig,
                          filter_var = TRUE,
                          add_mid = TRUE,
                          cut_points = seq(0, 1, 0.01))
 
-g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt_mid, response = response, 
+g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt_mid, response = "TotalTreeCover_binom", 
                                 xvars = prednames_fig)
 
 if(save_figs) {
@@ -1911,12 +1727,12 @@ if (length(prednames_secondBestMod) == 0) {
 } else {
   
 pred_glm1_deciles_filt <- predvars2deciles( pred_glm1_1se, 
-                         response_vars = c(response, paste0(response, "_pred")),
+                         response_vars = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred")),
                          pred_vars = prednames_secondBestMod,
                          filter_var = TRUE,
                          filter_vars = prednames_secondBestMod,
                          cut_points = seq(0, 1, 0.01)) 
-g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt, response = response, 
+g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt, response = "TotalTreeCover_binom", 
                                 xvars = prednames_fig)
 
 if(save_figs) {
@@ -1936,14 +1752,14 @@ if (length(prednames_secondBestMod) == 0) {
   print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate")
 } else {
 pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1, 
-                         response_vars = c(response, paste0(response, "_pred")),
+                         response_vars = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred")),
                          pred_vars = prednames_secondBestMod,
                          filter_vars = prednames_secondBestMod,
                          filter_var = TRUE,
                          add_mid = TRUE,
                          cut_points = seq(0, 1, 0.01))
 
-g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt_mid, response = response, 
+g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt_mid, response = "TotalTreeCover_binom", 
                                 xvars = prednames_fig)
 
 
@@ -2009,11 +1825,11 @@ outList <- vector(mode = "list", length = length(sort(unique(modDat_1_s$NA_L2NAM
 mat <- as.matrix(coef(fit_glm_bestLambda, s = "lambda.min"))
 mat2 <- mat[mat[,1] != 0,]
 
-f_cv <- as.formula(paste0(response_t, " ~ ", paste0(names(mat2)[2:length(names(mat2))], collapse = " + ")))
+f_cv <- as.formula(paste0("TotalTreeCover_binom", " ~ ", paste0(names(mat2)[2:length(names(mat2))], collapse = " + ")))
 
 X_cv <- model.matrix(object = f_cv, data = modDat_1_s)
 # get response variable
-y_cv <- as.matrix(modDat_1_s[,response_t])
+y_cv <- as.matrix(modDat_1_s[,"TotalTreeCover_binom"])
 
 
 # now, loop through so with each iteration, a different ecoregion is held out
@@ -2037,31 +1853,30 @@ y_cv <- as.matrix(modDat_1_s[,response_t])
   X_train <- as.matrix(X_cv[train,])
   X_test <- as.matrix(X_cv[test,])
 
-  y_train <- modDat_1_s[train,response_t]
-  y_test <- modDat_1_s[test,response_t]
+  y_train <- modDat_1_s[train,"TotalTreeCover_binom"]
+  y_test <- modDat_1_s[test,"TotalTreeCover_binom"]
 
   # get the model matrices for input and response variables for original model specification
   X_train_glob <- as.matrix(X[train,])
   X_test_glob <- as.matrix(X[test,])
 
-  y_train_glob <- modDat_1_s[train,response_t]
-  y_test_glob <- modDat_1_s[test,response_t]
+  y_train_glob <- modDat_1_s[train,"TotalTreeCover_binom"]
+  y_test_glob <- modDat_1_s[test,"TotalTreeCover_binom"]
 
   train_eco <- modDat_1_s$NA_L2NAME[train]
 
   ## just try a regular glm w/ the components from the global model
   fit_i <- glm(data = trainDat_all, formula = f_cv,
     ,
-               family =  quasibeta_family(link = "logit")
+               family =  binomial
     )
     
   # lasso model predictions with the optimal lambda (back transformed)
-  optimal_pred <- predict(fit_i, newdata= testDat_all, type = "response") 
+  optimal_pred <- predict(fit_i, newdata = testDat_all, type = "response") 
   # null model and predictions
   # the "null" model in this case is the global model
   # predict on the test data for this iteration w/ the global model (back transformed)
   null_pred <- predict.glm(fit_glm_bestLambda, newdata = testDat_all, type = "response") 
-
 
   # save data
   tmp <- data.frame(ecoRegion_holdout = rep(test_eco,length(y_test)),
@@ -2125,38 +1940,24 @@ for (i in 1:length(unique(modDat_1_s$NA_L2NAME))) {
   mutate(resid = .[["obs"]] - .[["pred_opt"]] ,
          resid_globMod = .[["obs"]]  - .[["pred_null"]])
 
-
 # rasterize
 # use 'test_rast' from earlier
-
   # rasterize data
 plotObs <- predictionData %>%
-         drop_na(paste(response)) %>%
+         drop_na(paste("TotalTreeCover_binom")) %>%
   #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("Long", "Lat")) %>%
+  terra::vect(geom = c("x", "y")) %>%
   terra::set.crs(crs(test_rast)) %>%
   terra::rasterize(y = test_rast,
                    field = "resid",
-                   fun = mean) #%>%
-  #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>%
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+                   fun = mean)
 
 tempExt <- crds(plotObs, na.rm = TRUE)
 
 plotObs_2 <- plotObs %>%
-  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
+  terra::crop(ext(min(tempExt[,1]), max(tempExt[,1]),
            min(tempExt[,2]), max(tempExt[,2]))
        )
-
-# identify locations where residuals are >100 or < -100
-badResids_high <- predictionData %>%
-  filter(resid > .5)  %>%
-  terra::vect(geom = c("Long", "Lat")) %>%
-  terra::set.crs(crs(test_rast))
-badResids_low <- predictionData %>%
-  filter(resid < -.5)  %>%
-  terra::vect(geom = c("Long", "Lat")) %>%
-  terra::set.crs(crs(test_rast))
 
 # make figures
 # make histogram
@@ -2166,19 +1967,17 @@ hist_i <- ggplot(predictionData) +
 # make map
 map_i <-  ggplot() +
 geom_spatraster(data = plotObs_2) +
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+  geom_sf(data=cropped_states_2,fill=NA ) +
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-  geom_sf(data = badResids_high, col = "blue") +
-  geom_sf(data = badResids_low, col = "red") +
 labs(title = paste0("Residuals (obs. - pred.) for predictions of \n", holdoutRegion, " \n from a model fit to other ecoregions"),
-     subtitle = paste0(response, " ~ ", paste0( modTerms, collapse = " + "))) +
+     subtitle = paste0("TotalTreeCover_binom", " ~ ", paste0( modTerms, collapse = " + "))) +
   scale_fill_gradient2(low = "red",
                        mid = "white" ,
                        high = "blue" ,
-                       midpoint = 0,   na.value = "grey20",
-                       limits = c(-1, 1))  +
-  xlim(st_bbox(plotObs_2)[c(1,3)]) +
-  ylim(st_bbox(plotObs_2)[c(2,4)])
+                       midpoint = 0,   na.value = "darkgrey",
+                       limits = c(-1, 1))   + 
+  xlim(st_bbox(plotObs_2)[1],st_bbox(plotObs_2)[3]) + 
+  ylim(st_bbox(plotObs_2)[2],st_bbox(plotObs_2)[4])
 
  assign(paste0("residPlot_",holdoutRegion),
    value = ggarrange(map_i, hist_i, heights = c(3,1), ncol = 1)
@@ -2206,20 +2005,16 @@ if (length(prednames_secondBestMod) == 0) {
 # try each separate level II ecoregion as a test set
 # make a list to hold output data
 outList <- vector(mode = "list", length = length(sort(unique(modDat_1_s$NA_L2NAME))))
-# obs_pred <- data.frame(ecoregion = character(),obs = numeric(),
-#                        pred_opt = numeric(), pred_null = numeric()#,
-#                        #pred_nopenalty = numeric()
-#                        )
 
 ## get the model specification from the global model
 mat <- as.matrix(coef(mod_secondBest, s = "lambda.min"))
 mat2 <- mat[mat[,1] != 0,]
 
-f_cv <- as.formula(paste0(response_t, " ~ ", paste0(names(mat2)[2:length(names(mat2))], collapse = " + ")))
+f_cv <- as.formula(paste0("TotalTreeCover_binom", " ~ ", paste0(names(mat2)[2:length(names(mat2))], collapse = " + ")))
 
 X_cv <- model.matrix(object = f_cv, data = modDat_1_s)
 # get response variable
-y_cv <- as.matrix(modDat_1_s[,response_t])
+y_cv <- as.matrix(modDat_1_s[,"TotalTreeCover_binom"])
 
 
 # now, loop through so with each iteration, a different ecoregion is held out
@@ -2243,22 +2038,22 @@ y_cv <- as.matrix(modDat_1_s[,response_t])
   X_train <- as.matrix(X_cv[train,])
   X_test <- as.matrix(X_cv[test,])
 
-  y_train <- modDat_1_s[train,response_t]
-  y_test <- modDat_1_s[test,response_t]
+  y_train <- modDat_1_s[train,"TotalTreeCover_binom"]
+  y_test <- modDat_1_s[test,"TotalTreeCover_binom"]
 
   # get the model matrices for input and response variables for original model specification
   X_train_glob <- as.matrix(X[train,])
   X_test_glob <- as.matrix(X[test,])
 
-  y_train_glob <- modDat_1_s[train,response_t]
-  y_test_glob <- modDat_1_s[test,response_t]
+  y_train_glob <- modDat_1_s[train,"TotalTreeCover_binom"]
+  y_test_glob <- modDat_1_s[test,"TotalTreeCover_binom"]
 
   train_eco <- modDat_1_s$NA_L2NAME[train]
 
   ## just try a regular glm w/ the components from the global model
   fit_i <- glm(data = trainDat_all, formula = f_cv,
     ,
-               family =  quasibeta_family(link = "logit")
+               family =  binomial
     )
 
     coef(fit_i)
@@ -2346,15 +2141,13 @@ for (i in 1:length(unique(modDat_1_s$NA_L2NAME))) {
 
   # rasterize data
 plotObs <- predictionData %>%
-         drop_na(paste(response)) %>%
+         drop_na(paste("TotalTreeCover_binom")) %>%
   #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("Long", "Lat")) %>%
+  terra::vect(geom = c("x", "y")) %>%
   terra::set.crs(crs(test_rast)) %>%
   terra::rasterize(y = test_rast,
                    field = "resid",
-                   fun = mean) #%>%
-  #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>%
-  #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
+                   fun = mean) 
 
 tempExt <- crds(plotObs, na.rm = TRUE)
 
@@ -2362,17 +2155,6 @@ plotObs_2 <- plotObs %>%
   crop(ext(min(tempExt[,1]), max(tempExt[,1]),
            min(tempExt[,2]), max(tempExt[,2]))
        )
-
-# identify locations where residuals are >100 or < -100
-badResids_high <- predictionData %>%
-  filter(resid > .5)  %>%
-  terra::vect(geom = c("Long", "Lat")) %>%
-  terra::set.crs(crs(test_rast))
-badResids_low <- predictionData %>%
-  filter(resid < -.5)  %>%
-  terra::vect(geom = c("Long", "Lat")) %>%
-  terra::set.crs(crs(test_rast))
-
 
 # make figures
 # make histogram
@@ -2382,19 +2164,17 @@ hist_i <- ggplot(predictionData) +
 # make map
 map_i <-  ggplot() +
 geom_spatraster(data = plotObs_2) +
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+  geom_sf(data=cropped_states_2,fill=NA ) +
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-  geom_sf(data = badResids_high, col = "blue") +
-  geom_sf(data = badResids_low, col = "red") +
 labs(title = paste0("Residuals (obs. - pred.) for predictions of \n", holdoutRegion, " \n from a model fit to other ecoregions"),
-     subtitle = paste0(response, " ~ ", paste0( modTerms, collapse = " + "))) +
+     subtitle = paste0("TotalTreeCover_binom", " ~ ", paste0( modTerms, collapse = " + "))) +
   scale_fill_gradient2(low = "red",
                        mid = "white" ,
                        high = "blue" ,
-                       midpoint = 0,   na.value = "grey20",
-                       limits = c(-1, 1))  +
-  xlim(st_bbox(plotObs_2)[c(1,3)]) +
-  ylim(st_bbox(plotObs_2)[c(2,4)])
+                       midpoint = 0,   na.value = "darkgrey",
+                       limits = c(-1, 1))  + 
+  xlim(st_bbox(plotObs_2)[1],st_bbox(plotObs_2)[3]) + 
+  ylim(st_bbox(plotObs_2)[2],st_bbox(plotObs_2)[4])
 
  assign(paste0("residPlot_",holdoutRegion),
    value = ggarrange(map_i, hist_i, heights = c(3,1), ncol = 1)
@@ -2415,11 +2195,11 @@ labs(title = paste0("Residuals (obs. - pred.) for predictions of \n", holdoutReg
 ```{r save_output}
 ## save the coefficients for the models (best lambda, 1/2se lambda, 1se lambda)
 if(trimAnom == TRUE) {
-saveRDS(coefs, file = paste0("./models/modelCoefficients_trimAnom_", ecoregion, "_", response,"_removeAnomalies", removeAllAnoms,".rds"))
-saveRDS(uniqueCoeffs, file = paste0("./models/modelMetrics_trimAnom_", ecoregion, "_", response,"_removeAnomalies", removeAllAnoms,".rds"))
+saveRDS(coefs, file = paste0("./models/yesOrNoTrees_modelCoefficients.rds"))
+saveRDS(uniqueCoeffs, file = paste0("./models/yesOrNoTrees_modelMetrics_trimAnom.rds"))
 } else {
-saveRDS(coefs, file = paste0("./models/modelCoefficients_", ecoregion, "_", response,"_removeAnomalies", removeAllAnoms,".rds"))
-saveRDS(uniqueCoeffs, file = paste0("./models/modelMetrics_", ecoregion, "_", response,"_removeAnomalies", removeAllAnoms,".rds"))
+saveRDS(coefs, file = paste0("./models/yesOrNoTrees_modelCoefficients.rds"))
+saveRDS(uniqueCoeffs, file = paste0("./models/yesOrNoTrees_modelMetrics_trimAnom.rds"))
 }
 # make a table
 

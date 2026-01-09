@@ -969,7 +969,7 @@ for (i in 1:n_iter) {
 
   # Fit Lasso model
   fit_stab_i <- glmnet(x = X_sub[,2:ncol(X_sub)], y = y_sub, 
-    family = stats::Gamma(link = "log"),
+    family = quasibeta_family(),
     alpha = 1, lambda = lambda_val, standardize = FALSE)
 
   # Get non-zero coefficients (excluding intercept)
