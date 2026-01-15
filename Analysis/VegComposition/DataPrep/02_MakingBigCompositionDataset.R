@@ -84,6 +84,11 @@ FIA_all <- FIA_all %>%
          TotalHerbaceousCover, TreeBasalArea_in2, 
          BareGroundCover,   LitterCover,  LitterDepth, Source, AngioTreeCover_prop, 
          ConifTreeCover_prop, C4GramCover_prop,C3GramCover_prop, ForbCover_prop)
+
+## trim values for cover to be only from 2011 or later 
+FIA_all <- FIA_all %>% 
+  filter(Year > 2010) 
+
 # load LANDFIRE data ------------------------------------------------------
 
 LANDFIRE_veg <- read.csv("./Data_raw//LANDFIRE_LFRDB/coverDat_USE.csv") %>% 
@@ -237,8 +242,11 @@ LANDFIRE_all <- LANDFIRE_all %>%
 FIA_all <- FIA_all %>% 
   mutate(Lon = sf::st_coordinates(.)[,1],
          Lat = sf::st_coordinates(.)[,2])
-# 
-# plot(LDC_all$Lon, LDC_all$Lat) 
+
+# ggplot(dat_all) + 
+#   facet_wrap(~Source) + 
+#   geom_sf(aes(col = TotalTreeCover))
+# plot(LDC_all$Lon, LDC_all$Lat)
 # points(RAP_all$Lon, RAP_all$Lat, col = "red")
 # points(FIA_all$Lon, FIA_all$Lat, col = "green")
 # points(LANDFIRE_all$Lon, LANDFIRE_all$Lat, col = "blue")
@@ -351,5 +359,4 @@ write.csv(dat_all %>% st_drop_geometry() , file = "./Data_processed/CoverData/Fo
 dat_all_sf <- dat_all
 
 st_write(dat_all_sf, dsn = "./Data_processed/CoverData/DataForAnalysisPoints", layer = "vegCompPoints", driver = "ESRI Shapefile", append = FALSE)
-
 

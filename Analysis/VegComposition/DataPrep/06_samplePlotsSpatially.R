@@ -34,14 +34,14 @@ layerNames <- c("ShrubCover", "TotalHerbaceousCover",  "TotalTreeCover", "C3Gram
                 "BareGroundCover")
 
 # add met data to veg data ------------------------------------------------
-# make veg data projection the same as raster data
-v <- vect(st_drop_geometry(dat_temp)[,c("Lon", "Lat")], geom = c("Lon", "Lat"), crs=crs(dat_temp))
-y <- project(v, crs(test))
+# # make veg data projection the same as raster data
+# v <- vect(st_drop_geometry(dat_temp)[,c("Lon", "Lat")], geom = c("Lon", "Lat"), crs=crs(dat_temp))
+# y <- project(v, crs(test))
 # make sure the veg data is in the appropriate projection
 dat <- dat_temp %>%
   #st_buffer(.01) %>%
   #terra::vect() #%>%
-  sf::st_transform(crs(y)) %>% 
+ # sf::st_transform(crs(y)) %>% 
   # st_buffer(.1)
   st_centroid() %>% 
   mutate("Year_char" = as.character(Year)) %>% 
@@ -49,8 +49,8 @@ dat <- dat_temp %>%
 
 
 # make sure the raster data is in the appropriate projection
-test <- test %>%
-  terra::project(crs(y))
+# test <- test %>%
+#   terra::project(crs(y))
 st_crs(dat) == st_crs(test)
 
 ## rename the columns in 'dat' 
@@ -91,6 +91,12 @@ dat <- dat %>%
 #   ggplot() + 
 #   facet_wrap(~Year) + 
 #   geom_point(aes(x = Lon, y = Lat))
+
+# dat %>% 
+#   filter(Source == "FIA") %>% 
+#   filter(Year == 2016) %>% 
+#   ggplot() + 
+#   geom_sf(aes(col = TotalTreeCover))
 
 ## for RAP data, remove the points left over on the very far east coast that somehow are left over after the filtering process to remove forests
 dat <- dat[!(dat$Source == "RAP" & 

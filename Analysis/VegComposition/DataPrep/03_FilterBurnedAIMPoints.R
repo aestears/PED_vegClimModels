@@ -126,9 +126,9 @@ cwf_conus <- cwf_new %>%
 plotDat <- st_read("./Data_processed/CoverData/DataForAnalysisPoints/", "vegCompPoints") %>% 
   st_transform(st_crs(mtbs))
 
-ggplot(plotDat) + 
-  facet_wrap(~Source) + 
-  geom_sf(aes(col = Source))
+# ggplot(plotDat) + 
+#   facet_wrap(~Source) + 
+#   geom_sf(aes(col = Source))
 
 # Identify overlaps between fire boundaries and plots --------------------------
 rm(us_states, CONUS_states, cwf_layers, cwf_multi, #cwf_multi_fixed, 
@@ -174,9 +174,11 @@ plotDat_noMtbsList <- lapply(names(plotDat_list),
                      }) # end of internal apply function
                      
                      # remove the plots that were burned less than 20 years before sampling
-                     plotDat_noFire <- z[!(row(z)[,1] %in% 
+                     plotDat_noFire <- z
+                     
+                     plotDat_noFire[(row(z)[,1] %in% 
                                              unique(as.numeric(overlapOut[str_detect(overlapOut, "REMOVE")] %>% 
-                                                                 str_extract(pattern = "[0-9]+")))),]
+                                                                 str_extract(pattern = "[0-9]+")))),"burnedMoreThan20YearsAgo"] <- "RECENTLY_BURNED_REMOVE"
                      # label the plots that were burned more than 20 years before sampling
                      plotDat_noFire[(row(plotDat_noFire)[,1] %in% 
                                              unique(as.numeric(overlapOut[str_detect(overlapOut, "label")] %>% 
@@ -188,6 +190,8 @@ plotDat_noMtbsList <- lapply(names(plotDat_list),
                    }) # end of lapply
 
 names(plotDat_noMtbsList) <- as.character(c(1:length(plotDat_noMtbsList)))
+#test_noMtbs <- purrr:::list_rbind(plotDat_noMtbsList)
+
 ## do the same filtering for cwf data 
 plotDat_noCWFList <- lapply(names(plotDat_noMtbsList), 
                FUN = function(y) {
@@ -222,9 +226,12 @@ plotDat_noCWFList <- lapply(names(plotDat_noMtbsList),
                    }) # end of internal apply function
                    
                    # remove the plots that were burned less than 20 years before sampling
-                   plotDat_noFire <- z[!(row(z)[,1] %in% 
-                                           unique(as.numeric(overlapOut[str_detect(overlapOut, "REMOVE")] %>% 
-                                                               str_extract(pattern = "[0-9]+")))),]
+                   plotDat_noFire <- z
+                   
+                   plotDat_noFire[(row(z)[,1] %in% 
+                                     unique(as.numeric(overlapOut[str_detect(overlapOut, "REMOVE")] %>% 
+                                                         str_extract(pattern = "[0-9]+")))),"burnedMoreThan20YearsAgo"] <- "RECENTLY_BURNED_REMOVE"
+                   
                    # label the plots that were burned more than 20 years before sampling
                    plotDat_noFire[(row(plotDat_noFire)[,1] %in% 
                                      unique(as.numeric(overlapOut[str_detect(overlapOut, "label")] %>% 
@@ -239,21 +246,49 @@ plotDat_noCWFList <- lapply(names(plotDat_noMtbsList),
 
 plotDat_noFireAll <- purrr::reduce(plotDat_noCWFList, rbind)
 
+
+
+# Remove burned plots or relevant data  ---------------------------------------------------------
+## for those plots burned more recently than 20 years, remove them completely
+plotDat_noFireAll2 <- plotDat_noFireAll %>% 
+  filter(burnedMoreThan20YearsAgo != "RECENTLY_BURNED_REMOVE")
+
 ## for those plots that have been burned more than 20 years ago, remove values for trees and shrubs
 # remove tree values
-plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$TtlTrCv <- NA
-plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$AngTrCv <- NA
-plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$CnfTrCv <- NA
-plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$AngTrC_ <- NA
-plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$CnfTrC_ <- NA
+plotDat_noFireAll2[plotDat_noFireAll2$burnedMoreThan20YearsAgo == TRUE,]$TtlTrCv <- NA
+plotDat_noFireAll2[plotDat_noFireAll2$burnedMoreThan20YearsAgo == TRUE,]$AngTrCv <- NA
+plotDat_noFireAll2[plotDat_noFireAll2$burnedMoreThan20YearsAgo == TRUE,]$CnfTrCv <- NA
+plotDat_noFireAll2[plotDat_noFireAll2$burnedMoreThan20YearsAgo == TRUE,]$AngTrC_ <- NA
+plotDat_noFireAll2[plotDat_noFireAll2$burnedMoreThan20YearsAgo == TRUE,]$CnfTrC_ <- NA
 
 # remove shrub values
-plotDat_noFireAll[plotDat_noFireAll$burnedMoreThan20YearsAgo == TRUE,]$ShrbCvr <- NA
+plotDat_noFireAll2[plotDat_noFireAll2$burnedMoreThan20YearsAgo == TRUE,]$ShrbCvr <- NA
 
-plot(plotDat_noFireAll$Lon, plotDat_noFireAll$Lat)
-ggplot(plotDat_noFireAll) + 
+ggplot(plotDat_noFireAll2) + 
   facet_wrap(~Source) + 
   geom_sf(aes(col = Source))
 
-saveRDS(plotDat_noFireAll, file = "./Data_processed/CoverData/dataForAnalysis_fireRemoved.rds")
-  
+saveRDS(plotDat_noFireAll2, file = "./Data_processed/CoverData/dataForAnalysis_fireRemoved.rds")
+
+#plotDat_noFireAll2 <- readRDS(file = "./Data_processed/CoverData/dataForAnalysis_fireRemoved.rds")
+
+# test --------------------------------------------------------------------
+
+nrow(plotDat)
+nrow(plotDat_noFireAll2)
+
+library(patchwork)
+input_plot <- plotDat %>% 
+  filter(Source == "FIA") %>% 
+  filter(Year == 2016) %>% 
+  ggplot() +  
+  geom_sf(aes(col = TtlTrCv)) 
+
+output_plot <- plotDat_noFireAll2 %>% 
+  filter(Source == "FIA") %>% 
+  filter(Year == 2016) %>% 
+ggplot() + 
+  geom_sf(aes(col = TtlTrCv))
+
+input_plot + output_plot
+

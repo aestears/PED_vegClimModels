@@ -1,0 +1,400 @@
+---
+title: "Visualizing cover data at each step of the data preparation workflow"
+output:
+  html_document:
+    code_folding: hide
+    df_print: paged
+  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE,
+                      message = FALSE)
+```
+
+```{r}
+library(tidyverse) 
+library(sf) 
+library(terra)
+library(ggpubr)
+ggplot2::theme_set(theme_classic())
+```
+
+This document visualizes the data of vegetation cover by functional type that we use in subsequent analysis at each step of the data-processing workflow. These maps serve both as a reference and a check that the workflow is performing as intended. 
+
+For the sake of simplified comparison, I show data from 2016, 2020, and 2022, which are years for which we have easy to access rasters of FIA data to compare to. 
+
+# RAP 
+## Initial dataset
+```{r, echo = FALSE}
+# Read in data 
+dat_1temp <- st_read(dsn = "../../../Data_processed/CoverData/DataForAnalysisPoints", layer = "vegCompPoints")#, driver = "ESRI Shapefile")
+# trim to be only later than 2000, which is what we want to use for further analysis
+dat_1 <- dat_1temp %>% 
+  filter(Year >= 2000)
+
+## make figure for RAP 
+# get data just for RAP 
+RAP_1 <- dat_1 %>% 
+  filter(Source == "RAP") %>% 
+  pivot_longer(cols = c(ShrbCvr, TtlTrCv, TtlHrbC, BrGrndC#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_
+                        ), 
+               names_to = "coverType", 
+               values_to = "coverValues"
+                ) %>% 
+  filter(!is.na(coverValues)) 
+  
+ggarrange(ggplot(RAP_1 %>% 
+  filter(Year %in% c(2016, 2020, 2022))) + 
+  facet_grid(rows = vars(coverType), cols = vars(Year)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .25) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Initial Data - RAP"),
+  
+  ggplot(RAP_1) + 
+  facet_grid(rows = vars(coverType)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .25) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Initial Data, all years - RAP "),
+  
+  ncol = 2, align = "h",
+  common.legend = TRUE,
+  widths = c(.75, .25)
+)
+```
+## After removing burned area
+```{r}
+# Read in data 
+dat_2 <- readRDS(file = "../../../Data_processed/CoverData/dataForAnalysis_fireRemoved.rds")
+# trim to be only later than 2000, which is what we want to use for further analysis
+dat_2 <- dat_2 %>% 
+  filter(Year >= 2000)
+
+## make figure for RAP 
+# get data just for RAP 
+RAP_2 <- dat_2 %>% 
+  filter(Source == "RAP") %>% 
+  pivot_longer(cols = c(ShrbCvr, TtlTrCv, TtlHrbC, BrGrndC#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_
+                        ), 
+               names_to = "coverType", 
+               values_to = "coverValues"
+                ) %>% 
+  filter(!is.na(coverValues))
+ 
+ggarrange(ggplot(RAP_2 %>% 
+  filter(Year %in% c(2016, 2020, 2022))) + 
+  facet_grid(rows = vars(coverType), cols = vars(Year)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .25) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Filtered Burned Areas - RAP"),
+  
+  ggplot(RAP_2) + 
+  facet_grid(rows = vars(coverType)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .25) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Filtered Burned Areas, all years - RAP "),
+  
+  ncol = 2, align = "h",
+  common.legend = TRUE,
+  widths = c(.75, .25)
+)
+```
+
+# AIM (BLM Assessment, Inventory and Monitoring data)
+## Initial Dataset
+```{r}
+## make figure for LDC 
+# get data just for LDC 
+LDC_1 <- dat_1 %>% 
+  st_zm() %>% 
+  filter(Source == "LDC") %>% 
+  #st_drop_geometry() %>% 
+  pivot_longer(cols = c(ShrbCvr, TtlTrCv, TtlHrbC, BrGrndC#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_
+                        ), 
+               names_to = "coverType", 
+               values_to = "coverValues"
+                ) %>% 
+  filter(!is.na(coverValues)) 
+  #filter(coverType == "ShrbCvr" & Year == 2016) %>% 
+
+ggarrange(ggplot(LDC_1 %>% 
+  filter(Year %in% c(2016, 2020, 2022))) + 
+  facet_grid(rows = vars(coverType), cols = vars(Year)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .25) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Initial Data - AIM"),
+  
+  ggplot(LDC_1) + 
+  facet_grid(rows = vars(coverType)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .25) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Initial Data, all years - AIM "),
+  
+  ncol = 2, align = "h",
+  common.legend = TRUE,
+  widths = c(.75, .25)
+)
+
+```
+## After removing burned area
+```{r}
+## make figure for LDC 
+# get data just for LDC 
+AIM_2 <- dat_2 %>% 
+  filter(Source == "LDC") %>% 
+  pivot_longer(cols = c(ShrbCvr, TtlTrCv, TtlHrbC, BrGrndC#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_
+                        ), 
+               names_to = "coverType", 
+               values_to = "coverValues"
+                ) %>% 
+  filter(!is.na(coverValues))
+
+ggarrange(ggplot(AIM_2 %>% 
+  filter(Year %in% c(2016, 2020, 2022))) + 
+  facet_grid(rows = vars(coverType), cols = vars(Year)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .25) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Filtered Burned Areas - AIM"),
+  
+  ggplot(AIM_2) + 
+  facet_grid(rows = vars(coverType)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .25) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Filtered Burned Areas, all years - AIM "),
+  
+  ncol = 2, align = "h",
+  common.legend = TRUE,
+  widths = c(.75, .25)
+)
+
+```
+# FIA (USFS Forest Inventory and Analysis data)
+## Initial Dataset
+```{r}
+## make figure for FIA 
+# get data just for FIA 
+ FIA_1 <- dat_1 %>% 
+  st_zm() %>% 
+  filter(Source == "FIA") %>% 
+  #st_drop_geometry() %>% 
+  pivot_longer(cols = c(ShrbCvr, TtlTrCv, TtlHrbC, BrGrndC#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_
+                        ), 
+               names_to = "coverType", 
+               values_to = "coverValues"
+                ) %>% 
+  filter(!is.na(coverValues)) 
+
+ggarrange(ggplot(FIA_1 %>% 
+  filter(Year %in% c(2016, 2020, 2022))) + 
+  facet_grid(rows = vars(coverType), cols = vars(Year)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .25) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Initial Data - FIA"),
+  
+  ggplot(FIA_1) + 
+  facet_grid(rows = vars(coverType)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .25) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Initial Data, all years - FIA "),
+  
+  ncol = 2, align = "h",
+  common.legend = TRUE,
+  widths = c(.75, .25)
+)
+```
+```{r}
+# Inital FIA data, all years by year
+ggplot(dat_1temp %>%
+         filter(Source == "FIA")) + 
+  facet_wrap(vars(Year)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = TtlTrCv), fun = mean, binwidth = .25) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Initial Data: Total Tree Cover from FIA")
+```
+
+## After removing burned area
+```{r}
+## make figure for FIA 
+# get data just for FIA 
+FIA_2 <- dat_2 %>% 
+  filter(Source == "FIA") %>% 
+  pivot_longer(cols = c(ShrbCvr, TtlTrCv, TtlHrbC, BrGrndC#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_
+                        ), 
+               names_to = "coverType", 
+               values_to = "coverValues"
+                ) %>% 
+  filter(!is.na(coverValues))
+
+ggarrange(ggplot(FIA_2 %>% 
+  filter(Year %in% c(2016, 2020, 2022))) + 
+  facet_grid(rows = vars(coverType), cols = vars(Year)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .25) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Filtered Burned Areas - FIA"),
+  
+  ggplot(FIA_2) + 
+  facet_grid(rows = vars(coverType)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .25) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Filtered Burned Areas, all years - FIA "),
+  
+  ncol = 2, align = "h",
+  common.legend = TRUE,
+  widths = c(.75, .25)
+)
+
+```
+
+
+# LANDFIRE Reference database  (use different years for LANDFIRE due to data availability)
+## Initial Dataset
+```{r}
+## make figure for LANDFIRE 
+# get data just for LANDFIRE 
+ LANDFIRE_1 <- dat_1 %>% 
+  st_zm() %>% 
+  filter(Source == "LANDFIRE") %>% 
+  #st_drop_geometry() %>% 
+  pivot_longer(cols = c(ShrbCvr, TtlTrCv, TtlHrbC, BrGrndC#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_
+                        ), 
+               names_to = "coverType", 
+               values_to = "coverValues"
+                ) %>% 
+  filter(!is.na(coverValues)) 
+
+ ggarrange(ggplot(LANDFIRE_1 %>% 
+  filter(Year %in% c(2003, 2007, 2015))) + 
+  facet_grid(rows = vars(coverType), cols = vars(Year)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .25) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Initial Data - LANDFIRE"),
+  
+  ggplot(LANDFIRE_1) + 
+  facet_grid(rows = vars(coverType)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .25) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Initial Data, all years - LANDFIRE "),
+  
+  ncol = 2, align = "h",
+  common.legend = TRUE,
+  widths = c(.75, .25)
+)
+
+```
+## After removing burned area
+```{r}
+## make figure for LANDFIRE 
+# get data just for LANDFIRE 
+LANDFIRE_2 <- dat_2 %>% 
+  filter(Source == "LANDFIRE") %>% 
+  pivot_longer(cols = c(ShrbCvr, TtlTrCv, TtlHrbC, BrGrndC#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_
+                        ), 
+               names_to = "coverType", 
+               values_to = "coverValues"
+                ) %>% 
+  filter(!is.na(coverValues)) 
+
+ggarrange(ggplot(LANDFIRE_2 %>% 
+  filter(Year %in% c(2003, 2007, 2015))) + 
+  facet_grid(rows = vars(coverType), cols = vars(Year)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .25) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Filtered Burned Areas - LANDFIRE"),
+  
+  ggplot(LANDFIRE_2) + 
+  facet_grid(rows = vars(coverType)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .25) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Filtered Burned Areas, all years - LANDFIRE "),
+  
+  ncol = 2, align = "h",
+  common.legend = TRUE,
+  widths = c(.75, .25)
+)
+
+```

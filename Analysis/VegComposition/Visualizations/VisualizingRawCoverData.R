@@ -16,9 +16,11 @@ library(tidyterra)
 ggplot2::set_theme(theme_classic())
 
 # load data ---------------------------------------------------------------
-# load shapefile version of "big composition dataset"
-coverDat <- #st_read("./Data_processed/CoverData/DataForAnalysisPoints", layer = "vegCompPoints")
- readRDS("./Data_processed/CoverData/DataForModels.RDS") 
+# load shapefile version of data before spatial averaging
+coverDat <- readRDS(
+#  "./Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds"
+"./Data_processed/CoverData/spatiallyAverageData_intermediate_test5_sampledLANDFIRE.rds"
+)
 # coverDat <- readRdS("./Data_processed/CoverData/")
 # treeCover_rast <- dat_all%>% 
 #   #FIA_all %>% 
@@ -29,7 +31,7 @@ coverDat <- #st_read("./Data_processed/CoverData/DataForAnalysisPoints", layer =
 # load raster to rasterize cover data
 # rasterize
 test_rast <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
-  terra::aggregate(fact = 2, fun = "mean") %>% 
+  #terra::aggregate(fact = 2, fun = "mean") %>% 
   terra::project(crs(coverDat))
 
 # test_rast <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
@@ -65,12 +67,12 @@ mapRegions <- goodRegions %>%
 treeCover_rast <- coverDat %>% 
   filter(Source == "LANDFIRE") %>% 
   #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
+  #terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "TtlTrCv", 
+                   field = "TotalTreeCover", 
                    fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-130, -65, 25, 50))
+ terra::crop(ext(-130, -65, 25, 50))
 (treeCov_plot_LF <- ggplot() + 
     geom_spatraster(data = treeCover_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
@@ -81,23 +83,23 @@ treeCover_rast <- coverDat %>%
 # conifer tree data -
 # raw conifer cover
 # rasterize data
-conifCover_rast <- coverDat %>% 
-  filter(Source == "LANDFIRE") %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
-  #terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "CnfTrCv", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(conifCover_plot_LF <- ggplot() + 
-    geom_spatraster(data = conifCover_rast, aes(fill = mean), na.rm = TRUE) +
-    theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
-    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
-                         limits = c(0,100)) +
-    ggtitle("LANDFIRE", subtitle = "Conifer % cover"))
+# conifCover_rast <- coverDat %>% 
+#   filter(Source == "LANDFIRE") %>% 
+#   #slice_sample(n = 5e4) %>%
+#   terra::vect() %>% 
+#   #terra::set.crs(crs(test_rast)) %>% 
+#   terra::rasterize(y = test_rast, 
+#                    field = "ConifTreeCover_prop", 
+#                    fun = mean, na.rm = TRUE) %>% 
+#   terra::crop(ext(-135, -60, 20, 55))
+# (conifCover_plot_LF <- ggplot() + 
+#     geom_spatraster(data = conifCover_rast, aes(fill = mean), na.rm = TRUE) +
+#     theme_minimal() + 
+#     xlim(c(-130, -65)) + 
+#     ylim(c(25, 50))+
+#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,100)) +
+#     ggtitle("LANDFIRE", subtitle = "Conifer % cover"))
 
 
 # conifer Prop. of tree cover
@@ -108,14 +110,14 @@ conifProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "CnfTrC_", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
+                   field = "ConifTreeCover_prop", 
+                   fun = mean, na.rm = TRUE) #%>% 
+  #terra::crop(ext(-135, -60, 20, 55))
 (conifProportion_plot_LF <- ggplot() + 
     geom_spatraster(data = conifProportion_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
+    # xlim(c(-130, -65)) + 
+    # ylim(c(25, 50))+
     scale_fill_viridis_c(option = "B", guide = guide_colorbar(title = "Prop. of tree cover"), 
                          limits = c(0,1)) +
     ggtitle("LANDFIRE", subtitle = "Prop. of trees that are conifers"))
@@ -123,23 +125,23 @@ conifProportion_rast <- coverDat %>%
 # broad-leaved tree data --
 # raw deciduous cover
 # rasterize data
-decidCover_rast <- coverDat %>% 
-  filter(Source == "LANDFIRE") %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
-  #terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "AngTrCv", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(decidCover_plot_LF <- ggplot() + 
-    geom_spatraster(data = decidCover_rast, aes(fill = mean), na.rm = TRUE) +
-    theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
-    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
-                         limits = c(0,100)) +
-    ggtitle("LANDFIRE", subtitle = "Deciduous % cover"))
+# decidCover_rast <- coverDat %>% 
+#   filter(Source == "LANDFIRE") %>% 
+#   #slice_sample(n = 5e4) %>%
+#   terra::vect() %>% 
+#   #terra::set.crs(crs(test_rast)) %>% 
+#   terra::rasterize(y = test_rast, 
+#                    field = "AngTrCv", 
+#                    fun = mean, na.rm = TRUE) %>% 
+#   terra::crop(ext(-135, -60, 20, 55))
+# (decidCover_plot_LF <- ggplot() + 
+#     geom_spatraster(data = decidCover_rast, aes(fill = mean), na.rm = TRUE) +
+#     theme_minimal() + 
+#     xlim(c(-130, -65)) + 
+#     ylim(c(25, 50))+
+#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,100)) +
+#     ggtitle("LANDFIRE", subtitle = "Deciduous % cover"))
 
 # deciduous Prop. of tree cover
 # rasterize data
@@ -149,14 +151,14 @@ decidProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "AngTrC_", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
+                   field = "AngioTreeCover_prop", 
+                   fun = mean, na.rm = TRUE) #%>% 
+  #terra::crop(ext(-135, -60, 20, 55))
 (decidProportion_plot_LF <- ggplot() + 
     geom_spatraster(data = decidProportion_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
+    #xlim(c(-130, -65)) + 
+   # ylim(c(25, 50))+
     scale_fill_viridis_c(option = "B", guide = guide_colorbar(title = "Prop. of tree cover"), 
                          limits = c(0,1)) +
     ggtitle("LANDFIRE", subtitle = "Prop. of trees that are deciduous"))
@@ -170,38 +172,37 @@ shrubCover_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "ShrbCvr", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
+                   field = "ShrubCover", 
+                   fun = mean, na.rm = TRUE)# %>% 
+  #terra::crop(ext(-135, -60, 20, 55))
 (shrubCover_plot_LF <- ggplot() + 
     geom_spatraster(data = shrubCover_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
+    # xlim(c(-130, -65)) + 
+    # ylim(c(25, 50))+
     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
                          limits = c(0,100)) +
     ggtitle("LANDFIRE", subtitle = "Shrub % Cover"))
 
 # graminoid data -
 # rasterize data
-totalGramCover_rast <- coverDat %>% 
-  filter(Source == "LANDFIRE") %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
-  #terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "TtlHrbC", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(totalGramCover_plot_LF <- ggplot() + 
-    geom_spatraster(data = totalGramCover_rast, aes(fill = mean), na.rm = TRUE) +
-    theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
-    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
-                         limits = c(0,100)) +
-    ggtitle("LANDFIRE", subtitle = "Total Herb. % Cover"))
-
+# totalGramCover_rast <- coverDat %>% 
+#   filter(Source == "LANDFIRE") %>% 
+#   #slice_sample(n = 5e4) %>%
+#   terra::vect() %>% 
+#   #terra::set.crs(crs(test_rast)) %>% 
+#   terra::rasterize(y = test_rast, 
+#                    field = "TotalHerbaceousCover", 
+#                    fun = mean, na.rm = TRUE) #%>% 
+#   #terra::crop(ext(-135, -60, 20, 55))
+# (totalGramCover_plot_LF <- ggplot() + 
+#     geom_spatraster(data = totalGramCover_rast, aes(fill = mean), na.rm = TRUE) +
+#     theme_minimal() + 
+#     # xlim(c(-130, -65)) + 
+#     # ylim(c(25, 50))+
+#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,100)) +
+#     ggtitle("LANDFIRE", subtitle = "Total Herb. % Cover"))
 
 # C3 grass data --
 # raw C3 grass cover
@@ -213,13 +214,13 @@ c3gramCover_rast <- coverDat %>%
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, #terra::aggregate(test_rast, fact = 2, fun = "mean"), 
                    field = "C3GrmCv", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
+                fun = mean, na.rm = TRUE)   #  %>% 
+  # terra::crop(ext(-135, -60, 20, 55))
 (c3gramCover_plot_LF <- ggplot() + 
     geom_spatraster(data = c3gramCover_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
+    #xlim(c(-130, -65)) + 
+    #ylim(c(25, 50))+
     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
                          limits = c(0,100)) +
     ggtitle("LANDFIRE", subtitle = "C3 grass % Cover"))
@@ -233,14 +234,14 @@ c3gramProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, #terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-                   field = "C3GrmC_", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
+                   field = "C3GramCover_prop", 
+                   fun = mean, na.rm = TRUE) #%>% 
+  #terra::crop(ext(-135, -60, 20, 55))
 (c3gramProportion_plot_LF <- ggplot() + 
     geom_spatraster(data = c3gramProportion_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
+    #xlim(c(-130, -65)) + 
+    #ylim(c(25, 50))+
     scale_fill_viridis_c(option = "B", guide = guide_colorbar(title = "Prop. of herb. cover"), 
                          limits = c(0,1)) +
     ggtitle("LANDFIRE", subtitle = "Prop. of herb. cover that is C3"))
@@ -249,23 +250,23 @@ c3gramProportion_rast <- coverDat %>%
 # C4 grass data --
 # raw C4 grass cover
 # rasterize data
-C4gramCover_rast <- coverDat %>% 
-  filter(Source == "LANDFIRE") %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
-  #terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, #terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-                   field = "C4GrmCv", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(C4gramCover_plot_LF <- ggplot() + 
-    geom_spatraster(data = C4gramCover_rast, aes(fill = mean), na.rm = TRUE) +
-    theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
-    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
-                         limits = c(0,100)) +
-    ggtitle("LANDFIRE", subtitle = "C4 grass % Cover"))
+# C4gramCover_rast <- coverDat %>% 
+#   filter(Source == "LANDFIRE") %>% 
+#   #slice_sample(n = 5e4) %>%
+#   terra::vect() %>% 
+#   #terra::set.crs(crs(test_rast)) %>% 
+#   terra::rasterize(y = test_rast, #terra::aggregate(test_rast, fact = 2, fun = "mean"), 
+#                    field = "C4GrmCv", 
+#                    fun = mean, na.rm = TRUE) %>% 
+#   terra::crop(ext(-135, -60, 20, 55))
+# (C4gramCover_plot_LF <- ggplot() + 
+#     geom_spatraster(data = C4gramCover_rast, aes(fill = mean), na.rm = TRUE) +
+#     theme_minimal() + 
+#     xlim(c(-130, -65)) + 
+#     ylim(c(25, 50))+
+#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,100)) +
+#     ggtitle("LANDFIRE", subtitle = "C4 grass % Cover"))
 
 # C4 grass Prop. of tree cover
 # rasterize data
@@ -275,37 +276,37 @@ C4gramProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, #terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-                   field = "C4GrmC_", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
+                   field = "C4GramCover_prop", 
+                   fun = mean, na.rm = TRUE) #%>% 
+  #terra::crop(ext(-135, -60, 20, 55))
 (C4gramProportion_plot_LF <- ggplot() + 
     geom_spatraster(data = C4gramProportion_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
+   # xlim(c(-130, -65)) + 
+    #ylim(c(25, 50))+
     scale_fill_viridis_c(option = "B", guide = guide_colorbar(title = "Prop. of herb. cover"), 
                          limits = c(0,1)) +
     ggtitle("LANDFIRE", subtitle = "Prop. of herb. cover that is C4"))
 
 # forb data 
-# rasterize data
-forbCover_rast <- coverDat %>% 
-  filter(Source == "LANDFIRE") %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
-  #terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "ForbCvr", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(forbCover_plot_LF <- ggplot() + 
-    geom_spatraster(data = forbCover_rast, aes(fill = mean), na.rm = TRUE) +
-    theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
-    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
-                         limits = c(0,100)) +
-    ggtitle("LANDFIRE", subtitle = "Forb % Cover"))
+# # rasterize data
+# forbCover_rast <- coverDat %>% 
+#   filter(Source == "LANDFIRE") %>% 
+#   #slice_sample(n = 5e4) %>%
+#   terra::vect() %>% 
+#   #terra::set.crs(crs(test_rast)) %>% 
+#   terra::rasterize(y = test_rast, 
+#                    field = "ForbCvr", 
+#                    fun = mean, na.rm = TRUE) %>% 
+#   terra::crop(ext(-135, -60, 20, 55))
+# (forbCover_plot_LF <- ggplot() + 
+#     geom_spatraster(data = forbCover_rast, aes(fill = mean), na.rm = TRUE) +
+#     theme_minimal() + 
+#     xlim(c(-130, -65)) + 
+#     ylim(c(25, 50))+
+#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,100)) +
+#     ggtitle("LANDFIRE", subtitle = "Forb % Cover"))
 
 # forb proportion of herbaceous cover
 # rasterize data
@@ -315,14 +316,14 @@ forbProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, #terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-                   field = "FrbCvr_", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
+                   field = "ForbCover_prop", 
+                   fun = mean, na.rm = TRUE)# %>% 
+  #terra::crop(ext(-135, -60, 20, 55))
 (forbProportion_plot_LF <- ggplot() + 
     geom_spatraster(data = forbProportion_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
+    #xlim(c(-130, -65)) + 
+    #ylim(c(25, 50))+
     scale_fill_viridis_c(option = "B", guide = guide_colorbar(title = "Prop. of herb. cover"), 
                          limits = c(0,1)) +
     ggtitle("LANDFIRE", subtitle = "Prop. of herb. cover that is forbs"))
@@ -335,14 +336,14 @@ herbaceousCover_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "TtlHrbC", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
+                   field = "TotalHerbaceousCover", 
+                   fun = mean, na.rm = TRUE) #%>% 
+  #terra::crop(ext(-135, -60, 20, 55))
 (herbaceousCover_plot_LF <- ggplot() + 
     geom_spatraster(data = herbaceousCover_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
+    #xlim(c(-130, -65)) + 
+    #ylim(c(25, 50))+
     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
                          limits = c(0,100)) +
     ggtitle("LANDFIRE", subtitle = "Total Herb. % Cover"))
@@ -356,9 +357,9 @@ bareGroundCover_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "BrGrndC", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-130, -65, 25, 50))
+                   field = "BareGroundCover", 
+                   fun = mean, na.rm = TRUE) #%>% 
+  #terra::crop(ext(-130, -65, 25, 50))
 (bareGround_plot_LF <- ggplot() + 
     geom_spatraster(data = bareGroundCover_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
@@ -366,65 +367,46 @@ bareGroundCover_rast <- coverDat %>%
                          limits = c(0,100)) +
     ggtitle("LANDFIRE", subtitle = "Bare Ground % cover" ))
 
-# # CAM data -
-# # rasterize data
-# camCover_rast <- coverDat %>% 
-#   filter(Source == "LANDFIRE") %>% 
-#   #slice_sample(n = 5e4) %>%
-#   terra::vect() %>% 
-#   #terra::set.crs(crs(test_rast)) %>% 
-#   terra::rasterize(y =test_rast, # terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-#                    field = "CAMCovr", 
-#                    fun = mean, na.rm = TRUE) %>% 
-#   terra::crop(ext(-135, -60, 20, 55))
-# (camCover_plot_LF <- ggplot() + 
-#     geom_spatraster(data = camCover_rast, aes(fill = mean), na.rm = TRUE) +
-#     theme_minimal() + 
-#     xlim(c(-130, -65)) + 
-#     ylim(c(25, 50))+
-#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
-#                          limits = c(0,100)) +
-#     ggtitle("LANDFIRE", subtitle = "CAM species % cover"))
-
 # For FIA data ------------------------------------------------------------
 # total tree cover data 
 # rasterize data
 treeCover_rast <- coverDat %>% 
+  #filter(!is.na(TotalTreeCover)) %>% 
   filter(Source == "FIA") %>% 
   #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
+  #terra::vect(coords = c("x", "y")) %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "TtlTrCv", 
+                   field = "TotalTreeCover", 
                    fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-130, -65, 25, 50))
-(treeCov_plot_FIA <- ggplot() + 
+ terra::crop(ext(-130, -65, 25, 50))
+(treeCov_plot_LF <- ggplot() + 
     geom_spatraster(data = treeCover_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
-    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
-                         limits = c(0,100)) +
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
     ggtitle("FIA", subtitle = "Tree % cover"))
 
 # conifer tree data -
 # raw conifer cover
 # rasterize data
-conifCover_rast <- coverDat %>% 
-  filter(Source == "FIA") %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
-  #terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "CnfTrCv", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(conifCover_plot_FIA <- ggplot() + 
-    geom_spatraster(data = conifCover_rast, aes(fill = mean), na.rm = TRUE) +
-    theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
-    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
-                         limits = c(0,100)) +
-    ggtitle("FIA", subtitle = "Conifer % cover"))
+# conifCover_rast <- coverDat %>% 
+#   filter(Source == "FIA") %>% 
+#   #slice_sample(n = 5e4) %>%
+#   terra::vect() %>% 
+#   #terra::set.crs(crs(test_rast)) %>% 
+#   terra::rasterize(y = test_rast, 
+#                    field = "ConifTreeCover_prop", 
+#                    fun = mean, na.rm = TRUE) %>% 
+#   terra::crop(ext(-135, -60, 20, 55))
+# (conifCover_plot_LF <- ggplot() + 
+#     geom_spatraster(data = conifCover_rast, aes(fill = mean), na.rm = TRUE) +
+#     theme_minimal() + 
+#     xlim(c(-130, -65)) + 
+#     ylim(c(25, 50))+
+#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,100)) +
+#     ggtitle("FIA", subtitle = "Conifer % cover"))
 
 
 # conifer Prop. of tree cover
@@ -435,14 +417,14 @@ conifProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "CnfTrC_", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(conifProportion_plot_FIA <- ggplot() + 
+                   field = "ConifTreeCover_prop", 
+                   fun = mean, na.rm = TRUE) #%>% 
+#terra::crop(ext(-135, -60, 20, 55))
+(conifProportion_plot_LF <- ggplot() + 
     geom_spatraster(data = conifProportion_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
+    # xlim(c(-130, -65)) + 
+    # ylim(c(25, 50))+
     scale_fill_viridis_c(option = "B", guide = guide_colorbar(title = "Prop. of tree cover"), 
                          limits = c(0,1)) +
     ggtitle("FIA", subtitle = "Prop. of trees that are conifers"))
@@ -450,23 +432,23 @@ conifProportion_rast <- coverDat %>%
 # broad-leaved tree data --
 # raw deciduous cover
 # rasterize data
-decidCover_rast <- coverDat %>% 
-  filter(Source == "FIA") %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
-  #terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "AngTrCv", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(decidCover_plot_FIA <- ggplot() + 
-    geom_spatraster(data = decidCover_rast, aes(fill = mean), na.rm = TRUE) +
-    theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
-    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
-                         limits = c(0,100)) +
-    ggtitle("FIA", subtitle = "Deciduous % cover"))
+# decidCover_rast <- coverDat %>% 
+#   filter(Source == "FIA") %>% 
+#   #slice_sample(n = 5e4) %>%
+#   terra::vect() %>% 
+#   #terra::set.crs(crs(test_rast)) %>% 
+#   terra::rasterize(y = test_rast, 
+#                    field = "AngTrCv", 
+#                    fun = mean, na.rm = TRUE) %>% 
+#   terra::crop(ext(-135, -60, 20, 55))
+# (decidCover_plot_LF <- ggplot() + 
+#     geom_spatraster(data = decidCover_rast, aes(fill = mean), na.rm = TRUE) +
+#     theme_minimal() + 
+#     xlim(c(-130, -65)) + 
+#     ylim(c(25, 50))+
+#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,100)) +
+#     ggtitle("FIA", subtitle = "Deciduous % cover"))
 
 # deciduous Prop. of tree cover
 # rasterize data
@@ -476,14 +458,14 @@ decidProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "AngTrC_", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(decidProportion_plot_FIA <- ggplot() + 
+                   field = "AngioTreeCover_prop", 
+                   fun = mean, na.rm = TRUE) #%>% 
+#terra::crop(ext(-135, -60, 20, 55))
+(decidProportion_plot_LF <- ggplot() + 
     geom_spatraster(data = decidProportion_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
+    #xlim(c(-130, -65)) + 
+    # ylim(c(25, 50))+
     scale_fill_viridis_c(option = "B", guide = guide_colorbar(title = "Prop. of tree cover"), 
                          limits = c(0,1)) +
     ggtitle("FIA", subtitle = "Prop. of trees that are deciduous"))
@@ -497,38 +479,37 @@ shrubCover_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "ShrbCvr", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(shrubCover_plot_FIA <- ggplot() + 
+                   field = "ShrubCover", 
+                   fun = mean, na.rm = TRUE)# %>% 
+#terra::crop(ext(-135, -60, 20, 55))
+(shrubCover_plot_LF <- ggplot() + 
     geom_spatraster(data = shrubCover_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
+    # xlim(c(-130, -65)) + 
+    # ylim(c(25, 50))+
     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
                          limits = c(0,100)) +
     ggtitle("FIA", subtitle = "Shrub % Cover"))
 
 # graminoid data -
 # rasterize data
-totalGramCover_rast <- coverDat %>% 
-  filter(Source == "FIA") %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
-  #terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "TtlHrbC", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(totalGramCover_plot_FIA <- ggplot() + 
-    geom_spatraster(data = totalGramCover_rast, aes(fill = mean), na.rm = TRUE) +
-    theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
-    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
-                         limits = c(0,100)) +
-    ggtitle("FIA", subtitle = "Total Herb. % Cover"))
-
+# totalGramCover_rast <- coverDat %>% 
+#   filter(Source == "FIA") %>% 
+#   #slice_sample(n = 5e4) %>%
+#   terra::vect() %>% 
+#   #terra::set.crs(crs(test_rast)) %>% 
+#   terra::rasterize(y = test_rast, 
+#                    field = "TotalHerbaceousCover", 
+#                    fun = mean, na.rm = TRUE) #%>% 
+#   #terra::crop(ext(-135, -60, 20, 55))
+# (totalGramCover_plot_LF <- ggplot() + 
+#     geom_spatraster(data = totalGramCover_rast, aes(fill = mean), na.rm = TRUE) +
+#     theme_minimal() + 
+#     # xlim(c(-130, -65)) + 
+#     # ylim(c(25, 50))+
+#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,100)) +
+#     ggtitle("FIA", subtitle = "Total Herb. % Cover"))
 
 # C3 grass data --
 # raw C3 grass cover
@@ -540,13 +521,13 @@ c3gramCover_rast <- coverDat %>%
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, #terra::aggregate(test_rast, fact = 2, fun = "mean"), 
                    field = "C3GrmCv", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(c3gramCover_plot_FIA <- ggplot() + 
+                   fun = mean, na.rm = TRUE)   #  %>% 
+# terra::crop(ext(-135, -60, 20, 55))
+(c3gramCover_plot_LF <- ggplot() + 
     geom_spatraster(data = c3gramCover_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
+    #xlim(c(-130, -65)) + 
+    #ylim(c(25, 50))+
     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
                          limits = c(0,100)) +
     ggtitle("FIA", subtitle = "C3 grass % Cover"))
@@ -560,14 +541,14 @@ c3gramProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, #terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-                   field = "C3GrmC_", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(c3gramProportion_plot_FIA <- ggplot() + 
+                   field = "C3GramCover_prop", 
+                   fun = mean, na.rm = TRUE) #%>% 
+#terra::crop(ext(-135, -60, 20, 55))
+(c3gramProportion_plot_LF <- ggplot() + 
     geom_spatraster(data = c3gramProportion_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
+    #xlim(c(-130, -65)) + 
+    #ylim(c(25, 50))+
     scale_fill_viridis_c(option = "B", guide = guide_colorbar(title = "Prop. of herb. cover"), 
                          limits = c(0,1)) +
     ggtitle("FIA", subtitle = "Prop. of herb. cover that is C3"))
@@ -576,23 +557,23 @@ c3gramProportion_rast <- coverDat %>%
 # C4 grass data --
 # raw C4 grass cover
 # rasterize data
-C4gramCover_rast <- coverDat %>% 
-  filter(Source == "FIA") %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
-  #terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, #terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-                   field = "C4GrmCv", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(C4gramCover_plot_FIA <- ggplot() + 
-    geom_spatraster(data = C4gramCover_rast, aes(fill = mean), na.rm = TRUE) +
-    theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
-    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
-                         limits = c(0,100)) +
-    ggtitle("FIA", subtitle = "C4 grass % Cover"))
+# C4gramCover_rast <- coverDat %>% 
+#   filter(Source == "FIA") %>% 
+#   #slice_sample(n = 5e4) %>%
+#   terra::vect() %>% 
+#   #terra::set.crs(crs(test_rast)) %>% 
+#   terra::rasterize(y = test_rast, #terra::aggregate(test_rast, fact = 2, fun = "mean"), 
+#                    field = "C4GrmCv", 
+#                    fun = mean, na.rm = TRUE) %>% 
+#   terra::crop(ext(-135, -60, 20, 55))
+# (C4gramCover_plot_LF <- ggplot() + 
+#     geom_spatraster(data = C4gramCover_rast, aes(fill = mean), na.rm = TRUE) +
+#     theme_minimal() + 
+#     xlim(c(-130, -65)) + 
+#     ylim(c(25, 50))+
+#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,100)) +
+#     ggtitle("FIA", subtitle = "C4 grass % Cover"))
 
 # C4 grass Prop. of tree cover
 # rasterize data
@@ -602,37 +583,37 @@ C4gramProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, #terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-                   field = "C4GrmC_", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(C4gramProportion_plot_FIA <- ggplot() + 
+                   field = "C4GramCover_prop", 
+                   fun = mean, na.rm = TRUE) #%>% 
+#terra::crop(ext(-135, -60, 20, 55))
+(C4gramProportion_plot_LF <- ggplot() + 
     geom_spatraster(data = C4gramProportion_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
+    # xlim(c(-130, -65)) + 
+    #ylim(c(25, 50))+
     scale_fill_viridis_c(option = "B", guide = guide_colorbar(title = "Prop. of herb. cover"), 
                          limits = c(0,1)) +
     ggtitle("FIA", subtitle = "Prop. of herb. cover that is C4"))
 
 # forb data 
-# rasterize data
-forbCover_rast <- coverDat %>% 
-  filter(Source == "FIA") %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
-  #terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "ForbCvr", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(forbCover_plot_FIA <- ggplot() + 
-    geom_spatraster(data = forbCover_rast, aes(fill = mean), na.rm = TRUE) +
-    theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
-    scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
-                         limits = c(0,100)) +
-    ggtitle("FIA", subtitle = "Forb % Cover"))
+# # rasterize data
+# forbCover_rast <- coverDat %>% 
+#   filter(Source == "FIA") %>% 
+#   #slice_sample(n = 5e4) %>%
+#   terra::vect() %>% 
+#   #terra::set.crs(crs(test_rast)) %>% 
+#   terra::rasterize(y = test_rast, 
+#                    field = "ForbCvr", 
+#                    fun = mean, na.rm = TRUE) %>% 
+#   terra::crop(ext(-135, -60, 20, 55))
+# (forbCover_plot_LF <- ggplot() + 
+#     geom_spatraster(data = forbCover_rast, aes(fill = mean), na.rm = TRUE) +
+#     theme_minimal() + 
+#     xlim(c(-130, -65)) + 
+#     ylim(c(25, 50))+
+#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,100)) +
+#     ggtitle("FIA", subtitle = "Forb % Cover"))
 
 # forb proportion of herbaceous cover
 # rasterize data
@@ -642,14 +623,14 @@ forbProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, #terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-                   field = "FrbCvr_", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(forbProportion_plot_FIA <- ggplot() + 
+                   field = "ForbCover_prop", 
+                   fun = mean, na.rm = TRUE)# %>% 
+#terra::crop(ext(-135, -60, 20, 55))
+(forbProportion_plot_LF <- ggplot() + 
     geom_spatraster(data = forbProportion_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
+    #xlim(c(-130, -65)) + 
+    #ylim(c(25, 50))+
     scale_fill_viridis_c(option = "B", guide = guide_colorbar(title = "Prop. of herb. cover"), 
                          limits = c(0,1)) +
     ggtitle("FIA", subtitle = "Prop. of herb. cover that is forbs"))
@@ -662,17 +643,18 @@ herbaceousCover_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "TtlHrbC", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-135, -60, 20, 55))
-(herbaceousCover_plot_FIA <- ggplot() + 
+                   field = "TotalHerbaceousCover", 
+                   fun = mean, na.rm = TRUE) #%>% 
+#terra::crop(ext(-135, -60, 20, 55))
+(herbaceousCover_plot_LF <- ggplot() + 
     geom_spatraster(data = herbaceousCover_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
-    xlim(c(-130, -65)) + 
-    ylim(c(25, 50))+
+    #xlim(c(-130, -65)) + 
+    #ylim(c(25, 50))+
     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
                          limits = c(0,100)) +
     ggtitle("FIA", subtitle = "Total Herb. % Cover"))
+
 
 # bare ground coverdata 
 # rasterize data
@@ -682,36 +664,15 @@ bareGroundCover_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "BrGrndC", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-130, -65, 25, 50))
-(bareGround_plot_FIA <- ggplot() + 
+                   field = "BareGroundCover", 
+                   fun = mean, na.rm = TRUE) #%>% 
+#terra::crop(ext(-130, -65, 25, 50))
+(bareGround_plot_LF <- ggplot() + 
     geom_spatraster(data = bareGroundCover_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
                          limits = c(0,100)) +
     ggtitle("FIA", subtitle = "Bare Ground % cover" ))
-
-# # CAM data -
-# # rasterize data
-# camCover_rast <- coverDat %>% 
-#   filter(Source == "FIA") %>% 
-#   #slice_sample(n = 5e4) %>%
-#   terra::vect() %>% 
-#   #terra::set.crs(crs(test_rast)) %>% 
-#   terra::rasterize(y =test_rast, # terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-#                    field = "CAMCovr", 
-#                    fun = mean, na.rm = TRUE) %>% 
-#   terra::crop(ext(-135, -60, 20, 55))
-# (camCover_plot_FIA <- ggplot() + 
-#     geom_spatraster(data = camCover_rast, aes(fill = mean), na.rm = TRUE) +
-#     theme_minimal() + 
-#     xlim(c(-130, -65)) + 
-#     ylim(c(25, 50))+
-#     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
-#                          limits = c(0,100)) +
-#     ggtitle("FIA", subtitle = "CAM species % cover"))
-
 # For AIM/LDC Data --------------------------------------------------------
 # total tree cover data 
 # rasterize data
@@ -721,7 +682,7 @@ treeCover_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "TtlTrCv", 
+                   field = "TotalTreeCover", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-130, -65, 25, 50))
 (treeCov_plot_AIM <- ggplot() + 
@@ -740,7 +701,7 @@ conifCover_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "CnfTrCv", 
+                   field = "ConifTreeCover_prop", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-135, -60, 20, 55))
 (conifCover_plot_AIM <- ggplot() + 
@@ -761,7 +722,7 @@ conifProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "CnfTrC_", 
+                   field = "ConifTreeCover_prop", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-135, -60, 20, 55))
 (conifProportion_plot_AIM <- ggplot() + 
@@ -802,7 +763,7 @@ decidProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "AngTrC_", 
+                   field = "AngioTreeCover_prop", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-135, -60, 20, 55))
 (decidProportion_plot_AIM <- ggplot() + 
@@ -823,7 +784,7 @@ shrubCover_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "ShrbCvr", 
+                   field = "ShrubCover", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-135, -60, 20, 55))
 (shrubCover_plot_AIM <- ggplot() + 
@@ -843,7 +804,7 @@ totalGramCover_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "TtlHrbC", 
+                   field = "TotalHerbaceousCover", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-135, -60, 20, 55))
 (totalGramCover_plot_AIM <- ggplot() + 
@@ -886,7 +847,7 @@ c3gramProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, #terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-                   field = "C3GrmC_", 
+                   field = "C3GramCover_prop", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-135, -60, 20, 55))
 (c3gramProportion_plot_AIM <- ggplot() + 
@@ -928,7 +889,7 @@ C4gramProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, #terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-                   field = "C4GrmC_", 
+                   field = "C4GramCover_prop", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-135, -60, 20, 55))
 (C4gramProportion_plot_AIM <- ggplot() + 
@@ -968,7 +929,7 @@ forbProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, #terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-                   field = "FrbCvr_", 
+                   field = "ForbCover_prop", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-135, -60, 20, 55))
 (forbProportion_plot_AIM <- ggplot() + 
@@ -988,7 +949,7 @@ herbaceousCover_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "TtlHrbC", 
+                   field = "TotalHerbaceousCover", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-135, -60, 20, 55))
 (herbaceousCover_plot_AIM <- ggplot() + 
@@ -1009,7 +970,7 @@ bareGroundCover_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "BrGrndC", 
+                   field = "BareGroundCover", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-130, -65, 25, 50))
 (bareGround_plot_AIM <- ggplot() + 
@@ -1048,7 +1009,7 @@ treeCover_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "TtlTrCv", 
+                   field = "TotalTreeCover", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-130, -65, 25, 50))
 (treeCov_plot_RAP <- ggplot() + 
@@ -1070,7 +1031,7 @@ conifCover_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "CnfTrCv", 
+                   field = "ConifTreeCover_prop", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-135, -60, 20, 55))
 (conifCover_plot_RAP <- ggplot() + 
@@ -1091,7 +1052,7 @@ conifProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "CnfTrC_", 
+                   field = "ConifTreeCover_prop", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-135, -60, 20, 55))
 (conifProportion_plot_RAP <- ggplot() + 
@@ -1132,7 +1093,7 @@ decidProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "AngTrC_", 
+                   field = "AngioTreeCover_prop", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-135, -60, 20, 55))
 (decidProportion_plot_RAP <- ggplot() + 
@@ -1153,7 +1114,7 @@ shrubCover_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "ShrbCvr", 
+                   field = "ShrubCover", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-135, -60, 20, 55))
 (shrubCover_plot_RAP <- ggplot() + 
@@ -1173,7 +1134,7 @@ totalGramCover_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "TtlHrbC", 
+                   field = "TotalHerbaceousCover", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-135, -60, 20, 55))
 (totalGramCover_plot_RAP <- ggplot() + 
@@ -1216,7 +1177,7 @@ c3gramProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, #terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-                   field = "C3GrmC_", 
+                   field = "C3GramCover_prop", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-135, -60, 20, 55))
 (c3gramProportion_plot_RAP <- ggplot() + 
@@ -1258,7 +1219,7 @@ C4gramProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, #terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-                   field = "C4GrmC_", 
+                   field = "C4GramCover_prop", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-135, -60, 20, 55))
 (C4gramProportion_plot_RAP <- ggplot() + 
@@ -1298,7 +1259,7 @@ forbProportion_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, #terra::aggregate(test_rast, fact = 2, fun = "mean"), 
-                   field = "FrbCvr_", 
+                   field = "ForbCover_prop", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-135, -60, 20, 55))
 (forbProportion_plot_RAP <- ggplot() + 
@@ -1318,7 +1279,7 @@ herbaceousCover_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "TtlHrbC", 
+                   field = "TotalHerbaceousCover", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-135, -60, 20, 55))
 (herbaceousCover_plot_RAP <- ggplot() + 
@@ -1339,7 +1300,7 @@ bareGroundCover_rast <- coverDat %>%
   terra::vect() %>% 
   #terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
-                   field = "BrGrndC", 
+                   field = "BareGroundCover", 
                    fun = mean, na.rm = TRUE) %>% 
   terra::crop(ext(-130, -65, 25, 50))
 (bareGround_plot_RAP <- ggplot() + 
@@ -1397,13 +1358,13 @@ coverDatAvg <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAverag
 # total tree cover data 
 # rasterize data
 treeCover_rast <- coverDatAvg %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
-  #terra::set.crs(crs(test_rast)) %>% 
+  slice_sample(n = 5e4) %>%
+  terra::vect(geom = c("x", "y")) %>% 
+  terra::set.crs(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "TotalTreeCover", 
-                   fun = mean, na.rm = TRUE) %>% 
-  terra::crop(ext(-128, -65, 23, 51))
+                   fun = mean, na.rm = TRUE) #%>% 
+  #terra::crop(ext(-128, -65, 23, 51))
 (treeCov_plot_AVG <- ggplot() + 
     geom_spatraster(data = treeCover_rast, aes(fill = mean), na.rm = TRUE) +
     theme_minimal() + 
@@ -1595,22 +1556,22 @@ ggarrange(
 treeCov_dens_AIM <- coverDat %>% 
   filter(Source == "LDC") %>% 
   ggplot() + 
-  geom_density(aes(TtlTrCv)) + 
+  geom_density(aes(TotalTreeCover)) + 
   labs(title = "Total tree cover - \nAIM")
 treeCov_dens_FIA <- coverDat %>% 
   filter(Source == "FIA") %>% 
   ggplot() + 
-  geom_density(aes(TtlTrCv)) + 
+  geom_density(aes(TotalTreeCover)) + 
   labs(title = "Total tree cover - \nFIA")
 treeCov_dens_LF <- coverDat %>% 
   filter(Source == "LANDFIRE") %>% 
   ggplot() + 
-  geom_density(aes(TtlTrCv)) + 
+  geom_density(aes(TotalTreeCover)) + 
   labs(title = "Total tree cover - \nLANDFIRE")
 treeCov_dens_RAP <- coverDat %>% 
   filter(Source == "RAP") %>% 
   ggplot() + 
-  geom_density(aes(TtlTrCv)) + 
+  geom_density(aes(TotalTreeCover)) + 
   labs(title = "Total tree cover - \nRAP")
 treeCov_dens_AVG <- coverDatAvg %>% 
   ggplot() + 
@@ -1619,27 +1580,27 @@ treeCov_dens_AVG <- coverDatAvg %>%
 # when curtailing v. high and v. low values
 treeCov_densFilt_AIM <- coverDat %>% 
   filter(Source == "LDC") %>% 
-  filter(TtlTrCv > 10 & TtlTrCv < 90) %>% 
+  filter(TotalTreeCover > 10 & TotalTreeCover < 90) %>% 
   ggplot() + 
-  geom_density(aes(TtlTrCv)) + 
+  geom_density(aes(TotalTreeCover)) + 
   labs(title = "Total tree cover > 10 and < 90 - \nAIM ")
 treeCov_densFilt_FIA <- coverDat %>% 
   filter(Source == "FIA") %>% 
-  filter(TtlTrCv > 10 & TtlTrCv < 90) %>% 
+  filter(TotalTreeCover > 10 & TotalTreeCover < 90) %>% 
   ggplot() + 
-  geom_density(aes(TtlTrCv)) + 
+  geom_density(aes(TotalTreeCover)) + 
   labs(title = "Total tree cover > 10 and < 90 - \nFIA")
 treeCov_densFilt_LF <- coverDat %>% 
   filter(Source == "LANDFIRE") %>% 
-  filter(TtlTrCv > 10 & TtlTrCv < 90) %>% 
+  filter(TotalTreeCover > 10 & TotalTreeCover < 90) %>% 
   ggplot() + 
-  geom_density(aes(TtlTrCv)) + 
+  geom_density(aes(TotalTreeCover)) + 
   labs(title = "Total tree cover > 10 and < 90 - \nLANDFIRE")
 treeCov_densFilt_RAP <- coverDat %>% 
   filter(Source == "RAP") %>% 
-  filter(TtlTrCv > 10 & TtlTrCv < 90) %>% 
+  filter(TotalTreeCover > 10 & TotalTreeCover < 90) %>% 
   ggplot() + 
-  geom_density(aes(TtlTrCv)) + 
+  geom_density(aes(TotalTreeCover)) + 
   labs(title = "Total tree cover > 10 and < 90 - \nRAP")
 treeCov_densFilt_AVG <- coverDatAvg %>% 
   filter(TotalTreeCover > 10 & TotalTreeCover < 90) %>% 
@@ -1659,47 +1620,47 @@ ggarrange(
 conifCover_dens_AIM <- coverDat %>% 
   filter(Source == "LDC") %>% 
   ggplot() + 
-  geom_density(aes(CnfTrCv)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Abs. Conifer Cover - \nAIM")
 conifCover_dens_FIA <- coverDat %>% 
   filter(Source == "FIA") %>% 
   ggplot() + 
-  geom_density(aes(CnfTrCv)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Abs. Conifer Cover - \nFIA")
 conifCover_dens_LF <- coverDat %>% 
   filter(Source == "LANDFIRE") %>% 
   ggplot() + 
-  geom_density(aes(CnfTrCv)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Abs. Conifer Cover - \nLANDFIRE")
 conifCover_dens_RAP <- coverDat %>% 
   filter(Source == "RAP") %>% 
   ggplot() + 
-  geom_density(aes(CnfTrCv)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Abs. Conifer Cover - \nRAP")
 # when curtailing v. high and v. low values
 conifCover_densFilt_AIM <- coverDat %>% 
   filter(Source == "LDC") %>% 
-  filter(CnfTrCv > 10 & CnfTrCv < 90) %>% 
+  filter(ConifTreeCover_prop > 10 & ConifTreeCover_prop < 90) %>% 
   ggplot() + 
-  geom_density(aes(CnfTrCv)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Abs. Conifer cover > 10 and < 90 - \nAIM")
 conifCover_densFilt_FIA <- coverDat %>% 
   filter(Source == "FIA") %>% 
-  filter(CnfTrCv > 10 & CnfTrCv < 90) %>% 
+  filter(ConifTreeCover_prop > 10 & ConifTreeCover_prop < 90) %>% 
   ggplot() + 
-  geom_density(aes(CnfTrCv)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Abs. Conifer cover > 10 and < 90 - \nFIA")
 conifCover_densFilt_LF <- coverDat %>% 
   filter(Source == "LANDFIRE") %>% 
-  filter(CnfTrCv > 10 & CnfTrCv < 90) %>% 
+  filter(ConifTreeCover_prop > 10 & ConifTreeCover_prop < 90) %>% 
   ggplot() + 
-  geom_density(aes(CnfTrCv)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Abs. Conifer cover > 10 and < 90 - \nLANDFIRE")
 conifCover_densFilt_RAP <- coverDat %>% 
   filter(Source == "RAP") %>% 
-  filter(CnfTrCv > 10 & CnfTrCv < 90) %>% 
+  filter(ConifTreeCover_prop > 10 & ConifTreeCover_prop < 90) %>% 
   ggplot() + 
-  geom_density(aes(CnfTrCv)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Abs. Conifer cover > 10 and < 90 - \nRAP")
 ggarrange(
   ggarrange(conifCover_plot_AIM, conifCover_plot_FIA, conifCover_plot_LF, conifCover_plot_RAP, ncol = 1, common.legend = TRUE), 
@@ -1713,22 +1674,22 @@ ggarrange(
 conifProportion_dens_AIM <- coverDat %>% 
   filter(Source == "LDC") %>% 
   ggplot() + 
-  geom_density(aes(CnfTrC_)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Prop. of cover that is NL - \nAIM")
 conifProportion_dens_FIA <- coverDat %>% 
   filter(Source == "FIA") %>% 
   ggplot() + 
-  geom_density(aes(CnfTrC_)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Prop. of cover that is NL - \nFIA")
 conifProportion_dens_LF <- coverDat %>% 
   filter(Source == "LANDFIRE") %>% 
   ggplot() + 
-  geom_density(aes(CnfTrC_)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Prop. of cover that is NL - \nLANDFIRE")
 conifProportion_dens_RAP <- coverDat %>% 
   filter(Source == "RAP") %>% 
   ggplot() + 
-  geom_density(aes(CnfTrC_)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Prop. of cover that is NL - \nRAP")
 conifProportion_dens_AVG <- coverDatAvg %>% 
   ggplot() + 
@@ -1737,27 +1698,27 @@ conifProportion_dens_AVG <- coverDatAvg %>%
 # when curtailing v. high and v. low values
 conifProportion_densFilt_AIM <- coverDat %>% 
   filter(Source == "LDC") %>% 
-  filter(CnfTrC_ > .1 & CnfTrC_ < .9) %>% 
+  filter(ConifTreeCover_prop > .1 & ConifTreeCover_prop < .9) %>% 
   ggplot() + 
-  geom_density(aes(CnfTrC_)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Prop. of cover that is NL > .1 and < .9 - \nAIM")
 conifProportion_densFilt_FIA <- coverDat %>% 
   filter(Source == "FIA") %>% 
-  filter(CnfTrC_ > .1 & CnfTrC_ < .9) %>% 
+  filter(ConifTreeCover_prop > .1 & ConifTreeCover_prop < .9) %>% 
   ggplot() + 
-  geom_density(aes(CnfTrC_)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Prop. of cover that is NL > .1 and < .9 - \nFIA")
 conifProportion_densFilt_LF <- coverDat %>% 
   filter(Source == "LANDFIRE") %>% 
-  filter(CnfTrC_ > .1 & CnfTrC_ < .9) %>% 
+  filter(ConifTreeCover_prop > .1 & ConifTreeCover_prop < .9) %>% 
   ggplot() + 
-  geom_density(aes(CnfTrC_)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Prop. of cover that is NL > .1 and < .9 - \nLANDFIRE")
 conifProportion_densFilt_RAP <- coverDat %>% 
   filter(Source == "RAP") %>% 
-  filter(CnfTrC_ > .1 & CnfTrC_ < .9) %>% 
+  filter(ConifTreeCover_prop > .1 & ConifTreeCover_prop < .9) %>% 
   ggplot() + 
-  geom_density(aes(CnfTrC_)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Prop. of cover that is NL > .1 and < .9 - \nRAP")
 conifProportion_densFilt_AVG <- coverDatAvg %>% 
   filter(ConifTreeCover_prop > .1 & ConifTreeCover_prop < .9) %>% 
@@ -1777,47 +1738,47 @@ ggarrange(
 decidCover_dens_AIM <- coverDat %>% 
   filter(Source == "LDC") %>% 
   ggplot() + 
-  geom_density(aes(CnfTrCv)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Abs. broad-leaved Cover - \nAIM")
 decidCover_dens_FIA <- coverDat %>% 
   filter(Source == "FIA") %>% 
   ggplot() + 
-  geom_density(aes(CnfTrCv)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Abs. broad-leaved Cover - \nFIA")
 decidCover_dens_LF <- coverDat %>% 
   filter(Source == "LANDFIRE") %>% 
   ggplot() + 
-  geom_density(aes(CnfTrCv)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Abs. broad-leaved Cover - \nLANDFIRE")
 decidCover_dens_RAP <- coverDat %>% 
   filter(Source == "RAP") %>% 
   ggplot() + 
-  geom_density(aes(CnfTrCv)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Abs. broad-leaved Cover - \nRAP")
 # when curtailing v. high and v. low values
 decidCover_densFilt_AIM <- coverDat %>% 
   filter(Source == "LDC") %>% 
-  filter(CnfTrCv > 10 & CnfTrCv < 90) %>% 
+  filter(ConifTreeCover_prop > 10 & ConifTreeCover_prop < 90) %>% 
   ggplot() + 
-  geom_density(aes(CnfTrCv)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Abs. broad-leaved cover > 10 and < 90 - \nAIM")
 decidCover_densFilt_FIA <- coverDat %>% 
   filter(Source == "FIA") %>% 
-  filter(CnfTrCv > 10 & CnfTrCv < 90) %>% 
+  filter(ConifTreeCover_prop > 10 & ConifTreeCover_prop < 90) %>% 
   ggplot() + 
-  geom_density(aes(CnfTrCv)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Abs. broad-leaved cover > 10 and < 90 - \nFIA")
 decidCover_densFilt_LF <- coverDat %>% 
   filter(Source == "LANDFIRE") %>% 
-  filter(CnfTrCv > 10 & CnfTrCv < 90) %>% 
+  filter(ConifTreeCover_prop > 10 & ConifTreeCover_prop < 90) %>% 
   ggplot() + 
-  geom_density(aes(CnfTrCv)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Abs. broad-leaved cover > 10 and < 90 - \nLANDFIRE")
 decidCover_densFilt_RAP <- coverDat %>% 
   filter(Source == "RAP") %>% 
-  filter(CnfTrCv > 10 & CnfTrCv < 90) %>% 
+  filter(ConifTreeCover_prop > 10 & ConifTreeCover_prop < 90) %>% 
   ggplot() + 
-  geom_density(aes(CnfTrCv)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Abs. broad-leaved cover > 10 and < 90 - \nRAP")
 ggarrange(
   ggarrange(decidCover_plot_AIM, decidCover_plot_FIA, decidCover_plot_LF, decidCover_plot_RAP, ncol = 1, common.legend = TRUE), 
@@ -1831,22 +1792,22 @@ ggarrange(
 decidProportion_dens_AIM <- coverDat %>% 
   filter(Source == "LDC") %>% 
   ggplot() + 
-  geom_density(aes(CnfTrC_)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Prop. of cover that is BL - \nAIM")
 decidProportion_dens_FIA <- coverDat %>% 
   filter(Source == "FIA") %>% 
   ggplot() + 
-  geom_density(aes(CnfTrC_)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Prop. of cover that is BL - \nFIA")
 decidProportion_dens_LF <- coverDat %>% 
   filter(Source == "LANDFIRE") %>% 
   ggplot() + 
-  geom_density(aes(CnfTrC_)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Prop. of cover that is BL - \nLANDFIRE")
 decidProportion_dens_RAP <- coverDat %>% 
   filter(Source == "RAP") %>% 
   ggplot() + 
-  geom_density(aes(CnfTrC_)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Prop. of cover that is BL - \nRAP")
 decidProportion_dens_AVG <- coverDatAvg %>% 
   ggplot() + 
@@ -1855,27 +1816,27 @@ decidProportion_dens_AVG <- coverDatAvg %>%
 # when curtailing v. high and v. low values
 decidProportion_densFilt_AIM <- coverDat %>% 
   filter(Source == "LDC") %>% 
-  filter(CnfTrC_ > .1 & CnfTrC_ < .9) %>% 
+  filter(ConifTreeCover_prop > .1 & ConifTreeCover_prop < .9) %>% 
   ggplot() + 
-  geom_density(aes(CnfTrC_)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Prop. of cover that is BL > .1 and < .9 - \nAIM")
 decidProportion_densFilt_FIA <- coverDat %>% 
   filter(Source == "FIA") %>% 
-  filter(CnfTrC_ > .1 & CnfTrC_ < .9) %>% 
+  filter(ConifTreeCover_prop > .1 & ConifTreeCover_prop < .9) %>% 
   ggplot() + 
-  geom_density(aes(CnfTrC_)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Prop. of cover that is BL > .1 and < .9 - \nFIA")
 decidProportion_densFilt_LF <- coverDat %>% 
   filter(Source == "LANDFIRE") %>% 
-  filter(CnfTrC_ > .1 & CnfTrC_ < .9) %>% 
+  filter(ConifTreeCover_prop > .1 & ConifTreeCover_prop < .9) %>% 
   ggplot() + 
-  geom_density(aes(CnfTrC_)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Prop. of cover that is BL > .1 and < .9 - \nLANDFIRE")
 decidProportion_densFilt_RAP <- coverDat %>% 
   filter(Source == "RAP") %>% 
-  filter(CnfTrC_ > .1 & CnfTrC_ < .9) %>% 
+  filter(ConifTreeCover_prop > .1 & ConifTreeCover_prop < .9) %>% 
   ggplot() + 
-  geom_density(aes(CnfTrC_)) + 
+  geom_density(aes(ConifTreeCover_prop)) + 
   labs(title = "Prop. of cover that is BL > .1 and < .9 - \nRAP")
 decidProportion_densFilt_AVG <- coverDatAvg %>% 
   filter(AngioTreeCover_prop > .1 & AngioTreeCover_prop < .9) %>% 
@@ -1890,3 +1851,6 @@ ggarrange(
   ncol = 3, 
   widths = c(1, .5, .5)
 )
+
+
+
