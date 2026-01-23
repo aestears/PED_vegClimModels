@@ -510,15 +510,15 @@ points_sf <- points_sf %>%
 # climVar <- readRDS(file="./Data_processed/CoverData/dayMet_intermediate/climateValuesForAnalysis_monthly.rds")
 # 
 # 
-# # fix issue w/ prcp_seasonality and prcpTempCorr --------------------------
-# # precip seasonality
-# # Plot annual precip against precip seasonality to see what the values look like as it approaches 0…
-# # climVar %>%
-# #   slice_sample(n = 500000) %>%
-# #   ggplot() +
-# #   geom_point(aes(x = totalAnnPrecip, y = precip_Seasonality), alpha = .3) +
-# #   geom_smooth(aes(y = precip_Seasonality, x = totalAnnPrecip))
-# # as precip gets closer to 0, seasonality goes up (the average is 2), so that's what I'll change the NA values to
+# fix issue w/ prcp_seasonality and prcpTempCorr --------------------------
+# precip seasonality
+# Plot annual precip against precip seasonality to see what the values look like as it approaches 0…
+# climVar %>%
+#   slice_sample(n = 500000) %>%
+#   ggplot() +
+#   geom_point(aes(x = totalAnnPrecip, y = precip_Seasonality), alpha = .3) +
+#   geom_smooth(aes(y = precip_Seasonality, x = totalAnnPrecip))
+# as precip gets closer to 0, seasonality goes up (the average is 2), so that's what I'll change the NA values to
 # climVar[is.na(climVar$precip_Seasonality), "precip_Seasonality"] <- 2
 # 
 # # precip temp corr
@@ -576,7 +576,7 @@ points_sf <- points_sf %>%
 # #plan(multicore, workers = detectCores()-6)
 # 
 # # run parallel process
-# endDats <- as.matrix(c(2011:2023))
+# endDats <- as.matrix(c(2011:2024))
 # 
 # annMeans <- #future_lapply
 #   mclapply(X = endDats, #MARGIN = 1,
@@ -597,7 +597,7 @@ points_sf <- points_sf %>%
 # # put together into one list
 # annMeans_all <- c(annMeans, annMeans_2)
 # 
-# names(annMeans_all) <- c(2011:2023, 2000:2010)
+# names(annMeans_all) <- c(2011:2024, 2000:2010)
 # annMeans_30yr_temp1 <- lapply(endDats, function(x) {
 #   temp <- cbind(annMeans_all[[as.character(x)]], x)
 #   temp$Start <- x-31
@@ -622,7 +622,7 @@ points_sf <- points_sf %>%
 # 
 # # for last 3-year window
 # # start in 2000, since we only have climate data starting then anyway
-# endDats <- as.matrix(c(2000:2023))
+# endDats <- as.matrix(c(2000:2024))
 # annMeans <-
 #   mclapply(X = endDats,
 #            FUN = function(x)
@@ -633,7 +633,7 @@ points_sf <- points_sf %>%
 # # annMeans <- apply(endDats, MARGIN = 1, FUN = function(x)
 # #   slidingMetMeans(inDat = climVar, start = as.numeric(x-4), end = as.numeric(x))
 # # )
-# names(annMeans) <- c(2000:2023)
+# names(annMeans) <- c(2000:2024)
 # 
 # annMeans_3yr <- lapply(endDats, function(x) {
 #   temp <- cbind(annMeans[[as.character(x)]], x)
@@ -783,18 +783,18 @@ points_sf <- points_sf %>%
 # # save climate values for analysis
 # saveRDS(climDatNew, "./Data_processed/CoverData/dayMetClimateValuesForAnalysis_final.rds")
 # #climDatNew <- readRDS("./Data_processed/CoverData/dayMetClimateValuesForAnalysis_final.rds")
-# 
-# 
-# # Determine accuracy of 'fixes' for precip seasonality and precipT --------
-# # precipSeasonalityDat <- climDatNew %>%
-# #   select(year, Long, Lat, precip_Seasonality_meanAnnAvg_CLIM, precip_Seasonality_meanAnnAvg_2yr,
-# #          precip_Seasonality_meanAnnAvg_3yr, precip_Seasonality_meanAnnAvg_29yr,
-# #          precip_Seasonality_meanAnnAvg_3yrAnom, precip_Seasonality_meanAnnAvg_2yrAnom)
-# #
-# # precipSeasonalityDat %>%
-# #   filter(year %in% c(2020:2023)) %>%
-# #   ggplot() +
-# #   geom_point(aes(Long, Lat, col = precip_Seasonality_meanAnnAvg_CLIM))
+
+
+# Determine accuracy of 'fixes' for precip seasonality and precipT --------
+# precipSeasonalityDat <- climDatNew %>%
+#   select(year, Long, Lat, precip_Seasonality_meanAnnAvg_CLIM, precip_Seasonality_meanAnnAvg_2yr,
+#          precip_Seasonality_meanAnnAvg_3yr, precip_Seasonality_meanAnnAvg_29yr,
+#          precip_Seasonality_meanAnnAvg_3yrAnom, precip_Seasonality_meanAnnAvg_2yrAnom)
+#
+# precipSeasonalityDat %>%
+#   filter(year %in% c(2020:2024)) %>%
+#   ggplot() +
+#   geom_point(aes(Long, Lat, col = precip_Seasonality_meanAnnAvg_CLIM))
 
 # Now, add the climate data to the spatially averaged cover observations -----------------------------------------------
 climDatNew <- readRDS( "./Data_processed/CoverData/dayMetClimateValuesForAnalysis_final.rds")
@@ -839,14 +839,18 @@ test7 <- test6 %>%
 allDat_avg <- test7 %>% 
   left_join(climDatNew, by = c("locID", "Year" = "year"))
 
+# remove RAP data from 2024, since we don't have climate data for 2024
+allDat_avg <- allDat_avg %>% 
+  filter(Year < 2024)
 ## save the data
 saveRDS(allDat_avg, "./Data_processed/CoverData/DataForModels_spatiallyAveraged_sf_sampledLANDFIRE.rds")
 saveRDS(st_drop_geometry(allDat_avg), "./Data_processed/CoverData/DataForModels_spatiallyAveraged_NoSf_sampledLANDFIRE.rds")
-
-
-allDat_avg %>%
-  filter(Year == 2013) %>%
-  ggplot() +
-  facet_wrap(~Year) +
-  geom_point(aes(x = x, y = y, color = tmean))
-
+# 
+# # 
+# allDat_avg %>%
+#   filter(is.na(tmean_meanAnnAvg_CLIM)) %>% 
+#   #filter(Year == 2013) %>%
+#   ggplot() +
+#   facet_wrap(~Year) +
+#   geom_point(aes(x = x, y = y, color = tmean_meanAnnAvg_CLIM))
+# 

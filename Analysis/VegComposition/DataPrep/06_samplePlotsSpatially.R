@@ -33,7 +33,7 @@ layerNames <- c("ShrubCover", "TotalHerbaceousCover",  "TotalTreeCover", "C3Gram
                 "ForbCover_prop", "AngioTreeCover_prop", "ConifTreeCover_prop",
                 "BareGroundCover")
 
-# add met data to veg data ------------------------------------------------
+# tidy up data frame ------------------------------------------------
 # # make veg data projection the same as raster data
 # v <- vect(st_drop_geometry(dat_temp)[,c("Lon", "Lat")], geom = c("Lon", "Lat"), crs=crs(dat_temp))
 # y <- project(v, crs(test))
@@ -45,8 +45,8 @@ dat <- dat_temp %>%
   # st_buffer(.1)
   st_centroid() %>% 
   mutate("Year_char" = as.character(Year)) %>% 
-  select(Year, Year_char, UniquID:Day, ShrbCvr:TtlHrbC, BrGrndC, LttrCvr, LttrDpt,TrBsA_2, AngTrC_:Lat, Source, newRegion, geometry, rowID)
-
+  mutate(rowID = seq(1:nrow(.))) %>% 
+  select(Year, Year_char, UniquID:Day, ShrbCvr:TtlHrbC, BrGrndC, LttrCvr, LttrDpt,TrBsA_2, AngTrC_:Lat, Source, geometry, rowID)
 
 # make sure the raster data is in the appropriate projection
 # test <- test %>%
@@ -82,7 +82,7 @@ dat  <- dat %>%
 
 dat <- ungroup(dat)
 
-dat <- dat %>% 
+dat2 <- dat %>% 
   filter(Year >= 2000) #%>% 
 #slice_sample(n = 100000)
 # dat %>% 
@@ -98,11 +98,6 @@ dat <- dat %>%
 #   ggplot() + 
 #   geom_sf(aes(col = TotalTreeCover))
 
-## for RAP data, remove the points left over on the very far east coast that somehow are left over after the filtering process to remove forests
-dat <- dat[!(dat$Source == "RAP" & 
-                 dat$Lon > -85),]
-
-dat2 <- dat
 # # calculate the average distance between points in each dataset/year --------
 # yearDataset <- unique(dat2 %>%
 #                         st_drop_geometry() %>% 
@@ -192,7 +187,7 @@ dat2_noLF <- dat2 %>%
 dat2_LFonly <- dat2 %>%
   filter(Source == "LANDFIRE")
 
-## aggregate the dayMet grid up by 4
+## aggregate the dayMet grid up by 3
 test_big <- test %>%
   terra::aggregate(fact = 3, fun = "mean") 
 
@@ -260,18 +255,8 @@ testTest <- lapply(X = layerNames, FUN = function(x) {
 })
 
 # get data that will be joined to the filtered data 
-tempTemp <- dat2_LFonly_cellID %>% select(Year, cell, cellID_year, newRegion) %>% 
-  st_drop_geometry() %>% unique() %>% group_by(Year, cell, cellID_year) %>% 
-  summarise(newRegion = paste0(.data[["newRegion"]], collapse = "_")) %>% 
-  mutate(newRegion = replace(newRegion, newRegion == "dryShrubGrass_eastForest", "dryShrubGrass"), 
-         newRegion = replace(newRegion, newRegion == "dryShrubGrass_NA", "dryShrubGrass"), 
-         newRegion = replace(newRegion, newRegion == "dryShrubGrass_westForest", "dryShrubGrass"), 
-         newRegion = replace(newRegion, newRegion == "eastForest_dryShrubGrass", "dryShrubGrass"), 
-         newRegion = replace(newRegion, newRegion == "eastForest_NA", "eastForest"),  
-         newRegion = replace(newRegion, newRegion == "NA_dryShrubGrass", "dryShrubGrass"), 
-         newRegion = replace(newRegion, newRegion == "NA_eastForest", "eastForest"), 
-         newRegion = replace(newRegion, newRegion == "westForest_dryShrubGrass", "dryShrubGrass")
-         )
+tempTemp <- dat2_LFonly_cellID %>% select(Year, cell, cellID_year) %>% 
+  st_drop_geometry() %>% unique() %>% group_by(Year, cell, cellID_year) 
                                        
 dat2_LFonly_filtered <- testTest[[1]] %>%
   full_join(testTest[[2]], by = c("Year", "Lat", "Lon", "cell", "uniqueRowID", "cellID_year")) %>%
@@ -516,10 +501,10 @@ dat2 %>%
             n_c4 = sum(!is.na(C4GramCover_prop)), 
             n_totHerb = sum(!is.na(TotalHerbaceousCover)))
 
-dat2 %>% 
-  ggplot() + 
-  facet_wrap(~Source) + 
-  geom_point(aes(Lon, Lat, col = Source))
+# dat2 %>% 
+#   ggplot() + 
+#   facet_wrap(~Source) + 
+#   geom_point(aes(Lon, Lat, col = Source))
 
 # Now do spatial averaging -- Get the 'name' of the daymet cell that each observation lies within --------
 crs(dat2) == crs(test)
@@ -604,6 +589,7 @@ dat2_avgs <- dat2_cellID %>%
 # save data ---------------------------------------------------------------
 # data pre-spatial averaging
 saveRDS(dat2, "./Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds")
+#dat2 <- readRDS("./Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds")
 # spatially averaged data
 saveRDS(dat2_avgs, "./Data_processed/CoverData/spatiallyAverageData_intermediate_test5_sampledLANDFIRE.rds")
 # visualizations  ---------------------------

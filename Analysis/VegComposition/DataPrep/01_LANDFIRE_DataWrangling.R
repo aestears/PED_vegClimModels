@@ -448,59 +448,59 @@ forbDat <- forbDat %>%
 
 
 #### Get annual vs. perennial Herb and Graminoid % cover ####
-## for forbs
-ForbPerenAnnDat <- sppDat_new %>% 
-  filter(Lifeform == "H" | 
-           Lifeform == "F") %>% # I think we want "H" for "herb" and "F" for "forb"
-  group_by(EventID, Duration, Lat, Long, LFX, LFY, LFZone, YYYY, Type, SourceID) %>% 
-  summarize(Forb_LFAbsCov = sum(LFAbsCov), 
-            Forb_LFRelCov = sum(LFRelCov)) %>% 
-  pivot_wider(names_from = Duration, 
-              values_from = c(Forb_LFAbsCov, Forb_LFRelCov)) %>% 
-  mutate(Forb_Peren_LFAbsCov = sum(c(Forb_LFAbsCov_P, 0), na.rm = TRUE),
-         Forb_Ann_LFAbsCov = sum(c(Forb_LFAbsCov_A, 0), na.rm = TRUE),
-         Forb_NoDuration_LFAbsCov = sum(c(Forb_LFAbsCov_NA, 0), na.rm = TRUE), 
-         Forb_Peren_LFRelCov = sum(c(Forb_LFRelCov_P, 0), na.rm = TRUE),
-         Forb_Ann_LFRelCov = sum(c(Forb_LFRelCov_A, 0), na.rm = TRUE),
-         Forb_NoDuration_LFRelCov = sum(c(Forb_LFRelCov_NA, 0), na.rm = TRUE)) %>% 
-  select(-Forb_LFAbsCov_P, -Forb_LFAbsCov_NA, -Forb_LFAbsCov_A, -Forb_LFRelCov_P, -Forb_LFRelCov_NA, -Forb_LFRelCov_A)
-# assign NAs for the plots that have unknown forb values greater than 5% cover (because we don't know whether they're perennial or annual)
-ForbPerenAnnDat <- ForbPerenAnnDat %>% 
-  mutate(Forb_NoDuration_LFAbsCov = replace(Forb_NoDuration_LFAbsCov, list = Forb_NoDuration_LFAbsCov>5, NA)) 
-ForbPerenAnnDat[is.na(ForbPerenAnnDat$Forb_NoDuration_LFAbsCov),c("Forb_Peren_LFAbsCov", "Forb_Ann_LFAbsCov", 
-                                                                  "Forb_Peren_LFRelCov", "Forb_Ann_LFRelCov", "Forb_NoDuration_LFRelCov")] <- NA  
-ForbPerenAnnDat <- ForbPerenAnnDat %>% 
-  select(-Forb_NoDuration_LFAbsCov, -Forb_NoDuration_LFRelCov)
-
-## for Graminoids
-GramPerenAnnDat <- sppDat_new %>% 
-  filter(Lifeform == "G" ) %>% # I think we want "H" for "herb" and "F" for "forb"
-  group_by(EventID, Duration, Lat, Long, LFX, LFY, LFZone, YYYY, Type, SourceID) %>% 
-  summarize(Gram_LFAbsCov = sum(LFAbsCov), 
-            Gram_LFRelCov = sum(LFRelCov)) %>% 
-  pivot_wider(names_from = Duration, 
-              values_from = c(Gram_LFAbsCov, Gram_LFRelCov)) %>% 
-  mutate(Gram_Peren_LFAbsCov = sum(c(Gram_LFAbsCov_P, 0), na.rm = TRUE),
-         Gram_Ann_LFAbsCov = sum(c(Gram_LFAbsCov_A, 0), na.rm = TRUE),
-         Gram_NoDuration_LFAbsCov = sum(c(Gram_LFAbsCov_NA, 0), na.rm = TRUE), 
-         Gram_Peren_LFRelCov = sum(c(Gram_LFRelCov_P, 0), na.rm = TRUE),
-         Gram_Ann_LFRelCov = sum(c(Gram_LFRelCov_A, 0), na.rm = TRUE),
-         Gram_NoDuration_LFRelCov = sum(c(Gram_LFRelCov_NA, 0), na.rm = TRUE)) %>% 
-  select(-Gram_LFAbsCov_P, -Gram_LFAbsCov_NA, -Gram_LFAbsCov_A, -Gram_LFRelCov_P, -Gram_LFRelCov_NA, -Gram_LFRelCov_A)
-# assign NAs for the plots that have unknown gram values greater than 5% cover (because we don't know whether they're perennial or annual)
-GramPerenAnnDat <- GramPerenAnnDat %>% 
-  mutate(Gram_NoDuration_LFAbsCov = replace(Gram_NoDuration_LFAbsCov, list = Gram_NoDuration_LFAbsCov>5, NA)) 
-GramPerenAnnDat[is.na(GramPerenAnnDat$Gram_NoDuration_LFAbsCov),c("Gram_Peren_LFAbsCov", "Gram_Ann_LFAbsCov", 
-                                                                  "Gram_Peren_LFRelCov", "Gram_Ann_LFRelCov", "Gram_NoDuration_LFRelCov")] <- NA  
-GramPerenAnnDat <- GramPerenAnnDat %>% 
-  select(-Gram_NoDuration_LFAbsCov, -Gram_NoDuration_LFRelCov)
+# ## for forbs
+# ForbPerenAnnDat <- sppDat_new %>% 
+#   filter(Lifeform == "H" | 
+#            Lifeform == "F") %>% # I think we want "H" for "herb" and "F" for "forb"
+#   group_by(EventID, Duration, Lat, Long, LFX, LFY, LFZone, YYYY, Type, SourceID) %>% 
+#   summarize(Forb_LFAbsCov = sum(LFAbsCov), 
+#             Forb_LFRelCov = sum(LFRelCov)) %>% 
+#   pivot_wider(names_from = Duration, 
+#               values_from = c(Forb_LFAbsCov, Forb_LFRelCov)) %>% 
+#   mutate(Forb_Peren_LFAbsCov = sum(c(Forb_LFAbsCov_P, 0), na.rm = TRUE),
+#          Forb_Ann_LFAbsCov = sum(c(Forb_LFAbsCov_A, 0), na.rm = TRUE),
+#          Forb_NoDuration_LFAbsCov = sum(c(Forb_LFAbsCov_NA, 0), na.rm = TRUE), 
+#          Forb_Peren_LFRelCov = sum(c(Forb_LFRelCov_P, 0), na.rm = TRUE),
+#          Forb_Ann_LFRelCov = sum(c(Forb_LFRelCov_A, 0), na.rm = TRUE),
+#          Forb_NoDuration_LFRelCov = sum(c(Forb_LFRelCov_NA, 0), na.rm = TRUE)) %>% 
+#   select(-Forb_LFAbsCov_P, -Forb_LFAbsCov_NA, -Forb_LFAbsCov_A, -Forb_LFRelCov_P, -Forb_LFRelCov_NA, -Forb_LFRelCov_A)
+# # assign NAs for the plots that have unknown forb values greater than 5% cover (because we don't know whether they're perennial or annual)
+# ForbPerenAnnDat <- ForbPerenAnnDat %>% 
+#   mutate(Forb_NoDuration_LFAbsCov = replace(Forb_NoDuration_LFAbsCov, list = Forb_NoDuration_LFAbsCov>5, NA)) 
+# ForbPerenAnnDat[is.na(ForbPerenAnnDat$Forb_NoDuration_LFAbsCov),c("Forb_Peren_LFAbsCov", "Forb_Ann_LFAbsCov", 
+#                                                                   "Forb_Peren_LFRelCov", "Forb_Ann_LFRelCov", "Forb_NoDuration_LFRelCov")] <- NA  
+# ForbPerenAnnDat <- ForbPerenAnnDat %>% 
+#   select(-Forb_NoDuration_LFAbsCov, -Forb_NoDuration_LFRelCov)
+# 
+# ## for Graminoids
+# GramPerenAnnDat <- sppDat_new %>% 
+#   filter(Lifeform == "G" ) %>% # I think we want "H" for "herb" and "F" for "forb"
+#   group_by(EventID, Duration, Lat, Long, LFX, LFY, LFZone, YYYY, Type, SourceID) %>% 
+#   summarize(Gram_LFAbsCov = sum(LFAbsCov), 
+#             Gram_LFRelCov = sum(LFRelCov)) %>% 
+#   pivot_wider(names_from = Duration, 
+#               values_from = c(Gram_LFAbsCov, Gram_LFRelCov)) %>% 
+#   mutate(Gram_Peren_LFAbsCov = sum(c(Gram_LFAbsCov_P, 0), na.rm = TRUE),
+#          Gram_Ann_LFAbsCov = sum(c(Gram_LFAbsCov_A, 0), na.rm = TRUE),
+#          Gram_NoDuration_LFAbsCov = sum(c(Gram_LFAbsCov_NA, 0), na.rm = TRUE), 
+#          Gram_Peren_LFRelCov = sum(c(Gram_LFRelCov_P, 0), na.rm = TRUE),
+#          Gram_Ann_LFRelCov = sum(c(Gram_LFRelCov_A, 0), na.rm = TRUE),
+#          Gram_NoDuration_LFRelCov = sum(c(Gram_LFRelCov_NA, 0), na.rm = TRUE)) %>% 
+#   select(-Gram_LFAbsCov_P, -Gram_LFAbsCov_NA, -Gram_LFAbsCov_A, -Gram_LFRelCov_P, -Gram_LFRelCov_NA, -Gram_LFRelCov_A)
+# # assign NAs for the plots that have unknown gram values greater than 5% cover (because we don't know whether they're perennial or annual)
+# GramPerenAnnDat <- GramPerenAnnDat %>% 
+#   mutate(Gram_NoDuration_LFAbsCov = replace(Gram_NoDuration_LFAbsCov, list = Gram_NoDuration_LFAbsCov>5, NA)) 
+# GramPerenAnnDat[is.na(GramPerenAnnDat$Gram_NoDuration_LFAbsCov),c("Gram_Peren_LFAbsCov", "Gram_Ann_LFAbsCov", 
+#                                                                   "Gram_Peren_LFRelCov", "Gram_Ann_LFRelCov", "Gram_NoDuration_LFRelCov")] <- NA  
+# GramPerenAnnDat <- GramPerenAnnDat %>% 
+#   select(-Gram_NoDuration_LFAbsCov, -Gram_NoDuration_LFRelCov)
 
 #### put species-level calculations together with other functional group data ####
 temp <- full_join(C3Dat, C4Dat) %>% 
   full_join(AngioTreeDat) %>% 
   full_join(ConifTreeDat) %>% 
-  full_join(GramPerenAnnDat) %>% 
-  full_join(ForbPerenAnnDat) %>% 
+  #full_join(GramPerenAnnDat) %>% 
+  #full_join(ForbPerenAnnDat) %>% 
   full_join(forbDat) %>% 
   full_join(camDat) %>% 
   mutate(MM = as.integer(MM), 
@@ -520,25 +520,31 @@ datAll <- dat %>%
 #   geom_density(aes(ConifTree_LFAbsCov), col = "darkgreen")
 # 
 # 
-# ggplot(datAll) +
-#   geom_density(aes(ConifTree_LFAbsCov), col = "darkgreen") +
-#   geom_density(aes(AngioTree_LFAbsCov), col = "green") + 
-#   geom_density(aes(C3_LFAbsCov), col = "orange") + 
-#   geom_density(aes(C4_LFAbsCov), col = "red") +
-#   geom_density(aes(LFShrubCov), col = "blue") +
-#   geom_density(aes(LFHerbCov), col = "purple") +
-#   theme_dark() +
-#   xlim(0,200)
+ggplot(datAll) +
+  #geom_density(aes(ConifTree_LFAbsCov), col = "darkgreen") +
+  #geom_density(aes(AngioTree_LFAbsCov), col = "green") +
+  geom_density(aes(C3_LFAbsCov), col = "orange") +
+  geom_density(aes(C4_LFAbsCov), col = "red") +
+  geom_density(aes(Forb_LFAbsCov), col = "yellow") +
+  #geom_density(aes(LFShrubCovAdj), col = "blue") +
+  geom_density(aes(LFHerbCovAdj), col = "purple") +
+  geom_density(aes(C3_LFAbsCov + C4_LFAbsCov + Forb_LFAbsCov), col = "purple", lty=2) +
+#geom_density(aes(C3_LFRelCov  + C4_LFRelCov + Forb_LFRelCov), col = "purple", lty=3) +
+  #geom_density(aes(LFTreeCovAdj), col = "brown") +
+  theme_dark() +
+  xlim(0,200)
 
 ## trim down the dataset just to the variables we really want for analysis
 datLF_use <- datAll  %>% 
   select(EventID, Lat, Long, LFX, LFY, LFCoordSys, LFZone, YYYY, MM, DD, DDD,
          LFShrubCovAdj, LFHerbCovAdj, LFTreeCovAdj, C3_LFRelCov, C4_LFRelCov, AngioTree_LFRelCov, ConifTree_LFRelCov, 
-         Gram_Peren_LFRelCov, Gram_Ann_LFRelCov, Forb_Peren_LFRelCov, Forb_Ann_LFRelCov, Forb_LFRelCov, CAM_LFRelCov)
+         C3_LFAbsCov, C4_LFAbsCov, Forb_LFAbsCov, AngioTree_LFAbsCov, ConifTree_LFAbsCov,
+         #Gram_Peren_LFRelCov, Gram_Ann_LFRelCov, Forb_Peren_LFRelCov, Forb_Ann_LFRelCov, 
+         Forb_LFRelCov, CAM_LFRelCov)
 
 ## add the CAM and shrub together
 #datLF_use <- datLF_use %>% 
-  mutate(LFShrubCovAdj_USE = LFShrubCovAdj + CAM_LFRelCov)
+ # mutate(LFShrubCovAdj_USE = LFShrubCovAdj + CAM_LFRelCov)
 # # remove rows for plots that don't have all functional groups measured (can figure out by finding which have NAs in the 'dat' data frame)
 # goodPlots <- datAll %>% 
 #  filter(!is.na(LFTreeCov) & 

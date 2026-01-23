@@ -429,15 +429,15 @@ temp <- vegSoils_new %>%
   
   # Double-check that no data from developed/ag. locations has been  included --------
   # get LCMAP data that has been reclassified (# # reclassify so that 0 = raster cells that are developed (1) or cropland (2)  or water (5) and 1 = any other land use
-  LCMAP <- terra::rast("./Data_raw/LCMAP/LCMAP_CU_2021_V13_LCPRI.tif") 
-  LCMAP_use <- classify(LCMAP, rcl = matrix(c(1,2,3,4,5,6,7,8,0,0,1,1,0,1,1,1), nrow = 8))
-  LCMAP_use <- LCMAP_use %>%
-    mask(LCMAP_use, maskvalues = 0)
-  # 
+  # LCMAP <- terra::rast("./Data_raw/LCMAP/LCMAP_CU_2021_V13_LCPRI.tif")
+  # LCMAP_use <- classify(LCMAP, rcl = matrix(c(1,2,3,4,5,6,7,8,0,0,1,1,0,1,1,1), nrow = 8))
+  # LCMAP_use <- LCMAP_use %>%
+  #   mask(LCMAP_use, maskvalues = 0)
+  # #
   # # save reclassified data
-  #  saveRDS(LCMAP_use, file = "./Data_raw/LCMAP/LCMAP_reclassifiedToUse.rds")
-  # LCMAP_use <- readRDS("./Data_raw/LCMAP/LCMAP_reclassifiedToUse.rds") 
-  LCMAP_use <- readRDS("./Data_raw/LCMAP/LCMAP_reclassifiedToUse.rds") #%>% 
+  # terra::writeRaster(LCMAP_use, file = "./Data_raw/LCMAP/LCMAP_reclassifiedToUse.tif")
+
+  LCMAP_use <- terra::rast("./Data_raw/LCMAP/LCMAP_reclassifiedToUse.tif") #%>% 
    # terra::project(y = vegDat)
   
   # give coordinates
@@ -457,9 +457,11 @@ temp <- vegSoils_new %>%
     filter(!is.na(LCMAP_use))
   
   ## filter the values for the un-spatially averaged data also
-  dat_preAvg <- #readRDS("./Data_processed/CoverData/DataForModels.RDS")  (## veg data before spatial averaging) 
+  dat_preAvg <- ## veg data before spatial averaging 
     readRDS("./Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds") %>% 
     st_transform(crs = crs(LCMAP_use))
+  crs(dat_preAvg) == crs(LCMAP_use)
+  
   dat_preAvg_removeLCMAP <- terra::extract(x = LCMAP_use, y =   dat_preAvg, ID = TRUE)
   
   dat_preAvg <- dat_preAvg %>% 
@@ -468,12 +470,11 @@ temp <- vegSoils_new %>%
   dat_preAvg_new <- dat_preAvg %>% 
     filter(!is.na(LCMAP_use))
  
-  
-  # plot(LCMAP_use, 
-  #      xlim = c(-500000,-300000), 
-  #      ylim = c(2200000, 2400000))
+  # plot(LCMAP_use
+  #      ,xlim = c(-500000,-300000),
+  #       ylim = c(2200000, 2400000)
+  #      )
   # points(dat_preAvg_new$geometry[1:100000])
-  
 
 # Fix issue w/ locations w/ total tree NA that still have %NL and %BL tree data--------
 # these are locations that were burned previously so have NA for tree cover, and where the % of tree types should have also be turned into NA

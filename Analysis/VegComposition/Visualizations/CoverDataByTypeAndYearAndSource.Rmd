@@ -1,0 +1,282 @@
+---
+title: "Visualizing cover data broken down by data source, data type, and year at the start and end of the data-preparation workflow"
+output:
+  html_document:
+    code_folding: hide
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE,
+                      message = FALSE)
+```
+
+```{r}
+library(tidyverse) 
+library(sf) 
+library(terra)
+library(ggpubr)
+ggplot2::theme_set(theme_classic())
+```
+
+This document visualizes the data of vegetation cover broken down by functional type, by data source, and by year at the beginning of the data-preparation workflow, and then by functional type and year at the end of the workflow after we've spatially averaged the observations. These maps serve both as a reference and a check that the workflow is performing as intended. 
+
+```{r load data}
+# intial dataset, prior to the rest of the workflow
+dat_1temp <- st_read(dsn = "../../../Data_processed/CoverData/DataForAnalysisPoints", layer = "vegCompPoints")#, driver = "ESRI Shapefile")
+# trim to be only later than 2000, which is what we want to use for further analysis
+dat_1 <- dat_1temp %>% 
+  filter(Year >= 2000) %>% 
+  rename(ShrubCover = ShrbCvr, 
+         TotalHerbaceousCover = TtlHrbC, 
+         TotalTreeCover = TtlTrCv, 
+         C3GramCover_prop = C3GrmC_, 
+         C4GramCover_prop = C4GrmC_, 
+         ForbCover_prop = FrbCvr_,
+         AngioTreeCover_prop = AngTrC_,
+         ConifTreeCover_prop = CnfTrC_, 
+         BareGroundCover = BrGrndC
+         ) %>%
+  pivot_longer(cols = c(ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover, 
+                        C3GramCover_prop, C4GramCover_prop, ForbCover_prop, 
+                        AngioTreeCover_prop, ConifTreeCover_prop,
+                        ),
+               names_to = "coverType", 
+               values_to = "coverValues"
+                ) %>% 
+  filter(!is.na(coverValues)) %>% 
+  st_drop_geometry() %>% 
+  select(Year, Source, Lon, Lat, coverType, coverValues)
+  
+  
+
+# data at the end of the workflow
+dat_2 <- readRDS("../../../Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf_sampledLANDFIRE.rds")
+dat_2 <- dat_2 %>% 
+  filter(Year >= 2000) %>% 
+  pivot_longer(cols = c(ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover, 
+                        C3GramCover_prop, C4GramCover_prop, ForbCover_prop, 
+                        AngioTreeCover_prop, ConifTreeCover_prop,
+                        ),
+               names_to = "coverType", 
+               values_to = "coverValues"
+                ) %>% 
+  filter(!is.na(coverValues)) %>% 
+  mutate(Source = "Averaged") %>% 
+  select(Year, Source, x, y, coverType, coverValues) %>% 
+  rename(Lon = x, 
+         Lat = y)
+
+dat <- dat_1 %>% 
+  rbind(dat_2)
+
+# change "LDC" (landscape data commons) to "AIM" and change Source to an ordered factor
+dat <- dat %>% 
+  mutate(Source = replace(Source, Source == "LDC", "AIM")) %>% 
+  mutate(Source = factor(Source, levels=c('RAP','FIA','AIM','LANDFIRE', 'Averaged')))
+```
+
+# Observations averaged aross all years 
+```{r make figures, fig.width=10, fig.height= 16 }
+ggarrange(
+dat %>% 
+  #slice_sample(n = 100000) %>% 
+  filter(coverType %in% c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover")) %>% 
+ggplot() + 
+  facet_grid(rows = vars(coverType), cols = vars(Source)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .2) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Data across all years")
+,
+dat %>% 
+  #slice_sample(n = 100000) %>% 
+  filter(coverType %in% c("C3GramCover_prop", "C4GramCover_prop", "ForbCover_prop", 
+                        "AngioTreeCover_prop", "ConifTreeCover_prop")) %>% 
+ggplot() + 
+  facet_grid(rows = vars(coverType), cols = vars(Source)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .2) + 
+     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,1)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Data across all years"), 
+ncol = 1,
+heights = c(.8, 1)
+)
+```
+
+# RAP observations by year
+```{r RAP data, fig.width=10, fig.height= 28 }
+dat %>% 
+  filter(Source == "RAP") %>% 
+  #slice_sample(n = 100000) %>% 
+  filter(coverType %in% c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover")) %>% 
+ggplot() + 
+  facet_grid(cols = vars(coverType), rows = vars(Year)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .2) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-125,-90)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("RAP data")
+
+```
+
+# AIM observations by year 
+```{r AIM data, fig.width=10, fig.height= 30}
+ggarrange(
+dat %>% 
+  filter(Source == "AIM") %>% 
+  #slice_sample(n = 100000) %>% 
+  filter(coverType %in% c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover")) %>% 
+ggplot() + 
+  facet_grid(cols = vars(coverType), rows = vars(Year)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .2) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-125,-95)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Data across all years")
+,
+dat %>% 
+  #slice_sample(n = 100000) %>% 
+  filter(Source == "AIM") %>% 
+  filter(coverType %in% c("C3GramCover_prop", "C4GramCover_prop", "ForbCover_prop", 
+                        "AngioTreeCover_prop", "ConifTreeCover_prop")) %>% 
+ggplot() + 
+  facet_grid(cols = vars(coverType), rows = vars(Year)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .2) + 
+     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,1)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-125,-95)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Data across all years"), 
+ncol = 1
+)
+```
+
+
+# LANDFIRE observations by year 
+```{r LANDFIRE data, fig.width=10, fig.height= 30}
+ggarrange(
+dat %>% 
+  filter(Source == "LANDFIRE") %>% 
+  #slice_sample(n = 100000) %>% 
+  filter(coverType %in% c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover")) %>% 
+ggplot() + 
+  facet_grid(cols = vars(coverType), rows = vars(Year)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .2) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Data across all years")
+,
+dat %>% 
+  #slice_sample(n = 100000) %>% 
+  filter(Source == "LANDFIRE") %>% 
+  filter(coverType %in% c("C3GramCover_prop", "C4GramCover_prop", "ForbCover_prop", 
+                        "AngioTreeCover_prop", "ConifTreeCover_prop")) %>% 
+ggplot() + 
+  facet_grid(cols = vars(coverType), rows = vars(Year)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .2) + 
+     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,1)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Data across all years"), 
+ncol = 1
+)
+```
+
+# FIA observations by year 
+```{r average data, fig.width=10, fig.height= 30}
+ggarrange(
+dat %>% 
+  filter(Source == "FIA") %>% 
+  #slice_sample(n = 100000) %>% 
+  filter(coverType %in% c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover")) %>% 
+ggplot() + 
+  facet_grid(cols = vars(coverType), rows = vars(Year)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .2) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Data across all years")
+,
+dat %>% 
+  #slice_sample(n = 100000) %>% 
+  filter(Source == "FIA") %>% 
+  filter(coverType %in% c("C3GramCover_prop", "C4GramCover_prop", "ForbCover_prop", 
+                        "AngioTreeCover_prop", "ConifTreeCover_prop")) %>% 
+ggplot() + 
+  facet_grid(cols = vars(coverType), rows = vars(Year)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .2) + 
+     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,1)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Data across all years"), 
+ncol = 1
+)
+```
+
+
+# Spatially-averaged observations by year 
+```{r FIA data, fig.width=10, fig.height= 30}
+ggarrange(
+dat %>% 
+  filter(Source == "Averaged") %>% 
+  #slice_sample(n = 100000) %>% 
+  filter(coverType %in% c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover")) %>% 
+ggplot() + 
+  facet_grid(cols = vars(coverType), rows = vars(Year)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .2) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Data across all years")
+,
+dat %>% 
+  #slice_sample(n = 100000) %>% 
+  filter(Source == "Averaged") %>% 
+  filter(coverType %in% c("C3GramCover_prop", "C4GramCover_prop", "ForbCover_prop", 
+                        "AngioTreeCover_prop", "ConifTreeCover_prop")) %>% 
+ggplot() + 
+  facet_grid(cols = vars(coverType), rows = vars(Year)) + 
+  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .2) + 
+     scale_fill_viridis_c(option = "H", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,1)) +
+    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + 
+    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
+  xlim(c(-130,-65)) + 
+    ylim(c(25, 50)) + 
+  ggtitle("Data across all years"), 
+ncol = 1
+)
+```

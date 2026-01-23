@@ -31,47 +31,47 @@ vegDat <- readRDS("./Data_processed/CoverData/dataForAnalysis_fireRemoved.rds")
 # 
 
 # Add ecoregion data  -----------------------------------------------------
-regions <- sf::st_read(dsn = "./Data_raw/Level2Ecoregions/", layer = "NA_CEC_Eco_Level2") 
+# regions <- sf::st_read(dsn = "./Data_raw/Level2Ecoregions/", layer = "NA_CEC_Eco_Level2") 
 
-regions_2 <- st_transform(regions, crs = st_crs(vegDat)) %>% 
-  st_make_valid()
-
-crs(regions_2) == crs(vegDat)
-
-#mapview(regions_2 %>% slice_sample(n = 10000)) + mapview(modDat_2 %>% slice_sample(n = 10000))
-
-# match the ecoregion to point data ---------------------------------------
-vegDat_3 <- sf::st_join(vegDat, regions_2)
-
-# missing for places right on the coast... but not a big deal to not have those
-
-# group into coarser ecoregions -------------------------------------------
-# make a lookup table
-# (eastern forest) put eastern temperate forests, tropical wet forests and northern forests together
-# (dry shrub and grass) put great plains, southern semiarid highlands, Mediterranean California and north american deserts together 
-# (western forest) put northwestern forested mountains, marine west coast forests together, and temperate sierras together
-
-ecoReg_lu <- data.frame("NA_L1NAME" = sort(unique(vegDat_3$NA_L1NAME)), 
-                        "newRegion" = c("eastForest", "dryShrubGrass", "westForest",
-                                        "dryShrubGrass", "dryShrubGrass", "eastForest",
-                                        "westForest", "dryShrubGrass", "westForest", 
-                                        "eastForest", NA
-                        ))
-
-# add to main data.frame 
-newDat <- vegDat_3 %>% 
-  left_join(ecoReg_lu) %>% 
-  mutate(newRegion = as.factor(newRegion), 
-         rowID = 1:nrow(vegDat_3)) 
+# regions_2 <- st_transform(regions, crs = st_crs(vegDat)) %>% 
+#   st_make_valid()
 # 
-ggplot(newDat[1:1000000,]) +
-  geom_sf(aes(col = newRegion))
-newDat %>% 
-  filter(Source == "FIA") %>% 
-  #filter(Year == 2016) %>% 
-  ggplot() + 
-  geom_sf(aes(col = TtlTrCv))
-
+# crs(regions_2) == crs(vegDat)
 # 
+# #mapview(regions_2 %>% slice_sample(n = 10000)) + mapview(modDat_2 %>% slice_sample(n = 10000))
+# 
+# # match the ecoregion to point data ---------------------------------------
+# vegDat_3 <- sf::st_join(vegDat, regions_2)
+# 
+# # missing for places right on the coast... but not a big deal to not have those
+# 
+# # group into coarser ecoregions -------------------------------------------
+# # make a lookup table
+# # (eastern forest) put eastern temperate forests, tropical wet forests and northern forests together
+# # (dry shrub and grass) put great plains, southern semiarid highlands, Mediterranean California and north american deserts together 
+# # (western forest) put northwestern forested mountains, marine west coast forests together, and temperate sierras together
+# 
+# ecoReg_lu <- data.frame("NA_L1NAME" = sort(unique(vegDat_3$NA_L1NAME)), 
+#                         "newRegion" = c("eastForest", "dryShrubGrass", "westForest",
+#                                         "dryShrubGrass", "dryShrubGrass", "eastForest",
+#                                         "westForest", "dryShrubGrass", "westForest", 
+#                                         "eastForest", NA
+#                         ))
+# 
+# # add to main data.frame 
+# newDat <- vegDat_3 %>% 
+#   left_join(ecoReg_lu) %>% 
+#   mutate(newRegion = as.factor(newRegion), 
+#          rowID = 1:nrow(vegDat_3)) 
+# # 
+# # ggplot(newDat[1:1000000,]) +
+# #   geom_sf(aes(col = newRegion))
+# # newDat %>% 
+# #   filter(Source == "FIA") %>% 
+# #   #filter(Year == 2016) %>% 
+# #   ggplot() + 
+# #   geom_sf(aes(col = TtlTrCv))
+# # 
+# # # 
 # ## save data for further analysis 
-saveRDS(newDat, file = "./Data_processed/CoverData/DataForModels.RDS")
+saveRDS(vegDat, file = "./Data_processed/CoverData/DataForModels.RDS")

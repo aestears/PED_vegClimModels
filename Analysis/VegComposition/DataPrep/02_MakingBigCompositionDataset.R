@@ -111,28 +111,100 @@ LANDFIRE_all <- LANDFIRE_veg %>%
          Lat = Lat,
          Lon = Long,
          ShrubCover = LFShrubCovAdj, 
-         ForbCover = LFHerbCovAdj * (Forb_LFRelCov/100), ## the "LFHerbCovAdj" cover from LANDFIRE is herbaceous, not forbs! 
+         ForbCover = Forb_LFAbsCov,#LFHerbCovAdj * (Forb_LFAbsCov/100), ## the "LFHerbCovAdj" cover from LANDFIRE is herbaceous, not forbs! 
          AnnualHerbGramCover = NA,
          PerennialHerbGramCover = NA,
-         TotalGramCover = ((C3_LFRelCov/100)*LFHerbCovAdj) + ((C4_LFRelCov/100)*LFHerbCovAdj),
-         C3GramCover = ((C3_LFRelCov/100)*LFHerbCovAdj), 
-         C4GramCover = ((C4_LFRelCov/100)*LFHerbCovAdj), 
-         AngioTreeCover = (AngioTree_LFRelCov/100)*LFTreeCovAdj, 
-         ConifTreeCover = (ConifTree_LFRelCov/100)*LFTreeCovAdj,
+         TotalGramCover = NA,
+         C3GramCover = C3_LFAbsCov,#((C3_LFAbsCov/100)*LFHerbCovAdj), # the proportion of herbaceous cover that is 
+         C4GramCover = C4_LFAbsCov,#((C4_LFAbsCov/100)*LFHerbCovAdj), 
+         AngioTreeCover = AngioTree_LFAbsCov,#(AngioTree_LFAbsCov/100)*LFTreeCovAdj, 
+         ConifTreeCover = ConifTree_LFAbsCov,#(ConifTree_LFAbsCov/100)*LFTreeCovAdj,
          TotalTreeCover = LFTreeCovAdj,#AngioTree_LFRelCov + ConifTree_LFRelCov,
          #CAMCover = CAM_LFRelCov,
-         TotalHerbaceousCover = ((C3_LFRelCov/100)*LFHerbCovAdj) + ((C4_LFRelCov/100)*LFHerbCovAdj) + LFHerbCovAdj * (Forb_LFRelCov/100),
+         #TotalHerbaceousCover_OLD = ((C3_LFRelCov/100)*LFHerbCovAdj) + ((C4_LFRelCov/100)*LFHerbCovAdj) + (LFHerbCovAdj * (Forb_LFRelCov/100)),
+         TotalHerbaceousCover = LFHerbCovAdj,
          TreeBasalArea_in2 = NA, 
          BareGroundCover = NA, 
          LitterCover = NA,
          LitterDepth = NA,
-         Source = "LANDFIRE"
+         Source = "LANDFIRE",
+         # LFHerbCovAdj = LFHerbCovAdj,
+         #   C3_LFAbsCov, 
+         #   C4_LFAbsCov,
+         # Forb_LFAbsCov
          )  %>% # update/change some names
-  mutate(AngioTreeCover_prop = AngioTreeCover/TotalTreeCover, 
-         ConifTreeCover_prop = ConifTreeCover/TotalTreeCover,
-         C4GramCover_prop = C4GramCover/TotalHerbaceousCover,
-         C3GramCover_prop = C3GramCover/TotalHerbaceousCover,
-         ForbCover_prop = ForbCover/TotalHerbaceousCover)
+  mutate(AngioTreeCover_prop = AngioTreeCover/(AngioTreeCover + ConifTreeCover), 
+         ConifTreeCover_prop = ConifTreeCover/(AngioTreeCover + ConifTreeCover),
+         C4GramCover_prop = C4GramCover/(C4GramCover + C3GramCover + ForbCover),
+         C3GramCover_prop = C3GramCover/(C4GramCover + C3GramCover + ForbCover),
+         ForbCover_prop = ForbCover/(C4GramCover + C3GramCover + ForbCover))
+
+# LANDFIRE_all %>% 
+#   ggplot() + 
+#   #xlim(c(0,100)) + 
+#   geom_density(aes(TotalHerbaceousCover)) + 
+#   geom_density(aes(ForbCover), col = "green") + 
+#   geom_density(aes(C4GramCover), col = "red") + 
+#   geom_density(aes(C3GramCover), col = "blue") + 
+#   # geom_density(aes(TotalTreeCover)) + 
+#   # geom_density(aes(AngioTreeCover), col = "green") + 
+#   # geom_density(aes(ConifTreeCover), col = "red") + 
+#   #geom_density(aes(ForbCover + C3GramCover + C4GramCover), col = "purple") #+
+#   #geom_density(aes(LFHerbCovAdj), col = "purple", lty = 2) +
+#   geom_density(aes((C3GramCover_prop )* 100), col = "red", lty = 2) + 
+#   geom_density(aes((C4GramCover_prop)* 100), col = "blue", lty = 2) +
+#   geom_density(aes((ForbCover_prop)*100), col = "purple", lty = 2)# +
+#geom_density(aes((ForbCover_prop + C3GramCover_prop + C4GramCover_prop)*100), col = "grey", lty = 2)
+  
+# ggarrange(
+# LANDFIRE_all %>%
+#   ggplot() +
+#   stat_summary_2d(aes(x = Lon, y = Lat, z = TotalHerbaceousCover), fun = mean, binwidth = .1) +
+#   scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"),
+#                        limits = c(0,100)) +
+#   ggtitle("TotalHerbaceousCover"),
+# LANDFIRE_all %>% 
+#   ggplot() + 
+#   stat_summary_2d(aes(x = Lon, y = Lat, z = C4GramCover), fun = mean, binwidth = .1) + 
+#   scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+#                        #limits = c(0,100)
+#                        ) + 
+#   ggtitle("ForbCover"),
+# LANDFIRE_all %>% 
+#   ggplot() + 
+#   stat_summary_2d(aes(x = Lon, y = Lat, z = ForbCover_prop), fun = mean, binwidth = .1) + 
+#   scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+#                        limits = c(0,1)) + 
+#   ggtitle("ForbCover_prop"),
+# LANDFIRE_all %>% 
+#   ggplot() + 
+#   stat_summary_2d(aes(x = Lon, y = Lat, z = Forb_LFAbsCov), fun = mean, binwidth = .1) + 
+#   scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+#                        limits = c(0,100)) + 
+#   ggtitle("Forb_LFAbsCov"),
+# ncol = 1)
+# 
+# ggarrange(
+#   LANDFIRE_all %>% 
+#     ggplot() + 
+#     stat_summary_2d(aes(x = Lon, y = Lat, z = ForbCover_prop), fun = mean, binwidth = .1) + 
+#     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,1)) + 
+#     ggtitle("ForbCover_prop"),
+#   LANDFIRE_all %>% 
+#     ggplot() + 
+#     stat_summary_2d(aes(x = Lon, y = Lat, z = C3GramCover_prop), fun = mean, binwidth = .1) + 
+#     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,1)) + 
+#     ggtitle("C3GramCover_prop"),
+#   LANDFIRE_all %>% 
+#     ggplot() + 
+#     stat_summary_2d(aes(x = Lon, y = Lat, z = C4GramCover_prop), fun = mean, binwidth = .1) + 
+#     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+#                          limits = c(0,1)
+#     ) + 
+#     ggtitle("C4GramCover_prop"),
+#   ncol = 1)
 
 # landfire_long <- LANDFIRE_all %>% 
 #   pivot_longer(cols = c(ShrubCover:ForbCover, TotalGramCover:CAMCover), 

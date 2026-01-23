@@ -48,7 +48,6 @@ crs(regions_2) == crs(modDat_2)
 
 #mapview(regions_2 %>% slice_sample(n = 10000)) + mapview(modDat %>% slice_sample(n = 10000))
 
-
 ## drop those values that don't have any climate data (pre-1980)
 modDat_2a <- modDat_2[!is.na(modDat_2$prcp_annTotal),]
 
