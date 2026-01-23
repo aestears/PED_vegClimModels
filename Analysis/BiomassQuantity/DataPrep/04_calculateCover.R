@@ -12,57 +12,328 @@ library(terra)
 
 # load data ---------------------------------------------------------------
 dat <- readRDS("./Data_processed/BiomassQuantityData/GEDIbiomass_predictedCover_climateAndSoils.rds")
-# update names
-dat <- dat %>% 
-  rename("twarm_CLIM" = t_warm)
 
-
+# rename 
+dat2 <- dat %>% 
+  rename(twarm_CLIM = t_warm,
+         tcold_CLIM = t_cold, 
+         precipWet_CLIM = prcp_wet, 
+         annWatDef_CLIM = annWatDef, 
+         PrecipTempCorr_CLIM = prcpTempCorr, 
+         isothermality_CLIM = isothermality,
+         tmean_CLIM = tmean,
+         precipSeasonality_CLIM = prcp_seasonality,
+         precipTempCorr_WEATH = PrecipTempCorr_meanAnnAvg_3yrAnom,
+         isothermality_WEATH = isothermality_meanAnnAvg_3yrAnom,
+         annWatDef_WEATH = annWaterDeficit_meanAnnAvg_3yrAnom,
+         precip_CLIM = prcp,
+         precipSeasonality_WEATH = precip_Seasonality_meanAnnAvg_3yrAnom,
+         precipDry_CLIM = prcp_dry,
+         precip_WEATH = prcp_meanAnnTotal_3yrAnom,
+         annWetDegDays_CLIM = annWetDegDays,
+         annWetDegDays_WEATH = annWetDegDays_meanAnnAvg_3yrAnom
+         )
 # Get Equation for ecoregion classification -------------------------------
-P(forest) ~ 1/(1 + exp(-( 9.872597456 + -0.299906791*twarm_CLIM + 0.245551132*tcold_CLIM + 
-                            0.010607279*precipWet_CLIM + -0.062058523*annWatDef_CLIM + 
-                            -2.786336969*PrecipTempCorr_CLIM + 0.054028905*isothermality_CLIM + 
-                            -0.007599899*soilDepth + 0.033478424*sand + 0.031037682*coarse + 0.272601351*carbon)))
-
-# Get Equations from Cover Models -----------------------------------------
-
-# Total herbaceous - grass/shrub
-TotalHerbaceousCover~ exp( 3.276248186 + 0.333755104*((tmean_CLIM- 10.275203571) / 4.912309147) + 0.000988410*((precipSeasonality_CLIM - 0.923249309) / 0.245954382) + -0.093566592*((isothermality_CLIM- 38.120111845) / 5.019479015) + -0.401713218*((annWatDef_CLIM - 99.631248729) / 85.941823498) + -0.101054822*((sand - 47.706485501) / 16.730875594) + -0.059075423*((coarse - 12.799273363) / 11.332548324) + 0.097488751*((AWHC - 13.671423701) / 5.155757156) + 0.013584831*((precipTempCorr_WEATH - 0.012171065) / 0.139613922) + -0.011392877*((isothermality_WEATH - 0.538807833) / 1.422356333) + 0.035960786*((annWatDef_WEATH - -0.119596687) / 0.424434636) + -0.217970279*I(((precip_CLIM - 613.900118155) / 502.187690606)^2) + 0.367790702*I(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)^2) + -0.031527015*I(((isothermality_CLIM- 38.120111845) / 5.019479015)^2) + -0.001997141*I(((precipSeasonality_WEATH - -0.025697534) / 0.132964252) ^2) + -0.022758623*I(((precipTempCorr_WEATH - 0.012171065) / 0.139613922)^2) + 0.014352225*I(((sand - 47.706485501) / 16.730875594)^2) + 0.025503657*I(((coarse - 12.799273363) / 11.332548324)^2) + 0.062557753*I(((carbon - 3.681945502) / 6.405262851)^2) + -0.048139022*I(((AWHC - 13.671423701) / 5.155757156)^2) + 0.002192693*(((annWatDef_CLIM - 99.631248729) / 85.941823498)*((precipTempCorr_WEATH - 0.012171065) / 0.139613922)) + 0.014972237*(((isothermality_CLIM- 38.120111845) / 5.019479015)*((annWatDef_WEATH - -0.119596687) / 0.424434636)) + -0.051575876*(((annWatDef_WEATH - -0.119596687) / 0.424434636)*((precip_CLIM - 613.900118155) / 502.187690606)) + 0.038675358*(((precipSeasonality_CLIM - 0.923249309) / 0.245954382)*((annWatDef_WEATH - -0.119596687) / 0.424434636)) + -0.009761302*(((precipTempCorr_WEATH - 0.012171065) / 0.139613922)*((annWatDef_WEATH - -0.119596687) / 0.424434636)) + 0.289340507*(((isothermality_CLIM- 38.120111845) / 5.019479015)*((precip_CLIM - 613.900118155) / 502.187690606)) + 0.078632789*(((precipSeasonality_CLIM - 0.923249309) / 0.245954382)*((isothermality_CLIM- 38.120111845) / 5.019479015)) + 0.132202861*(((isothermality_CLIM- 38.120111845) / 5.019479015)*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + -0.009488915*(((isothermality_CLIM- 38.120111845) / 5.019479015)*((precipTempCorr_WEATH - 0.012171065) / 0.139613922)) + 0.063991677*(((tmean_CLIM- 10.275203571) / 4.912309147)*((isothermality_CLIM- 38.120111845) / 5.019479015)) + 0.020965402*(((precipSeasonality_CLIM - 0.923249309) / 0.245954382)*((isothermality_WEATH - 0.538807833) / 1.422356333)) + 0.237331817*(((precip_CLIM - 613.900118155) / 502.187690606)*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + 0.009654127*(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)*((precipSeasonality_WEATH - -0.025697534) / 0.132964252)) + 0.011241877*(((precipTempCorr_WEATH - 0.012171065) / 0.139613922)*((precipSeasonality_WEATH - -0.025697534) / 0.132964252)) + -0.185452900*(((tmean_CLIM- 10.275203571) / 4.912309147)*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + 0.042165264*(((sand - 47.706485501) / 16.730875594)*((AWHC - 13.671423701) / 5.155757156)) + -0.014331054*(((sand - 47.706485501) / 16.730875594)*((coarse - 12.799273363) / 11.332548324))) - 2
-
-# Total herbaceous - forest
-TotalHerbaceousCover~ exp( 3.191837402 + -0.122792350*((precip_CLIM - 613.900118155) / 502.187690606) + 0.116138373*((precipDry_CLIM - 5.000260635) / 8.205443958) + 0.073364801*((precipTempCorr_CLIM - -0.120988193) / 0.410662268) + -0.223502453*((isothermality_CLIM- 38.120111845) / 5.019479015) + 0.059416398*((clay - 18.489433548) / 9.078669938) + -0.143976298*((sand - 47.706485501) / 16.730875594) + 0.093798717*((AWHC - 13.671423701) / 5.155757156) + -0.082685833*((isothermality_WEATH - 0.538807833) / 1.422356333) + -0.026084114*((annWatDef_WEATH - -0.119596687) / 0.424434636) + 0.067376300*I(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)^2) + 0.025575815*I(((isothermality_CLIM- 38.120111845) / 5.019479015)^2) + 0.010298554*I(((isothermality_WEATH - 0.538807833) / 1.422356333) ^2) + -0.001326385*I(((annWatDef_WEATH - -0.119596687) / 0.424434636) ^2) + 0.075308377*I(((sand - 47.706485501) / 16.730875594)^2) + 0.073306773*I(((AWHC - 13.671423701) / 5.155757156)^2) + 0.019965778*(((isothermality_WEATH - 0.538807833) / 1.422356333)*((annWatDef_WEATH - -0.119596687) / 0.424434636)) + -0.016757681*(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)*((annWatDef_WEATH - -0.119596687) / 0.424434636)) + -0.010148936*(((annWatDef_WEATH - -0.119596687) / 0.424434636) *((tmean_CLIM- 10.275203571) / 4.912309147)) + 0.092170440*(((precip_CLIM - 613.900118155) / 502.187690606)*((isothermality_CLIM- 38.120111845) / 5.019479015)) + 0.016099673*(((precip_CLIM - 613.900118155) / 502.187690606)*((isothermality_WEATH - 0.538807833) / 1.422356333)) + 0.019360302*(((isothermality_WEATH - 0.538807833) / 1.422356333) *((precip_WEATH - 0.030312573) / 0.168767355)) + -0.007884072*(((precipDry_CLIM - 5.000260635) / 8.205443958)*((isothermality_WEATH - 0.538807833) / 1.422356333)) + -0.006048882*(((isothermality_WEATH - 0.538807833) / 1.422356333) *((precipTempCorr_WEATH - 0.012171065) / 0.139613922)) + -0.070468595*(((isothermality_WEATH - 0.538807833) / 1.422356333) *((tmean_CLIM- 10.275203571) / 4.912309147)) + -0.013811905*(((precip_CLIM - 613.900118155) / 502.187690606)*((precipTempCorr_WEATH - 0.012171065) / 0.139613922)) + 0.030103657*(((precipDry_CLIM - 5.000260635) / 8.205443958)*((precip_WEATH - 0.030312573) / 0.168767355)) + -0.001131342*(((precip_WEATH - 0.030312573) / 0.168767355) *((precipTempCorr_WEATH - 0.012171065) / 0.139613922)) + 0.029138569*(((tmean_CLIM- 10.275203571) / 4.912309147)*((precip_WEATH - 0.030312573) / 0.168767355)) +-0.081971171*(((precipDry_CLIM - 5.000260635) / 8.205443958)*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + -0.015253376*(((precipDry_CLIM - 5.000260635) / 8.205443958)*((tmean_CLIM- 10.275203571) / 4.912309147)) + -0.039321175*(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)*((precipTempCorr_WEATH - 0.012171065) / 0.139613922)) + 0.042655226*(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)*((tmean_CLIM- 10.275203571) / 4.912309147)) + 0.013823818*(((tmean_CLIM- 10.275203571) / 4.912309147)*((precipTempCorr_WEATH - 0.012171065) / 0.139613922)) + -0.020024507*(((AWHC - 13.671423701) / 5.155757156)*((carbon - 3.681945502) / 6.405262851)) + 0.078265961*(((clay - 18.489433548) / 9.078669938)*((AWHC - 13.671423701) / 5.155757156)) + 0.081708191*(((AWHC - 13.671423701) / 5.155757156)*((coarse - 12.799273363) / 11.332548324)) + 0.185762180*(((sand - 47.706485501) / 16.730875594)*((AWHC - 13.671423701) / 5.155757156)) + -0.025554099*(((carbon - 3.681945502) / 6.405262851)*((coarse - 12.799273363) / 11.332548324)) + -0.038284034*(((sand - 47.706485501) / 16.730875594)*((carbon - 3.681945502) / 6.405262851))) - 2
-
-# Total tree - grass/shrub
-TotalTreeCover~ exp( 2.58245786 + 1.14190425*((precip_CLIM - 613.900118155) / 502.187690606) + -0.15075425*((precipSeasonality_CLIM - 0.923249309) / 0.245954382) + 0.03572512*((annWatDef_CLIM - 99.631248729) / 85.941823498) + -0.07413619*((sand - 47.706485501) / 16.730875594) + -0.31894087*((AWHC - 13.671423701) / 5.155757156)) - 2
-
-# Total tree - forest
-TotalTreeCover~ exp( 3.28887888 + 0.10058372*((tmean_CLIM- 10.275203571) / 4.912309147) + 0.07165316*((precip_CLIM - 613.900118155) / 502.187690606) + 0.12712928*((precipDry_CLIM - 5.000260635) / 8.205443958) + 0.03173495*((carbon - 3.681945502) / 6.405262851) + 0.06648011*((AWHC - 13.671423701) / 5.155757156) + -0.17846554*((precip_WEATH - 0.030312573) / 0.168767355) + -0.02914362*I(((isothermality_WEATH - 0.538807833) / 1.422356333) ^2) + -0.04902481*I(((clay - 18.489433548) / 9.078669938)^2) + 0.11841332*(((precip_CLIM - 613.900118155) / 502.187690606)*((isothermality_WEATH - 0.538807833) / 1.422356333)) + 0.11243677*(((precipDry_CLIM - 5.000260635) / 8.205443958)*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + 0.02314517*(((tmean_CLIM- 10.275203571) / 4.912309147)*((precipDry_CLIM - 5.000260635) / 8.205443958)) + -0.16107089*(((tmean_CLIM- 10.275203571) / 4.912309147)*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + -0.03108354*(((carbon - 3.681945502) / 6.405262851)*((clay - 18.489433548) / 9.078669938)) + 0.04845871*(((carbon - 3.681945502) / 6.405262851)*((coarse - 12.799273363) / 11.332548324))) - 2
-
-# Shrub - CONUS
-ShrubCover ~ exp( 2.939339967 + 0.145466528*((precip_CLIM - 613.900118155) / 502.187690606) +-0.106416302*((precipSeasonality_CLIM - 0.923249309) / 0.245954382) +-0.216540564*((precipTempCorr_CLIM - -0.120988193) / 0.410662268) + 0.091558229*((sand - 47.706485501) / 16.730875594) + 0.007762789*((coarse - 12.799273363) / 11.332548324) + -0.083296458*I(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)^2) + -0.056281606*I(((sand - 47.706485501) / 16.730875594)^2) +-0.006510544*I(((AWHC - 13.671423701) / 5.155757156)^2) + 0.048231968*(((annWetDegDays_CLIM - 1762.977520092) / 1160.20756048)*((isothermality_WEATH - 0.538807833) / 1.422356333)) + -0.030802083*(((isothermality_WEATH - 0.538807833) / 1.422356333) *((isothermality_CLIM- 38.120111845) / 5.019479015)) + 0.117940292*(((isothermality_CLIM- 38.120111845) / 5.019479015)*((tmean_CLIM- 10.275203571) / 4.912309147)) +0.037905068*(((precip_CLIM - 613.900118155) / 502.187690606)*((precipSeasonality_WEATH - -0.025697534) / 0.132964252)) + 0.045575111*(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)*((tmean_CLIM- 10.275203571) / 4.912309147))) - 2
-
-# Bare ground - CONUS
-BareGroundCover~ exp( 2.746284299 + 0.262457983*((tmean_CLIM- 10.275203571) / 4.912309147) + 0.087718972*((isothermality_CLIM - 38.120111845) / 5.019479015) + -0.715375616*((annWetDegDays_CLIM - 1762.977520092) / 1160.20756048) + -0.267155829*((coarse - 12.799273363) / 11.332548324) + -0.064084039*((isothermality_WEATH - 0.538807833) / 1.422356333) + 0.037782133*((annWetDegDays_WEATH - 0.02989113) / 0.243425185) + -0.079708661*I(((tmean_CLIM- 10.275203571) / 4.912309147)^2) + -0.036639124*I(((isothermality_CLIM- 38.120111845) / 5.019479015)^2) + -0.002739534*I(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)^2) + -0.076610337*((precip_CLIM - 613.900118155) / 502.187690606) + 0.003781266*I(((annWetDegDays_WEATH - 0.02989113) / 0.243425185)^2) + 0.133413710*(((precip_CLIM - 613.900118155) / 502.187690606)*((annWetDegDays_CLIM - 1762.977520092) / 1160.20756048)) + -0.106746867*(((annWetDegDays_CLIM - 1762.977520092) / 1160.20756048)*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + 0.125888447*(((isothermality_CLIM- 38.120111845) / 5.019479015)*((precipTempCorr_CLIM - -0.120988193) / 0.410662268))) - 2
-
-# Broad-leaved trees - grass/shrub
-broadLeavedTreeCoverPercentage~ exp( 3.10338252 + 0.28241315*((tmean_CLIM- 10.275203571) / 4.912309147) + 0.80500002*((precip_CLIM - 613.900118155) / 502.187690606) + 0.05186862*((AWHC - 13.671423701) / 5.155757156) + -0.03647871*I(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)^2) + -0.06790977*I(((precipTempCorr_WEATH - 0.012171065) / 0.139613922)^2) + 0.18569895*I(((sand - 47.706485501) / 16.730875594)^2) + 0.52842267*(((tmean_CLIM- 10.275203571) / 4.912309147)*((isothermality_CLIM- 38.120111845) / 5.019479015)) + -0.30139958*(((AWHC - 13.671423701) / 5.155757156)*((coarse - 12.799273363) / 11.332548324))) - 2
+#P(forest) ~ 1/(1 + exp(-( 9.872597456 + -0.299906791*twarm_CLIM + 0.245551132*tcold_CLIM +
+                            # 0.010607279*precipWet_CLIM + -0.062058523*annWatDef_CLIM +
+                            # -2.786336969*PrecipTempCorr_CLIM + 0.054028905*isothermality_CLIM +
+                            # -0.007599899*soilDepth + 0.033478424*sand + 0.031037682*coarse + 0.272601351*carbon)))
+## predict for ecoregion classification
+dat3 <- dat2 %>% 
+  mutate(P_forest = 1/(1 + exp(-( 9.872597456 + -0.299906791*twarm_CLIM + 0.245551132*tcold_CLIM +
+                                     0.010607279*precipWet_CLIM + -0.062058523*annWatDef_CLIM +
+                                     -2.786336969*PrecipTempCorr_CLIM + 0.054028905*isothermality_CLIM +
+                                     -0.007599899*soilDepth + 0.033478424*sand + 0.031037682*coarse + 0.272601351*carbon))))
 
 
-# Broad-leaved trees - forest
-broadLeavedTreeCoverPercentage~ exp( 3.400837432 + 0.119928190*((tmean_CLIM- 10.275203571) / 4.912309147) + 0.254698982*((precipDry_CLIM - 5.000260635) / 8.205443958) + 0.415003665*((clay - 18.489433548) / 9.078669938) + 0.005289910*((sand - 47.706485501) / 16.730875594) + -0.118297218*((carbon - 3.681945502) / 6.405262851) + 0.216869470*((AWHC - 13.671423701) / 5.155757156) + 0.127567513*((precip_WEATH - 0.030312573) / 0.168767355) + -0.030975228*((precipTempCorr_WEATH - 0.012171065) / 0.139613922) + -0.136571036*I(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)^2) + 0.026270176*(((isothermality_CLIM- 38.120111845) / 5.019479015)*((isothermality_WEATH - 0.538807833) / 1.422356333)) + -0.218615897*(((isothermality_CLIM- 38.120111845) / 5.019479015)*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + -0.013504372*(((isothermality_WEATH - 0.538807833) / 1.422356333) *((precip_CLIM - 613.900118155) / 502.187690606)) + -0.079997868*(((tmean_CLIM- 10.275203571) / 4.912309147)*((precip_WEATH - 0.030312573) / 0.168767355)) + -0.001941377*(((precipDry_CLIM - 5.000260635) / 8.205443958)*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + -0.108094550*(((tmean_CLIM- 10.275203571) / 4.912309147)*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + 0.056873963*(((tmean_CLIM- 10.275203571) / 4.912309147)*((precipTempCorr_WEATH - 0.012171065) / 0.139613922)) + -0.084394634*(((carbon - 3.681945502) / 6.405262851)*((AWHC - 13.671423701) / 5.155757156)) + -0.011095426*(((carbon - 3.681945502) / 6.405262851)*((coarse - 12.799273363) / 11.332548324)) + 0.126127030*(((clay - 18.489433548) / 9.078669938)*((coarse - 12.799273363) / 11.332548324)) + -0.249606357*(((sand - 47.706485501) / 16.730875594)*((coarse - 12.799273363) / 11.332548324))) - 2
 
-# Needle-leaved trees - grass/shrub
-needleLeavedTreeCoverPercentage~ exp( 4.52324174 + -0.18954119*((tmean_CLIM- 10.275203571) / 4.912309147) + -0.13086877*((AWHC - 13.671423701) / 5.155757156) + -0.03177446*I(((isothermality_CLIM- 38.120111845) / 5.019479015)^2) + -0.25163832*(((tmean_CLIM- 10.275203571) / 4.912309147)*((annWatDef_CLIM - 99.631248729) / 85.941823498)) + -0.24377773*(((tmean_CLIM- 10.275203571) / 4.912309147)*((isothermality_CLIM- 38.120111845) / 5.019479015)) + -0.32422844*(((tmean_CLIM- 10.275203571) / 4.912309147)*((precipTempCorr_CLIM - -0.120988193) / 0.410662268))) - 2
+## scale climate data 
+# get data that has the scaling factors
+modDat_1_s <- readRDS("./Analysis/VegComposition/ModelFitting/models/scaledModelInputData.rds")
 
-# Needle-leaved trees - forest
-needleLeavedTreeCoverPercentage~ exp( 4.37205983 + -0.21286237*((precipDry_CLIM - 5.000260635) / 8.205443958) + 0.12039825*((sand - 47.706485501) / 16.730875594) + 0.07954909*((carbon - 3.681945502) / 6.405262851) + 0.03631508*I(((tmean_CLIM- 10.275203571) / 4.912309147)^2) + 0.06724832*(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)*((isothermality_CLIM- 38.120111845) / 5.019479015)) + -0.08652516*(((precipDry_CLIM - 5.000260635) / 8.205443958)*((precipTempCorr_CLIM - -0.120988193) / 0.410662268)) + -0.04245934*(((precipDry_CLIM - 5.000260635) / 8.205443958)*((tmean_CLIM- 10.275203571) / 4.912309147))) - 2
+# rename
+climDat <- dat3 %>% 
+  rename("tmin" = tmin, 
+           "tmax" = tmax, #1 
+         "tmean" = tmean_CLIM, 
+         "prcp" = precip_CLIM, 
+         "t_warm" = twarm_CLIM,
+         "t_cold" = tcold_CLIM, 
+         "prcp_wet" = precipWet_CLIM,
+         "prcp_dry" = precipDry_CLIM, 
+         "prcp_seasonality" = precipSeasonality_CLIM, #2
+         "prcpTempCorr" = PrecipTempCorr_CLIM,  #3
+         "abvFreezingMonth" = abvFreezingMonth, 
+         "isothermality" = isothermality_CLIM, #4
+         "annWatDef" = annWatDef_CLIM, 
+         "annWetDegDays" = annWetDegDays_CLIM,
+         "VPD_mean" = VPD_mean, 
+         "VPD_max" = VPD_max, #5
+         "VPD_min" = VPD_min, #6
+         "VPD_max_95" = VPD_max_95, 
+         "annWatDef_95" = annWatDef_95, 
+         "annWetDegDays_5" = annWetDegDays_5, 
+         "frostFreeDays_5" = frostFreeDays_5, 
+         "frostFreeDays" = frostFreeDays, 
+         "soilDepth" = soilDepth, #7
+         "clay" = clay, 
+         "sand" = sand, #8
+         "coarse" = coarse, #9
+         "carbon" = carbon, #10
+           "AWHC" = AWHC,
+         ## anomaly variables
+         tmean_anom = tmean_meanAnnAvg_3yrAnom, #15
+         tmin_anom = tmin_meanAnnAvg_3yrAnom, #16
+         tmax_anom = tmax_meanAnnAvg_3yrAnom, #17
+         prcp_anom = precip_WEATH, #18
+         t_warm_anom = T_warmestMonth_meanAnnAvg_3yrAnom,  #19
+         t_cold_anom = T_coldestMonth_meanAnnAvg_3yrAnom, #20
+         prcp_wet_anom = precip_wettestMonth_meanAnnAvg_3yrAnom, #21
+         precp_dry_anom = precip_driestMonth_meanAnnAvg_3yrAnom,  #22
+         prcp_seasonality_anom = precipSeasonality_WEATH, #23 
+         prcpTempCorr_anom = precipTempCorr_WEATH, #24
+         aboveFreezingMonth_anom = aboveFreezing_month_meanAnnAvg_3yrAnom, #25  
+         isothermality_anom = isothermality_WEATH, #26
+         annWatDef_anom = annWatDef_WEATH, #27
+         annWetDegDays_anom = annWetDegDays_WEATH,  #28
+         VPD_mean_anom = annVPD_mean_meanAnnAvg_3yrAnom, #29
+         VPD_min_anom = annVPD_min_meanAnnAvg_3yrAnom,  #30
+         VPD_max_anom = annVPD_max_meanAnnAvg_3yrAnom,  #31
+         VPD_max_95_anom = annVPD_max_95percentile_3yrAnom, #32
+         annWatDef_95_anom = annWaterDeficit_95percentile_3yrAnom, #33 
+         annWetDegDays_5_anom = annWetDegDays_5percentile_3yrAnom ,  #34
+         frostFreeDays_5_anom = durationFrostFreeDays_5percentile_3yrAnom, #35 
+         frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_3yrAnom #36
+  ) 
 
-# C3 graminoids -  CONUS
-c3CoverPercentage ~ exp( 3.904167492 + -0.284822539*((tmean_CLIM- 10.275203571) / 4.912309147) + -0.387430439*((precipTempCorr_CLIM - -0.120988193) / 0.410662268) + -0.264775838*((isothermality_CLIM- 38.120111845) / 5.019479015) + -0.168662971*I(((isothermality_CLIM- 38.120111845) / 5.019479015)^2) + -0.294089719*(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)*((isothermality_CLIM- 38.120111845) / 5.019479015)) + -0.009509765*((annWetDegDays_CLIM- 1762.977520092)/1160.20756048)) - 2
+## now, scale the contemporary climate data for use in models 
+# get the scaling factors 
+scaleParams <- modDat_1_s %>% 
+  #filter(Year == 2016) %>% 
+  dplyr::select(tmin_s:AWHC_s) %>% 
+  reframe(across(all_of(names(.)), attributes)) 
 
-# C4 graminoids -  CONUS
-c4CoverPercentage ~ exp(2.41145985 + 0.48381716*((tmean_CLIM- 10.275203571) / 4.912309147) + 1.02026843*((precipTempCorr_CLIM - -0.120988193) / 0.410662268) + 0.54331054*((isothermality_CLIM- 38.120111845) / 5.019479015) + 0.05180567*I(((precipTempCorr_WEATH - 0.012171065) / 0.139613922)^2)) - 2
+# apply the scaling factors to the contemporary climate data 
+namesToScale <- climDat %>% 
+  dplyr::select(tmin:frostFreeDays, tmean_anom:frostFreeDays_anom, soilDepth:AWHC) %>% 
+  names()
 
-# forbs - CONUS
-forbCoverPercentage ~ exp( 3.514178452 + 0.248393795*((precip_CLIM - 613.900118155) / 502.187690606) + -0.052267180*((precipSeasonality_CLIM - 0.923249309) / 0.245954382) + -0.050423003*((precipTempCorr_CLIM - -0.120988193) / 0.410662268) + -0.020802257*((isothermality_CLIM- 38.120111845) / 5.019479015) + 0.041673226*((sand - 47.706485501) / 16.730875594) + 0.059813143*((coarse - 12.799273363) / 11.332548324) + -0.035820999*((precipSeasonality_WEATH - -0.025697534) / 0.132964252) + 0.051567741*I(((precipSeasonality_CLIM - 0.923249309) / 0.245954382)^2) + 0.014241935*I(((precipSeasonality_WEATH - -0.025697534) / 0.132964252) ^2) + 0.005274193*I(((precipTempCorr_WEATH - 0.012171065) / 0.139613922)^2) +-0.037700614*(((tmean_CLIM- 10.275203571) / 4.912309147)*((annWetDegDays_CLIM - 1762.977520092) / 1160.20756048)) + -0.041194253*(((precipTempCorr_CLIM - -0.120988193) / 0.410662268)*((isothermality_CLIM- 38.120111845) / 5.019479015)) + 0.060107858*(((isothermality_CLIM- 38.120111845) / 5.019479015)*((tmean_CLIM- 10.275203571) / 4.912309147))+ -0.092114033*(((sand - 47.706485501) / 16.730875594)*((AWHC - 13.671423701) / 5.155757156)) + -0.053246622*(((sand - 47.706485501) / 16.730875594)*((coarse - 12.799273363) / 11.332548324)) + 0.022969730*(((precipSeasonality_CLIM - 0.923249309) / 0.245954382)*((tmean_CLIM- 10.275203571) / 4.912309147)) + 0.004823926*I(((isothermality_WEATH - 0.538807833) / 1.422356333) ^2) + 0.011303772*(((precipTempCorr_WEATH - 0.012171065) / 0.139613922)*((annWetDegDays_WEATH - 0.02989113) / 0.243425185))) - 2
+climDat_scaled <- map(namesToScale, .f = function(x) {
+  x_new <- (climDat[,x] - scaleParams[,paste0(x, "_s")]$`scaled:center`)/scaleParams[,paste0(x, "_s")]$`scaled:scale`
+  return(data.frame(x_new))
+}) %>% 
+  purrr::list_cbind()
+names(climDat_scaled) <- paste0(namesToScale, "_s")
+
+climDatPred <- climDat %>% 
+  dplyr::select(NA_L1CODE:newRegion, x:y) %>% 
+  cbind(climDat_scaled)
+names(climDatPred)[7:56] <- str_remove(names(climDatPred)[7:56], pattern = "_s$")
+
+# get model objects  ------------------------------------------------------
+# Total herbaceous cover: 
+# Grass/shrub: 1SE lambda model
+totalHerb_GS <-  readRDS("./Analysis/VegComposition/ModelFitting/models/betaLASSO/TotalHerbaceousCover_shrubGrass_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_oneSELambdaGLM.rds")
+# Forest: best lambda model
+totalHerb_F <-  readRDS("./Analysis/VegComposition/ModelFitting/models/betaLASSO/TotalHerbaceousCover_forest_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
+
+# Total tree cover: 
+# Grass/shrub: best lambda model 
+totalTree_GS <-
+  readRDS("./Analysis/VegComposition/ModelFitting/models/betaLASSO/TotalTreeCover_shrubGrass_noTLP_FALSE_removeAnomaliesTRUE_bestLambdaGLM.rds")
+# Forest: best lambda model 
+totalTree_F <-  #readRDS("./models/betaLASSO/TotalTreeCover_forest_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
+  #remove anomalies option #
+  readRDS("./Analysis/VegComposition/ModelFitting/models/betaLASSO/TotalTreeCover_forest_noTLP_FALSE_removeAnomaliesTRUE_halfSELambdaGLM.rds")
+
+# Bare ground: # CONUS - 1SE lambda model
+bareGround_CONUS <-  readRDS("./Analysis/VegComposition/ModelFitting/models/betaLASSO/BareGroundCover_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_oneSELambdaGLM.rds")
+
+# Shrub: # CONUS - best lambda model
+shrub_CONUS <- readRDS("./Analysis/VegComposition/ModelFitting/models/betaLASSO/ShrubCover_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
+
+# Broad-leaved tree: 
+# Grass/shrub: best lambda model
+BLtree_GS <- readRDS("./Analysis/VegComposition/ModelFitting/models/betaLASSO/AngioTreeCover_prop_shrubGrass_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
+# Forest:  best lambda model
+BLtree_F <- readRDS("./Analysis/VegComposition/ModelFitting/models/betaLASSO/AngioTreeCover_prop_forest_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
+
+# Needle-leaved tree: 
+# Grass/shrub: best lambda model
+NLtree_GS <-  readRDS("./Analysis/VegComposition/ModelFitting/models/betaLASSO/ConifTreeCover_prop_shrubGrass_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
+# Forest:  best lambda model
+NLtree_F <- readRDS("./Analysis/VegComposition/ModelFitting/models/betaLASSO/ConifTreeCover_prop_forest_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
+
+# Forb: # CONUS: best lambda model
+forb_CONUS <-  readRDS("./Analysis/VegComposition/ModelFitting/models/betaLASSO/ForbCover_prop_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
+
+# C3 grass:# CONUS: 1SE lambda model
+C3grass_CONUS <- readRDS("./Analysis/VegComposition/ModelFitting/models/betaLASSO/C3GramCover_prop_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_oneSELambdaGLM.rds")
+
+# C4 grass: # CONUS: best lambda model
+C4grass_CONUS <- readRDS("./Analysis/VegComposition/ModelFitting/models/betaLASSO/C4GramCover_prop_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
 
 
+# Now, predict absolute cover  --------------------------------------------
+# function to make predictions
+prednames_s <-  modDat_1_s %>%
+  dplyr::select(tmin_s:AWHC_s) %>%
+  names()
+prednames <- str_replace(prednames_s, pattern = "_s$", replacement = "")
+
+makePredictions <- function(predictionDF, modelObject, scale  = TRUE) {
+  ##
+  # predictionDF <- climDatPred
+  # modelObject <- bestLambdaMod_grassShrub_totalHerb
+  # # ##
+  # predictionDF = modDat_quantile,
+  # modelObject = forb_CONUS, scale = FALSE
+  # 
+  # pretend to scale the input variables so the model object can predict accurately
+  if(scale == TRUE) {
+    predictionDF <- predictionDF %>% 
+      mutate(across(all_of(prednames), base::scale,scale = FALSE, center = FALSE)) 
+  }
+  # modelPredictions
+  modelPreds <- predict(object = modelObject, newdata = predictionDF, type = "response")
+  # add predictions back into the input data.frame
+  predictionDF <- predictionDF %>% 
+    cbind(modelPreds)
+  
+  # truncate all predictions to max out at 100 
+  #predictionDF[predictionDF$modelPreds>100 & !is.na(predictionDF$modelPreds),"modelPreds"] <- 100
+  predictionDF[predictionDF$modelPreds < 0 & !is.na(predictionDF$modelPreds),"modelPreds"] <- 0
+  
+  # print predicted data
+  return(predictionDF)
+}
+
+## Now, predict absolute cover with scaled climate/weather/soils data 
+## with contemporary climate data
+totalHerb_F_predsContemp <- makePredictions(predictionDF = climDatPred,
+                                            modelObject = totalHerb_F) %>% 
+  rename(absTotalHerb_F = "modelPreds")
+totalHerb_GS_predsContemp <- makePredictions(predictionDF = climDatPred,
+                                             modelObject = totalHerb_GS) %>% 
+  rename(absTotalHerb_GS = "modelPreds")
+
+totalTree_F_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                           modelObject = totalTree_F) %>% 
+  rename(absTotalTree_F = "modelPreds")
+totalTree_GS_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                            modelObject = totalTree_GS) %>% 
+  rename(absTotalTree_GS = "modelPreds")
+
+bareGround_CONUS_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                                modelObject = bareGround_CONUS) %>% 
+  rename(absBareGround_CONUS = "modelPreds")
+
+shrub_CONUS_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                           modelObject = shrub_CONUS) %>% 
+  rename(absShrub_CONUS = "modelPreds")
+
+BLtree_F_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                        modelObject = BLtree_F) %>% 
+  rename(percBLTree_F = "modelPreds")
+BLtree_GS_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                         modelObject = BLtree_GS) %>% 
+  rename(percBLTree_GS = "modelPreds")
+
+NLtree_F_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                        modelObject = NLtree_F) %>% 
+  rename(percNLTree_F = "modelPreds")
+NLtree_GS_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                         modelObject = NLtree_GS) %>% 
+  rename(percNLTree_GS = "modelPreds")
+
+C3grass_CONUS_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                             modelObject = C3grass_CONUS) %>% 
+  rename(percC3grass_CONUS = "modelPreds")
+
+C4grass_CONUS_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                             modelObject = C4grass_CONUS) %>% 
+  rename(percC4grass_CONUS = "modelPreds")
+
+forb_CONUS_predsContemp<- makePredictions(predictionDF = climDatPred,
+                                          modelObject = forb_CONUS) %>% 
+  rename(percForb_CONUS = "modelPreds")
+
+contempPreds <- totalHerb_F_predsContemp  %>% 
+  cbind(totalHerb_GS_predsContemp %>% select(absTotalHerb_GS)) %>% 
+  cbind(totalTree_F_predsContemp %>% select(absTotalTree_F)) %>% 
+  cbind(totalTree_GS_predsContemp %>% select(absTotalTree_GS)) %>% 
+  cbind(bareGround_CONUS_predsContemp %>% select(absBareGround_CONUS)) %>% 
+  cbind(shrub_CONUS_predsContemp %>% select(absShrub_CONUS)) %>% 
+  cbind(BLtree_F_predsContemp %>% select(percBLTree_F)) %>% 
+  cbind(BLtree_GS_predsContemp %>% select(percBLTree_GS)) %>% 
+  cbind(NLtree_F_predsContemp %>% select(percNLTree_F)) %>% 
+  cbind(NLtree_GS_predsContemp %>% select(percNLTree_GS)) %>% 
+  cbind(C3grass_CONUS_predsContemp %>% select(percC3grass_CONUS)) %>% 
+  cbind(C4grass_CONUS_predsContemp %>% select(percC4grass_CONUS)) %>% 
+  cbind(forb_CONUS_predsContemp %>% select(percForb_CONUS)) %>% 
+  cbind(dat3 %>% select(P_forest)) %>% 
+  rename(prob_Forest = "P_forest") %>% 
+  mutate(prob_grassShrub = 1 - prob_Forest)
+
+
+
+# scale predictions --------------------
+## scale according to ecoregion
+contempPreds <- contempPreds %>% 
+  mutate(absTotalHerb_CONUS = (prob_grassShrub * absTotalHerb_GS) + (prob_Forest * absTotalHerb_F),
+         absTotalTree_CONUS = (prob_grassShrub * absTotalTree_GS) + (prob_Forest * absTotalTree_F)
+  )
+
+        
+## Then, for those models that are predicting proportions, we scale all of the relevant predictions so they sum to one. If models are ecoregion-level, we do this process at the ecoregion scale. 
+# (e.g. Model predictions of the proportion of total herbaceous cover that is forbs, the proportion of total herbaceous cover that is C3 grass, and the proportion of total herbaceous cover that is C4 grass should sum to 1, so: scaled proportion of total herbaceous cover that is forbs = proportion of total herbaceous cover that is forbs/(proportion of total herbaceous cover that is forbs + proportion of total herbaceous cover that is C3 grass + proportion of total herbaceous cover that is C4 grass))
+
+contempPreds <- contempPreds %>% 
+  mutate(percBLTree_scaled_GS = percBLTree_GS/(percBLTree_GS + percNLTree_GS),
+         percNLTree_scaled_GS = percNLTree_GS/(percBLTree_GS + percNLTree_GS),
+         percBLTree_scaled_F = percBLTree_F/(percBLTree_F + percNLTree_F),
+         percNLTree_scaled_F = percNLTree_F/(percBLTree_F + percNLTree_F),
+         percC3grass_scaled_CONUS = percC3grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
+         percC4grass_scaled_CONUS = percC4grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
+         percForb_scaled_CONUS = percForb_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS))
+
+## Then, we convert these predicted proportions into predictions of absolute cover. For the functional types that are predicted at the ecoregion level, we do this process for each ecoregion. 
+contempPreds <- contempPreds %>% 
+  mutate(absNLTree_GS = (percNLTree_scaled_GS * absTotalTree_GS), 
+         absBLTree_GS = (percBLTree_scaled_GS * absTotalTree_GS), 
+         absNLTree_F = (percNLTree_scaled_F * absTotalTree_F), 
+         absBLTree_F = (percBLTree_scaled_F * absTotalTree_F), 
+         absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C3 grass isn't ecoregion-level
+         absC4grass_CONUS = (percC4grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C4 grass isn't ecoregion-level
+         absForb_CONUS = (percForb_scaled_CONUS * absTotalHerb_CONUS) # can use CONUS-wide total herbaceous since forb grass isn't ecoregion-level
+  )
+
+## Finally, for those functional types that are predicted at the ecoregion level, we scale them to be CONUS-wide.
+contempPreds <- contempPreds %>% 
+  mutate(absBLTree_CONUS = (prob_grassShrub * absBLTree_GS) + (prob_Forest * absBLTree_F),
+         absNLTree_CONUS = (prob_grassShrub * absNLTree_GS) + (prob_Forest * absNLTree_F)
+  )
+
+## now, make cover relative for all types except for trees 
+contempPreds <- contempPreds %>% 
+  mutate(total_NonTree_AbsCover_CONUS = (absTotalHerb_CONUS + #absTotalTree_CONUS + 
+                                           absBareGround_CONUS + absShrub_CONUS)) %>% 
+  mutate(relCoverB_totalTree = absTotalTree_CONUS,#/total_NonTree_AbsCover_CONUS,
+         relCoverB_totalHerb = absTotalHerb_CONUS/total_NonTree_AbsCover_CONUS,
+         relCoverB_shrub = absShrub_CONUS/total_NonTree_AbsCover_CONUS,
+         relCoverB_bareGround = absBareGround_CONUS/total_NonTree_AbsCover_CONUS,
+         relCoverB_NLTree = absNLTree_CONUS,
+         relCoverB_BLTree = absBLTree_CONUS,
+         relCoverB_C3Grass = absC3grass_CONUS/total_NonTree_AbsCover_CONUS,
+         relCoverB_C4Grass = absC4grass_CONUS/total_NonTree_AbsCover_CONUS,
+         relCoverB_Forb = absForb_CONUS/total_NonTree_AbsCover_CONUS
+  )
+
+## add back into biomass dataset
+dat4 <- dat3 %>% 
+  cbind(contempPreds %>% 
+          select(relCoverB_totalTree:relCoverB_Forb))
+saveRDS(dat4, "./Data_processed/BiomassQuantityData/GEDIbiomass_climateAndSoils_modeledCover.rds")
+# 
+# ggplot(dat4 %>% slice_sample(n = 10000)) + 
+#   geom_point(aes(x, y, col = relCoverB_BLTree + relCoverB_NLTree))

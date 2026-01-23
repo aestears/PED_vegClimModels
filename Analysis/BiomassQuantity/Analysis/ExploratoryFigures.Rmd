@@ -52,7 +52,7 @@ source("../../../Functions/transformPreds.R")
 theme_set(theme_classic())
 # load data ---------------------------------------------------------------
 
-dat_temp <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/PED_vegClimModels/Data_processed/BiomassQuantityData/dataForAnalysis_fireAndDevelopmentRemoved.rds")
+dat_temp <- readRDS("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/Data_processed/BiomassQuantityData/dataForAnalysis_fireAndDevelopmentRemoved.rds")
 
 # get only total biomass from GEDI
 dat <- dat_temp %>% 

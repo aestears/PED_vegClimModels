@@ -47,12 +47,14 @@ coverRast <- terra::rast("./Data_processed/CoverData/ModelPredictionData/ModelPr
   terra::resample(FIAbiomass)
   
 # read in raw cover data --------------------------------------------------
-rawCoverData <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf.rds")
+rawCoverData <- readRDS("./Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf_sampledLANDFIRE.rds")
 # crs is: "PROJCRS[\"unnamed\",\n BASEGEOGCRS[\"unknown\",\n DATUM[\"unknown\",\n ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n LENGTHUNIT[\"metre\",1,\nID[\"EPSG\",9001]]]],\n PRIMEM[\"Greenwich\",0,\n ANGLEUNIT[\"degree\",0.0174532925199433,\n ID[\"EPSG\",9122]]]],\n CONVERSION[\"Lambert Conic Conformal (2SP)\",\n METHOD[\"Lambert Conic Conformal (2SP)\",\n ID[\"EPSG\",9802]],\n PARAMETER[\"Latitude of false origin\",42.5,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8821]],\n PARAMETER[\"Longitude of false origin\",-100,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8822]],\n PARAMETER[\"Latitude of 1st standard parallel\",25,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8823]],\n PARAMETER[\"Latitude of 2nd standard parallel\",60,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8824]],\n PARAMETER[\"Easting at false origin\",0,\n LENGTHUNIT[\"metre\",1],\n ID[\"EPSG\",8826]],\n PARAMETER[\"Northing at false origin\",0,\n LENGTHUNIT[\"metre\",1],\n ID[\"EPSG\",8827]]],\n CS[Cartesian,2],\n AXIS[\"easting\",east,\n ORDER[1],\n LENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]],\n AXIS[\"northing\",north,\n ORDER[2],\n LENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]]]"
 # make into a spatial object
 rawCoverData <- rawCoverData %>% 
-  st_as_sf(coords = c("Long", "Lat"), crs = "PROJCRS[\"unnamed\",\n BASEGEOGCRS[\"unknown\",\n DATUM[\"unknown\",\n ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n LENGTHUNIT[\"metre\",1,\nID[\"EPSG\",9001]]]],\n PRIMEM[\"Greenwich\",0,\n ANGLEUNIT[\"degree\",0.0174532925199433,\n ID[\"EPSG\",9122]]]],\n CONVERSION[\"Lambert Conic Conformal (2SP)\",\n METHOD[\"Lambert Conic Conformal (2SP)\",\n ID[\"EPSG\",9802]],\n PARAMETER[\"Latitude of false origin\",42.5,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8821]],\n PARAMETER[\"Longitude of false origin\",-100,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8822]],\n PARAMETER[\"Latitude of 1st standard parallel\",25,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8823]],\n PARAMETER[\"Latitude of 2nd standard parallel\",60,\n ANGLEUNIT[\"degree\",0.0174532925199433],\n ID[\"EPSG\",8824]],\n PARAMETER[\"Easting at false origin\",0,\n LENGTHUNIT[\"metre\",1],\n ID[\"EPSG\",8826]],\n PARAMETER[\"Northing at false origin\",0,\n LENGTHUNIT[\"metre\",1],\n ID[\"EPSG\",8827]]],\n CS[Cartesian,2],\n AXIS[\"easting\",east,\n ORDER[1],\n LENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]],\n AXIS[\"northing\",north,\n ORDER[2],\n LENGTHUNIT[\"metre\",1,\n ID[\"EPSG\",9001]]]]"
-)
+  st_as_sf(coords = c("x", "y"), crs = "GEOGCRS[\"NAD83\",\n    DATUM[\"North American Datum 1983\",\n        ELLIPSOID[\"GRS 1980\",6378137,298.257222101,\n            LENGTHUNIT[\"metre\",1]]],\n    PRIMEM[\"Greenwich\",0,\n        ANGLEUNIT[\"degree\",0.0174532925199433]],\n    CS[ellipsoidal,2],\n        AXIS[\"geodetic latitude (Lat)\",north,\n            ORDER[1],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n        AXIS[\"geodetic longitude (Lon)\",east,\n            ORDER[2],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n    ID[\"EPSG\",4269]]") %>% 
+  st_transform(crs = crs(FIAbiomass))
+
+crs(FIAbiomass) == crs(rawCoverData)
 # make into a raster (GEDI data is from 2019-2023, so I've averaged the values here from 2010-2023 which is obviously not entirely accurate... but I think is good enough)
 rawCoverRast_list <- lapply(c("ShrubCover", "TotalHerbaceousCover", "TotalTreeCover", "C3GramCover_prop", "C4GramCover_prop", "ForbCover_prop", "AngioTreeCover_prop", "ConifTreeCover_prop"), 
         FUN = function(x) {
@@ -61,11 +63,6 @@ rawCoverRast_list <- lapply(c("ShrubCover", "TotalHerbaceousCover", "TotalTreeCo
           names(cov_temp) <- paste0(x, "_raw")
           return(cov_temp)
         })
-# ###
-# ggplot(rawCoverData_temp[!is.na(rawCoverData_temp$TotalTreeCover),]) + 
-#   geom_spatraster(data = GEDIBiomass)+ 
-#   geom_sf(aes(col = TotalTreeCover)) 
-# ###
 
 names(rawCoverRast_list) <- c("ShrubCover", "TotalHerbaceousCover", "TotalTreeCover", "C3GramCover_prop", "C4GramCover_prop", "ForbCover_prop", "AngioTreeCover_prop", "ConifTreeCover_prop")
 rawCoverRast <- c(rawCoverRast_list[[1]], rawCoverRast_list[[2]], rawCoverRast_list[[3]], rawCoverRast_list[[4]], rawCoverRast_list[[5]], rawCoverRast_list[[6]], rawCoverRast_list[[7]], rawCoverRast_list[[8]])
@@ -78,11 +75,11 @@ biomassCoverRast <- c(GEDIBiomass_ag %>% terra::crop(ext(coverRast)),
                       rawCoverRast %>% terra::crop(ext(coverRast)))
 
 # load climate data -------------------------------------------------------
-climDat <- readRDS("./Data_processed/BiomassQuantity_climSoilData.rds")
+climDat <- readRDS("./Data_processed/BiomassQuantityData/BiomassQuantity_climSoilData_GEDI.rds")
 # rename
 climDat <- climDat %>% 
   dplyr::select(year, tmin_meanAnnAvg_CLIM:Start_CLIM, NA_L1CODE, 
-                NA_L1NAME, NA_L1KEY, newRegion, Long, Lat, 
+                NA_L1NAME, NA_L1KEY, newRegion, x, y, 
                 tmean_meanAnnAvg_3yrAnom:durationFrostFreeDays_meanAnnAvg_3yrAnom, soilDepth:totalAvailableWaterHoldingCapacity) %>% 
   rename("tmin" = tmin_meanAnnAvg_CLIM, 
          "tmax" = tmax_meanAnnAvg_CLIM, #1 
@@ -115,9 +112,9 @@ climDat <- climDat %>%
   ) 
 
 climDat_sf <- climDat %>% 
-  select(Long, Lat) %>% 
+  select(x, y) %>% 
   unique() %>% 
-  sf::st_as_sf(coords = c("Long", "Lat"), crs = st_crs(biomassCoverRast), remove = FALSE)
+  sf::st_as_sf(coords = c("x", "y"), crs = st_crs(biomassCoverRast), remove = FALSE)
 
 
 # combine cover and biomass with climate and soils data -------------------
@@ -126,7 +123,6 @@ biomassCoverClimSoils <- terra::extract(x = biomassCoverRast, y = climDat_sf, #x
                                         ID = TRUE#, bind = TRUE
                                         ) 
 # add in climate ID data 
-
 biomassCoverClimSoils <- biomassCoverClimSoils %>% 
   rename(climDatSpatial_ID = ID)
 
@@ -138,7 +134,7 @@ climDat_sfID <- climDat_sf %>%
   st_drop_geometry()
 
 climDat <- climDat %>% 
-  left_join(climDat_sfID, by = c("Long", "Lat"))
+  left_join(climDat_sfID, by = c("x", "y"))
 
 # Make biomass data into a long dataset
 biomassCoverClimSoils_long <- biomassCoverClimSoils %>% 
@@ -163,12 +159,12 @@ biomassCoverClimSoils_long <- biomassCoverClimSoils_long %>%
 
 biomassCoverClimSoils_long$year <- round(biomassCoverClimSoils_long$FIA_avgInvYear)
 biomassCoverClimSoils_long[biomassCoverClimSoils_long$biomassSource == "RAP", "year"] <- 2020
-biomassCoverClimSoils_long[biomassCoverClimSoils_long$biomassSource == "GEDI", "year"] <- 2011
+biomassCoverClimSoils_long[biomassCoverClimSoils_long$biomassSource == "GEDI", "year"] <- 2020
 
 ## add the climate data 
 biomassCoverClimSoils_long <- biomassCoverClimSoils_long %>% 
   left_join(climDat, by = c("climDatSpatial_ID", "year")) %>% 
-  drop_na(Long, Lat)
+  drop_na(x, y)
 
 # # add level 2 ecoregion data  -----------------------------------------------------
 regions <- sf::st_read(dsn = "./Data_raw/Level2Ecoregions/", layer = "NA_CEC_Eco_Level2")
@@ -181,7 +177,7 @@ regions_2 <- st_transform(regions, crs = st_crs(test_rast)) %>%
 crs(test_rast) == crs(regions_2)
 
 # transform modDat to sf to later use st_join
-biomassCoverClimSoils_long_sf <- st_as_sf(biomassCoverClimSoils_long, coords = c("Long", "Lat"), crs = st_crs(test_rast))
+biomassCoverClimSoils_long_sf <- st_as_sf(biomassCoverClimSoils_long, coords = c("x", "y"), crs = st_crs(test_rast))
 
 crs(regions_2) == crs(biomassCoverClimSoils_long_sf)
 

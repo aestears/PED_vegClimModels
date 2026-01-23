@@ -125,9 +125,9 @@ cwf_conus <- cwf_new %>%
 
 
 # Get biomass/cover/climate/soils data ------------------------------------
-biomassDat <- readRDS("./Data_processed/BiomassQuantityData/GEDIbiomass_predictedCover_climateAndSoils.rds")
+biomassDat <- readRDS("./Data_processed/BiomassQuantityData/GEDIbiomass_climateAndSoils_modeledCover.rds")
 biomassDat_sf <- biomassDat %>% 
-  st_as_sf(coords = c("Long", "Lat"), remove = FALSE)
+  st_as_sf(coords = c("x", "y"), remove = FALSE)
 st_crs(biomassDat_sf) <-  "PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"
 
 # Identify overlaps between fire boundaries and plots --------------------------
@@ -241,11 +241,11 @@ biomassDat_noFireAll <- purrr::reduce(biomassDat_noCWFList, rbind)
 
 ## for those plots that have been burned more than 20 years ago, remove values for tree and total biomass 
 # remove tree biomass values
-biomassDat_noFireAll[biomassDat_noFireAll$burnedMoreThan20YearsAgo == TRUE & biomassDat_noFireAll$biomassSource == "FIA",]$biomass_MgPerHect <- NA
+#biomassDat_noFireAll[biomassDat_noFireAll$burnedMoreThan20YearsAgo == TRUE & biomassDat_noFireAll$biomassSource == "FIA",]$biomass_MgPerHect <- NA
 # remove total biomass values
 biomassDat_noFireAll[biomassDat_noFireAll$burnedMoreThan20YearsAgo == TRUE & biomassDat_noFireAll$biomassSource == "GEDI",]$biomass_MgPerHect <- NA
 
-plot(biomassDat_noFireAll$Long, biomassDat_noFireAll$Lat)
+plot(biomassDat_noFireAll$x, biomassDat_noFireAll$y)
 ggplot(biomassDat_noFireAll) + 
   facet_wrap(~biomassSource) + 
   geom_sf(aes(col = biomassSource))
@@ -258,117 +258,129 @@ ggplot(biomassDat_noFireAll) +
 #exclusive...?) from: https://eros.usgs.gov/lcmap/apps/data-downloads. LCMAP
 #uses LANDSAT analysis-ready data, just like RAP, so should be on the same grid,
 #right??
-LCMAP <- terra::rast("./Data_raw/LCMAP/LCMAP_CU_2021_V13_LCPRI.tif") #%>% 
-#terra::project(y = "EPSG:4269")
-# reproject the LCMAP data according to biomass projection
-
-# reclassify so that 0 = raster cells that are developed (1) or cropland (2)  or water (5) and 1 = any other land use
-# make reclassification matrix
-rcl_matrix <- as.matrix(data.frame(from = as.numeric(c(1,2,3,4,5,6,7,8)) , to = as.numeric(c(0,0,1,1,0,1,1,1))))
-LCMAP_use <- classify(x = LCMAP, rcl = rcl_matrix)
-
-LCMAP_use <- LCMAP_use %>% 
-  terra::mask(LCMAP_use, maskvalues = 0)
-
-LCMAP_use <- LCMAP_use %>% 
-  terra::project(test_rast)
+# LCMAP <- terra::rast("./Data_raw/LCMAP/LCMAP_CU_2021_V13_LCPRI.tif") #%>% 
+# #terra::project(y = "EPSG:4269")
+# # reproject the LCMAP data according to biomass projection
+# 
+# # reclassify so that 0 = raster cells that are developed (1) or cropland (2)  or water (5) and 1 = any other land use
+# # make reclassification matrix
+# rcl_matrix <- as.matrix(data.frame(from = as.numeric(c(1,2,3,4,5,6,7,8)) , to = as.numeric(c(0,0,1,1,0,1,1,1))))
+# LCMAP_use <- classify(x = LCMAP, rcl = rcl_matrix)
+# 
+# LCMAP_use <- LCMAP_use %>% 
+#   terra::mask(LCMAP_use, maskvalues = 0)
+# 
+# LCMAP_use <- LCMAP_use %>% 
+#   terra::project(crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"))
 # save reclassified data
-saveRDS(LCMAP_use, file = "./data/LCMAP/LCMAP_reclassifiedToUse.rds")
-# LCMAP_use <- readRDS("./Data_raw/LCMAP/LCMAP_reclassifiedToUse.rds")
+#terra::writeRaster(LCMAP_use, file = "./Data_processed/LCMAP/LCMAP_reclassifiedToUseBiomass.tif")
+LCMAP_use <- terra::rast("./Data_processed/LCMAP/LCMAP_reclassifiedToUseBiomass.tif")
 
 ## remove the biomass points that are inside of the 'excluded' LCMAP land use areas
 biomassDat_noFireNoLCMAP <- LCMAP_use %>% 
   terra::extract(biomassDat_noFireAll, bind = TRUE)  %>% 
   st_as_sf()
-
+# update names of cover variables
+biomassDat_noFireNoLCMAP <- biomassDat_noFireNoLCMAP %>% 
+  rename(totalHerbaceousCover_rel = relCoverB_totalHerb,
+         totalTreeCover_rel = relCoverB_totalTree,
+         shrubCover_rel = relCoverB_shrub,
+         bareGroundCover_rel = relCoverB_bareGround,
+         broadLeavedTreeCover_rel = relCoverB_BLTree,
+         needleLeavedTreeCover_rel = relCoverB_NLTree,
+         C3GramCover_rel = relCoverB_C3Grass,
+         C4GramCover_rel = relCoverB_C4Grass,
+         ForbCover_rel = relCoverB_Forb
+         )
 # plot(biomassDat_noFireNoLCMAP[!is.na(biomassDat_noFireNoLCMAP$LCMAP_CU_2021_V13_LCPRI) & 
 #                                 biomassDat_noFireNoLCMAP$biomassSource == "GEDI",]$geometry)
 
 saveRDS(biomassDat_noFireNoLCMAP, "./Data_processed/BiomassQuantityData/dataForAnalysis_fireAndDevelopmentRemoved.rds")
-biomassDat_noFireNoLCMAP <- readRDS( "./Data_processed/BiomassQuantityData/dataForAnalysis_fireAndDevelopmentRemoved.rds")
+#biomassDat_noFireNoLCMAP <- readRDS( "./Data_processed/BiomassQuantityData/dataForAnalysis_fireAndDevelopmentRemoved.rds")
 
-biomassDat_noFireNoLCMAP <- biomassDat_noFireNoLCMAP %>% 
-  mutate(totalTreeCover = broadLeavedTreeCover + needleLeavedTreeCover, 
-         totalHerbaceousCover = C3GramCover + C4GramCover + forbCover)
+
+# biomassDat_noFireNoLCMAP <- biomassDat_noFireNoLCMAP %>% 
+#   mutate(totalTreeCover = broadLeavedTreeCover + needleLeavedTreeCover, 
+#          totalHerbaceousCover = C3GramCover + C4GramCover + forbCover)
 
 # add in un-relativized cover ---------------------------------------------
 # read in "un-relativized" cover data (is a data.frame)
-unRelCover <- readRDS("./Data_processed/CoverData/ModelPredictionData/ModelPreds_UNRELATIVIZED_ContempClimateData_dayMetScale.rds")
-unRelCover <- unRelCover %>% 
-  rename(Long = x, 
-         Lat  = y) %>% 
-  st_as_sf(coords = c("Long", "Lat"),
-    crs ="PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]")
-
-# add in the 'un-relativized' cover data (model predictions that have been scaled according to the predicted ecoregion proportion, but haven't been relativized to sum to 100 across all functional groups)
+# unRelCover <- readRDS("./Data_processed/CoverData/ModelPredictionData/ModelPreds_UNRELATIVIZED_ContempClimateData_dayMetScale.rds")
+# unRelCover <- unRelCover %>% 
+#   rename(Long = x, 
+#          Lat  = y) %>% 
+#   st_as_sf(coords = c("Long", "Lat"),
+#     crs ="PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]")
+# 
+# # add in the 'un-relativized' cover data (model predictions that have been scaled according to the predicted ecoregion proportion, but haven't been relativized to sum to 100 across all functional groups)
+# # biomassDat_noFireNoLCMAP <- biomassDat_noFireNoLCMAP %>% 
+# #   select(-c("predContemp_CONUS_shrub"                      ,
+# #              "predContemp_CONUS_bareGround"               , "C3_percentage_pred"                          , "C4_percentage_pred"                           ,
+# #              "forb_percentage_pred"                                ,                             , "totHerb_synth"                                ,
+# #              "totTree_synth"                              , "totalCover"                                  , "shrub_cover_finalScaled"                      ,
+# #              "bareGround_cover_finalScaled"               , "totalHerb_cover_finalScaled"                 , "totalTree_cover_finalScaled"                  ,
+# #              "needleLeavedTree_perc_scaled_synth"         , "broadLeavedTree_perc_scaled_synth"           , "C3_cover_finalScaled"                         ,
+# #              "C4_cover_finalScaled"                       , "forb_cover_finalScaled"                      , "broadLeaved_cover_finalScaled"                ,
+# #              "needleLeaved_cover_finalScaled"                                          ))
+# 
+# 
+# # unRelCover$roundedLong <- round(unRelCover$Long, 0)
+# # biomassDat_noFireNoLCMAP$roundedLong <- round(biomassDat_noFireNoLCMAP$Long, 0)
+# # unRelCover$roundedLat <- round(unRelCover$Lat, 0)
+# # # biomassDat_noFireNoLCMAP$roundedLat <- round(biomassDat_noFireNoLCMAP$Lat, 0)
+# # unRelCover$roundedtotalHerb <- round(unRelCover$totalHerb_cover_finalScaled, 0)
+# # biomassDat_noFireNoLCMAP$roundedtotalHerb <- round(biomassDat_noFireNoLCMAP$totalHerbaceousCover, 0)
+# # unRelCover$roundedtotalTree <- round(unRelCover$totalTree_cover_finalScaled, 0)
+# # biomassDat_noFireNoLCMAP$roundedtotalTree <- round(biomassDat_noFireNoLCMAP$totalTreeCover, 0)
+# 
+# biomassDat_noFireNoLCMAP_RAP <- biomassDat_noFireNoLCMAP %>% 
+#   filter(biomassSource == "RAP") %>% 
+#   st_join(unRelCover %>% 
+#               select(NA_L1CODE:newRegion, predContemp_GS_totHerb:needleLeaved_cover_finalScaled),
+#               join = st_nearest_feature
+#             # by = c("roundedtotalHerb" , "roundedtotalTree")
+#             )
+# # biomassDat_noFireNoLCMAP_RAP <- biomassDat_noFireNoLCMAP %>% 
+# #   filter(biomassSource == "RAP") %>% 
+# #   st_join(unRelCover %>% 
+# #             select(NA_L1CODE:newRegion, predContemp_GS_totHerb:needleLeaved_cover_finalScaled),
+# #           join = st_nearest_feature
+# #           # by = c("roundedtotalHerb" , "roundedtotalTree")
+# #   )
+# biomassDat_noFireNoLCMAP_FIA <- biomassDat_noFireNoLCMAP %>% 
+#   filter(biomassSource == "FIA") %>% 
+#   st_join(unRelCover %>% 
+#             select(NA_L1CODE:newRegion, predContemp_GS_totHerb:needleLeaved_cover_finalScaled),
+#           join = st_nearest_feature
+#           # by = c("roundedtotalHerb" , "roundedtotalTree")
+#   )
+# biomassDat_noFireNoLCMAP_GEDI <- biomassDat_noFireNoLCMAP %>% 
+#   filter(biomassSource == "GEDI") %>% 
+#   st_join(unRelCover %>% 
+#             select(NA_L1CODE:newRegion, predContemp_GS_totHerb:needleLeaved_cover_finalScaled),
+#           join = st_nearest_feature
+#           # by = c("roundedtotalHerb" , "roundedtotalTree")
+#   )
+# 
+# biomassDat_noFireNoLCMAP <- biomassDat_noFireNoLCMAP_GEDI %>% 
+#   rbind(biomassDat_noFireNoLCMAP_FIA) %>% 
+#   rbind(biomassDat_noFireNoLCMAP_RAP)
+# 
+# # test2 <- test %>% 
+# #   filter(roundedtotalTree.x == roundedtotalTree.y,
+# #          roundedtotalHerb.x == roundedtotalHerb.y)
+# 
+# # update names and remove unneeded columns
 # biomassDat_noFireNoLCMAP <- biomassDat_noFireNoLCMAP %>% 
-#   select(-c("predContemp_CONUS_shrub"                      ,
-#              "predContemp_CONUS_bareGround"               , "C3_percentage_pred"                          , "C4_percentage_pred"                           ,
-#              "forb_percentage_pred"                                ,                             , "totHerb_synth"                                ,
-#              "totTree_synth"                              , "totalCover"                                  , "shrub_cover_finalScaled"                      ,
-#              "bareGround_cover_finalScaled"               , "totalHerb_cover_finalScaled"                 , "totalTree_cover_finalScaled"                  ,
-#              "needleLeavedTree_perc_scaled_synth"         , "broadLeavedTree_perc_scaled_synth"           , "C3_cover_finalScaled"                         ,
-#              "C4_cover_finalScaled"                       , "forb_cover_finalScaled"                      , "broadLeaved_cover_finalScaled"                ,
-#              "needleLeaved_cover_finalScaled"                                          ))
-
-
-# unRelCover$roundedLong <- round(unRelCover$Long, 0)
-# biomassDat_noFireNoLCMAP$roundedLong <- round(biomassDat_noFireNoLCMAP$Long, 0)
-# unRelCover$roundedLat <- round(unRelCover$Lat, 0)
-# # biomassDat_noFireNoLCMAP$roundedLat <- round(biomassDat_noFireNoLCMAP$Lat, 0)
-# unRelCover$roundedtotalHerb <- round(unRelCover$totalHerb_cover_finalScaled, 0)
-# biomassDat_noFireNoLCMAP$roundedtotalHerb <- round(biomassDat_noFireNoLCMAP$totalHerbaceousCover, 0)
-# unRelCover$roundedtotalTree <- round(unRelCover$totalTree_cover_finalScaled, 0)
-# biomassDat_noFireNoLCMAP$roundedtotalTree <- round(biomassDat_noFireNoLCMAP$totalTreeCover, 0)
-
-biomassDat_noFireNoLCMAP_RAP <- biomassDat_noFireNoLCMAP %>% 
-  filter(biomassSource == "RAP") %>% 
-  st_join(unRelCover %>% 
-              select(NA_L1CODE:newRegion, predContemp_GS_totHerb:roundedtotalTree),
-              join = st_nearest_feature
-            # by = c("roundedtotalHerb" , "roundedtotalTree")
-            )
-biomassDat_noFireNoLCMAP_RAP <- biomassDat_noFireNoLCMAP %>% 
-  filter(biomassSource == "RAP") %>% 
-  st_join(unRelCover %>% 
-            select(NA_L1CODE:newRegion, predContemp_GS_totHerb:roundedtotalTree),
-          join = st_nearest_feature
-          # by = c("roundedtotalHerb" , "roundedtotalTree")
-  )
-biomassDat_noFireNoLCMAP_FIA <- biomassDat_noFireNoLCMAP %>% 
-  filter(biomassSource == "FIA") %>% 
-  st_join(unRelCover %>% 
-            select(NA_L1CODE:newRegion, predContemp_GS_totHerb:roundedtotalTree),
-          join = st_nearest_feature
-          # by = c("roundedtotalHerb" , "roundedtotalTree")
-  )
-biomassDat_noFireNoLCMAP_GEDI <- biomassDat_noFireNoLCMAP %>% 
-  filter(biomassSource == "GEDI") %>% 
-  st_join(unRelCover %>% 
-            select(NA_L1CODE:newRegion, predContemp_GS_totHerb:roundedtotalTree),
-          join = st_nearest_feature
-          # by = c("roundedtotalHerb" , "roundedtotalTree")
-  )
-
-biomassDat_noFireNoLCMAP <- biomassDat_noFireNoLCMAP_GEDI %>% 
-  rbind(biomassDat_noFireNoLCMAP_FIA) %>% 
-  rbind(biomassDat_noFireNoLCMAP_RAP)
-
-# test2 <- test %>% 
-#   filter(roundedtotalTree.x == roundedtotalTree.y,
-#          roundedtotalHerb.x == roundedtotalHerb.y)
-
-# update names and remove unneeded columns
-biomassDat_noFireNoLCMAP <- biomassDat_noFireNoLCMAP %>% 
-  select(climDatSpatial_ID:LCMAP_CU_2021_V13_LCPRI, 
-         predContemp_CONUS_shrub:forb_percentage_pred, 
-         totHerb_synth, totTree_synth, totalCover, 
-         shrub_cover_finalScaled:needleLeaved_cover_finalScaled
-         ) %>% 
-  rename(NA_L1CODE = NA_L1CODE.x, 
-         NA_L1NAME = NA_L1NAME.x, 
-         NA_L1KEY = NA_L1KEY.x,
-         newRegion = newRegion.x)
-
-saveRDS(biomassDat_noFireNoLCMAP, file = "./Data_processed/BiomassQuantityData/dataForAnalysis_fireAndDevelopmentRemoved.rds")
-#biomassDat_noFireNoLCMAP <- readRDS("./Data_processed/BiomassQuantityData/dataForAnalysis_fireAndDevelopmentRemoved.rds")
+#   select(climDatSpatial_ID:LCMAP_CU_2021_V13_LCPRI, 
+#          predContemp_CONUS_shrub:forb_percentage_pred, 
+#          totHerb_synth, totTree_synth, totalCover, 
+#          shrub_cover_finalScaled:needleLeaved_cover_finalScaled
+#          ) %>% 
+#   rename(NA_L1CODE = NA_L1CODE.x, 
+#          NA_L1NAME = NA_L1NAME.x, 
+#          NA_L1KEY = NA_L1KEY.x,
+#          newRegion = newRegion.x)
+# 
+# saveRDS(biomassDat_noFireNoLCMAP, file = "./Data_processed/BiomassQuantityData/dataForAnalysis_fireAndDevelopmentRemoved.rds")
+# #biomassDat_noFireNoLCMAP <- readRDS("./Data_processed/BiomassQuantityData/dataForAnalysis_fireAndDevelopmentRemoved.rds")

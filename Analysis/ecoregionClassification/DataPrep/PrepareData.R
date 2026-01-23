@@ -704,3 +704,5 @@ vegSoils_final <- vegSoils_final_a %>%
 # Save Data for further analysis ------------------------------------------
 saveRDS(vegSoils_final, "./Data_processed/EcoRegion_climSoilData.rds")
 
+# vegSoils_final <- readRDS("./Data_processed/EcoRegion_climSoilData.rds")
+# saveRDS(vegSoils_final[vegSoils_final$year == 2020,],"./Data_processed/BiomassQuantityData/BiomassQuantity_climSoilData_GEDI.rds" )

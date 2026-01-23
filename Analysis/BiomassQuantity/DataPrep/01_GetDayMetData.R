@@ -5,5 +5,5 @@
 #///////////////////
 
 # Load data ---------------------------------------------------------------
-## use data that we ammassed for the ecoregion classification endeavor, which are stored here: 
-#"./Data_processed/EcoRegion_climSoilData.rds"
+## use data that we amassed for the ecoregion classification endeavor, which are stored here: 
+#"./Data_processed/BiomassQuantityData/climateValuesForAnalysis_GEDI.rds"

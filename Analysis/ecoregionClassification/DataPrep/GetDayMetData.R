@@ -731,7 +731,6 @@ rm(annMeans_29yr, annMeans_2yr, test2)
 gc()
 
 # save intermediate data 
-# test <- readRDS("./Data_processed/EcoregionData/dayMet_intermediate/climVars_AnnualMeansAndLaggedValues.rds")
 saveRDS(test,"./Data_processed/ecoregionClassificationData/dayMet_climVars_AnnualMeansAndLaggedValues.rds")
 # test <- readRDS("./Data_processed/ecoregionClassificationData/dayMet_climVars_AnnualMeansAndLaggedValues.rds")
 
@@ -887,3 +886,5 @@ climDat[(climDat$precip_driestMonth_meanAnnAvg_CLIM == 0 & !is.na(climDat$precip
 # save climate values for analysis 
 saveRDS(climDat, "./Data_processed/ecoregionClassificationData/climateValuesForAnalysis_final.rds")
 
+# climDat <- readRDS("./Data_processed/ecoregionClassificationData/climateValuesForAnalysis_final.rds")
+# saveRDS(climDat[climDat$year == 2020,],"./Data_processed/BiomassQuantityData/climateValuesForAnalysis_GEDI.rds" )
