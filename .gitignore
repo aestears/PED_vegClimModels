@@ -55,9 +55,20 @@ Data_processed/
 Data_raw/
 Figures/
 
+# yes/no tree models
+./Analysis/VegComposition/ModelFitting/02_modelFitting_globalTreeModel_uncorrelatedPreds_10PercentCutoff.html
+./Analysis/VegComposition/ModelFitting/02_modelFitting_globalTreeModel_moreCorrelatedPreds_thresholdOptimization_SensEqSpec.html
+./Analysis/VegComposition/ModelFitting/02_modelFitting_globalTreeModel_moreCorrelatedPreds_thresholdOptimization_Youden.html
+./Analysis/VegComposition/ModelFitting/02_modelFitting_globalTreeModel_moreCorrelatedPreds_thresholdOptimization_MaxKappa.html
+./Analysis/VegComposition/ModelFitting/02_modelFitting_globalTreeModel_moreCorrelatedPreds_thresholdOptimization_PredPrevEqObs.html
+./Analysis/VegComposition/ModelFitting/02_modelFitting_globalTreeModel_moreCorrelatedPreds_20PercentCutoff.html
+./Analysis/VegComposition/ModelFitting/02_modelFitting_globalTreeModel_uncorrelatedPreds_15PercentCutoff.html
+
 # model comparison html
-./Analysis/VegComposition/ModelFitting/03_CompareModels.html
-/Analysis/VegComposition/ModelFitting/03_CompareModels.html
+./Analysis/VegComposition/ModelFitting/02_modelFitting
+./Analysis/VegComposition/ModelFitting/04_CompareModels.html
+./Analysis/VegComposition/ModelFitting/04_CompareModels.html
+./Analysis/VegComposition/ModelFitting/04_CompareModels_treeModsWITHOUTAnoms.html
 
 # old versions of markdown htmls
 ./Analysis/VegComposition/ModelFitting/outputHtmls/v1/
