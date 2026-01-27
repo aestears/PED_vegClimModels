@@ -379,7 +379,8 @@ var2lab <- function(x = NULL, units_md = FALSE, add_letters = FALSE,
     "prcp_wet" = "prcp_wet",
     "t_warm" = "t_warm",
     "soilDepth" = "soilDepth", 
-    "t_cold" = "t_cold"
+    "t_cold" = "t_cold",
+    "annWatDef_95" = "annWatDef_95"
   )
   
   lookup_name_only <- c(
@@ -434,7 +435,8 @@ var2lab <- function(x = NULL, units_md = FALSE, add_letters = FALSE,
     "prcp_wet" = "Precip of wettest month - 30 yr. mean",
     "t_warm" = "temp. of warmest month - 30 yr. mean",
     "soilDepth" = "soilDepth", 
-    "t_cold" = "t_cold"
+    "t_cold" = "t_cold",
+    "annWatDef_95" = "95th percentile of Ann. Water. Deficit -  30 yr. mean"
   )
   
   # if human modification layer included in the input,
