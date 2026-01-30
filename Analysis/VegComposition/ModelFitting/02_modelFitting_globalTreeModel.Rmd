@@ -15,7 +15,7 @@ params:
   response: TotalTreeCover
   treeThreshold: 10
   removeTexasLouisianaPlain: FALSE
-  whichSecondBestMod: "auto"# 1se OR halfse OR auto (chose the model w/ fewest # of predictors)
+  whichSecondBestMod: "halfse"# 1se OR halfse OR auto (chose the model w/ fewest # of predictors)
   thresholdMethod: "PredPrev=Obs" # apporoach for identifying best threshold
 subtitle: "Based on code from Martin Holdrege's Sagebrush-Fire paper"
 ---
@@ -221,7 +221,7 @@ response <- "TotalTreeCover"
 #### Visualize the response variable 
 ```{r visualize response variable , fig.height=4, fig.width=5}
 ggplot(modDat_1_s) + 
-  geom_histogram(aes(TotalTreeCover/100), fill = "darkgreen", col = "darkgreen", alpha = .5) + 
+  geom_histogram(aes(TotalTreeCover/100), fill = "forestgreen", col = "forestgreen", alpha = .5) + 
   xlab("Tree Cover") + 
   ggtitle("Untransformed, observed tree cover")
 
@@ -796,7 +796,7 @@ halfseLambda_coef <- selection_prob_halfseL_df[selection_prob_halfseL_df$Selecti
 
 ggplot() + 
   geom_point(aes(X[,2], fullModOut$modelPredictions$obs), col = "black", alpha = .1) + 
-  geom_point(aes(X[,2], fullModOut$modelPredictions$pred_opt), col = "red", alpha = .1) + ## predictions w/ the CV model
+  geom_point(aes(X[,2], fullModOut$modelPredictions$pred_opt), col = "red", alpha = .1) + ## predictions w/ the CV model (best lambda)
   geom_point(aes(X[,2], fullModOut$modelPredictions$pred_opt_halfse), col = "orange", alpha = .1) + ## predictions w/ the CV model (.5se lambda)
   geom_point(aes(X[,2], fullModOut$modelPredictions$pred_opt_se), col = "green", alpha = .1) + ## predictions w/ the CV model (1se lambda)
   geom_point(aes(X[,2], fullModOut$modelPredictions$pred_null), col = "blue", alpha = .1) + 
@@ -929,10 +929,14 @@ if (is.finite(uniqueCoeff_min)) {
   mod_secondBest <- fit_glm_halfse
   name_secondBestMod <- "1/2 SE Model"
   prednames_secondBestMod <- prednames_fig_halfse
+  # get the name of the column that contains the prediction data for only the training data, for this model
+trainDatPredName <- "pred_opt_halfse"
 } else if (alternativeModel == "X1se.lambda.model") {
   mod_secondBest <- fit_glm_se
   name_secondBestMod <- "1 SE Model"
   prednames_secondBestMod <- prednames_fig_1se
+  # get the name of the column that contains the prediction data for only the training data, for this model
+trainDatPredName <- "pred_opt_se"
 }
 } else {
   # if both alternative models have the same number of unique coefficients, chose the model that has the fewest number of total predictors
@@ -943,16 +947,21 @@ if (length(alternativeModel2) == 1) {
   mod_secondBest <- fit_glm_halfse
   name_secondBestMod <- "1/2 SE Model"
   prednames_secondBestMod <- prednames_fig_halfse
+   # get the name of the column that contains the prediction data for only the training data, for this model
+trainDatPredName <- "pred_opt_halfse"
 } else if (alternativeModel2 == "X1se.lambda.model") {
   mod_secondBest <- fit_glm_se
   name_secondBestMod <- "1 SE Model"
   prednames_secondBestMod <- prednames_fig_1se
+  # get the name of the column that contains the prediction data for only the training data, for this model
+trainDatPredName <- "pred_opt_se"
 }
 } else {
   mod_secondBest <- fit_glm_halfse
   name_secondBestMod <- "1/2 SE Model"
   prednames_secondBestMod <- prednames_fig_halfse
-
+  # get the name of the column that contains the prediction data for only the training data, for this model
+trainDatPredName <- "pred_opt_halfse"
 }
 
 }
@@ -965,14 +974,18 @@ if (length(alternativeModel2) == 1) {
   mod_secondBest <- fit_glm_se
   name_secondBestMod <- "1 SE Model"
   prednames_secondBestMod <- prednames_fig_1se
+# get the name of the column that contains the prediction data for only the training data, for this model
+trainDatPredName <- "pred_opt_se"
 } else if (whichSecondBestMod == "halfse") {
   mod_secondBest <- fit_glm_halfse
   name_secondBestMod <- "1/2 SE Model"
   prednames_secondBestMod <- prednames_fig_halfse
+  # get the name of the column that contains the prediction data for only the training data, for this model
+trainDatPredName <- "pred_opt_halfse"
 }
 ```
 
-## Predict on the test data
+## Predict on the test data and then the complete dataset
 
 ```{r predict with best lambda on data used for fitting}
   # create prediction for each each model
@@ -989,26 +1002,18 @@ predict_by_response <- function(mod, df) {
   return(df_out)
 }
 
-pred_glm1 <- predict_by_response(fit_glm_bestLambda, modDat_1_sTest)#X[,2:ncol(X)])
+pred_glm1_test <- predict_by_response(fit_glm_bestLambda, modDat_1_sTest)#X[,2:ncol(X)])
+pred_glm1_test$resid <- pred_glm1_test[,"TotalTreeCover_binom"] - pred_glm1_test[,paste0("TotalTreeCover_binom", "_pred")]
+pred_glm1_test$extremeResid <- NA
+pred_glm1_test[pred_glm1_test$resid > .5 | pred_glm1_test$resid < -.5,"extremeResid"] <- 1
 
-## back-transform the 
-# add back in true y values
-# pred_glm1 <- pred_glm1 %>% 
-#   cbind(data.frame("TotalTreeCover_binom" = modDat_1_sTest$TotalTreeCover_binom, 
-#                    "TotalTreeCover" = modDat_1_sTest$TotalTreeCover))
+## predict on entire dataset
 
-# add back in lat/long data 
-# pred_glm1 <- pred_glm1 %>% 
-#   cbind(modDat_1_sTest[,c("x", "y", "Year")])
+pred_glm1_full <- predict_by_response(fit_glm_bestLambda, rbind(modDat_1_sTest, modDat_1_s))#X[,2:ncol(X)])
+pred_glm1_full$resid <- pred_glm1_full[,"TotalTreeCover_binom"] - pred_glm1_full[,paste0("TotalTreeCover_binom", "_pred")]
+pred_glm1_full$extremeResid <- NA
+pred_glm1_full[pred_glm1_full$resid > .5 | pred_glm1_full$resid < -.5,"extremeResid"] <- 1
 
-pred_glm1$resid <- pred_glm1[,"TotalTreeCover_binom"] - pred_glm1[,paste0("TotalTreeCover_binom", "_pred")]
-pred_glm1$extremeResid <- NA
-pred_glm1[pred_glm1$resid > .5 | pred_glm1$resid < -.5,"extremeResid"] <- 1
-
- # 
- # plot(density(pred_glm1$TotalTreeCover_binom_pred_binary))
- # plot(density(pred_glm1$TotalTreeCover_binom_pred))
- # abline(v = best_threshold_bestLambda, add = TRUE)
 ```
 
 ```{r predict with second best lambda model on data used for model fitting}
@@ -1016,96 +1021,93 @@ if ( name_secondBestMod == "Intercept_Only") {
   print("The next best lambda model only contains one predictor (an intercept)")
 } else {
 
-pred_glm1_1se <- predict_by_response(mod_secondBest, modDat_1_sTest)#X[,2:ncol(X)])
+pred_glm1_1se_test <- predict_by_response(mod_secondBest, modDat_1_sTest)#X[,2:ncol(X)])
+pred_glm1_1se_test$resid <- pred_glm1_1se_test[,"TotalTreeCover_binom"] - pred_glm1_1se_test[,paste0("TotalTreeCover_binom", "_pred")]
+pred_glm1_1se_test$extremeResid <- NA
+pred_glm1_1se_test[pred_glm1_1se_test$resid > .5 | pred_glm1_1se_test$resid < -.5,"extremeResid"] <- 1
 
-# # add back in true y values
-# pred_glm1_1se <- pred_glm1_1se %>% 
-#   cbind(data.frame("TotalTreeCover_binom" = modDat_1_s$TotalTreeCover_binom, 
-#                    "TotalTreeCover" = modDat_1_s$TotalTreeCover))
-# 
-# # add back in lat/x data 
-# pred_glm1_1se <- pred_glm1_1se %>% 
-#   cbind(modDat_1_s[,c("x", "y", "Year")])
-
-pred_glm1_1se$resid <- pred_glm1_1se[,"TotalTreeCover_binom"] - pred_glm1_1se[,paste0("TotalTreeCover_binom", "_pred")]
-pred_glm1_1se$extremeResid <- NA
-pred_glm1_1se[pred_glm1_1se$resid > .5 | pred_glm1_1se$resid < -.5,"extremeResid"] <- 1
-
- # plot(density(pred_glm1_1se$TotalTreeCover_binom_pred_binary))
- # plot(density(pred_glm1_1se$TotalTreeCover_binom_pred))
- # abline(v = best_threshold_secondBest, add = TRUE)
+## for full dataset
+pred_glm1_1se_full <- predict_by_response(mod_secondBest, rbind(modDat_1_sTest, modDat_1_s))#X[,2:ncol(X)])
+pred_glm1_1se_full$resid <- pred_glm1_1se_full[,"TotalTreeCover_binom"] - pred_glm1_1se_full[,paste0("TotalTreeCover_binom", "_pred")]
+pred_glm1_1se_full$extremeResid <- NA
+pred_glm1_1se_full[pred_glm1_1se_full$resid > .5 | pred_glm1_1se_full$resid < -.5,"extremeResid"] <- 1
 }
 ```
 
 
 ## Inital Model Diagnostics 
-ROC Curve based on classification accuracy of the model when used on the testing set (heldout years 2003, 2012 and 2019)
+Identifying the optimal threshold based on the prevalence in the training data. 
+ROC Curves based on classification accuracy of the model when used on the testing set (heldout years 2003, 2012 and 2019)
+
+For the bestLambda model: 
 ```{r ROC for best lambda model}
-# use the fitted model to predict on the test set 
-# Predict probabilities on test data
-#predicted_prob <- predict(fit_glm_bestLambda, newdata = modDat_1_sTest, type = "response")
 
-# Create ROC curve
-roc_curve <- roc(pred_glm1$TotalTreeCover_binom, pred_glm1$TotalTreeCover_binom_pred)
-# Plot ROC curve
-plot(roc_curve, main =  paste0("ROC Curve for best lambda model \n","AUC: ",round(roc_curve$auc,2)))
-# identify optimal threshold via ROC curve
-# Identify threshold maximizing sensitivity and specificity
-# coords <- coords(roc_curve, "best", best.method = "youden")
-# best_threshold_bestLambda <- coords$threshold
-# 
-#cat("Optimal threshold for best lambda model based on ROC curve, based on Youden's J statistic:", best_threshold_bestLambda, "\n")
-
-## tryin another method of identifying the threshold
 library(PresenceAbsence)
-DATA <- pred_glm1
+DATA <- fullModOut$modelPredictions[,c("obs", "pred_opt")]
 DATA$ID <- 1:nrow(DATA)
 #pred.prev <- predicted.prevalence(DATA = DATA[,c("ID", "TotalTreeCover_binom", "TotalTreeCover_binom_pred")], threshold = 20)
 #accu <- presence.absence.accuracy(DATA[,c("ID", "TotalTreeCover_binom", "TotalTreeCover_binom_pred")], threshold = 20)
-optimalThresholds <- optimal.thresholds(DATA = DATA[,c("ID", "TotalTreeCover_binom", "TotalTreeCover_binom_pred")], 
-                                        threshold = 200, obs.prev = mean(modDat_1_s[,"TotalTreeCover_binom"])) # tests 100 thresholds)
+optimalThresholds <- optimal.thresholds(DATA = DATA[,c("ID", "obs", "pred_opt")], 
+                                        threshold = 200, obs.prev = mean(DATA[,"obs"])) # tests 100 thresholds)
 rm(DATA)
 best_threshold_bestLambda <- optimalThresholds[optimalThresholds$Method == thresholdMethod, 2]
 cat(paste0("Optimal threshold for best lambda model based on ROC curve, based on the ",thresholdMethod, " method: ", best_threshold_bestLambda, "\n"))
+
+# Now make an ROC curve based on the test set
+roc_curve <- roc(pred_glm1_test$TotalTreeCover_binom, pred_glm1_test$TotalTreeCover_binom_pred)
+# Plot ROC curve
+plot(roc_curve, main =  paste0("ROC Curve for best lambda model \n","AUC: ",round(roc_curve$auc,2)))
+
 ```
 
+For the second-bestLambda model: 
 ```{r ROC for next best lambda model}
-# use the fitted model to predict on the test set 
-# Predict probabilities on test data
-#predicted_prob_secondBest <- predict(mod_secondBest, newdata = modDat_1_sTest, type = "response")
-# Create ROC curve
-roc_curve_secondBest <- roc(pred_glm1_1se$TotalTreeCover_binom, pred_glm1_1se$TotalTreeCover_binom_pred, smooth = FALSE)
-# Plot ROC curve
-plot(roc_curve_secondBest, main =  paste0("ROC Curve for second-best lambda model \n","AUC: ",round(roc_curve_secondBest$auc,2)))
-
-# identify optimal threshold via ROC curve
-# Identify threshold maximizing sensitivity and specificity
-# coords <- coords(roc_curve_secondBest, "best", best.method = "closest.topleft")
-# coords2 <- coords(roc_curve_secondBest, "best", best.method = "youden")
 # best_threshold_secondBest <- coords$threshold
-DATA <- pred_glm1_1se
+DATA <- fullModOut$modelPredictions[,c("obs", trainDatPredName)]
 DATA$ID <- 1:nrow(DATA)
 #pred.prev <- predicted.prevalence(DATA = DATA[,c("ID", "TotalTreeCover_binom", "TotalTreeCover_binom_pred")], threshold = 20)
 #accu <- presence.absence.accuracy(DATA[,c("ID", "TotalTreeCover_binom", "TotalTreeCover_binom_pred")], threshold = 20)
-optimalThresholds <- optimal.thresholds(DATA = DATA[,c("ID", "TotalTreeCover_binom", "TotalTreeCover_binom_pred")], 
-                                        threshold = 200) # tests 100 thresholds)
+optimalThresholds <- optimal.thresholds(DATA = DATA[,c("ID", "obs", trainDatPredName)], 
+                                        threshold = 200, obs.prev = mean(DATA[,"obs"])) # tests 100 thresholds)
 rm(DATA)
 best_threshold_secondBest <- optimalThresholds[optimalThresholds$Method == thresholdMethod, 2]
 cat(paste0("Optimal threshold for second-best lambda model based on ROC curve, based on the ",thresholdMethod, " method: ", best_threshold_secondBest, "\n"))
+
+# Now make an ROC curve based on the test set
+roc_curve_secondBest <- roc(pred_glm1_1se_test$TotalTreeCover_binom, pred_glm1_1se_test$TotalTreeCover_binom_pred, smooth = FALSE)
+# Plot ROC curve
+plot(roc_curve_secondBest, main =  paste0("ROC Curve for second-best lambda model \n","AUC: ",round(roc_curve_secondBest$auc,2)))
+
 ```
 
 ## Use the identified thresholds to make predictions binary
 ```{r}
+## for test dataset
 # best lambda model
 # "binomialize" the continuous predictions
-pred_glm1 <- pred_glm1 %>% 
+pred_glm1_test <- pred_glm1_test %>% 
   mutate(TotalTreeCover_binom_pred_binary = TotalTreeCover_binom_pred,
     TotalTreeCover_binom_pred_binary = replace(TotalTreeCover_binom_pred_binary, TotalTreeCover_binom_pred_binary > best_threshold_bestLambda, 1),
          TotalTreeCover_binom_pred_binary = replace(TotalTreeCover_binom_pred_binary, TotalTreeCover_binom_pred_binary <= best_threshold_bestLambda, 0)) 
 
 # second-best lambda model
 # "binomialize" the continuouse predictions
-pred_glm1_1se <- pred_glm1_1se %>% 
+pred_glm1_1se_test <- pred_glm1_1se_test %>% 
+  mutate(TotalTreeCover_binom_pred_binary = TotalTreeCover_binom_pred,
+    TotalTreeCover_binom_pred_binary = replace(TotalTreeCover_binom_pred_binary, TotalTreeCover_binom_pred_binary > best_threshold_secondBest, 1),
+         TotalTreeCover_binom_pred_binary = replace(TotalTreeCover_binom_pred_binary, TotalTreeCover_binom_pred_binary <= best_threshold_secondBest, 0)) 
+
+## for full dataset
+# best lambda model
+# "binomialize" the continuous predictions
+pred_glm1_full <- pred_glm1_full %>% 
+  mutate(TotalTreeCover_binom_pred_binary = TotalTreeCover_binom_pred,
+    TotalTreeCover_binom_pred_binary = replace(TotalTreeCover_binom_pred_binary, TotalTreeCover_binom_pred_binary > best_threshold_bestLambda, 1),
+         TotalTreeCover_binom_pred_binary = replace(TotalTreeCover_binom_pred_binary, TotalTreeCover_binom_pred_binary <= best_threshold_bestLambda, 0)) 
+
+# second-best lambda model
+# "binomialize" the continuouse predictions
+pred_glm1_1se_full <- pred_glm1_1se_full %>% 
   mutate(TotalTreeCover_binom_pred_binary = TotalTreeCover_binom_pred,
     TotalTreeCover_binom_pred_binary = replace(TotalTreeCover_binom_pred_binary, TotalTreeCover_binom_pred_binary > best_threshold_secondBest, 1),
          TotalTreeCover_binom_pred_binary = replace(TotalTreeCover_binom_pred_binary, TotalTreeCover_binom_pred_binary <= best_threshold_secondBest, 0)) 
@@ -1119,12 +1121,12 @@ pred_glm1_1se <- pred_glm1_1se %>%
 ```{r Residual maps, fig.height=14, fig.width=9}
 # rasterize
 # get reference raster
-# test_rast <-  rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>%
+test_rast <-  rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>%
 #   #terra::aggregate(fact = 3, fun = "mean") %>% 
-#   terra::project(crs("EPSG:4326"))
+terra::project(crs("EPSG:4326")) %>% 
+  terra::crop(ext(-130, -60, 20, 60))
   # transform to match format of veg. data 
-  
-## add ecoregion boundaries (for our ecoregion level model)
+
 regions <- sf::st_read(dsn = "../../../Data_raw/Level2Ecoregions/", layer = "NA_CEC_Eco_Level2") 
 regions <- regions %>% 
   st_transform(crs = st_crs(crs("EPSG:4326"))) %>% 
@@ -1148,227 +1150,305 @@ mapRegions <- goodRegions %>%
   st_simplify(dTolerance = 1000) %>% 
   st_crop(ext(-130, -60, 20, 60))
 
-# rasterize data
-plotObs <- modDat_1_s %>% 
-  rbind(modDat_1_sTest) %>% #pred_glm1 %>% 
-         drop_na("TotalTreeCover_binom") #%>% 
-  # sf::st_as_sf(coords = c("x", "y"), remove = FALSE) %>% 
-  # sf::st_set_crs(crs(test_rast)) #%>% 
-  #slice_sample(n = 5e4) %>%
-  #terra::vect(geom = c("x", "y")) %>% 
-  #terra::set.crs(crs(test_rast)) #%>% 
- #   terra::rasterize(y = test_rast, 
- #                    field = "TotalTreeCover_binom", 
- #                  fun = function(x) {
- #                    round(mean(x, na.rm = TRUE))
- #                  }) %>% 
- # terra::crop(ext(-130, -60, 20, 60))
-
 # make shapefile of cropped state boundaries in appropriate crs
 cropped_states_2 <- cropped_states %>% 
   st_transform(crs = "EPSG:4326") %>% 
   st_make_valid() %>% 
   st_crop(ext(-130, -60, 20, 60))
 
+###### rasterized version
+# make a multi-layer raster w/ layers for each variable of interest
+testRast2 <- lapply(c("TotalTreeCover", "TotalTreeCover_binom", "TotalTreeCover_binom_pred", "TotalTreeCover_binom_pred_binary", "resid"), FUN = function(x) {
+  # S4 method for class 'data.frame'
+temp <- rast(pred_glm1_full[,c("x", "y", x)] %>% drop_na(), type="xyz", crs=terra::crs(test_rast), digits=6, extent=test_rast)
+ return(temp)
+  }
+)
+pred_glm1_full_RAST <- c(testRast2[[1]], testRast2[[2]], testRast2[[3]], testRast2[[4]], testRast2[[5]])
+
 # make figure of raw tree cover
 map_obs_cont <- ggplot() +
-#geom_spatraster(data = plotObs) + 
- #geom_sf(data = plotObs, aes(col = TotalTreeCover_binom)) + 
-   stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
+geom_spatraster(data = pred_glm1_full_RAST, aes(fill = TotalTreeCover)) + 
+ #geom_sf(data = pred_glm1_full_RAST, aes(col = TotalTreeCover)) + 
+  # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-labs(title = paste0("Observations of Continuous Total Tree Cover")) +
+labs(title = paste0("Observations of Continuous Total Tree Cover - all data")) +
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
-                       high = "darkgreen" , 
-                       midpoint = 0,   na.value = "darkgrey") + 
+                       high = "forestgreen" , 
+                       midpoint = 0,   na.value = "white") + 
   xlim(-125, -65) + 
   ylim(25, 50)
 
 # make figure of binomialized tree cover
 map_obs <- ggplot() +
-#geom_spatraster(data = plotObs) + 
+geom_spatraster(data = pred_glm1_full_RAST, aes(fill = TotalTreeCover_binom)) + 
  #geom_sf(data = plotObs, aes(col = TotalTreeCover_binom)) + 
-   stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover_binom), fun = mean, binwidth = .05) + 
+   #stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover_binom), fun = mean, binwidth = .05) + 
      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
                           limits = c(0,100))  +
   geom_sf(data=cropped_states_2 ,fill=NA ) +
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-labs(title = paste0("Observations of Binomial Total Tree Cover")) +
-  scale_fill_gradient2(low = "brown",
-                       mid = "wheat" ,
-                       high = "darkgreen" , 
-                       midpoint = 0,   na.value = "darkgrey") + 
+labs(title = paste0("Observations of Binomial Total Tree Cover - all data")) +
+  scale_fill_binned(breaks =  c(0, 0.5, 1), palette = c("wheat", "forestgreen"),
+                    labels = c("No Trees",
+                               "",
+                      "Trees"), na.value = "white") + 
   xlim(-125, -65) + 
   ylim(25, 50)
 
-hist_obs_cont <- modDat_1_s %>% 
-  rbind(modDat_1_sTest) %>% 
+hist_obs_cont <- pred_glm1_full %>% 
   ggplot() + 
   geom_histogram(aes(TotalTreeCover), fill = "lightgrey", col = "darkgrey")
 
-hist_obs <- 
-  modDat_1_s %>% 
-  rbind(modDat_1_sTest) %>% 
+hist_obs <- pred_glm1_full%>% 
   ggplot() + 
   geom_histogram(aes(TotalTreeCover_binom), fill = "lightgrey", col = "darkgrey")
 
 library(ggpubr)
 ggarrange(map_obs_cont, hist_obs_cont, map_obs, hist_obs, heights = c(3, 1, 3, 1), ncol = 1)
+
 ```
 
-### Predictions on the test set using the *best lambda* model
+### Predictions on the full and test dataset using the *best lambda* model
 ```{r predicted values map best lambda model, fig.height = 14, fig.width = 9, }
-# 
-# # rasterize data
-plotPred <- pred_glm1 %>%
-         drop_na(paste0("TotalTreeCover_binom","_pred")) #%>%
-#   #slice_sample(n = 5e4) %>%
-#   sf::st_as_sf(coords = c("x", "y"), remove = FALSE) %>% 
-#   sf::st_set_crs(crs(test_rast))
-#   # terra::rasterize(y = test_rast, 
-#   #                  field = paste0("TotalTreeCover_binom","_pred"), 
-#   #                  fun = mean) %>% 
-#   # terra::crop(ext(-130, -60, 20, 60))
-# 
+# make raster of test set 
+# make a multi-layer raster w/ layers for each variable of interest
+testRast_test <- lapply(c("TotalTreeCover", "TotalTreeCover_binom", "TotalTreeCover_binom_pred", "TotalTreeCover_binom_pred_binary", "resid"), FUN = function(x) {
+  # S4 method for class 'data.frame'
+temp <- rast(pred_glm1_test[,c("x", "y", x)] %>% drop_na(), type="xyz", crs=terra::crs(test_rast), digits=6, extent=test_rast)
+ return(temp)
+  }
+)
+pred_glm1_test_RAST <- c(testRast_test[[1]], testRast_test[[2]], testRast_test[[3]], testRast_test[[4]], testRast_test[[5]])
 
-# make figure - continuous predictions
+# make figures of predictions w/ the full dataset
 map_preds1_cont <- ggplot() +
-#geom_spatraster(data = plotPred) + 
-  stat_summary_2d(data = plotPred, aes(x = x, y = y, z = TotalTreeCover_binom_pred), fun = mean, binwidth = .05) +
-  geom_sf(data=cropped_states_2,fill=NA )  + 
+geom_spatraster(data = pred_glm1_full_RAST, aes(fill = TotalTreeCover_binom_pred)) + 
+ #geom_sf(data = plotObs_rast2, aes(col = TotalTreeCover)) + 
+  # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-labs(title = paste0("Predictions from the 'best lambda' fitted model of Yes/No Trees \ncontinuous probabilities"),
-     subtitle =  "bestLambda model")  +
-  scale_fill_gradient2(low = "wheat",
-                       mid = "darkgreen",
-                       high = "red" , 
-                       midpoint = 1,   na.value = "darkgrey",
-                       limits = c(0,1)) + 
+labs(title = paste0("Predictions from the bestaLambda model of Yes/No Trees \ncontinuous probabilities \nfull dataset")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "forestgreen" , 
+                       midpoint = 0,   na.value = "white") + 
   xlim(-125, -65) + 
   ylim(25, 50)
 
-# make figure - binomialized predictions
+# make figure of binomialized tree cover
 map_preds1 <- ggplot() +
-#geom_spatraster(data = plotPred) + 
-  stat_summary_2d(data = plotPred, aes(x = x, y = y, z = TotalTreeCover_binom_pred_binary), fun = function(x) {round(mean(x))}, binwidth = .05) + 
-  geom_sf(data=cropped_states_2,fill=NA )  + 
+geom_spatraster(data = pred_glm1_full_RAST, aes(fill = TotalTreeCover_binom_pred_binary)) + 
+ #geom_sf(data = plotObs, aes(col = TotalTreeCover_binom)) + 
+   #stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover_binom), fun = mean, binwidth = .05) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100))  +
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-labs(title = paste0("Predictions from the 'best lambda' fitted model of Yes/No Trees - \n made binary"),
-     subtitle =  "bestLambda model")  +
-  scale_fill_gradient2(low = "wheat",
-                       mid = "darkgreen",
-                       high = "red" , 
-                       midpoint = 1,   na.value = "darkgrey",
-                       limits = c(0,1),
-                       breaks = c(0,1)) + 
+labs(title = paste0("Predictions from the bestaLambda model of Yes/No Trees \nbinary probabilities \nfull dataset")) +
+  scale_fill_binned(breaks =  c(0, 0.5, 1), palette = c("wheat", "forestgreen"),
+                    labels = c("No Trees",
+                               "",
+                      "Trees"), na.value = "white") + 
   xlim(-125, -65) + 
   ylim(25, 50)
 
-hist_preds1_cont <- ggplot(pred_glm1) + 
-  geom_histogram(aes(.data[[paste0("TotalTreeCover_binom", "_pred")]]), fill = "lightgrey", col = "darkgrey")
+hist_preds1_cont <- pred_glm1_full %>% 
+  ggplot() + 
+  geom_histogram(aes(TotalTreeCover_binom_pred), fill = "lightgrey", col = "darkgrey")
 
-hist_preds1 <- ggplot(pred_glm1) + 
-  geom_histogram(aes(x = TotalTreeCover_binom_pred_binary), fill = "lightgrey", col = "darkgrey")#+ 
-  #xlim(c(-.01,1.01))
+hist_preds1 <- pred_glm1_full%>% 
+  ggplot() + 
+  geom_histogram(aes(TotalTreeCover_binom_pred_binary), fill = "lightgrey", col = "darkgrey")
 
-ggarrange(map_preds1_cont, hist_preds1_cont, map_preds1, hist_preds1, heights = c(3,1,3,1), ncol = 1)
+ggarrange(map_preds1_cont, hist_preds1_cont, map_preds1, hist_preds1, heights = c(3, 1, 3, 1), ncol = 1)
+
+
+# make figures of predictions w/ the test dataset
+map_preds1_cont_test <- ggplot() +
+geom_spatraster(data = pred_glm1_test_RAST, aes(fill = TotalTreeCover_binom_pred)) + 
+ #geom_sf(data = plotObs_rast2, aes(col = TotalTreeCover)) + 
+  # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+labs(title = paste0("Predictions from the bestaLambda model of Yes/No Trees \ncontinuous probabilities \ntest dataset")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "forestgreen" , 
+                       midpoint = 0,   na.value = "white") + 
+  xlim(-125, -65) + 
+  ylim(25, 50)
+
+# make figure of binomialized tree cover
+map_preds1_test <- ggplot() +
+geom_spatraster(data = pred_glm1_test_RAST, aes(fill = TotalTreeCover_binom_pred_binary)) + 
+ #geom_sf(data = plotObs, aes(col = TotalTreeCover_binom)) + 
+   #stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover_binom), fun = mean, binwidth = .05) + 
+     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100))  +
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+labs(title = paste0("Predictions from the bestaLambda model of Yes/No Trees \nbinary probabilities \ntest dataset")) +
+  scale_fill_binned(breaks =  c(0, 0.5, 1), palette = c("wheat", "forestgreen"),
+                    labels = c("No Trees",
+                               "",
+                      "Trees"), na.value = "white") + 
+  xlim(-125, -65) + 
+  ylim(25, 50)
+
+hist_preds1_cont_test <- pred_glm1_test %>% 
+  ggplot() + 
+  geom_histogram(aes(TotalTreeCover_binom_pred), fill = "lightgrey", col = "darkgrey")
+
+hist_preds1_test <- pred_glm1_test%>% 
+  ggplot() + 
+  geom_histogram(aes(TotalTreeCover_binom_pred_binary), fill = "lightgrey", col = "darkgrey")
+
+ggarrange(map_preds1_cont_test, hist_preds1_cont_test, map_preds1_test, hist_preds1_test, heights = c(3, 1, 3, 1), ncol = 1)
+
 ```
 
 
-### Predictions on the test set using the *second best lambda* model
-```{r predicted values map 1se lambda model, fig.height = 14, fig.width = 9, }
+### Predictions on the full and test datasets using the *second best lambda* model
+```{r predicted values map 1se lambda model, fig.height = 24, fig.width = 9, }
 if ( name_secondBestMod == "Intercept_Only") {
   print("The next best lambda model only contains one predictor (an intercept)")
 } else {
+  # make a raster of the full dataset
+# make a multi-layer raster w/ layers for each variable of interest
+testRast3 <- lapply(c("TotalTreeCover", "TotalTreeCover_binom", "TotalTreeCover_binom_pred", "TotalTreeCover_binom_pred_binary", "resid"), FUN = function(x) {
+  # S4 method for class 'data.frame'
+temp <- rast(pred_glm1_1se_full[,c("x", "y", x)] %>% drop_na(), type="xyz", crs=terra::crs(test_rast), digits=6, extent=test_rast)
+ return(temp)
+  }
+)
+pred_glm1_1se_full_RAST <- c(testRast3[[1]], testRast3[[2]], testRast3[[3]], testRast3[[4]], testRast3[[5]])
 
-# rasterize data
-plotPred <- pred_glm1_1se %>% 
-         drop_na(paste0("TotalTreeCover_binom","_pred")) #%>% 
-  # #slice_sample(n = 5e4) %>%
-  # sf::st_as_sf(coords = c("x", "y"), remove = FALSE) %>% 
-  # sf::st_set_crs(crs(test_rast))
-  # terra::vect(geom = c("x", "y")) %>% 
-  # terra::set.crs(crs(test_rast)) %>% 
-  # terra::rasterize(y = test_rast, 
-  #                  field = paste0("TotalTreeCover_binom","_pred"), 
-  #                  fun = mean) %>% 
-  #    terra::crop(ext(-130, -60, 20, 60))
+# make raster of test set 
+# make a multi-layer raster w/ layers for each variable of interest
+testRast_test2 <- lapply(c("TotalTreeCover", "TotalTreeCover_binom", "TotalTreeCover_binom_pred", "TotalTreeCover_binom_pred_binary", "resid"), FUN = function(x) {
+  # S4 method for class 'data.frame'
+temp <- rast(pred_glm1_1se_test[,c("x", "y", x)] %>% drop_na(), type="xyz", crs=terra::crs(test_rast), digits=6, extent=test_rast)
+ return(temp)
+  }
+)
+pred_glm1_1se_test_RAST <- c(testRast_test2[[1]], testRast_test2[[2]], testRast_test2[[3]], testRast_test2[[4]], testRast_test2[[5]])
 
-# make figures
+# make figures of predictions w/ the full dataset
 map_preds2_cont <- ggplot() +
-    stat_summary_2d(data = plotPred, aes(x = x, y = y, z = TotalTreeCover_binom_pred), fun = mean, binwidth = .05) + 
-#geom_spatraster(data = plotPred) + 
-  geom_sf(data=cropped_states_2,fill=NA )  + 
+geom_spatraster(data = pred_glm1_1se_full_RAST, aes(fill = TotalTreeCover_binom_pred)) + 
+ #geom_sf(data = plotObs_rast2, aes(col = TotalTreeCover)) + 
+  # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-labs(title = paste0("Predictions from the ", name_secondBestMod, " of Yes/No Trees \ncontinuous probabilities"),
-     subtitle =  name_secondBestMod)  +
-  scale_fill_gradient2(low = "wheat",
-                       mid = "darkgreen",
-                       high = "red" , 
-                       midpoint = 1,   na.value = "darkgrey",
-                       limits = c(0, 1))  + 
+labs(title = paste0("Predictions from the ", name_secondBestMod, " of Yes/No Trees \ncontinuous probabilities \nfull dataset")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "forestgreen" , 
+                       midpoint = 0,   na.value = "white") + 
   xlim(-125, -65) + 
   ylim(25, 50)
 
-# make figure - binomialized predictions
+# make figure of binomialized tree cover
 map_preds2 <- ggplot() +
-#geom_spatraster(data = plotPred) + 
-  stat_summary_2d(data = plotPred, aes(x = x, y = y, z = TotalTreeCover_binom_pred_binary), fun = function(x) {round(mean(x))}, binwidth = .05) + 
-  geom_sf(data=cropped_states_2,fill=NA )  + 
+geom_spatraster(data = pred_glm1_1se_full_RAST, aes(fill = TotalTreeCover_binom_pred_binary)) + 
+ #geom_sf(data = plotObs, aes(col = TotalTreeCover_binom)) + 
+   #stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover_binom), fun = mean, binwidth = .05) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-labs(title = paste0("Predictions from the ", name_secondBestMod, " of Yes/No Trees - \n made binary"),
-     subtitle =  name_secondBestMod)  +
-  scale_fill_gradient2(low = "wheat",
-                       mid = "darkgreen",
-                       high = "red" , 
-                       midpoint = 1,   na.value = "darkgrey",
-                       limits = c(0,1),
-                       breaks = c(0,1)) + 
+labs(title = paste0("Predictions from the ", name_secondBestMod, " of Yes/No Trees \nbinary probabilities \nfull dataset")) +
+  scale_fill_binned(breaks =  c(0, 0.5, 1), palette = c("wheat", "forestgreen"),
+                    labels = c("No Trees",
+                               "",
+                      "Trees"), na.value = "white") + 
   xlim(-125, -65) + 
   ylim(25, 50)
 
-hist_preds2_cont <- ggplot(pred_glm1_1se) + 
-  geom_histogram(aes(.data[[paste0("TotalTreeCover_binom", "_pred")]]), fill = "lightgrey", col = "darkgrey")
+hist_preds2_cont <- pred_glm1_1se_full %>% 
+  ggplot() + 
+  geom_histogram(aes(TotalTreeCover_binom_pred), fill = "lightgrey", col = "darkgrey")
 
-hist_preds2 <- ggplot(pred_glm1_1se) + 
-  geom_histogram(aes(x = TotalTreeCover_binom_pred_binary), fill = "lightgrey", col = "darkgrey") 
+hist_preds2 <- pred_glm1_1se_full%>% 
+  ggplot() + 
+  geom_histogram(aes(TotalTreeCover_binom_pred_binary), fill = "lightgrey", col = "darkgrey")
 
-ggarrange(map_preds2_cont, hist_preds2_cont, map_preds2, hist_preds2, heights = c(3,1,3,1), ncol = 1)
+
+# make figures of predictions w/ the test dataset
+map_preds2_cont_test <- ggplot() +
+geom_spatraster(data = pred_glm1_1se_test_RAST, aes(fill = TotalTreeCover_binom_pred)) + 
+ #geom_sf(data = plotObs_rast2, aes(col = TotalTreeCover)) + 
+  # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+labs(title = paste0("Predictions from the ", name_secondBestMod, " of Yes/No Trees \ncontinuous probabilities \ntest dataset")) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "forestgreen" , 
+                       midpoint = 0,   na.value = "white") + 
+  xlim(-125, -65) + 
+  ylim(25, 50)
+
+# make figure of binomialized tree cover
+map_preds2_test <- ggplot() +
+geom_spatraster(data = pred_glm1_1se_test_RAST, aes(fill = TotalTreeCover_binom_pred_binary)) + 
+ #geom_sf(data = plotObs, aes(col = TotalTreeCover_binom)) + 
+   #stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover_binom), fun = mean, binwidth = .05) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+labs(title = paste0("Predictions from the ", name_secondBestMod, " of Yes/No Trees \nbinary probabilities \ntest dataset")) +
+  scale_fill_binned(breaks =  c(0, 0.5, 1), palette = c("wheat", "forestgreen"),
+                    labels = c("No Trees",
+                               "",
+                      "Trees"), na.value = "white") + 
+  xlim(-125, -65) + 
+  ylim(25, 50)
+
+hist_preds2_cont_test <- pred_glm1_1se_test %>% 
+  ggplot() + 
+  geom_histogram(aes(TotalTreeCover_binom_pred), fill = "lightgrey", col = "darkgrey")
+
+hist_preds2_test <- pred_glm1_1se_test%>% 
+  ggplot() + 
+  geom_histogram(aes(TotalTreeCover_binom_pred_binary), fill = "lightgrey", col = "darkgrey")
+
+ggarrange(ggarrange(map_preds2_cont, hist_preds2_cont, map_preds2, hist_preds2, heights = c(3, 1, 3, 1), ncol = 1),
+ggarrange(map_preds2_cont_test, hist_preds2_cont_test, map_preds2_test, hist_preds2_test, heights = c(3, 1, 3, 1), ncol = 1),
+ncol = 1
+)
 }
 ```
 
-### A map of classification error of predictions on the test set made using the *best lambda model*
+### A map of classification error of predictions on the full and test datasets made using the *best lambda model*
 ```{r classification error map for best lambda model, fig.height = 7, fig.width = 9, warning = FALSE }
+### full dataset
 ## calculate the classification error (binomial obs - binomial pred)
-pred_glm1 <- pred_glm1 %>% 
-  mutate(missClass = TotalTreeCover_binom - TotalTreeCover_binom_pred_binary)
-
+pred_glm1_full_RAST$missClass <- pred_glm1_full_RAST$TotalTreeCover_binom - pred_glm1_full_RAST$TotalTreeCover_binom_pred_binary
+# to the missClass raster layer, change cells that are 'zero' to values that indicate whether the correct classification is tree or no tree 
+  pred_glm1_full_RAST$missClass[pred_glm1_full_RAST$missClass ==0 & pred_glm1_full_RAST$TotalTreeCover_binom_pred_binary==1] <- 2
+  pred_glm1_full_RAST$missClass[pred_glm1_full_RAST$missClass ==0 & pred_glm1_full_RAST$TotalTreeCover_binom_pred_binary==0] <- -2
 # make figures
 (map_missClass <- ggplot() +
-#geom_spatraster(data =plotResid_rast) + 
-    stat_summary_2d(data = pred_glm1, aes(x = x, y = y, z = missClass), fun = function(x) {round(mean(x))}, binwidth = .05) + 
+geom_spatraster(data =pred_glm1_full_RAST, aes(fill= missClass)) + 
+    #stat_summary_2d(data = pred_glm1, aes(x = x, y = y, z = missClass), fun = function(x) {round(mean(x))}, binwidth = .05) + 
   geom_sf(data=cropped_states_2,fill=NA )  + 
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
   #geom_sf(data = badResids_high, col = "blue") +
   #geom_sf(data = badResids_low, col = "red") +
-labs(title = paste0("Missclassification (obs. - pred.) from the model of Yes/No Trees"),
+labs(title = paste0("Missclassification (obs. - pred.) and correct classifications \nfrom the bestLambda model of Yes/No Trees \nfull dataset"),
      subtitle = "bestLambda model \n binary observations - binary predictions") +
-  scale_fill_gradient2(low = "red",
-                       mid = "white" ,
-                       high = "blue" , 
-                       midpoint = 0,   na.value = "darkgrey",
-                       limits = c(-1,1),
-                       breaks = c(-1,0,1),
-                       labels = c("Data = no trees; Model = trees ", "aggree", 
-                                  "Data = trees; Model = no trees")
-                       ) + 
+  scale_fill_binned(breaks =  c(-2, -1.01, 0.99, 1.1, 2), palette = c("wheat", "red", "blue", "forestgreen"),
+                    labels = c("No Trees",
+                      "Data = no trees; Model = trees ", "",
+                                  "Data = trees; Model = no trees",
+                      "Trees"), na.value = "white") + 
   xlim(-125, -65) + 
   ylim(25, 50))
 
 # make a confusion matrix 
 # prepare data
-matData <- pred_glm1 %>% 
+matData <- pred_glm1_full %>% 
   mutate(predClass = TotalTreeCover_binom_pred_binary, 
          obsClass = TotalTreeCover_binom) %>% 
   mutate(predClass = replace(predClass, predClass == 0, "no trees"),
@@ -1387,46 +1467,90 @@ ConfusionTableR::binary_visualiseR(
    class_label1 = "No trees",
    class_label2 = "Trees",
    quadrant_col1 = "wheat",
-   quadrant_col2 = "darkgreen",
-  text_col = "white"
+   quadrant_col2 = "forestgreen",
+  text_col = "white", custom_title = "Confusion Matrix: classification of full dataset \nwith the best lambda model"
 )
 
-```
-
-###A map of classification error of predictions on the test set made using the *second best lambda model*
-```{r classification error map for second best lambda model, fig.height = 7, fig.width = 9, warning = FALSE }
-
+### test dataset
 ## calculate the classification error (binomial obs - binomial pred)
-pred_glm1_1se <- pred_glm1_1se %>% 
-  mutate(missClass = TotalTreeCover_binom - TotalTreeCover_binom_pred_binary)
-
+pred_glm1_test_RAST$missClass <- pred_glm1_test_RAST$TotalTreeCover_binom - pred_glm1_test_RAST$TotalTreeCover_binom_pred_binary
+# to the missClass raster layer, change cells that are 'zero' to values that indicate whether the correct classification is tree or no tree 
+  pred_glm1_test_RAST$missClass[pred_glm1_test_RAST$missClass ==0 & pred_glm1_test_RAST$TotalTreeCover_binom_pred_binary==1] <- 2
+  pred_glm1_test_RAST$missClass[pred_glm1_test_RAST$missClass ==0 & pred_glm1_test_RAST$TotalTreeCover_binom_pred_binary==0] <- -2
 # make figures
-map_missClass <- ggplot() +
-#geom_spatraster(data =plotResid_rast) + 
-    stat_summary_2d(data = pred_glm1_1se, aes(x = x, y = y, z = missClass), fun = function(x) {round(mean(x))}, binwidth = .05) + 
+(map_missClass_test <- ggplot() +
+geom_spatraster(data =pred_glm1_test_RAST, aes(fill= missClass)) + 
+    #stat_summary_2d(data = pred_glm1, aes(x = x, y = y, z = missClass), fun = function(x) {round(mean(x))}, binwidth = .05) + 
   geom_sf(data=cropped_states_2,fill=NA )  + 
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
   #geom_sf(data = badResids_high, col = "blue") +
   #geom_sf(data = badResids_low, col = "red") +
-labs(title = paste0("Missclassification (obs. - pred.) from the model of Yes/No Trees"),
-     subtitle = paste0(name_secondBestMod, "\nbinomialized observations - binomial predictions")) +
-  scale_fill_gradient2(low = "red",
-                       mid = "white" ,
-                       high = "blue" , 
-                       midpoint = 0,   na.value = "darkgrey",
-                       limits = c(-1,1),
-                       breaks = c(-1,0,1),
-                       labels = c("Data = no trees; Model = trees ", "aggree", 
-                                  "Data = trees; Model = no trees")
-                       ) + 
+labs(title = paste0("Missclassification (obs. - pred.) and correct classifications \nfrom the bestLambda model of Yes/No Trees \ntest dataset"),
+     subtitle = "bestLambda model \n binary observations - binary predictions") +
+  scale_fill_binned(breaks =  c(-2, -1.01, 0.99, 1.1, 2), palette = c("wheat", "red", "blue", "forestgreen"),
+                    labels = c("No Trees",
+                      "Data = no trees; Model = trees ", "",
+                                  "Data = trees; Model = no trees",
+                      "Trees"),
+                     na.value = "white") + 
   xlim(-125, -65) + 
-  ylim(25, 50)
-
-map_missClass
+  ylim(25, 50))
 
 # make a confusion matrix 
 # prepare data
-matData <- pred_glm1_1se %>% 
+matData_test <- pred_glm1_test %>% 
+  mutate(predClass = TotalTreeCover_binom_pred_binary, 
+         obsClass = TotalTreeCover_binom) %>% 
+  mutate(predClass = replace(predClass, predClass == 0, "no trees"),
+         predClass = replace(predClass, predClass == 1, "trees"),
+         obsClass = replace(obsClass, obsClass == 0, "no trees"),
+         obsClass = replace(obsClass, obsClass == 1, "trees")) %>% 
+mutate(predClass = as.factor(predClass) ,
+       obsClass = as.factor(obsClass))
+
+# make matrix as a data.frame
+# confMat <-  confusionMatrix(data = matData$predClass,
+#                  reference = matData$obsClass)
+ConfusionTableR::binary_visualiseR(
+  train_labels = as.factor(matData_test$predClass),
+  truth_labels = as.factor(matData_test$obsClass),
+   class_label1 = "No trees",
+   class_label2 = "Trees",
+   quadrant_col1 = "wheat",
+   quadrant_col2 = "forestgreen",
+  text_col = "white", custom_title = "Confusion Matrix: classification of test dataset \nwith the best lambda model"
+)
+```
+
+### A map of classification error of predictions on the full and test datasets made using the *second best lambda model*
+```{r classification error map for second best lambda model, fig.height = 7, fig.width = 9, warning = FALSE }
+### full dataset
+## calculate the classification error (binomial obs - binomial pred)
+pred_glm1_1se_full_RAST$missClass <- pred_glm1_1se_full_RAST$TotalTreeCover_binom - pred_glm1_1se_full_RAST$TotalTreeCover_binom_pred_binary
+# to the missClass raster layer, change cells that are 'zero' to values that indicate whether the correct classification is tree or no tree 
+  pred_glm1_1se_full_RAST$missClass[pred_glm1_1se_full_RAST$missClass ==0 & pred_glm1_1se_full_RAST$TotalTreeCover_binom_pred_binary==1] <- 2
+  pred_glm1_1se_full_RAST$missClass[pred_glm1_1se_full_RAST$missClass ==0 & pred_glm1_1se_full_RAST$TotalTreeCover_binom_pred_binary==0] <- -2
+# make figures
+(map_missClass <- ggplot() +
+geom_spatraster(data =pred_glm1_1se_full_RAST, aes(fill= missClass)) + 
+    #stat_summary_2d(data = pred_glm1, aes(x = x, y = y, z = missClass), fun = function(x) {round(mean(x))}, binwidth = .05) + 
+  geom_sf(data=cropped_states_2,fill=NA )  + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  #geom_sf(data = badResids_high, col = "blue") +
+  #geom_sf(data = badResids_low, col = "red") +
+labs(title = paste0("Missclassification (obs. - pred.) and correct classifications \nfrom the second-best lambda model of Yes/No Trees \nfull dataset"),
+     subtitle = "second-best lambda model \n binary observations - binary predictions") +
+  scale_fill_binned(breaks =  c(-2, -1.01, 0.99, 1.1, 2), palette = c("wheat", "red", "blue", "forestgreen"),
+                    labels = c("No Trees",
+                      "Data = no trees; Model = trees ", "",
+                                  "Data = trees; Model = no trees",
+                      "Trees"), na.value = "white") + 
+  xlim(-125, -65) + 
+  ylim(25, 50))
+
+# make a confusion matrix 
+# prepare data
+matData <- pred_glm1_1se_full %>% 
   mutate(predClass = TotalTreeCover_binom_pred_binary, 
          obsClass = TotalTreeCover_binom) %>% 
   mutate(predClass = replace(predClass, predClass == 0, "no trees"),
@@ -1445,18 +1569,72 @@ ConfusionTableR::binary_visualiseR(
    class_label1 = "No trees",
    class_label2 = "Trees",
    quadrant_col1 = "wheat",
-   quadrant_col2 = "darkgreen",
-  text_col = "white"
+   quadrant_col2 = "forestgreen",
+  text_col = "white", custom_title = "Confusion Matrix: classification of full dataset \nwith the second-best lambda model"
 )
 
+### test dataset
+## calculate the classification error (binomial obs - binomial pred)
+pred_glm1_1se_test_RAST$missClass <- pred_glm1_1se_test_RAST$TotalTreeCover_binom - pred_glm1_1se_test_RAST$TotalTreeCover_binom_pred_binary
+# to the missClass raster layer, change cells that are 'zero' to values that indicate whether the correct classification is tree or no tree 
+  pred_glm1_1se_test_RAST$missClass[pred_glm1_1se_test_RAST$missClass ==0 & pred_glm1_1se_test_RAST$TotalTreeCover_binom_pred_binary==1] <- 2
+  pred_glm1_1se_test_RAST$missClass[pred_glm1_1se_test_RAST$missClass ==0 & pred_glm1_1se_test_RAST$TotalTreeCover_binom_pred_binary==0] <- -2
+# make figures
+(map_missClass_test <- ggplot() +
+geom_spatraster(data =pred_glm1_1se_test_RAST, aes(fill= missClass)) + 
+    #stat_summary_2d(data = pred_glm1, aes(x = x, y = y, z = missClass), fun = function(x) {round(mean(x))}, binwidth = .05) + 
+  geom_sf(data=cropped_states_2,fill=NA )  + 
+  geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  #geom_sf(data = badResids_high, col = "blue") +
+  #geom_sf(data = badResids_low, col = "red") +
+labs(title = paste0("Missclassification (obs. - pred.) and correct classifications \nfrom the second-best lambda model of Yes/No Trees \ntest dataset"),
+     subtitle = "second-best lambda model \n binary observations - binary predictions") +
+  scale_fill_binned(breaks =  c(-2, -1.01, 0.99, 1.1, 2), palette = c("wheat", "red", "blue", "forestgreen"),
+                    labels = c("No Trees",
+                      "Data = no trees; Model = trees ", "",
+                                  "Data = trees; Model = no trees",
+                      "Trees"),
+                     na.value = "white") + 
+  xlim(-125, -65) + 
+  ylim(25, 50))
+
+# make a confusion matrix 
+# prepare data
+matData_test <- pred_glm1_1se_test %>% 
+  mutate(predClass = TotalTreeCover_binom_pred_binary, 
+         obsClass = TotalTreeCover_binom) %>% 
+  mutate(predClass = replace(predClass, predClass == 0, "no trees"),
+         predClass = replace(predClass, predClass == 1, "trees"),
+         obsClass = replace(obsClass, obsClass == 0, "no trees"),
+         obsClass = replace(obsClass, obsClass == 1, "trees")) %>% 
+mutate(predClass = as.factor(predClass) ,
+       obsClass = as.factor(obsClass))
+
+# make matrix as a data.frame
+# confMat <-  confusionMatrix(data = matData$predClass,
+#                  reference = matData$obsClass)
+ConfusionTableR::binary_visualiseR(
+  train_labels = as.factor(matData_test$predClass),
+  truth_labels = as.factor(matData_test$obsClass),
+   class_label1 = "No trees",
+   class_label2 = "Trees",
+   quadrant_col1 = "wheat",
+   quadrant_col2 = "forestgreen",
+  text_col = "white", custom_title = "Confusion Matrix: classification of test dataset \nwith the second-best lambda model"
+)
 ```
 
-### Are there biases of the model predictions across year/lat/long? 
+### Are there biases of the model predictions across year/lat/long? (for the full dataset)
 ```{r missclassification figures best lambda model, fig.align=8, fig.height=10}
 if ( name_secondBestMod == "Intercept_Only") {
   print("The next best lambda model only contains one predictor (an intercept)")
+  
+  ## calculate missclassification in the input pred_glm1 or pred_glm1se datasets
+  pred_glm1_full$missClass <- pred_glm1_full$TotalTreeCover_binom - pred_glm1_full$TotalTreeCover_binom_pred_binary
+  pred_glm1_test$missClass <- pred_glm1_test$TotalTreeCover_binom - pred_glm1_test$TotalTreeCover_binom_pred_binary
+
   # plot misclassifications against Year
-yearResidMod_bestLambda <- ggplot(pred_glm1) + 
+yearResidMod_bestLambda <- ggplot(pred_glm1_full) + 
   geom_point(aes(x = jitter(Year), y = jitter(missClass)), alpha = .1) + 
   geom_hline(aes(yintercept = 0), lty = 2, col = "red") + 
   geom_smooth(aes(x = Year, y = missClass), method = "lm") + 
@@ -1465,7 +1643,7 @@ yearResidMod_bestLambda <- ggplot(pred_glm1) +
   ggtitle("from best lamba model")
 
 # plot misclassifications against Lat
-latResidMod_bestLambda <- ggplot(pred_glm1) + 
+latResidMod_bestLambda <- ggplot(pred_glm1_full) + 
   geom_point(aes(x = y, y = jitter(missClass)), alpha = .1) + 
   geom_hline(aes(yintercept = 0), lty = 2, col = "red") + 
   geom_smooth(aes(x = y, y = missClass)) + 
@@ -1474,7 +1652,7 @@ latResidMod_bestLambda <- ggplot(pred_glm1) +
   ggtitle("from best lamba model")
 
 # plot misclassifications against Long
-longResidMod_bestLambda <- ggplot(pred_glm1) + 
+longResidMod_bestLambda <- ggplot(pred_glm1_full) + 
   geom_point(aes(x = x, y = jitter(missClass)), alpha = .1) + 
   geom_hline(aes(yintercept = 0), lty = 2, col = "red") + 
   geom_smooth(aes(x = x, y = missClass)) + 
@@ -1486,16 +1664,22 @@ library(patchwork)
 (  latResidMod_bestLambda ) /
 (  longResidMod_bestLambda )
 } else {
+  
+  ## calculate missclassification in the input pred_glm1 or pred_glm1se datasets
+  pred_glm1_full$missClass <- pred_glm1_full$TotalTreeCover_binom - pred_glm1_full$TotalTreeCover_binom_pred_binary
+  pred_glm1_test$missClass <- pred_glm1_test$TotalTreeCover_binom - pred_glm1_test$TotalTreeCover_binom_pred_binary
+  pred_glm1_1se_full$missClass <- pred_glm1_1se_full$TotalTreeCover_binom - pred_glm1_1se_full$TotalTreeCover_binom_pred_binary
+  pred_glm1_1se_test$missClass <- pred_glm1_1se_test$TotalTreeCover_binom - pred_glm1_1se_test$TotalTreeCover_binom_pred_binary
 
 # plot misclassifications against Year
-yearResidMod_bestLambda <- ggplot(pred_glm1) + 
+yearResidMod_bestLambda <- ggplot(pred_glm1_full) + 
   geom_point(aes(x = jitter(Year), y = jitter(missClass)), alpha = .1) + 
   geom_hline(aes(yintercept = 0), lty = 2, col = "red") + 
   geom_smooth(aes(x = Year, y = missClass), method = "lm") + 
   xlab("Year") + 
   ylab("misclassifications") +
   ggtitle("from best lamba model")
-yearResidMod_1seLambda <- ggplot(pred_glm1_1se) + 
+yearResidMod_1seLambda <- ggplot(pred_glm1_1se_full) + 
   geom_point(aes(x = jitter(Year), y = jitter(missClass)), alpha = .1) + 
   geom_hline(aes(yintercept = 0), lty = 2, col = "red") + 
   geom_smooth(aes(x = Year, y = missClass), method = "lm") + 
@@ -1504,14 +1688,14 @@ yearResidMod_1seLambda <- ggplot(pred_glm1_1se) +
   ggtitle(paste0("from ", name_secondBestMod))
 
 # plot misclassifications against Lat
-latResidMod_bestLambda <- ggplot(pred_glm1) + 
+latResidMod_bestLambda <- ggplot(pred_glm1_full) + 
   geom_point(aes(x = y, y = jitter(missClass)), alpha = .1) + 
   geom_hline(aes(yintercept = 0), lty = 2, col = "red") + 
   geom_smooth(aes(x = y, y = missClass)) + 
   xlab("Latitude") + 
   ylab("misclassifications") +
   ggtitle("from best lamba model")
-latResidMod_1seLambda <- ggplot(pred_glm1_1se) + 
+latResidMod_1seLambda <- ggplot(pred_glm1_1se_full) + 
   geom_point(aes(x = y, y = jitter(missClass)), alpha = .1) + 
   geom_hline(aes(yintercept = 0), lty = 2, col = "red") + 
   geom_smooth(aes(x = y, y = missClass)) + 
@@ -1520,14 +1704,14 @@ latResidMod_1seLambda <- ggplot(pred_glm1_1se) +
   ggtitle(paste0("from ", name_secondBestMod))
 
 # plot misclassifications against Long
-longResidMod_bestLambda <- ggplot(pred_glm1) + 
+longResidMod_bestLambda <- ggplot(pred_glm1_full) + 
   geom_point(aes(x = x, y = jitter(missClass)), alpha = .1) + 
   geom_hline(aes(yintercept = 0), lty = 2, col = "red") + 
   geom_smooth(aes(x = x, y = missClass)) + 
   xlab("Longitude") + 
   ylab("misclassifications") +
   ggtitle("from best lamba model")
-longResidMod_1seLambda <- ggplot(pred_glm1_1se) + 
+longResidMod_1seLambda <- ggplot(pred_glm1_1se_full) + 
   geom_point(aes(x = x, y = jitter(missClass)), alpha = .1) + 
   geom_hline(aes(yintercept = 0), lty = 2, col = "red") + 
   geom_smooth(aes(x = x, y = missClass)) + 
@@ -1542,7 +1726,7 @@ library(patchwork)
 }
 ```
 
-### Quantile plots - comparing "binary" observations in the testing datase to continuous model-predicted probabilities
+### Quantile plots - comparing "binary" observations across the full dataset to continuous model-predicted probabilities
 
 Binning predictor variables into "Quantiles"and looking at the mean
 predicted probability for each quantile 
@@ -1552,7 +1736,7 @@ response_vars <- c("TotalTreeCover_binom", "TotalTreeCover_binom_pred")
 if (length(prednames_fig) == 0) {
   print("The best lambda model only contains one predictor (an intercept), so decile plots aren't possible to generate")
 } else {
-  pred_glm1_deciles <- predvars2deciles(pred_glm1,
+  pred_glm1_deciles <- predvars2deciles(pred_glm1_full,
                                       response_vars = response_vars,
                                         pred_vars = prednames_fig, 
                                        cut_points = seq(0, 1, 0.01))
@@ -1560,7 +1744,7 @@ if (length(prednames_fig) == 0) {
 # get deciles for 1 SE lambda model 
 if ( name_secondBestMod == "Intercept_Only") {
   print("The next best lambda model only contains one predictor (an intercept)")} else {
-  pred_glm1_deciles_1se <- predvars2deciles(pred_glm1_1se,
+  pred_glm1_deciles_1se <- predvars2deciles(pred_glm1_1se_full,
                                       response_vars = response_vars,
                                         pred_vars = prednames_secondBestMod, 
                                        cut_points = seq(0, 1, 0.01))
@@ -1579,7 +1763,7 @@ g3 <- decile_dotplot_pq(df = pred_glm1_deciles, response = c("TotalTreeCover_bin
                         CI = FALSE
                         ) + ggtitle("Decile Plot")
 
-g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles, response = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred")), dfRaw = pred_glm1, add_smooth = TRUE, deciles = FALSE)
+g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles, response = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred")), dfRaw = pred_glm1_full, add_smooth = TRUE, deciles = FALSE)
 
   
 if(save_figs) {
@@ -1603,7 +1787,7 @@ if ( name_secondBestMod == "Intercept_Only") {
 # publication quality version
 g3 <- decile_dotplot_pq(pred_glm1_deciles_1se, response = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred")), IQR = FALSE) + ggtitle("Decile Plot")
 
-g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles_1se, response = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred")), dfRaw = pred_glm1_1se, add_smooth = TRUE, deciles = FALSE)
+g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles_1se, response = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred")), dfRaw = pred_glm1_1se_full, add_smooth = TRUE, deciles = FALSE)
 
   
 if(save_figs) {
@@ -1618,7 +1802,7 @@ g4
 
 ```
 
-### Filtered Quantiles -  comparing "binary" observations in the testing datase to continuous model-predicted probabilities
+### Filtered Quantiles -  comparing "binary" observations in the testing dataset to continuous model-predicted probabilities
 #### For the best lambda model
 
 Filtered quantile plots of data. These plots show each vegetation variable,
@@ -1629,7 +1813,7 @@ each predictor variable.
 if (length(prednames_fig) == 0) {
   print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate")
 } else {
-pred_glm1_deciles_filt <- predvars2deciles( pred_glm1, 
+pred_glm1_deciles_filt <- predvars2deciles( pred_glm1_full, 
                          response_vars = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred")),
                          pred_vars = prednames_fig,
                          filter_var = TRUE,
@@ -1650,11 +1834,11 @@ g
 
 Filtered quantile figure with middle 2 deciles also shown
 
-```{r filtered quantile plot for best lambda modle with middle 2 deciles, fig.height = 24, fig.width = 24, eval = TRUE, message = FALSE}
+```{r filtered quantile plot for best lambda model with middle 2 deciles, fig.height = 24, fig.width = 24, eval = TRUE, message = FALSE}
 if ( name_secondBestMod == "Intercept_Only") {
   print("The next best lambda model only contains one predictor (an intercept)")
 } else {
-pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1, 
+pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1_full, 
                          response_vars = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred")),
                          pred_vars = prednames_fig,
                          filter_vars = prednames_fig,
@@ -1686,7 +1870,7 @@ if (length(prednames_secondBestMod) == 0) {
   print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate")
 } else {
   
-pred_glm1_deciles_filt <- predvars2deciles( pred_glm1_1se, 
+pred_glm1_deciles_filt <- predvars2deciles( pred_glm1_1se_full, 
                          response_vars = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred")),
                          pred_vars = prednames_secondBestMod,
                          filter_var = TRUE,
@@ -1707,11 +1891,11 @@ g
 
 Filtered quantile figure with middle 2 deciles also shown
 
-```{r filtered quantile plot for second best lambda modle with middle 2 deciles, fig.height = 24, fig.width = 24, eval = TRUE, message = FALSE}
+```{r filtered quantile plot for second best lambda model with middle 2 deciles, fig.height = 24, fig.width = 24, eval = TRUE, message = FALSE}
 if (length(prednames_secondBestMod) == 0) {
   print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate")
 } else {
-pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1, 
+pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1_1se_full, 
                          response_vars = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred")),
                          pred_vars = prednames_secondBestMod,
                          filter_vars = prednames_secondBestMod,
@@ -1742,7 +1926,7 @@ response_vars <- c("TotalTreeCover_binom", "TotalTreeCover_binom_pred_binary")
 if (length(prednames_fig) == 0) {
   print("The best lambda model only contains one predictor (an intercept), so decile plots aren't possible to generate")
 } else {
-  pred_glm1_deciles <- predvars2deciles(pred_glm1,
+  pred_glm1_deciles <- predvars2deciles(pred_glm1_full,
                                       response_vars = response_vars,
                                         pred_vars = prednames_fig, 
                                        cut_points = seq(0, 1, 0.01))
@@ -1750,7 +1934,7 @@ if (length(prednames_fig) == 0) {
 # get deciles for 1 SE lambda model 
 if ( name_secondBestMod == "Intercept_Only") {
   print("The next best lambda model only contains one predictor (an intercept)")} else {
-  pred_glm1_deciles_1se <- predvars2deciles(pred_glm1_1se,
+  pred_glm1_deciles_1se <- predvars2deciles(pred_glm1_1se_full,
                                       response_vars = response_vars,
                                         pred_vars = prednames_secondBestMod, 
                                        cut_points = seq(0, 1, 0.01))
@@ -1783,7 +1967,7 @@ g3 <- decile_dotplot_pq(df = pred_glm1_deciles, response = c("TotalTreeCover_bin
                         CI = FALSE
                         ) + ggtitle("Decile Plot")
 
-g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles, response = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred_binary")), dfRaw = pred_glm1, add_smooth = TRUE, deciles = FALSE)
+g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles, response = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred_binary")), dfRaw = pred_glm1_full, add_smooth = TRUE, deciles = FALSE)
 
   
 if(save_figs) {
@@ -1797,7 +1981,7 @@ g4
 }
 ```
 
-Below are quantile plots from the second best lambda model (`r print(name_secondBestMod)`)
+Below are quantile plots from the second best lambda model (not that the predictor variables are scaled)
 ```{r quantile_plot 1 SE lambda binary response, fig.height= 16, fig.width = 12, warning=FALSE, message=FALSE}
 
 if ( name_secondBestMod == "Intercept_Only") {
@@ -1807,7 +1991,7 @@ if ( name_secondBestMod == "Intercept_Only") {
 # publication quality version
 g3 <- decile_dotplot_pq(pred_glm1_deciles_1se, response = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred_binary")), IQR = FALSE) + ggtitle("Decile Plot")
 
-g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles_1se, response = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred_binary")), dfRaw = pred_glm1_1se, add_smooth = TRUE, deciles = FALSE)
+g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles_1se, response = c("TotalTreeCover_binom", paste0("TotalTreeCover_binom", "_pred_binary")), dfRaw = pred_glm1_1se_full, add_smooth = TRUE, deciles = FALSE)
 
   
 if(save_figs) {
@@ -2023,7 +2207,7 @@ if (length(prednames_secondBestMod) == 0) {
 <!--   scale_fill_gradient2(low = "red", -->
 <!--                        mid = "white" , -->
 <!--                        high = "blue" , -->
-<!--                        midpoint = 0,   na.value = "darkgrey", -->
+<!--                        midpoint = 0,   na.value = "white", -->
 <!--                        limits = c(-1, 1))   +  -->
 <!--   xlim(st_bbox(plotObs_2)[1],st_bbox(plotObs_2)[3]) +  -->
 <!--   ylim(st_bbox(plotObs_2)[2],st_bbox(plotObs_2)[4]) -->
@@ -2220,7 +2404,7 @@ if (length(prednames_secondBestMod) == 0) {
 <!--   scale_fill_gradient2(low = "red", -->
 <!--                        mid = "white" , -->
 <!--                        high = "blue" , -->
-<!--                        midpoint = 0,   na.value = "darkgrey", -->
+<!--                        midpoint = 0,   na.value = "white", -->
 <!--                        limits = c(-1, 1))  +  -->
 <!--   xlim(st_bbox(plotObs_2)[1],st_bbox(plotObs_2)[3]) +  -->
 <!--   ylim(st_bbox(plotObs_2)[2],st_bbox(plotObs_2)[4]) -->
