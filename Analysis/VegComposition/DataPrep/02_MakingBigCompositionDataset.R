@@ -261,7 +261,7 @@ LDC_all <- LDC_veg %>%
 #    geom_point(aes(Lon, Lat, col = ForbCover))
 
 # load RAP data -----------------------------------------------------------
-RAP_all <- read.csv("./Data_raw/RAP_samplePoints/RAPdata_use.csv") %>% 
+RAP_all <- readRDS("./Data_raw/RAP_samplePoints/RAPdata_useSF.rds") %>% 
   mutate(Year = date, 
          Month = NA, 
          Day = NA, 
@@ -281,7 +281,6 @@ RAP_all <- read.csv("./Data_raw/RAP_samplePoints/RAPdata_use.csv") %>%
          ForbCover_prop = ForbCover/TotalHerbaceousCover)
 
 
-
 # fix coordinate reference systems of each data source so they're  the same --------
 # transform the data into sf, and transform if necessary to WGS 84 ("EPSG: 4326")
 FIA_all <- FIA_all %>% 
@@ -291,8 +290,8 @@ FIA_all <- FIA_all %>%
 LANDFIRE_all <- LANDFIRE_all %>% 
   sf::st_as_sf( coords = c("Lon", "Lat"), crs = "EPSG:4326")
 
-RAP_all <- RAP_all %>% 
-  sf::st_as_sf(coords = c("Lon", "Lat"), crs = "EPSG:4326")
+# RAP_all <- RAP_all %>% 
+#   sf::st_as_sf(coords = c("Lon", "Lat"), crs = "EPSG:4326")
 
 LDC_all <- LDC_all %>% 
   sf::st_as_sf(coords = c("Lon", "Lat"), crs = "EPSG:4269") %>% 
@@ -303,9 +302,9 @@ LDC_all <- LDC_all %>%
   mutate(Lon = sf::st_coordinates(.)[,1],
          Lat = sf::st_coordinates(.)[,2])
 
-RAP_all <- RAP_all %>% 
-  mutate(Lon = sf::st_coordinates(.)[,1],
-         Lat = sf::st_coordinates(.)[,2])
+# RAP_all <- RAP_all %>% 
+#   mutate(Lon = sf::st_coordinates(.)[,1],
+#          Lat = sf::st_coordinates(.)[,2])
 
 LANDFIRE_all <- LANDFIRE_all %>% 
   mutate(Lon = sf::st_coordinates(.)[,1],
@@ -315,17 +314,14 @@ FIA_all <- FIA_all %>%
   mutate(Lon = sf::st_coordinates(.)[,1],
          Lat = sf::st_coordinates(.)[,2])
 
-# ggplot(dat_all) + 
-#   facet_wrap(~Source) + 
-#   geom_sf(aes(col = TotalTreeCover))
-# plot(LDC_all$Lon, LDC_all$Lat)
-# points(RAP_all$Lon, RAP_all$Lat, col = "red")
-# points(FIA_all$Lon, FIA_all$Lat, col = "green")
-# points(LANDFIRE_all$Lon, LANDFIRE_all$Lat, col = "blue")
+
+plot(LDC_all$Lon, LDC_all$Lat)
+points(RAP_all$Lon, RAP_all$Lat, col = "red")
+points(FIA_all$Lon, FIA_all$Lat, col = "green")
+points(LANDFIRE_all$Lon, LANDFIRE_all$Lat, col = "blue")
 # add datasets together ---------------------------------------------------
 dat_all <- FIA_all %>% 
   rbind(LANDFIRE_all, LDC_all, RAP_all)
-
 
 # # Calculate Total Herbaceous Cover (where necessary) ----------------------
 # dat_all <- dat_all %>% 
@@ -417,6 +413,10 @@ dat_all %>%
   ggplot() + 
   facet_wrap(~Year) + 
   geom_point(aes(Lon, Lat))
+
+ggplot(dat_all) + 
+  facet_wrap(~Source) + 
+  geom_sf(aes(col = TotalHerbaceousCover), pch = 20)
 
 ## save dataset for further analysis
 write.csv(dat_all %>% st_drop_geometry() , file = "./Data_processed/CoverData/ForAnalysis.csv", row.names = FALSE)

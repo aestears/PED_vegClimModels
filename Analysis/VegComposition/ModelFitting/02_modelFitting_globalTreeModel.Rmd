@@ -14,7 +14,6 @@ params:
   ecoregion: CONUS
   response: TotalTreeCover
   treeThreshold: 10
-  removeTexasLouisianaPlain: FALSE
   whichSecondBestMod: "halfse"# 1se OR halfse OR auto (chose the model w/ fewest # of predictors)
   thresholdMethod: "PredPrev=Obs" # apporoach for identifying best threshold
 subtitle: "Based on code from Martin Holdrege's Sagebrush-Fire paper"
@@ -42,7 +41,6 @@ response <- params$response
 fit_sample <- TRUE # fit model to a sample of the data
 n_train <- 5e4 # sample size of the training data
 n_test <- 1e6 # sample size of the testing data (if this is too big the decile dotplot code throws memory errors)
-removeTLP <- params$removeTexasLouisianaPlain
 run <- params$run
 whichSecondBestMod <- params$whichSecondBestMod
 treeThreshold <- params$treeThreshold
@@ -770,9 +768,10 @@ halfseLambda_coef <- selection_prob_halfseL_df[selection_prob_halfseL_df$Selecti
 ```{r}
   ## predict on the test data
   # lasso model predictions with the optimal lambda
-  optimal_pred <- predict(fit_glm_bestLambda, newx=X[,2:ncol(X)], type = "response")
-  optimal_pred_1se <-  predict(fit_glm_se, newx=X[,2:ncol(X)], type = "response")
-  optimal_pred_halfse <- predict(fit_glm_halfse, newx = X[,2:ncol(X)], type = "response")
+  optimal_pred <- stats::predict(fit_glm_bestLambda, #newx=X[,2:ncol(X)], 
+                                 type = "response")
+  optimal_pred_1se <-  stats::predict(fit_glm_se, newx=X[,2:ncol(X)], type = "response")
+  optimal_pred_halfse <- stats::predict(fit_glm_halfse, newx = X[,2:ncol(X)], type = "response")
   
     null_fit <- glm(
       formula = y ~ 1, #data = modDat_1_s, 
@@ -1037,13 +1036,13 @@ pred_glm1_1se_full[pred_glm1_1se_full$resid > .5 | pred_glm1_1se_full$resid < -.
 
 ## Inital Model Diagnostics 
 Identifying the optimal threshold based on the prevalence in the training data. 
-ROC Curves based on classification accuracy of the model when used on the testing set (heldout years 2003, 2012 and 2019)
+ROC Curves based on classification accuracy of the model when used on the testing set (held-out years 2003, 2012 and 2019)
 
 For the bestLambda model: 
-```{r ROC for best lambda model}
+```{r ROC for best lambda model, warning=FALSE}
 
 library(PresenceAbsence)
-DATA <- fullModOut$modelPredictions[,c("obs", "pred_opt")]
+DATA <- fullModOut$modelPredictions[,c("obs", "pred_opt")] # only training data
 DATA$ID <- 1:nrow(DATA)
 #pred.prev <- predicted.prevalence(DATA = DATA[,c("ID", "TotalTreeCover_binom", "TotalTreeCover_binom_pred")], threshold = 20)
 #accu <- presence.absence.accuracy(DATA[,c("ID", "TotalTreeCover_binom", "TotalTreeCover_binom_pred")], threshold = 20)
@@ -1121,15 +1120,20 @@ pred_glm1_1se_full <- pred_glm1_1se_full %>%
 ```{r Residual maps, fig.height=14, fig.width=9}
 # rasterize
 # get reference raster
-test_rast <-  rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>%
-#   #terra::aggregate(fact = 3, fun = "mean") %>% 
-terra::project(crs("EPSG:4326")) %>% 
-  terra::crop(ext(-130, -60, 20, 60))
-  # transform to match format of veg. data 
+# use the gridMet raster 
+test_rast_dayMet <- rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>%
+  #terra::project(terra::crs("EPSG:4326")) %>%
+  terra::crop(ext(-2000000, 2600000, -1900000, 1500000))
 
+## aggregate to a 4x4km^2 grid
+test_rast <- test_rast_dayMet %>% 
+  terra::aggregate(fact = 8, fun = "mean")
+# test_rast_Untranfsormed <-  rast("../../../Data_raw/gridMet/pr_2020.nc") #%>% ## mean cell size of unaggregated grid size (16709380m^2)
+# test_rast <- test_rast_Untranfsormed %>% 
+#    terra::aggregate(fact = 2, fun = "mean") #%>% 
 regions <- sf::st_read(dsn = "../../../Data_raw/Level2Ecoregions/", layer = "NA_CEC_Eco_Level2") 
 regions <- regions %>% 
-  st_transform(crs = st_crs(crs("EPSG:4326"))) %>% 
+  st_transform(crs = st_crs(crs(test_rast))) %>% 
   st_make_valid() 
 
 ecoregionLU <- data.frame("NA_L1NAME" = sort(unique(regions$NA_L1NAME)), 
@@ -1148,27 +1152,38 @@ mapRegions <- goodRegions %>%
   summarise(geometry = sf::st_union(geometry)) %>% 
   ungroup() %>% 
   st_simplify(dTolerance = 1000) %>% 
-  st_crop(ext(-130, -60, 20, 60))
-
+  sf::st_crop(c("xmin" = -2000000, "xmax" = 2600000, "ymin" = -1900000, "ymax" = 1500000))
 # make shapefile of cropped state boundaries in appropriate crs
 cropped_states_2 <- cropped_states %>% 
-  st_transform(crs = "EPSG:4326") %>% 
-  st_make_valid() %>% 
-  st_crop(ext(-130, -60, 20, 60))
+  st_transform(crs = crs(test_rast)) %>% 
+  st_make_valid()  %>% 
+  sf::st_crop(c("xmin" = -2000000, "xmax" = 2600000, "ymin" = -1900000, "ymax" = 1500000))
 
-###### rasterized version
 # make a multi-layer raster w/ layers for each variable of interest
+pred_glm1_full_sf <- pred_glm1_full %>% 
+  st_as_sf(coords = c("x", "y"), crs = crs("EPSG:4326")) %>% 
+  st_transform(crs(test_rast)) %>% 
+  terra::vect()
 testRast2 <- lapply(c("TotalTreeCover", "TotalTreeCover_binom", "TotalTreeCover_binom_pred", "TotalTreeCover_binom_pred_binary", "resid"), FUN = function(x) {
   # S4 method for class 'data.frame'
-temp <- rast(pred_glm1_full[,c("x", "y", x)] %>% drop_na(), type="xyz", crs=terra::crs(test_rast), digits=6, extent=test_rast)
+temp <- terra::rasterize(x = pred_glm1_full_sf, y = test_rast, 
+                         field = x, fun = mean, na.rm = TRUE)
+names(temp) <- x
+  # rast(pred_glm1_full[,c("x", "y", x)] %>% drop_na(), type="xyz", crs=terra::crs(test_rast$`precipitation_amount_day=43829`), digits=6, extent=test_rast$`precipitation_amount_day=43829`)
  return(temp)
   }
 )
 pred_glm1_full_RAST <- c(testRast2[[1]], testRast2[[2]], testRast2[[3]], testRast2[[4]], testRast2[[5]])
 
+# ## compare
+# par(mfrow = c(2,1))
+# terra::plot(pred_glm1_full_RAST$TotalTreeCover,  maxcell = 30000000, main = "gridMet")
+# terra::plot(pred_glm1_full_RAST_dayMet$TotalTreeCover, maxcell = 30000000, main = "dayMet")
+# par(mfrow = c(1,1))
+##
 # make figure of raw tree cover
 map_obs_cont <- ggplot() +
-geom_spatraster(data = pred_glm1_full_RAST, aes(fill = TotalTreeCover)) + 
+geom_spatraster(data = pred_glm1_full_RAST, aes(fill = TotalTreeCover), maxcell = 50000000) + 
  #geom_sf(data = pred_glm1_full_RAST, aes(col = TotalTreeCover)) + 
   # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
@@ -1178,12 +1193,15 @@ labs(title = paste0("Observations of Continuous Total Tree Cover - all data")) +
                        mid = "wheat" ,
                        high = "forestgreen" , 
                        midpoint = 0,   na.value = "white") + 
-  xlim(-125, -65) + 
-  ylim(25, 50)
+  coord_sf(datum = st_crs(pred_glm1_full_RAST)) +
+   # xlim(-104, -100) + 
+   # ylim(30, 33)
+  xlim(-2000000, 2500000) + 
+  ylim(-1800000, 900000)
 
 # make figure of binomialized tree cover
 map_obs <- ggplot() +
-geom_spatraster(data = pred_glm1_full_RAST, aes(fill = TotalTreeCover_binom)) + 
+geom_spatraster(data = pred_glm1_full_RAST, aes(fill = TotalTreeCover_binom), maxcell = 50000000) + 
  #geom_sf(data = plotObs, aes(col = TotalTreeCover_binom)) + 
    #stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover_binom), fun = mean, binwidth = .05) + 
      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
@@ -1195,8 +1213,9 @@ labs(title = paste0("Observations of Binomial Total Tree Cover - all data")) +
                     labels = c("No Trees",
                                "",
                       "Trees"), na.value = "white") + 
-  xlim(-125, -65) + 
-  ylim(25, 50)
+  coord_sf(datum = st_crs(pred_glm1_full_RAST)) +
+  xlim(-2000000, 2500000) + 
+  ylim(-1800000, 900000)
 
 hist_obs_cont <- pred_glm1_full %>% 
   ggplot() + 
@@ -1212,12 +1231,19 @@ ggarrange(map_obs_cont, hist_obs_cont, map_obs, hist_obs, heights = c(3, 1, 3, 1
 ```
 
 ### Predictions on the full and test dataset using the *best lambda* model
-```{r predicted values map best lambda model, fig.height = 14, fig.width = 9, }
+```{r predicted values map best lambda model, fig.height = 14, fig.width = 9 }
+pred_glm1_test_sf <- pred_glm1_test %>% 
+  st_as_sf(coords = c("x", "y"), crs = crs("EPSG:4326")) %>% 
+  st_transform(crs(test_rast)) %>% 
+  terra::vect()
 # make raster of test set 
 # make a multi-layer raster w/ layers for each variable of interest
 testRast_test <- lapply(c("TotalTreeCover", "TotalTreeCover_binom", "TotalTreeCover_binom_pred", "TotalTreeCover_binom_pred_binary", "resid"), FUN = function(x) {
   # S4 method for class 'data.frame'
-temp <- rast(pred_glm1_test[,c("x", "y", x)] %>% drop_na(), type="xyz", crs=terra::crs(test_rast), digits=6, extent=test_rast)
+  
+    temp <- terra::rasterize(x = pred_glm1_test_sf, y = test_rast, 
+                         field = x, fun = mean, na.rm = TRUE)
+  names(temp) <- x
  return(temp)
   }
 )
@@ -1225,7 +1251,7 @@ pred_glm1_test_RAST <- c(testRast_test[[1]], testRast_test[[2]], testRast_test[[
 
 # make figures of predictions w/ the full dataset
 map_preds1_cont <- ggplot() +
-geom_spatraster(data = pred_glm1_full_RAST, aes(fill = TotalTreeCover_binom_pred)) + 
+geom_spatraster(data = pred_glm1_full_RAST, aes(fill = TotalTreeCover_binom_pred), maxcell = 20000000) + 
  #geom_sf(data = plotObs_rast2, aes(col = TotalTreeCover)) + 
   # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
@@ -1235,12 +1261,13 @@ labs(title = paste0("Predictions from the bestaLambda model of Yes/No Trees \nco
                        mid = "wheat" ,
                        high = "forestgreen" , 
                        midpoint = 0,   na.value = "white") + 
-  xlim(-125, -65) + 
-  ylim(25, 50)
+  coord_sf(datum = st_crs(pred_glm1_full_RAST)) +
+  xlim(-2000000, 2500000) + 
+  ylim(-1800000, 900000)
 
 # make figure of binomialized tree cover
 map_preds1 <- ggplot() +
-geom_spatraster(data = pred_glm1_full_RAST, aes(fill = TotalTreeCover_binom_pred_binary)) + 
+geom_spatraster(data = pred_glm1_full_RAST, aes(fill = TotalTreeCover_binom_pred_binary), maxcell = 20000000) + 
  #geom_sf(data = plotObs, aes(col = TotalTreeCover_binom)) + 
    #stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover_binom), fun = mean, binwidth = .05) + 
      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
@@ -1252,8 +1279,9 @@ labs(title = paste0("Predictions from the bestaLambda model of Yes/No Trees \nbi
                     labels = c("No Trees",
                                "",
                       "Trees"), na.value = "white") + 
-  xlim(-125, -65) + 
-  ylim(25, 50)
+  coord_sf(datum = st_crs(pred_glm1_full_RAST)) +
+  xlim(-2000000, 2500000) + 
+  ylim(-1800000, 900000)
 
 hist_preds1_cont <- pred_glm1_full %>% 
   ggplot() + 
@@ -1268,7 +1296,7 @@ ggarrange(map_preds1_cont, hist_preds1_cont, map_preds1, hist_preds1, heights = 
 
 # make figures of predictions w/ the test dataset
 map_preds1_cont_test <- ggplot() +
-geom_spatraster(data = pred_glm1_test_RAST, aes(fill = TotalTreeCover_binom_pred)) + 
+geom_spatraster(data = pred_glm1_test_RAST, aes(fill = TotalTreeCover_binom_pred), maxcell = 20000000) + 
  #geom_sf(data = plotObs_rast2, aes(col = TotalTreeCover)) + 
   # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
@@ -1278,12 +1306,13 @@ labs(title = paste0("Predictions from the bestaLambda model of Yes/No Trees \nco
                        mid = "wheat" ,
                        high = "forestgreen" , 
                        midpoint = 0,   na.value = "white") + 
-  xlim(-125, -65) + 
-  ylim(25, 50)
+  coord_sf(datum = st_crs(pred_glm1_full_RAST)) +
+  xlim(-2000000, 2500000) + 
+  ylim(-1800000, 900000)
 
 # make figure of binomialized tree cover
 map_preds1_test <- ggplot() +
-geom_spatraster(data = pred_glm1_test_RAST, aes(fill = TotalTreeCover_binom_pred_binary)) + 
+geom_spatraster(data = pred_glm1_test_RAST, aes(fill = TotalTreeCover_binom_pred_binary), maxcell = 20000000) + 
  #geom_sf(data = plotObs, aes(col = TotalTreeCover_binom)) + 
    #stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover_binom), fun = mean, binwidth = .05) + 
      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
@@ -1295,8 +1324,9 @@ labs(title = paste0("Predictions from the bestaLambda model of Yes/No Trees \nbi
                     labels = c("No Trees",
                                "",
                       "Trees"), na.value = "white") + 
-  xlim(-125, -65) + 
-  ylim(25, 50)
+  coord_sf(datum = st_crs(pred_glm1_full_RAST)) +
+  xlim(-2000000, 2500000) + 
+  ylim(-1800000, 900000)
 
 hist_preds1_cont_test <- pred_glm1_test %>% 
   ggplot() + 
@@ -1316,21 +1346,33 @@ ggarrange(map_preds1_cont_test, hist_preds1_cont_test, map_preds1_test, hist_pre
 if ( name_secondBestMod == "Intercept_Only") {
   print("The next best lambda model only contains one predictor (an intercept)")
 } else {
+  pred_glm1_1se_full_sf <- pred_glm1_1se_full %>% 
+  st_as_sf(coords = c("x", "y"), crs = crs("EPSG:4326")) %>% 
+  st_transform(crs(test_rast)) %>% 
+  terra::vect()
   # make a raster of the full dataset
 # make a multi-layer raster w/ layers for each variable of interest
 testRast3 <- lapply(c("TotalTreeCover", "TotalTreeCover_binom", "TotalTreeCover_binom_pred", "TotalTreeCover_binom_pred_binary", "resid"), FUN = function(x) {
   # S4 method for class 'data.frame'
-temp <- rast(pred_glm1_1se_full[,c("x", "y", x)] %>% drop_na(), type="xyz", crs=terra::crs(test_rast), digits=6, extent=test_rast)
+temp <- terra::rasterize(x = pred_glm1_1se_full_sf, y = test_rast, 
+                         field = x, fun = mean, na.rm = TRUE)
+  names(temp) <- x
  return(temp)
   }
 )
 pred_glm1_1se_full_RAST <- c(testRast3[[1]], testRast3[[2]], testRast3[[3]], testRast3[[4]], testRast3[[5]])
 
 # make raster of test set 
+ pred_glm1_1se_test_sf <- pred_glm1_1se_test %>% 
+  st_as_sf(coords = c("x", "y"), crs = crs("EPSG:4326")) %>% 
+  st_transform(crs(test_rast)) %>% 
+  terra::vect()
 # make a multi-layer raster w/ layers for each variable of interest
 testRast_test2 <- lapply(c("TotalTreeCover", "TotalTreeCover_binom", "TotalTreeCover_binom_pred", "TotalTreeCover_binom_pred_binary", "resid"), FUN = function(x) {
   # S4 method for class 'data.frame'
-temp <- rast(pred_glm1_1se_test[,c("x", "y", x)] %>% drop_na(), type="xyz", crs=terra::crs(test_rast), digits=6, extent=test_rast)
+temp <- terra::rasterize(x = pred_glm1_1se_test_sf, y = test_rast, 
+                         field = x, fun = mean, na.rm = TRUE)
+  names(temp) <- x
  return(temp)
   }
 )
@@ -1338,7 +1380,7 @@ pred_glm1_1se_test_RAST <- c(testRast_test2[[1]], testRast_test2[[2]], testRast_
 
 # make figures of predictions w/ the full dataset
 map_preds2_cont <- ggplot() +
-geom_spatraster(data = pred_glm1_1se_full_RAST, aes(fill = TotalTreeCover_binom_pred)) + 
+geom_spatraster(data = pred_glm1_1se_full_RAST, aes(fill = TotalTreeCover_binom_pred), maxcell = 20000000) + 
  #geom_sf(data = plotObs_rast2, aes(col = TotalTreeCover)) + 
   # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
@@ -1348,12 +1390,13 @@ labs(title = paste0("Predictions from the ", name_secondBestMod, " of Yes/No Tre
                        mid = "wheat" ,
                        high = "forestgreen" , 
                        midpoint = 0,   na.value = "white") + 
-  xlim(-125, -65) + 
-  ylim(25, 50)
+  coord_sf(datum = st_crs(pred_glm1_full_RAST)) +
+  xlim(-2000000, 2500000) + 
+  ylim(-1800000, 900000)
 
 # make figure of binomialized tree cover
 map_preds2 <- ggplot() +
-geom_spatraster(data = pred_glm1_1se_full_RAST, aes(fill = TotalTreeCover_binom_pred_binary)) + 
+geom_spatraster(data = pred_glm1_1se_full_RAST, aes(fill = TotalTreeCover_binom_pred_binary), maxcell = 20000000) + 
  #geom_sf(data = plotObs, aes(col = TotalTreeCover_binom)) + 
    #stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover_binom), fun = mean, binwidth = .05) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
@@ -1363,8 +1406,9 @@ labs(title = paste0("Predictions from the ", name_secondBestMod, " of Yes/No Tre
                     labels = c("No Trees",
                                "",
                       "Trees"), na.value = "white") + 
-  xlim(-125, -65) + 
-  ylim(25, 50)
+  coord_sf(datum = st_crs(pred_glm1_full_RAST)) +
+  xlim(-2000000, 2500000) + 
+  ylim(-1800000, 900000)
 
 hist_preds2_cont <- pred_glm1_1se_full %>% 
   ggplot() + 
@@ -1377,7 +1421,7 @@ hist_preds2 <- pred_glm1_1se_full%>%
 
 # make figures of predictions w/ the test dataset
 map_preds2_cont_test <- ggplot() +
-geom_spatraster(data = pred_glm1_1se_test_RAST, aes(fill = TotalTreeCover_binom_pred)) + 
+geom_spatraster(data = pred_glm1_1se_test_RAST, aes(fill = TotalTreeCover_binom_pred), maxcell = 20000000) + 
  #geom_sf(data = plotObs_rast2, aes(col = TotalTreeCover)) + 
   # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
@@ -1386,13 +1430,14 @@ labs(title = paste0("Predictions from the ", name_secondBestMod, " of Yes/No Tre
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "forestgreen" , 
-                       midpoint = 0,   na.value = "white") + 
-  xlim(-125, -65) + 
-  ylim(25, 50)
+                       midpoint = 0,   na.value = "white") +
+  coord_sf(datum = st_crs(pred_glm1_full_RAST)) +
+  xlim(-2000000, 2500000) + 
+  ylim(-1800000, 900000)
 
 # make figure of binomialized tree cover
 map_preds2_test <- ggplot() +
-geom_spatraster(data = pred_glm1_1se_test_RAST, aes(fill = TotalTreeCover_binom_pred_binary)) + 
+geom_spatraster(data = pred_glm1_1se_test_RAST, aes(fill = TotalTreeCover_binom_pred_binary), maxcell = 20000000) + 
  #geom_sf(data = plotObs, aes(col = TotalTreeCover_binom)) + 
    #stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover_binom), fun = mean, binwidth = .05) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
@@ -1402,8 +1447,9 @@ labs(title = paste0("Predictions from the ", name_secondBestMod, " of Yes/No Tre
                     labels = c("No Trees",
                                "",
                       "Trees"), na.value = "white") + 
-  xlim(-125, -65) + 
-  ylim(25, 50)
+  coord_sf(datum = st_crs(pred_glm1_full_RAST)) +
+  xlim(-2000000, 2500000) + 
+  ylim(-1800000, 900000)
 
 hist_preds2_cont_test <- pred_glm1_1se_test %>% 
   ggplot() + 
@@ -1430,7 +1476,7 @@ pred_glm1_full_RAST$missClass <- pred_glm1_full_RAST$TotalTreeCover_binom - pred
   pred_glm1_full_RAST$missClass[pred_glm1_full_RAST$missClass ==0 & pred_glm1_full_RAST$TotalTreeCover_binom_pred_binary==0] <- -2
 # make figures
 (map_missClass <- ggplot() +
-geom_spatraster(data =pred_glm1_full_RAST, aes(fill= missClass)) + 
+geom_spatraster(data =pred_glm1_full_RAST, aes(fill= missClass), maxcell = 20000000) + 
     #stat_summary_2d(data = pred_glm1, aes(x = x, y = y, z = missClass), fun = function(x) {round(mean(x))}, binwidth = .05) + 
   geom_sf(data=cropped_states_2,fill=NA )  + 
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
@@ -1443,8 +1489,9 @@ labs(title = paste0("Missclassification (obs. - pred.) and correct classificatio
                       "Data = no trees; Model = trees ", "",
                                   "Data = trees; Model = no trees",
                       "Trees"), na.value = "white") + 
-  xlim(-125, -65) + 
-  ylim(25, 50))
+  coord_sf(datum = st_crs(pred_glm1_full_RAST)) +
+  xlim(-2000000, 2500000) + 
+  ylim(-1800000, 900000))
 
 # make a confusion matrix 
 # prepare data
@@ -1479,7 +1526,7 @@ pred_glm1_test_RAST$missClass <- pred_glm1_test_RAST$TotalTreeCover_binom - pred
   pred_glm1_test_RAST$missClass[pred_glm1_test_RAST$missClass ==0 & pred_glm1_test_RAST$TotalTreeCover_binom_pred_binary==0] <- -2
 # make figures
 (map_missClass_test <- ggplot() +
-geom_spatraster(data =pred_glm1_test_RAST, aes(fill= missClass)) + 
+geom_spatraster(data =pred_glm1_test_RAST, aes(fill= missClass), maxcell = 20000000) + 
     #stat_summary_2d(data = pred_glm1, aes(x = x, y = y, z = missClass), fun = function(x) {round(mean(x))}, binwidth = .05) + 
   geom_sf(data=cropped_states_2,fill=NA )  + 
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
@@ -1493,8 +1540,9 @@ labs(title = paste0("Missclassification (obs. - pred.) and correct classificatio
                                   "Data = trees; Model = no trees",
                       "Trees"),
                      na.value = "white") + 
-  xlim(-125, -65) + 
-  ylim(25, 50))
+  coord_sf(datum = st_crs(pred_glm1_full_RAST)) +
+  xlim(-2000000, 2500000) + 
+  ylim(-1800000, 900000))
 
 # make a confusion matrix 
 # prepare data
@@ -1532,7 +1580,7 @@ pred_glm1_1se_full_RAST$missClass <- pred_glm1_1se_full_RAST$TotalTreeCover_bino
   pred_glm1_1se_full_RAST$missClass[pred_glm1_1se_full_RAST$missClass ==0 & pred_glm1_1se_full_RAST$TotalTreeCover_binom_pred_binary==0] <- -2
 # make figures
 (map_missClass <- ggplot() +
-geom_spatraster(data =pred_glm1_1se_full_RAST, aes(fill= missClass)) + 
+geom_spatraster(data =pred_glm1_1se_full_RAST, aes(fill= missClass), maxcell = 20000000) + 
     #stat_summary_2d(data = pred_glm1, aes(x = x, y = y, z = missClass), fun = function(x) {round(mean(x))}, binwidth = .05) + 
   geom_sf(data=cropped_states_2,fill=NA )  + 
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
@@ -1545,8 +1593,9 @@ labs(title = paste0("Missclassification (obs. - pred.) and correct classificatio
                       "Data = no trees; Model = trees ", "",
                                   "Data = trees; Model = no trees",
                       "Trees"), na.value = "white") + 
-  xlim(-125, -65) + 
-  ylim(25, 50))
+  coord_sf(datum = st_crs(pred_glm1_full_RAST)) +
+  xlim(-2000000, 2500000) + 
+  ylim(-1800000, 900000))
 
 # make a confusion matrix 
 # prepare data
@@ -1581,7 +1630,7 @@ pred_glm1_1se_test_RAST$missClass <- pred_glm1_1se_test_RAST$TotalTreeCover_bino
   pred_glm1_1se_test_RAST$missClass[pred_glm1_1se_test_RAST$missClass ==0 & pred_glm1_1se_test_RAST$TotalTreeCover_binom_pred_binary==0] <- -2
 # make figures
 (map_missClass_test <- ggplot() +
-geom_spatraster(data =pred_glm1_1se_test_RAST, aes(fill= missClass)) + 
+geom_spatraster(data =pred_glm1_1se_test_RAST, aes(fill= missClass), maxcell = 20000000) + 
     #stat_summary_2d(data = pred_glm1, aes(x = x, y = y, z = missClass), fun = function(x) {round(mean(x))}, binwidth = .05) + 
   geom_sf(data=cropped_states_2,fill=NA )  + 
   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
@@ -1595,8 +1644,9 @@ labs(title = paste0("Missclassification (obs. - pred.) and correct classificatio
                                   "Data = trees; Model = no trees",
                       "Trees"),
                      na.value = "white") + 
-  xlim(-125, -65) + 
-  ylim(25, 50))
+  coord_sf(datum = st_crs(pred_glm1_full_RAST)) +
+  xlim(-2000000, 2500000) + 
+  ylim(-1800000, 900000))
 
 # make a confusion matrix 
 # prepare data

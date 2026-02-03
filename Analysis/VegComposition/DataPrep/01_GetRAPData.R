@@ -131,6 +131,7 @@ dayMet_13_grid <- raster::rasterToPolygons(raster::raster(dayMet_13))
 dayMet_13_grid2 <- dayMet_13_grid %>% 
   st_as_sf() %>% 
   sf::st_transform(crs = st_crs(samplePoints))
+#plot(dayMet_13_grid2)
 
 # get uniqueIDs for each each gridcell and assign to sample points
 temp <- terra::extract(x = dayMet_13, y = vect(samplePoints), xy = TRUE)
@@ -144,7 +145,7 @@ samplePoints_squares <- samplePoints_squares %>%
   select(test, geometry) %>% 
   cbind(temp$uniqueID) %>% 
   dplyr::rename(uniqueID = temp.uniqueID)
-
+plot(samplePoints_squares)
 # # test GEE outputs
 # # load GEE output
 # tempRast <- rast("../../../../../../Downloads/RAP_custom_grid_2000.tif")  %>%
@@ -253,6 +254,7 @@ samplePoints_squares <- samplePoints_squares %>%
 # #mapview(outDat, zcol = 'vegetation-cover_v3_2000_annual_forb_and_grass')
 
 # read in RAP points sampled from Google Earth Engine ---------------------
+
 ## get RAP information downloaded from GEE
 # file names
 RAPnames <- list.files("./Data_processed/RAP_samplePoints/SampledData/")
@@ -261,20 +263,30 @@ for (i in 1:length(RAPnames)) {
   tempRast <- rast(x = paste0("./Data_processed/RAP_samplePoints/SampledData/", RAPnames[i])) #%>% 
     ## transform the raster to the crs of samplePoints
     #terra::project(crs(samplePoints))
+  # get raster centroids 
+  if (i == 1) {
+    RAPrasterGrid <- raster::rasterToPolygons(raster::raster(tempRast)) 
+    RAPraster_centroids <- st_centroid(st_as_sf(RAPrasterGrid))
+  }
   ## save the raster
   assign(paste0("RAPraster_", str_extract(RAPnames[i], "[:digit:]{4}")), value = tempRast)
   ## get the values of the raster
   tempValues <- tempRast %>% 
-    terra::extract(y = as.data.frame(terra::xyFromCell(tempRast, cell = c(1:94094))),
+    terra::extract(y = #as.data.frame(terra::xyFromCell(tempRast, cell = c(1:94094)))
+                     terra::vect(x = data.frame(terra::xyFromCell(tempRast, cell = terra::cells(!is.na(tempRast)))),
+                                 geom = c("x", "y"),
+                                 ,crs = crs(tempRast))
+                     ,
                    xy = TRUE) %>% drop_na() %>% 
     mutate(Year = str_extract(RAPnames[i], "[:digit:]{4}")) %>% 
     dplyr::select(-ID)
+  tempValues2 <- st_as_sf(tempValues, coords = c("x", "y"), crs = crs(tempRast), remove = FALSE)
   ## save output 
   if (i == 1) {
-    RAPvaluesDF <- tempValues
+    RAPvaluesDF <- tempValues2
   } else {
     RAPvaluesDF <- RAPvaluesDF %>% 
-      rbind(tempValues)
+      rbind(tempValues2)
   }
 }
 
@@ -314,5 +326,10 @@ RAPdat_4 <- RAPvaluesDF %>%
     Source = "RAP"
   )
 
+ggplot(RAPdat_4 %>% filter(Year %in% c(2010:2020))) + 
+  facet_wrap(~Year) + 
+  geom_point(aes(Lon, Lat, col = PerennialHerbGramCover), pch = 20)
+
 ## save for further analysis! 
+saveRDS(RAPdat_4, "./Data_raw/RAP_samplePoints/RAPdata_useSF.rds")
 write.csv(st_drop_geometry(RAPdat_4), "./Data_raw/RAP_samplePoints/RAPdata_use.csv", row.names = FALSE)
