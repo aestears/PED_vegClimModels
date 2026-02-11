@@ -22,7 +22,7 @@ library(kableExtra)
 library(GGally) 
 ```
 
-```{r read in Data, include = FALSE}
+```{r read in Data and load functions, include = FALSE}
 
 my_fn <- function(data, mapping, method="p", use="pairwise", ...){
   
@@ -49,7 +49,8 @@ my_fn <- function(data, mapping, method="p", use="pairwise", ...){
 
 
 here::i_am("Analysis/VegComposition/ModelFitting/01_PredictorVarSelection.Rmd")
-dat <- readRDS( here("Data_processed", "CoverData", "DataForModels_spatiallyAveraged_withSoils_noSf_sampledLANDFIRE.rds"))
+# use dataset that includes yes/no tree predictions, which we'll use to idenitfy uncorrelated predictors for tree vs no tree areas
+dat <- readRDS( here("Data_processed", "CoverData", "CoverModelData_withTreeNoTreePreds.rds"))
 ```
 
 ## Background
@@ -137,8 +138,8 @@ knitr::kable(format = "html", data.frame("Variable" =
 Now, look at the distribution of input values
 ```{r}
 dat %>% 
-  select(tmean_meanAnnAvg_3yrAnom:durationFrostFreeDays_meanAnnAvg_3yrAnom, Year, x, y) %>% 
-  pivot_longer(cols = tmean_meanAnnAvg_3yrAnom:durationFrostFreeDays_meanAnnAvg_3yrAnom,
+  select(tmin:frostFreeDays_anom, Year, x, y) %>% 
+  pivot_longer(cols = tmin:frostFreeDays_anom,
                names_to = "variable",
                values_to = "value"
                 ) %>% 
@@ -172,61 +173,9 @@ We do this first for all of CONUS, then independently for each of two ecoregions
 ```{r, echo = FALSE, include = FALSE}
 ## drop observations so we don't have any NAs
 datCONUS <- dat %>% 
-   select(tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM, tmean_meanAnnAvg_3yrAnom:durationFrostFreeDays_meanAnnAvg_3yrAnom, 
-         soilDepth:totalAvailableWaterHoldingCapacity, newRegion) %>% 
-  drop_na() %>%  
-  rename("tmin" = tmin_meanAnnAvg_CLIM, 
-     "tmax" = tmax_meanAnnAvg_CLIM, #1
-     "tmean" = tmean_meanAnnAvg_CLIM, 
-     "prcp" = prcp_meanAnnTotal_CLIM, 
-     "t_warm" = T_warmestMonth_meanAnnAvg_CLIM,
-     "t_cold" = T_coldestMonth_meanAnnAvg_CLIM, 
-     "prcp_wet" = precip_wettestMonth_meanAnnAvg_CLIM,
-     "prcp_dry" = precip_driestMonth_meanAnnAvg_CLIM, 
-     "prcp_seasonality" = precip_Seasonality_meanAnnAvg_CLIM, #2
-     "prcpTempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  #3
-     "abvFreezingMonth" = aboveFreezing_month_meanAnnAvg_CLIM, 
-     "isothermality" = isothermality_meanAnnAvg_CLIM, #4
-     "annWatDef" = annWaterDeficit_meanAnnAvg_CLIM, 
-     "annWetDegDays" = annWetDegDays_meanAnnAvg_CLIM,
-     "VPD_mean" = annVPD_mean_meanAnnAvg_CLIM, 
-     "VPD_max" = annVPD_max_meanAnnAvg_CLIM, #5
-     "VPD_min" = annVPD_min_meanAnnAvg_CLIM, #6
-     "VPD_max_95" = annVPD_max_95percentile_CLIM, 
-     "annWatDef_95" = annWaterDeficit_95percentile_CLIM, 
-     "annWetDegDays_5" = annWetDegDays_5percentile_CLIM, 
-     "frostFreeDays_5" = durationFrostFreeDays_5percentile_CLIM, 
-     "frostFreeDays" = durationFrostFreeDays_meanAnnAvg_CLIM, 
-     #"soilDepth" = soilDepth, #7
-     "clay" = surfaceClay_perc, 
-     "sand" = avgSandPerc_acrossDepth, #8
-     "coarse" = avgCoarsePerc_acrossDepth, #9
-     "carbon" = avgOrganicCarbonPerc_0_3cm, #10
-     "AWHC" = totalAvailableWaterHoldingCapacity,
-     ## anomaly variables
-     tmean_anom = tmean_meanAnnAvg_3yrAnom, #15
-     tmin_anom = tmin_meanAnnAvg_3yrAnom, #16
-     tmax_anom = tmax_meanAnnAvg_3yrAnom, #17
-    prcp_anom = prcp_meanAnnTotal_3yrAnom, #18
-      t_warm_anom = T_warmestMonth_meanAnnAvg_3yrAnom,  #19
-     t_cold_anom = T_coldestMonth_meanAnnAvg_3yrAnom, #20
-      prcp_wet_anom = precip_wettestMonth_meanAnnAvg_3yrAnom, #21
-      precp_dry_anom = precip_driestMonth_meanAnnAvg_3yrAnom,  #22
-    prcp_seasonality_anom = precip_Seasonality_meanAnnAvg_3yrAnom, #23 
-     prcpTempCorr_anom = PrecipTempCorr_meanAnnAvg_3yrAnom, #24
-      aboveFreezingMonth_anom = aboveFreezing_month_meanAnnAvg_3yrAnom, #25  
-    isothermality_anom = isothermality_meanAnnAvg_3yrAnom, #26
-       annWatDef_anom = annWaterDeficit_meanAnnAvg_3yrAnom, #27
-     annWetDegDays_anom = annWetDegDays_meanAnnAvg_3yrAnom,  #28
-      VPD_mean_anom = annVPD_mean_meanAnnAvg_3yrAnom, #29
-      VPD_min_anom = annVPD_min_meanAnnAvg_3yrAnom,  #30
-      VPD_max_anom = annVPD_max_meanAnnAvg_3yrAnom,  #31
-     VPD_max_95_anom = annVPD_max_95percentile_3yrAnom, #32
-      annWatDef_95_anom = annWaterDeficit_95percentile_3yrAnom, #33 
-      annWetDegDays_5_anom = annWetDegDays_5percentile_3yrAnom ,  #34
-    frostFreeDays_5_anom = durationFrostFreeDays_5percentile_3yrAnom, #35 
-      frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_3yrAnom #36
-     ) 
+   select(tmin:frostFreeDays_anom,
+         soilDepth:AWHC, treeProb_bestLambda_binary) %>% 
+  drop_na()  
 ```
 
 ```{r, fig.width= 18, fig.height = 16}
@@ -455,62 +404,7 @@ We allow higher correlation between potential predictors in this version, since 
 In this case we use a correlation of .8 as the cutoff for excluding predictors for the list. 
 ```{r, echo = FALSE, include = FALSE}
 ## drop observations so we don't have any NAs
-datCONUS2 <- dat %>% 
-   select(tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM, tmean_meanAnnAvg_3yrAnom:durationFrostFreeDays_meanAnnAvg_3yrAnom, 
-         soilDepth:totalAvailableWaterHoldingCapacity, newRegion) %>% 
-  drop_na() %>%  
-  rename("tmin" = tmin_meanAnnAvg_CLIM, 
-     "tmax" = tmax_meanAnnAvg_CLIM, #1
-     "tmean" = tmean_meanAnnAvg_CLIM, 
-     "prcp" = prcp_meanAnnTotal_CLIM, 
-     "t_warm" = T_warmestMonth_meanAnnAvg_CLIM,
-     "t_cold" = T_coldestMonth_meanAnnAvg_CLIM, 
-     "prcp_wet" = precip_wettestMonth_meanAnnAvg_CLIM,
-     "prcp_dry" = precip_driestMonth_meanAnnAvg_CLIM, 
-     "prcp_seasonality" = precip_Seasonality_meanAnnAvg_CLIM, #2
-     "prcpTempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  #3
-     "abvFreezingMonth" = aboveFreezing_month_meanAnnAvg_CLIM, 
-     "isothermality" = isothermality_meanAnnAvg_CLIM, #4
-     "annWatDef" = annWaterDeficit_meanAnnAvg_CLIM, 
-     "annWetDegDays" = annWetDegDays_meanAnnAvg_CLIM,
-     "VPD_mean" = annVPD_mean_meanAnnAvg_CLIM, 
-     "VPD_max" = annVPD_max_meanAnnAvg_CLIM, #5
-     "VPD_min" = annVPD_min_meanAnnAvg_CLIM, #6
-     "VPD_max_95" = annVPD_max_95percentile_CLIM, 
-     "annWatDef_95" = annWaterDeficit_95percentile_CLIM, 
-     "annWetDegDays_5" = annWetDegDays_5percentile_CLIM, 
-     "frostFreeDays_5" = durationFrostFreeDays_5percentile_CLIM, 
-     "frostFreeDays" = durationFrostFreeDays_meanAnnAvg_CLIM, 
-     "soilDepth" = soilDepth, #7
-     "clay" = surfaceClay_perc, 
-     "sand" = avgSandPerc_acrossDepth, #8
-     "coarse" = avgCoarsePerc_acrossDepth, #9
-     "carbon" = avgOrganicCarbonPerc_0_3cm, #10
-     "AWHC" = totalAvailableWaterHoldingCapacity,
-     ## anomaly variables
-     tmean_anom = tmean_meanAnnAvg_3yrAnom, #15
-     tmin_anom = tmin_meanAnnAvg_3yrAnom, #16
-     tmax_anom = tmax_meanAnnAvg_3yrAnom, #17
-    prcp_anom = prcp_meanAnnTotal_3yrAnom, #18
-      t_warm_anom = T_warmestMonth_meanAnnAvg_3yrAnom,  #19
-     t_cold_anom = T_coldestMonth_meanAnnAvg_3yrAnom, #20
-      prcp_wet_anom = precip_wettestMonth_meanAnnAvg_3yrAnom, #21
-      precp_dry_anom = precip_driestMonth_meanAnnAvg_3yrAnom,  #22
-    prcp_seasonality_anom = precip_Seasonality_meanAnnAvg_3yrAnom, #23 
-     prcpTempCorr_anom = PrecipTempCorr_meanAnnAvg_3yrAnom, #24
-      aboveFreezingMonth_anom = aboveFreezing_month_meanAnnAvg_3yrAnom, #25  
-    isothermality_anom = isothermality_meanAnnAvg_3yrAnom, #26
-       annWatDef_anom = annWaterDeficit_meanAnnAvg_3yrAnom, #27
-     annWetDegDays_anom = annWetDegDays_meanAnnAvg_3yrAnom,  #28
-      VPD_mean_anom = annVPD_mean_meanAnnAvg_3yrAnom, #29
-      VPD_min_anom = annVPD_min_meanAnnAvg_3yrAnom,  #30
-      VPD_max_anom = annVPD_max_meanAnnAvg_3yrAnom,  #31
-     VPD_max_95_anom = annVPD_max_95percentile_3yrAnom, #32
-      annWatDef_95_anom = annWaterDeficit_95percentile_3yrAnom, #33 
-      annWetDegDays_5_anom = annWetDegDays_5percentile_3yrAnom ,  #34
-    frostFreeDays_5_anom = durationFrostFreeDays_5percentile_3yrAnom, #35 
-      frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_3yrAnom #36
-     ) 
+datCONUS2 <- datCONUS
 ```
 
 ```{r, fig.width= 18, fig.height = 16}
@@ -732,68 +626,17 @@ conusClimVars2 <- c(      #"tmin",
       )
 ```
 
-### Shrubland and Grassland
+### Un-treed areas
 
-First, get data just for grassland/shrubland sites (and drop NAs )
+First, get data just for un-treed sites (based on classification from the bestLambda model) (and drop NAs )
 ```{r, echo = FALSE, include = FALSE}
 ## drop observations so we don't have any NAs
-datGrassShrub <- dat %>% 
-   select(tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM, tmean_meanAnnAvg_3yrAnom:durationFrostFreeDays_meanAnnAvg_3yrAnom, 
-         soilDepth:totalAvailableWaterHoldingCapacity, newRegion) %>% 
-  drop_na() %>% 
-  filter(newRegion == "dryShrubGrass") %>%  
-  rename("tmin" = tmin_meanAnnAvg_CLIM, 
-     "tmax" = tmax_meanAnnAvg_CLIM, #1
-     "tmean" = tmean_meanAnnAvg_CLIM, 
-     "prcp" = prcp_meanAnnTotal_CLIM, 
-     "t_warm" = T_warmestMonth_meanAnnAvg_CLIM,
-     "t_cold" = T_coldestMonth_meanAnnAvg_CLIM, 
-     "prcp_wet" = precip_wettestMonth_meanAnnAvg_CLIM,
-     "prcp_dry" = precip_driestMonth_meanAnnAvg_CLIM, 
-     "prcp_seasonality" = precip_Seasonality_meanAnnAvg_CLIM, #2
-     "prcpTempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  #3
-     "abvFreezingMonth" = aboveFreezing_month_meanAnnAvg_CLIM, 
-     "isothermality" = isothermality_meanAnnAvg_CLIM, #4
-     "annWatDef" = annWaterDeficit_meanAnnAvg_CLIM, 
-     "annWetDegDays" = annWetDegDays_meanAnnAvg_CLIM,
-     "VPD_mean" = annVPD_mean_meanAnnAvg_CLIM, 
-     "VPD_max" = annVPD_max_meanAnnAvg_CLIM, #5
-     "VPD_min" = annVPD_min_meanAnnAvg_CLIM, #6
-     "VPD_max_95" = annVPD_max_95percentile_CLIM, 
-     "annWatDef_95" = annWaterDeficit_95percentile_CLIM, 
-     "annWetDegDays_5" = annWetDegDays_5percentile_CLIM, 
-     "frostFreeDays_5" = durationFrostFreeDays_5percentile_CLIM, 
-     "frostFreeDays" = durationFrostFreeDays_meanAnnAvg_CLIM, 
-     #"soilDepth" = soilDepth, #7
-     "clay" = surfaceClay_perc, 
-     "sand" = avgSandPerc_acrossDepth, #8
-     "coarse" = avgCoarsePerc_acrossDepth, #9
-     "carbon" = avgOrganicCarbonPerc_0_3cm, #10
-     "AWHC" = totalAvailableWaterHoldingCapacity,
-     ## anomaly variables
-     tmean_anom = tmean_meanAnnAvg_3yrAnom, #15
-     tmin_anom = tmin_meanAnnAvg_3yrAnom, #16
-     tmax_anom = tmax_meanAnnAvg_3yrAnom, #17
-    prcp_anom = prcp_meanAnnTotal_3yrAnom, #18
-      t_warm_anom = T_warmestMonth_meanAnnAvg_3yrAnom,  #19
-     t_cold_anom = T_coldestMonth_meanAnnAvg_3yrAnom, #20
-      prcp_wet_anom = precip_wettestMonth_meanAnnAvg_3yrAnom, #21
-      precp_dry_anom = precip_driestMonth_meanAnnAvg_3yrAnom,  #22
-    prcp_seasonality_anom = precip_Seasonality_meanAnnAvg_3yrAnom, #23 
-     prcpTempCorr_anom = PrecipTempCorr_meanAnnAvg_3yrAnom, #24
-      aboveFreezingMonth_anom = aboveFreezing_month_meanAnnAvg_3yrAnom, #25  
-    isothermality_anom = isothermality_meanAnnAvg_3yrAnom, #26
-       annWatDef_anom = annWaterDeficit_meanAnnAvg_3yrAnom, #27
-     annWetDegDays_anom = annWetDegDays_meanAnnAvg_3yrAnom,  #28
-      VPD_mean_anom = annVPD_mean_meanAnnAvg_3yrAnom, #29
-      VPD_min_anom = annVPD_min_meanAnnAvg_3yrAnom,  #30
-      VPD_max_anom = annVPD_max_meanAnnAvg_3yrAnom,  #31
-     VPD_max_95_anom = annVPD_max_95percentile_3yrAnom, #32
-      annWatDef_95_anom = annWaterDeficit_95percentile_3yrAnom, #33 
-      annWetDegDays_5_anom = annWetDegDays_5percentile_3yrAnom ,  #34
-    frostFreeDays_5_anom = durationFrostFreeDays_5percentile_3yrAnom, #35 
-      frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_3yrAnom #36
-     ) 
+datGrassShrub <-  dat %>% 
+   select(tmin:frostFreeDays_anom,
+         soilDepth:AWHC, treeProb_bestLambda_binary) %>% 
+  drop_na()  %>% 
+  filter(treeProb_bestLambda_binary ==0)
+  
 ```
 
 ```{r, fig.width= 18, fig.height = 16}
@@ -899,31 +742,31 @@ Then, we removed the following additional variables based on their correlation:
  (corrPlot <- 
    datGrassShrub %>% 
    dplyr::select(
-        #"tmin", 
+       #"tmin", 
       #"tmax", 
       "tmean", #1
       "prcp", #2
       #"t_warm",
       #"t_cold",
       #"prcp_wet",
-      #"prcp_dry", 
-       "prcp_seasonality", #3
-      "prcpTempCorr", #4
+      "prcp_dry", #3
+      "prcp_seasonality", #4
+      "prcpTempCorr", #5
       #"abvFreezingMonth",
-      "isothermality", #5
-      #"annWatDef", #6
+      "isothermality", #6
+      #"annWatDef",
       #"annWetDegDays", 
       #"VPD_mean",
       #"VPD_max", 
       #"VPD_min",
       #"VPD_max_95",
       #"annWatDef_95", 
-      #"annWetDegDays_5", 
-      #"frostFreeDays_5",
+      #"annWetDegDays_5",
+       #"frostFreeDays_5",
       #"frostFreeDays",
       #"soilDepth",
-      #"clay", #7
-      "sand", #8
+      "clay", #7
+      #"sand", 
       "coarse", #9
       "carbon", #10
       "AWHC" #11
@@ -934,45 +777,44 @@ Then, we removed the following additional variables based on their correlation:
      #ggpairs( upper = list(continuous = my_fn, size = .1), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.1)), progress = FALSE))
 
 ```
-
-* 'annWetDegDays_5' and 'annWetDegDays': cor =  .95; chose 'annWetDegDays'
-* 'annWetDegDays' and 'prcp': cor =  .86; chose 'prcp'
-* 'annWatDef' and 'annWatDef_95': cor =  .97; chose 'annWatDef' (opposite of recommendation by function, but annWatDef is easier to calculate )
-* 'prcp' and 'prcp_dry': cor =  .78; chose 'prcp' (opposite of recommendation by function, but prcp is easier to calculate)
+* 'annWatDef' and 'annWatDef_95': cor =  .98; chose 'annWatDef' (oppositve of function recommendation, but much easier to calculate)
+* 'annWatDef' and 'prcp_seasonality': cor =  .82; chose 'prcp_seasonality'
+* 'prcp' and 'annWetDegDays_5': cor =  .87; chose 'prcp' (opposite of recommendation by function, but prcp is easier to calculate )
+* 'prcp' and 'annWetDegDays': cor =  .78; chose 'prcp' (opposite of recommendation by function, but prcp is easier to calculate)
 * 'tmean' and 'VPD_max': cor =  .94; chose 'tmean' (opposite of recommendation by function, but tmean is easier to calculate)
-* 'clay' and 'sand': cor =  .79; chose 'sand'
-* 'annWatDef' and 'prcp_seasonality': cor =  .83; chose 'prcp_seasonality'
+* 'sand' and 'clay': cor =  .82; chose 'clay'
+
 
 The final variables selected are shown below
 ```{r, echo = FALSE, fig.width= 9, fig.width = 8}
  (corrPlot <- 
    datGrassShrub %>% 
    dplyr::select(
-             #"tmin", 
+              #"tmin", 
       #"tmax", 
       "tmean", #1
       "prcp", #2
       #"t_warm",
       #"t_cold",
       #"prcp_wet",
-      #"prcp_dry", 
-       "prcp_seasonality", #3
-      "prcpTempCorr", #4
+      "prcp_dry", #3
+      "prcp_seasonality", #4
+      "prcpTempCorr", #5
       #"abvFreezingMonth",
-      "isothermality", #5
-      #"annWatDef", #6
+      "isothermality", #6
+      #"annWatDef",
       #"annWetDegDays", 
       #"VPD_mean",
       #"VPD_max", 
       #"VPD_min",
       #"VPD_max_95",
       #"annWatDef_95", 
-      #"annWetDegDays_5", 
-      #"frostFreeDays_5",
+      #"annWetDegDays_5",
+       #"frostFreeDays_5",
       #"frostFreeDays",
       #"soilDepth",
-      #"clay", #7
-      "sand", #8
+      "clay", #7
+      #"sand", 
       "coarse", #9
       "carbon", #10
       "AWHC" #11
@@ -984,99 +826,47 @@ The final variables selected are shown below
                                                                                                   )), progress = FALSE))
 
 grassShrubClimVars <- c(  #"tmin", 
-        #"tmin", 
+              #"tmin", 
       #"tmax", 
       "tmean", #1
       "prcp", #2
       #"t_warm",
       #"t_cold",
       #"prcp_wet",
-      #"prcp_dry", 
-       "prcp_seasonality", #3
-      "prcpTempCorr", #4
+      "prcp_dry", #3
+      "prcp_seasonality", #4
+      "prcpTempCorr", #5
       #"abvFreezingMonth",
-      "isothermality", #5
-      #"annWatDef", #6
+      "isothermality", #6
+      #"annWatDef",
       #"annWetDegDays", 
       #"VPD_mean",
       #"VPD_max", 
       #"VPD_min",
       #"VPD_max_95",
       #"annWatDef_95", 
-      #"annWetDegDays_5", 
-      #"frostFreeDays_5",
+      #"annWetDegDays_5",
+       #"frostFreeDays_5",
       #"frostFreeDays",
       #"soilDepth",
-      #"clay", #7
-      "sand", #8
+      "clay", #7
+      #"sand", 
       "coarse", #9
       "carbon", #10
       "AWHC" #11
       )
 ```
 
-### Forests
+### Treed areas
 
-First, get data just for forest sites (and drop NAs )
+First, get data just for treed sites (based on classification from the bestLambda model) (and drop NAs )
 ```{r, echo = FALSE, include = FALSE}
 ## drop observations so we don't have any NAs
 datForest <- dat %>% 
-   select(tmin_meanAnnAvg_CLIM:durationFrostFreeDays_meanAnnAvg_CLIM, tmean_meanAnnAvg_3yrAnom:durationFrostFreeDays_meanAnnAvg_3yrAnom, 
-         soilDepth:totalAvailableWaterHoldingCapacity, newRegion) %>% 
-  drop_na() %>% 
-  filter(newRegion %in% c("westForest", "eastForest") ) %>%  
-  rename("tmin" = tmin_meanAnnAvg_CLIM, 
-     "tmax" = tmax_meanAnnAvg_CLIM, #1
-     "tmean" = tmean_meanAnnAvg_CLIM, 
-     "prcp" = prcp_meanAnnTotal_CLIM, 
-     "t_warm" = T_warmestMonth_meanAnnAvg_CLIM,
-     "t_cold" = T_coldestMonth_meanAnnAvg_CLIM, 
-     "prcp_wet" = precip_wettestMonth_meanAnnAvg_CLIM,
-     "prcp_dry" = precip_driestMonth_meanAnnAvg_CLIM, 
-     "prcp_seasonality" = precip_Seasonality_meanAnnAvg_CLIM, #2
-     "prcpTempCorr" = PrecipTempCorr_meanAnnAvg_CLIM,  #3
-     "abvFreezingMonth" = aboveFreezing_month_meanAnnAvg_CLIM, 
-     "isothermality" = isothermality_meanAnnAvg_CLIM, #4
-     "annWatDef" = annWaterDeficit_meanAnnAvg_CLIM, 
-     "annWetDegDays" = annWetDegDays_meanAnnAvg_CLIM,
-     "VPD_mean" = annVPD_mean_meanAnnAvg_CLIM, 
-     "VPD_max" = annVPD_max_meanAnnAvg_CLIM, #5
-     "VPD_min" = annVPD_min_meanAnnAvg_CLIM, #6
-     "VPD_max_95" = annVPD_max_95percentile_CLIM, 
-     "annWatDef_95" = annWaterDeficit_95percentile_CLIM, 
-     "annWetDegDays_5" = annWetDegDays_5percentile_CLIM, 
-     "frostFreeDays_5" = durationFrostFreeDays_5percentile_CLIM, 
-     "frostFreeDays" = durationFrostFreeDays_meanAnnAvg_CLIM, 
-     #"soilDepth" = soilDepth, #7
-     "clay" = surfaceClay_perc, 
-     "sand" = avgSandPerc_acrossDepth, #8
-     "coarse" = avgCoarsePerc_acrossDepth, #9
-     "carbon" = avgOrganicCarbonPerc_0_3cm, #10
-     "AWHC" = totalAvailableWaterHoldingCapacity,
-     ## anomaly variables
-     tmean_anom = tmean_meanAnnAvg_3yrAnom, #15
-     tmin_anom = tmin_meanAnnAvg_3yrAnom, #16
-     tmax_anom = tmax_meanAnnAvg_3yrAnom, #17
-    prcp_anom = prcp_meanAnnTotal_3yrAnom, #18
-      t_warm_anom = T_warmestMonth_meanAnnAvg_3yrAnom,  #19
-     t_cold_anom = T_coldestMonth_meanAnnAvg_3yrAnom, #20
-      prcp_wet_anom = precip_wettestMonth_meanAnnAvg_3yrAnom, #21
-      precp_dry_anom = precip_driestMonth_meanAnnAvg_3yrAnom,  #22
-    prcp_seasonality_anom = precip_Seasonality_meanAnnAvg_3yrAnom, #23 
-     prcpTempCorr_anom = PrecipTempCorr_meanAnnAvg_3yrAnom, #24
-      aboveFreezingMonth_anom = aboveFreezing_month_meanAnnAvg_3yrAnom, #25  
-    isothermality_anom = isothermality_meanAnnAvg_3yrAnom, #26
-       annWatDef_anom = annWaterDeficit_meanAnnAvg_3yrAnom, #27
-     annWetDegDays_anom = annWetDegDays_meanAnnAvg_3yrAnom,  #28
-      VPD_mean_anom = annVPD_mean_meanAnnAvg_3yrAnom, #29
-      VPD_min_anom = annVPD_min_meanAnnAvg_3yrAnom,  #30
-      VPD_max_anom = annVPD_max_meanAnnAvg_3yrAnom,  #31
-     VPD_max_95_anom = annVPD_max_95percentile_3yrAnom, #32
-      annWatDef_95_anom = annWaterDeficit_95percentile_3yrAnom, #33 
-      annWetDegDays_5_anom = annWetDegDays_5percentile_3yrAnom ,  #34
-    frostFreeDays_5_anom = durationFrostFreeDays_5percentile_3yrAnom, #35 
-      frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_3yrAnom #36
-     ) 
+   select(tmin:frostFreeDays_anom,
+         soilDepth:AWHC, treeProb_bestLambda_binary) %>% 
+  drop_na()  %>% 
+  filter(treeProb_bestLambda_binary == 1)
 ```
 
 ```{r, fig.width = 18, fig.height = 13}
@@ -1119,9 +909,9 @@ datForest <- dat %>%
    ggpairs( upper = list(continuous = my_fn, size = .1), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=.1
                                                                                                 )), progress = FALSE) #+ ggtitle("Correlation of Forest Predictor Variables")
  )
-bmp( here("Figures", "CoverDatFigures", "ForestClimVarCorrelations.bmp"), width = 2500, height = 2500)
-corrPlot
-dev.off()
+# bmp( here("Figures", "CoverDatFigures", "ForestClimVarCorrelations.bmp"), width = 2500, height = 2500)
+# corrPlot
+# dev.off()
 ```
 
 The following variables were removed due to correlation with other variables -- first pass (vars. in parenthesis are kept):
@@ -1174,13 +964,13 @@ Then, we removed the following additional variables based on their correlation:
       "prcpTempCorr", #4
       "isothermality", #5
       "annWatDef", #6 
-      #"annWetDegDays", #7
-      #"VPD_max", #8
-      "clay",  #9
-      "sand", #10
-      "coarse", #11
-      "carbon", #12
-      "AWHC" #13
+      #"annWetDegDays", 
+      #"VPD_max", 
+      #"clay",  #7
+      "sand", #8
+      "coarse", #9
+      "carbon", #10
+      "AWHC" #11
    ) %>%
     #slice_sample(n = 5e4) %>% 
    cor()  %>% 
@@ -1189,9 +979,9 @@ Then, we removed the following additional variables based on their correlation:
 
 ```
 
-* 'annWetDegDays' and 'tmean': cor =  .88; chose 'tmean'
-* 'tmean' and 'VPD_max': cor =  .94; chose 'VPD_max' (opposite of what function recommends, but tmean is easier to calculate)
-
+* 'annWetDegDays' and 'tmean': cor =  .80; chose 'tmean'
+* 'tmean' and 'VPD_max': cor =  .94; chose 'tmean' (opposite of what function recommends, but tmean is easier to calculate)
+* 'sand' and 'clay': cor =  .74; chose 'sand' 
 
 
 The final variables selected are shown below
@@ -1199,19 +989,19 @@ The final variables selected are shown below
  (corrPlot <- 
    datForest %>% 
    dplyr::select(
-    "tmean", #1
+      "tmean", #1
       "prcp", #2
       "prcp_dry", #3
       "prcpTempCorr", #4
       "isothermality", #5
       "annWatDef", #6 
-      #"annWetDegDays", #7
-      #"VPD_max", #8
-      "clay",  #9
-      "sand", #10
-      "coarse", #11
-      "carbon", #12
-      "AWHC" #13
+      #"annWetDegDays", 
+      #"VPD_max", 
+      #"clay",  #7
+      "sand", #8
+      "coarse", #9
+      "carbon", #10
+      "AWHC" #11
    ) %>%
     slice_sample(n = 5e4) %>% 
    # cor()  %>% 
@@ -1220,19 +1010,19 @@ The final variables selected are shown below
 
 
 forestClimVars <- c(
-     "tmean", #1
+   "tmean", #1
       "prcp", #2
       "prcp_dry", #3
       "prcpTempCorr", #4
       "isothermality", #5
       "annWatDef", #6 
-      #"annWetDegDays", #7
-      #"VPD_max", #8
-      "clay",  #9
-      "sand", #10
-      "coarse", #11
-      "carbon", #12
-      "AWHC" #13
+      #"annWetDegDays", 
+      #"VPD_max", 
+      #"clay",  #7
+      "sand", #8
+      "coarse", #9
+      "carbon", #10
+      "AWHC" #11
      )
 
 ```
@@ -1246,16 +1036,16 @@ The following variables were removed due to correlation with other variables:
 ```{r, echo = FALSE, include=FALSE}
 (corrPlot <- 
    datCONUS %>% 
-   dplyr::select(conusClimVars, #1-#9
+   dplyr::select(all_of(conusClimVars), #1-#9
 
  # anomaly variables
     #tmean_anom , #10
      tmin_anom , #11
      tmax_anom , #12
-     #prcp_anom , #13
+     prcp_anom , #13
    t_warm_anom , #14
    #t_cold_anom , #15
-      prcp_wet_anom , #16
+      #prcp_wet_anom , #16
       precp_dry_anom , #17
     prcp_seasonality_anom , #18
      prcpTempCorr_anom , #19
@@ -1278,12 +1068,12 @@ The following variables were removed due to correlation with other variables:
 
 ```
 
-* 'tmean_anom' and 'VPD_mean_anom': cor = .85; chose 'VPD_mean_anom'
-* 'VPD_mean_anom' and 'tmin_anom': cor =  .71; chose 'tmin_anom'
-* 'VPD_max_anom' and 't_warm_anom': cor =  .82; chose 't_warm_anom'
-* 't_cold_anom' and 'VPD_min_anom': cor =  .79; chose 'VPD_min_anom'
-* 'frostFreeDays_anom' and 'aboveFreezingMonth_anom': cor =  .86; chose 'aboveFreezingMonth_anom'
-* 'prcp_anom' and 'prcp_wet_anom': cor =  .73; chose 'prcp_wet_anom'
+* 'VPD_mean_anom' and 'tmean_anom': cor = .85; chose 'tmean_anom'
+* 'tmean_anom' and 'tmin_anom': cor =  .86; chose 'tmin_anom'
+* 'VPD_max_anom' and 't_warm_anom': cor =  .85; chose 't_warm_anom'
+* 'frostFreeDays_anom' and 'aboveFreezingMonth_anom': cor =  .84; chose 'aboveFreezingMonth_anom'
+* 't_cold_anom' and 'VPD_min_anom': cor =  .78; chose 'VPD_min_anom'
+* 'prcp_anom' and 'prcp_wet_anom': cor =  .75; chose 'prcp_wet_anom'
 
 The remaining variables that are uncorrelated are shown here: 
 ```{r final CONUS input vars, echo = FALSE, fig.width = 14, fig.height = 13}
@@ -1295,13 +1085,13 @@ The remaining variables that are uncorrelated are shown here:
    dplyr::select(conusClimVars, #1-#9
 
  # anomaly variables
-      #tmean_anom , #10
+       #tmean_anom , #10
      tmin_anom , #11
      tmax_anom , #12
-     #prcp_anom , #13
+     prcp_anom , #13
    t_warm_anom , #14
    #t_cold_anom , #15
-      prcp_wet_anom , #16
+      #prcp_wet_anom , #16
       precp_dry_anom , #17
     prcp_seasonality_anom , #18
      prcpTempCorr_anom , #19
@@ -1328,124 +1118,38 @@ kable(data.frame("Climate_And_Soils_Variables" = c(corrPlotNames_conus[1:9],rep_
 
 ```
 
-### CONUS - higher threshold for allowed correlation 
-We allow higher correlation between potential predictors in this version, since LASSO is more robust to correlated predictors. 
-In this case we use a correlation of .8 as the cutoff for excluding predictors for the list. 
 
-The following variables were removed due to correlation with other variables:
-
-```{r, echo = FALSE, include=FALSE}
-(corrPlot <- 
-   datCONUS2 %>% 
-   dplyr::select(conusClimVars2, #1-#11
-
- # anomaly variables
-    tmean_anom ,
-     tmin_anom , #12
-     tmax_anom , #13
-     prcp_anom , #14
-   t_warm_anom , #15
-   t_cold_anom , #16
-      prcp_wet_anom , #17
-      precp_dry_anom , #18
-    prcp_seasonality_anom , #19
-     prcpTempCorr_anom , #20
-      aboveFreezingMonth_anom , #21
-    isothermality_anom , #22
-       annWatDef_anom , #23
-     annWetDegDays_anom , #24
-      VPD_mean_anom , 
-      VPD_min_anom , #25
-      VPD_max_anom , 
-      VPD_max_95_anom , #26
-       annWatDef_95_anom , #27
-       annWetDegDays_5_anom , #28
-     frostFreeDays_5_anom, #29
-      frostFreeDays_anom #30
-   ) %>% 
-    #slice_sample(n = 5e3) %>% 
-   cor()  %>% 
-   caret::findCorrelation(cutoff = .8, verbose = TRUE, names = TRUE, exact = TRUE)) #%>% 
-
-```
-
-Compare VPD_mean_anom  and tmean_anom with corr  0.854; chose tmean_anom
-Compare VPD_max_anom  and t_warm_anom with corr  0.848; chose t_warm_anom
-Compare tmean_anom  and tmin_anom with corr  0.866; chose tmin_anom
-Compare frostFreeDays_anom and aboveFreezingMonth_anom with corr  0.84; chose aboveFreezingMonth_anom
-
-The remaining variables that are uncorrelated are shown here: 
-```{r final CONUS input vars, echo = FALSE, fig.width = 14, fig.height = 13}
-  #ggpairs( upper = list(continuous = my_fn), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.2)), progress = FALSE))
-# the findCorrelation() function says we should remove these variables: 
-
-(corrPlot <- 
-   datCONUS2 %>% 
-   dplyr::select(conusClimVars2, #1-#11
- # anomaly variables
-    #tmean_anom ,
-     tmin_anom , #12
-     tmax_anom , #13
-     prcp_anom , #14
-   t_warm_anom , #15
-   t_cold_anom , #16
-      prcp_wet_anom , #17
-      precp_dry_anom , #18
-    prcp_seasonality_anom , #19
-     prcpTempCorr_anom , #20
-      aboveFreezingMonth_anom , #21
-    isothermality_anom , #22
-       annWatDef_anom , #23
-     annWetDegDays_anom , #24
-      #VPD_mean_anom , 
-      VPD_min_anom , #25
-      #VPD_max_anom , 
-      VPD_max_95_anom , #26
-       annWatDef_95_anom , #27
-       annWetDegDays_5_anom , #28
-     frostFreeDays_5_anom, #29
-      #frostFreeDays_anom #30
-   ) %>%
-  slice_sample(n = 5e3) %>% 
-    ggpairs( upper = list(continuous = my_fn), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.1)), progress = FALSE))
-
-corrPlotNames_conus2 <- names(corrPlot$data)
-kable(data.frame("Climate_And_Soils_Variables" = c(corrPlotNames_conus2[1:11],rep_len(NA,length.out = 7)), 
-                 "Weather_Anomaly_Variables" = corrPlotNames_conus2[12:length(corrPlotNames_conus2)]), format = 'html') %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
-
-```
-### Shrubland and Grassland
+### Un-treed areas
 The following variables were removed due to correlation with other variables:
 
 ```{r, echo = FALSE, include=FALSE}
 (corrPlot <- 
    datGrassShrub %>% 
-   dplyr::select(grassShrubClimVars, #1-#9
+   dplyr::select(all_of(grassShrubClimVars), #1-#10
 
  # anomaly variables
-    #tmean_anom , #10
-     tmin_anom , #11
-     tmax_anom , #12
-     #prcp_anom , #13
-   t_warm_anom , #14
-   #t_cold_anom , #15
-      prcp_wet_anom , #16
-      precp_dry_anom , #17
-    prcp_seasonality_anom , #18
-     prcpTempCorr_anom , #19
-      aboveFreezingMonth_anom , #20
-    isothermality_anom , #21
-       annWatDef_anom , #22
-     annWetDegDays_anom , #23
-      #VPD_mean_anom , #24
-      VPD_min_anom , #25
-      #VPD_max_anom , #26
+    #tmean_anom , #11
+     tmin_anom , #12
+     tmax_anom , #13
+     #prcp_anom , #14
+   t_warm_anom , #15
+   #t_cold_anom , #16
+      prcp_wet_anom , #17
+      precp_dry_anom , #18
+    prcp_seasonality_anom , #19
+     prcpTempCorr_anom , #20
+      #aboveFreezingMonth_anom , #21
+    isothermality_anom , #22
+       annWatDef_anom , #23
+     annWetDegDays_anom , #24
+      #VPD_mean_anom , #25
+      VPD_min_anom , #26
+      #VPD_max_anom , #27
      #VPD_max_95_anom , 
       #annWatDef_95_anom , 
       #annWetDegDays_5_anom , 
     # frostFreeDays_5_anom, 
-      #frostFreeDays_anom #27
+      frostFreeDays_anom #28
    ) %>% 
     #slice_sample(n = 5e3) %>% 
    cor()  %>% 
@@ -1454,11 +1158,11 @@ The following variables were removed due to correlation with other variables:
 ```
 
 * 'VPD_mean_anom' and 'tmean_anom': cor = .86; chose 'tmean_anom'
-* 'tmean_anom' and 'tmin_anom': cor =  .86; chose 'tmin_anom'
-* 'VPD_max_anom' and 't_warm_anom': cor =  .83; chose 't_warm_anom'
-* 't_cold_anom' and 'VPD_min_anom': cor =  .78; chose 'VPD_min_anom'
+* 'tmean_anom' and 'tmax_anom': cor =  .81; chose 'tmax_anom'
+* 'VPD_max_anom' and 't_warm_anom': cor =  .84; chose 't_warm_anom'
 * 'prcp_anom' and 'prcp_wet_anom': cor =  .75; chose 'prcp_wet_anom'
-* 'frostFreeDays_anom' and 'aboveFreezingMonth_anom': cor =  .74; chose 'aboveFreezingMonth_anom'
+* 't_cold_anom' and 'VPD_min_anom': cor =  .79; chose 'VPD_min_anom'
+* 'frostFreeDays_anom' and 'aboveFreezingMonth_anom': cor =  .82; chose 'frostFreeDays_anom'
 
 
 
@@ -1469,74 +1173,74 @@ The remaining variables that are uncorrelated are shown here:
 
 (corrPlot <- 
    datGrassShrub %>% 
-   dplyr::select(grassShrubClimVars, #1-#9
+   dplyr::select(grassShrubClimVars, #1-#10
 
  # anomaly variables
-    #tmean_anom , #10
-     tmin_anom , #11
-     tmax_anom , #12
-     #prcp_anom , #13
-   t_warm_anom , #14
-   #t_cold_anom , #15
-      prcp_wet_anom , #16
-      precp_dry_anom , #17
-    prcp_seasonality_anom , #18
-     prcpTempCorr_anom , #19
-      aboveFreezingMonth_anom , #20
-    isothermality_anom , #21
-       annWatDef_anom , #22
-     annWetDegDays_anom , #23
-      #VPD_mean_anom , #24
-      VPD_min_anom , #25
-      #VPD_max_anom , #26
+   #tmean_anom , #11
+     tmin_anom , #12
+     tmax_anom , #13
+     #prcp_anom , #14
+   t_warm_anom , #15
+   #t_cold_anom , #16
+      prcp_wet_anom , #17
+      precp_dry_anom , #18
+    prcp_seasonality_anom , #19
+     prcpTempCorr_anom , #20
+      #aboveFreezingMonth_anom , #21
+    isothermality_anom , #22
+       annWatDef_anom , #23
+     annWetDegDays_anom , #24
+      #VPD_mean_anom , #25
+      VPD_min_anom , #26
+      #VPD_max_anom , #27
      #VPD_max_95_anom , 
       #annWatDef_95_anom , 
       #annWetDegDays_5_anom , 
     # frostFreeDays_5_anom, 
-      #frostFreeDays_anom #27
+      frostFreeDays_anom #28
    ) %>%
   slice_sample(n = 5e3) %>% 
     ggpairs( upper = list(continuous = my_fn), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.1)), progress = FALSE))
 
 corrPlotNames_grassShrub <- names(corrPlot$data)
-kable(data.frame("Climate_And_Soils_Variables" = c(corrPlotNames_grassShrub[1:9],rep_len(NA,length.out = 3)), 
-                 "Weather_Anomaly_Variables" = corrPlotNames_grassShrub[10:length(corrPlotNames_grassShrub)]), format = 'html') %>%
+kable(data.frame("Climate_And_Soils_Variables" = c(corrPlotNames_grassShrub[1:10],rep_len(NA,length.out = 2)), 
+                 "Weather_Anomaly_Variables" = corrPlotNames_grassShrub[11:length(corrPlotNames_grassShrub)]), format = 'html') %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 
 ```
 
-### Forest
+### Treed areas
 
 The following variables were removed due to correlation with other variables:
 ```{r, echo = FALSE, include=FALSE}
 (corrPlot <- 
    datForest %>% 
    dplyr::select(
-     forestClimVars, #1-#11
+     all_of(forestClimVars), #1-#10
      
  # anomaly variables
-    # tmean_anom , #12
-    # tmin_anom , #13
-     tmax_anom , #14
-     prcp_anom , #15
-   t_warm_anom , #16
-   t_cold_anom , #17
-      prcp_wet_anom , #18
-      precp_dry_anom , #19
-    prcp_seasonality_anom , #20
-     prcpTempCorr_anom , #21
-      aboveFreezingMonth_anom , #22
-    isothermality_anom , #23
-       annWatDef_anom , #24
-     annWetDegDays_anom , #25
-      #VPD_mean_anom , #26
-      VPD_min_anom , #27
-      #VPD_max_anom , #28
+     #tmean_anom , #11
+     tmin_anom , #12
+     tmax_anom , #13
+     #prcp_anom , #14
+   t_warm_anom , #15
+   #t_cold_anom , #16
+      prcp_wet_anom , #17
+      precp_dry_anom , #18
+    prcp_seasonality_anom , #19
+     prcpTempCorr_anom , #20
+      aboveFreezingMonth_anom , #21
+    isothermality_anom , #22
+       annWatDef_anom , #23
+     annWetDegDays_anom , #24
+      #VPD_mean_anom , #25
+      VPD_min_anom #, #26
+      #VPD_max_anom , #27
      # VPD_max_95_anom ,
       #annWatDef_95_anom , 
       #annWetDegDays_5_anom ,
     # frostFreeDays_5_anom , 
-     # frostFreeDays_anom  #29
+      #frostFreeDays_anom  #28
    ) %>%
     #slice_sample(n = 5e3) %>% 
    cor()  %>% 
@@ -1544,12 +1248,12 @@ The following variables were removed due to correlation with other variables:
 
 ```
 
-* 'tmean_anom' and 'tmin_anom': cor =  .88; chose 'tmin_anom'
-* 'tmin_anom' and 'VPD_mean_anom': cor =  .74; chose 'VPD_mean_anom'
+* 'tmean_anom' and 'tmin_anom': cor =  .86; chose 'tmin_anom'
 * 'VPD_mean_anom' and 'VPD_max_anom': cor =  .76; chose 'VPD_max_anom'
-* 'VPD_max_anom' and 't_warm_anom': cor =  .83; chose 't_warm_anom'
-* 'frostFreeDays_anom' and 'aboveFreezingMonth_anom': cor =  .87; chose 'aboveFreezingMonth_anom'
-* 't_cold_anom' and 'VPD_min_anom': cor =  .82; chose 'VPD_min_anom'
+* 'VPD_max_anom' and 't_warm_anom': cor =  .88; chose 't_warm_anom'
+* 'frostFreeDays_anom' and 'aboveFreezingMonth_anom': cor =  .88; chose 'aboveFreezingMonth_anom'
+* 't_cold_anom' and 'VPD_min_anom': cor =  .73; chose 'VPD_min_anom'
+* 'prcp_anom' and 'prcp_wet_anom': cor =  .75; chose 'prcp_wet_anom'
 
 
 
@@ -1560,35 +1264,35 @@ corrPlot <-
    datForest %>% 
    dplyr::select(     forestClimVars, #1-#11
  # anomaly variables
-    # tmean_anom , #12
-    # tmin_anom , #13
-     tmax_anom , #14
-     prcp_anom , #15
-   t_warm_anom , #16
-   t_cold_anom , #17
-      prcp_wet_anom , #18
-      precp_dry_anom , #19
-    prcp_seasonality_anom , #20
-     prcpTempCorr_anom , #21
-      aboveFreezingMonth_anom , #22
-    isothermality_anom , #23
-       annWatDef_anom , #24
-     annWetDegDays_anom , #25
-      #VPD_mean_anom , #26
-      VPD_min_anom , #27
-      #VPD_max_anom , #28
+        #tmean_anom , #11
+     tmin_anom , #12
+     tmax_anom , #13
+     #prcp_anom , #14
+   t_warm_anom , #15
+   #t_cold_anom , #16
+      prcp_wet_anom , #17
+      precp_dry_anom , #18
+    prcp_seasonality_anom , #19
+     prcpTempCorr_anom , #20
+      aboveFreezingMonth_anom , #21
+    isothermality_anom , #22
+       annWatDef_anom , #23
+     annWetDegDays_anom , #24
+      #VPD_mean_anom , #25
+      VPD_min_anom #, #26
+      #VPD_max_anom , #27
      # VPD_max_95_anom ,
       #annWatDef_95_anom , 
       #annWetDegDays_5_anom ,
     # frostFreeDays_5_anom , 
-     # frostFreeDays_anom  #29
+      #frostFreeDays_anom  #28
    ) %>%
   slice_sample(n = 5e3) %>% 
     ggpairs( upper = list(continuous = my_fn), lower = list(continuous = GGally::wrap("points", alpha = 0.1, size=0.1)), progress = FALSE))
 
 corrPlotNamesForest <- names(corrPlot$data)
-kable(data.frame("Climate_And_Soils_Variables" = c(corrPlotNamesForest[1:11],rep_len(NA,length.out = 2)), 
-                 "Weather_Anomaly_Variables" = corrPlotNamesForest[12:length(corrPlotNamesForest)]), format = 'html') %>%
+kable(data.frame("Climate_And_Soils_Variables" = c(corrPlotNamesForest[1:10],rep_len(NA,length.out = 2)), 
+                 "Weather_Anomaly_Variables" = corrPlotNamesForest[11:length(corrPlotNamesForest)]), format = 'html') %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 
 ```
