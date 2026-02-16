@@ -256,7 +256,6 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFittin
 # total herbaceous cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFitting_testingBetaLASSO.Rmd", 
                   params = list(  run = TRUE, 
-                                  
                                   save_figs = FALSE,
                                   trimAnomalies = TRUE,
                                   ecoregion = "CONUS",
@@ -270,7 +269,6 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFittin
 # total shrub cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFitting_testingBetaLASSO.Rmd",
                   params = list(  run = TRUE,
-                                  
                                   save_figs = FALSE,
                                   trimAnomalies = TRUE,
                                   ecoregion = "CONUS",
@@ -286,7 +284,6 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFittin
 # total bare ground cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFitting_testingBetaLASSO.Rmd",
                   params = list(  run = TRUE,
-                                  
                                   save_figs = FALSE,
                                   trimAnomalies = TRUE,
                                   ecoregion = "CONUS",
@@ -301,7 +298,6 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFittin
 #C4 graminoid cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFitting_testingBetaLASSO.Rmd", 
                   params = list(  run = TRUE, 
-                                  
                                   save_figs = FALSE,
                                   trimAnomalies = TRUE,
                                   ecoregion = "CONUS",
@@ -315,7 +311,6 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFittin
 #C3 graminoid cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFitting_testingBetaLASSO.Rmd", 
                   params = list(  run = TRUE, 
-                                  
                                   save_figs = FALSE,
                                   trimAnomalies = TRUE,
                                   ecoregion = "CONUS",
@@ -329,7 +324,6 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFittin
 #broad leaved tree cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFitting_testingBetaLASSO.Rmd", 
                   params = list(  run = TRUE, 
-                                  
                                   save_figs = FALSE,
                                   trimAnomalies = TRUE,
                                   ecoregion = "CONUS",
@@ -343,7 +337,6 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFittin
 #conifer tree cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFitting_testingBetaLASSO.Rmd", 
                   params = list(  run = TRUE, 
-                                  
                                   save_figs = FALSE,
                                   trimAnomalies = TRUE,
                                   ecoregion = "CONUS",
@@ -357,7 +350,6 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFittin
 #forb cover
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFitting_testingBetaLASSO.Rmd", 
                   params = list(  run = TRUE, 
-                                  
                                   save_figs = FALSE,
                                   trimAnomalies = TRUE,
                                   ecoregion = "CONUS",

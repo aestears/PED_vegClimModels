@@ -2319,7 +2319,7 @@ getModelStatement <- function(coefficientTable, # name of the d.f that has model
   temp <- coefficientTable[,c("coefficientName", modelName)] %>% 
     drop_na()
   rownames(temp) <- temp$coefficientName
-  temp[,modelName] <- round(temp[,modelName], 5)
+  temp[,modelName] <- round(temp[,modelName], 8)
   
   # print out coefficients w/ coefficient names
 tempNames <- paste0(
@@ -2340,184 +2340,189 @@ tempNames <- paste0(
   # now add in the scale parameters
 tempNames <- str_replace_all(tempNames, pattern = "annWetDegDays_anom", 
                          replacement = paste0("((annWetDegDays_anom - ", 
-                                              round(scaleParams$annWetDegDays_anom_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$annWetDegDays_anom_s$`scaled:scale`,5), ")"))
+                                              round(scaleParams$annWetDegDays_anom_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$annWetDegDays_anom_s$`scaled:scale`,8), ")"))
 
 tempNames <- str_replace_all(tempNames, pattern = "prcpTempCorr_anom", 
                          replacement = paste0("((prcpTempCorr_anom - ", 
-                                              round(scaleParams$prcpTempCorr_anom_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$prcpTempCorr_anom_s$`scaled:scale`,5), ")"))
+                                              round(scaleParams$prcpTempCorr_anom_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$prcpTempCorr_anom_s$`scaled:scale`,8), ")"))
 
 
 tempNames <- str_replace_all(tempNames, pattern = "prcp_seasonality_anom", 
                          replacement = paste0("((prcp_seasonality_anom - ", 
-                                              round(scaleParams$prcp_seasonality_anom_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$prcp_seasonality_anom_s$`scaled:scale`,5), ") "))
+                                              round(scaleParams$prcp_seasonality_anom_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$prcp_seasonality_anom_s$`scaled:scale`,8), ") "))
 
 tempNames <- str_replace_all(tempNames, pattern = "annWatDef_anom", 
                          replacement = paste0("((annWatDef_anom - ", 
-                                              round(scaleParams$annWatDef_anom_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$annWatDef_anom_s$`scaled:scale`,5), ") "))
+                                              round(scaleParams$annWatDef_anom_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$annWatDef_anom_s$`scaled:scale`,8), ") "))
 
 tempNames <- str_replace_all(tempNames, pattern = "isothermality_anom", 
                          replacement = paste0("((isothermality_anom - ", 
-                                              round(scaleParams$isothermality_anom_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$isothermality_anom_s$`scaled:scale`,5), ") "))
+                                              round(scaleParams$isothermality_anom_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$isothermality_anom_s$`scaled:scale`,8), ") "))
 
 tempNames <- str_replace_all(tempNames, pattern = "prcp_anom", 
                          replacement = paste0("((prcp_anom - ", 
-                                              round(scaleParams$prcp_anom_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$prcp_anom_s$`scaled:scale`,5), ") "))
+                                              round(scaleParams$prcp_anom_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$prcp_anom_s$`scaled:scale`,8), ") "))
 
 tempNames <- str_replace_all(tempNames, pattern = "prcp ", 
                          replacement = paste0("((prcp - ", 
-                                              round(scaleParams$prcp_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$prcp_s$`scaled:scale`,5), ") "))
+                                              round(scaleParams$prcp_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$prcp_s$`scaled:scale`,8), ") "))
 
 tempNames <- str_replace_all(tempNames, pattern = "prcp\\^", 
                          replacement = paste0("((prcp - ", 
-                                              round(scaleParams$prcp_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$prcp_s$`scaled:scale`,5), ")^"))
+                                              round(scaleParams$prcp_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$prcp_s$`scaled:scale`,8), ")^"))
 
 tempNames <- str_replace_all(tempNames, pattern = "prcp:", 
                          replacement = paste0("((prcp - ", 
-                                              round(scaleParams$prcp_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$prcp_s$`scaled:scale`,5), "):"))
+                                              round(scaleParams$prcp_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$prcp_s$`scaled:scale`,8), "):"))
 
 tempNames <- str_replace_all(tempNames, pattern = "prcpTempCorr ", 
                          replacement = paste0("((prcpTempCorr - ", 
-                                              round(scaleParams$prcpTempCorr_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$prcpTempCorr_s$`scaled:scale`,5), ") "))
+                                              round(scaleParams$prcpTempCorr_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$prcpTempCorr_s$`scaled:scale`,8), ") "))
 
 tempNames <- str_replace_all(tempNames, pattern = "prcpTempCorr\\^", 
                          replacement = paste0("((prcpTempCorr - ", 
-                                              round(scaleParams$prcpTempCorr_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$prcpTempCorr_s$`scaled:scale`,5), ")^"))
+                                              round(scaleParams$prcpTempCorr_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$prcpTempCorr_s$`scaled:scale`,8), ")^"))
 
 tempNames <- str_replace_all(tempNames, pattern = "prcpTempCorr:", 
                          replacement = paste0("((prcpTempCorr - ", 
-                                              round(scaleParams$prcpTempCorr_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$prcpTempCorr_s$`scaled:scale`,5), "):"))
+                                              round(scaleParams$prcpTempCorr_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$prcpTempCorr_s$`scaled:scale`,8), "):"))
 
 tempNames <- str_replace_all(tempNames, pattern = "prcpTempCorr\\)", 
                          replacement = paste0("((prcpTempCorr - ", 
-                                              round(scaleParams$prcpTempCorr_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$prcpTempCorr_s$`scaled:scale`,5), "))"))
+                                              round(scaleParams$prcpTempCorr_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$prcpTempCorr_s$`scaled:scale`,8), "))"))
 
 tempNames <- str_replace_all(tempNames, pattern = "prcpTempCorr$", 
                          replacement = paste0("((prcpTempCorr - ", 
-                                              round(scaleParams$prcpTempCorr_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$prcpTempCorr_s$`scaled:scale`,5), ")"))
+                                              round(scaleParams$prcpTempCorr_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$prcpTempCorr_s$`scaled:scale`,8), ")"))
 
 tempNames <- str_replace_all(tempNames, pattern = "isothermality ", 
                          replacement = paste0("((isothermality - ", 
-                                              round(scaleParams$isothermality_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$isothermality_s$`scaled:scale`,5), ") "))
+                                              round(scaleParams$isothermality_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$isothermality_s$`scaled:scale`,8), ") "))
 
 tempNames <- str_replace_all(tempNames, pattern = "isothermality\\^", 
                          replacement = paste0("((isothermality - ", 
-                                              round(scaleParams$isothermality_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$isothermality_s$`scaled:scale`,5), ")^"))
+                                              round(scaleParams$isothermality_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$isothermality_s$`scaled:scale`,8), ")^"))
 
 tempNames <- str_replace_all(tempNames, pattern = "isothermality:", 
                          replacement = paste0("((isothermality - ", 
-                                              round(scaleParams$isothermality_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$isothermality_s$`scaled:scale`,5), "):"))
+                                              round(scaleParams$isothermality_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$isothermality_s$`scaled:scale`,8), "):"))
 
 tempNames <- str_replace_all(tempNames, pattern = "sand", 
                          replacement = paste0("((sand - ", 
-                                              round(scaleParams$sand_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$sand_s$`scaled:scale`,5), ")"))
+                                              round(scaleParams$sand_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$sand_s$`scaled:scale`,8), ")"))
 
 tempNames <- str_replace_all(tempNames, pattern = "coarse", 
                          replacement = paste0("((coarse - ", 
-                                              round(scaleParams$coarse_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$coarse_s$`scaled:scale`,5), ")"))
+                                              round(scaleParams$coarse_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$coarse_s$`scaled:scale`,8), ")"))
 
 tempNames <- str_replace_all(tempNames, pattern = "AWHC", 
                          replacement = paste0("((AWHC - ", 
-                                              round(scaleParams$AWHC_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$AWHC_s$`scaled:scale`,5), ")"))
+                                              round(scaleParams$AWHC_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$AWHC_s$`scaled:scale`,8), ")"))
 
 tempNames <- str_replace_all(tempNames, pattern = "carbon", 
                          replacement = paste0("((carbon - ", 
-                                              round(scaleParams$carbon_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$carbon_s$`scaled:scale`,5), ")"))
+                                              round(scaleParams$carbon_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$carbon_s$`scaled:scale`,8), ")"))
 
 tempNames <- str_replace_all(tempNames, pattern = "clay", 
                          replacement = paste0("((clay - ", 
-                                              round(scaleParams$clay_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$clay_s$`scaled:scale`,5), ")"))
+                                              round(scaleParams$clay_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$clay_s$`scaled:scale`,8), ")"))
 
 tempNames <- str_replace_all(tempNames, pattern = "annWatDef ", 
                          replacement = paste0("((annWatDef - ", 
-                                              round(scaleParams$annWatDef_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$annWatDef_s$`scaled:scale`,5), ") "))
+                                              round(scaleParams$annWatDef_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$annWatDef_s$`scaled:scale`,8), ") "))
 
 tempNames <- str_replace_all(tempNames, pattern = "annWatDef:", 
                          replacement = paste0("((annWatDef - ", 
-                                              round(scaleParams$annWatDef_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$annWatDef_s$`scaled:scale`,5), "):"))
+                                              round(scaleParams$annWatDef_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$annWatDef_s$`scaled:scale`,8), "):"))
 
 tempNames <- str_replace_all(tempNames, pattern = "prcp_seasonality ", 
                          replacement = paste0("((prcp_seasonality - ", 
-                                              round(scaleParams$prcp_seasonality_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$prcp_seasonality_s$`scaled:scale`,5), ") "))
+                                              round(scaleParams$prcp_seasonality_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$prcp_seasonality_s$`scaled:scale`,8), ") "))
 
 tempNames <- str_replace_all(tempNames, pattern = "prcp_seasonality:", 
                          replacement = paste0("((prcp_seasonality - ", 
-                                              round(scaleParams$prcp_seasonality_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$prcp_seasonality_s$`scaled:scale`,5), "):"))
+                                              round(scaleParams$prcp_seasonality_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$prcp_seasonality_s$`scaled:scale`,8), "):"))
 
 tempNames <- str_replace_all(tempNames, pattern = "prcp_seasonality\\^", 
                          replacement = paste0("((prcp_seasonality - ", 
-                                              round(scaleParams$prcp_seasonality_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$prcp_seasonality_s$`scaled:scale`,5), ")^"))
+                                              round(scaleParams$prcp_seasonality_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$prcp_seasonality_s$`scaled:scale`,8), ")^"))
 
 tempNames <- str_replace_all(tempNames, pattern = "tmean ", 
                          replacement = paste0("((tmean - ", 
-                                              round(scaleParams$tmean_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$tmean_s$`scaled:scale`,5), ") "))
+                                              round(scaleParams$tmean_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$tmean_s$`scaled:scale`,8), ") "))
 
 tempNames <- str_replace_all(tempNames, pattern = "tmean:", 
                          replacement = paste0("((tmean - ", 
-                                              round(scaleParams$tmean_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$tmean_s$`scaled:scale`,5), "):"))
+                                              round(scaleParams$tmean_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$tmean_s$`scaled:scale`,8), "):"))
 
 tempNames <- str_replace_all(tempNames, pattern = "tmean$", 
                          replacement = paste0("((tmean - ", 
-                                              round(scaleParams$tmean_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$tmean_s$`scaled:scale`,5), ")"))
+                                              round(scaleParams$tmean_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$tmean_s$`scaled:scale`,8), ")"))
 
 tempNames <- str_replace_all(tempNames, pattern = "tmean\\^", 
                          replacement = paste0("((tmean - ", 
-                                              round(scaleParams$tmean_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$tmean_s$`scaled:scale`,5), ")^"))
+                                              round(scaleParams$tmean_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$tmean_s$`scaled:scale`,8), ")^"))
 
 tempNames <- str_replace_all(tempNames, pattern = "annWetDegDays ", 
                          replacement = paste0("((annWetDegDays - ", 
-                                              round(scaleParams$annWetDegDays_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$annWetDegDays_s$`scaled:scale`,5), ") "))
+                                              round(scaleParams$annWetDegDays_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$annWetDegDays_s$`scaled:scale`,8), ") "))
 
 tempNames <- str_replace_all(tempNames, pattern = "annWetDegDays:", 
                          replacement = paste0("((annWetDegDays - ", 
-                                              round(scaleParams$annWetDegDays_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$annWetDegDays_s$`scaled:scale`,5), "):"))
+                                              round(scaleParams$annWetDegDays_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$annWetDegDays_s$`scaled:scale`,8), "):"))
 
 tempNames <- str_replace_all(tempNames, pattern = "prcp_dry ", 
                          replacement = paste0("((prcp_dry - ", 
-                                              round(scaleParams$prcp_dry_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$prcp_dry_s$`scaled:scale`,5), ") "))
+                                              round(scaleParams$prcp_dry_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$prcp_dry_s$`scaled:scale`,8), ") "))
 
 tempNames <- str_replace_all(tempNames, pattern = "prcp_dry:", 
                          replacement = paste0("((prcp_dry - ", 
-                                              round(scaleParams$prcp_dry_s$`scaled:center`,5), ") / ", 
-                                              round(scaleParams$prcp_dry_s$`scaled:scale`,5), "):"))
+                                              round(scaleParams$prcp_dry_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$prcp_dry_s$`scaled:scale`,8), "):"))
+
+tempNames <- str_replace_all(tempNames, pattern = "annWatDef_95", 
+                         replacement = paste0("((annWatDef_95 - ", 
+                                              round(scaleParams$annWatDef_95_s$`scaled:center`,8), ") / ", 
+                                              round(scaleParams$annWatDef_95_s$`scaled:scale`,8), ")"))
 
 
 ## print scaled model statement
 
-scaledModelName <- paste0(responseVar, "~ exp(", tempNames, ") - 2")
+scaledModelName <- paste0(responseVar, "~ exp(", tempNames, ")")
   
 return(list("scaledInputVars_ModelStatement" = unscaledModelName, 
             "unscaledInputVars_scaledModelStatement" = scaledModelName))
@@ -2556,7 +2561,7 @@ print(secondBestLambdaModStatement$scaledInputVars_ModelStatement)
 print(secondBestLambdaModStatement$unscaledInputVars_scaledModelStatement)
 ```
 
-## Now, use the model to predict if a location is or is not trees, for all observations in the cover dataset (which we will use in the subsequent step of the cover-modelign process).
+## Now, use the model to predict if a location is or is not trees, for all observations in the cover dataset (which we will use in the subsequent step of the cover-modeling process).
 We use the 'modDat_1_s_temp' data.frame, which has all of the cover data, even for locations without observed tree cover, but has the climate and soils data that have been scaled in that same was as the data we used to fit the yes/no tree model
 ```{r}
 # prep data
@@ -2586,6 +2591,9 @@ modDat_treePreds <- modDat_1_s_temp %>%
 
 saveRDS(modDat_treePreds,"../../../Data_processed/CoverData/CoverModelData_withTreeNoTreePreds.rds")
 ```
+ 
+
+
 
 <!-- # Cross-validation -->
 <!-- ## Using best lambda model -->
