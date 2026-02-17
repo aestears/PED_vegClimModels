@@ -854,7 +854,7 @@ climate data from the IPSL-CM5A-MR model")) +
 ```
 
  
-# Now, we generate CONUS-wide model predictions of *absolute* cover
+ # Now, we generate CONUS-wide model predictions of *absolute* cover
 
 First, we use our models to predict absolute cover at the ecoregion or CONUS scale, depending on the functional type, using both contemporary climate and weather data, and then with future climate and weather data downscaled from the two GCMs. For some functional types we were able to fit a model that worked well across all of CONUS, while for other types, models performed better when we fit them to a single ecoregion at a time. Below is a list of the models we use: 
 
@@ -1150,19 +1150,22 @@ e.g.:absolute total tree cover in CONUS = (absolute total tree cover in grass/sh
 ## for contemporary data
 contempPreds <- contempPreds %>% 
   mutate(absTotalHerb_CONUS = (prob_grassShrub * absTotalHerb_GS) + (prob_Forest * absTotalHerb_F),
-         absTotalTree_CONUS = (prob_grassShrub * absTotalTree_GS) + (prob_Forest * absTotalTree_F)
+         absTotalTree_CONUS = #(prob_grassShrub * absTotalTree_GS) + 
+           (prob_Forest * absTotalTree_F)
          )
 
 ## for first climate model
 predsFuture1 <- predsFuture1 %>% 
   mutate(absTotalHerb_CONUS = (prob_grassShrub * absTotalHerb_GS) + (prob_Forest * absTotalHerb_F),
-         absTotalTree_CONUS = (prob_grassShrub * absTotalTree_GS) + (prob_Forest * absTotalTree_F)
+         absTotalTree_CONUS = #(prob_grassShrub * absTotalTree_GS) + 
+           (prob_Forest * absTotalTree_F)
          )
 
 ## for second climate model 
 predsFuture2 <- predsFuture2 %>% 
   mutate(absTotalHerb_CONUS = (prob_grassShrub * absTotalHerb_GS) + (prob_Forest * absTotalHerb_F),
-         absTotalTree_CONUS = (prob_grassShrub * absTotalTree_GS) + (prob_Forest * absTotalTree_F)
+         absTotalTree_CONUS = #(prob_grassShrub * absTotalTree_GS) + 
+           (prob_Forest * absTotalTree_F)
          )
 ```
 
@@ -1170,8 +1173,8 @@ Then, for those models that are predicting proportions, we scale all of the rele
 (e.g. Model predictions of the proportion of total herbaceous cover that is forbs, the proportion of total herbaceous cover that is C3 grass, and the proportion of total herbaceous cover that is C4 grass should sum to 1, so: scaled proportion of total herbaceous cover that is forbs = proportion of total herbaceous cover that is forbs/(proportion of total herbaceous cover that is forbs + proportion of total herbaceous cover that is C3 grass + proportion of total herbaceous cover that is C4 grass))
 ```{r}
 contempPreds <- contempPreds %>% 
-    mutate(percBLTree_scaled_GS = 0,#percBLTree_GS/(percBLTree_GS + percNLTree_GS),
-         percNLTree_scaled_GS = 0,#percNLTree_GS/(percBLTree_GS + percNLTree_GS),
+    mutate(percBLTree_scaled_GS = NA,#percBLTree_GS/(percBLTree_GS + percNLTree_GS),
+         percNLTree_scaled_GS = NA,#percNLTree_GS/(percBLTree_GS + percNLTree_GS),
          percBLTree_scaled_F = percBLTree_F/(percBLTree_F + percNLTree_F),
          percNLTree_scaled_F = percNLTree_F/(percBLTree_F + percNLTree_F),
          percC3grass_scaled_CONUS = percC3grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
@@ -1184,8 +1187,8 @@ contempPreds <- contempPreds %>%
  # geom_density(aes(absTotalTree_F), col = "green")
 
 predsFuture1 <- predsFuture1  %>% 
-    mutate(percBLTree_scaled_GS = 0,#percBLTree_GS/(percBLTree_GS + percNLTree_GS),
-         percNLTree_scaled_GS = 0,#percNLTree_GS/(percBLTree_GS + percNLTree_GS),
+    mutate(percBLTree_scaled_GS = NA,#percBLTree_GS/(percBLTree_GS + percNLTree_GS),
+         percNLTree_scaled_GS = NA,#percNLTree_GS/(percBLTree_GS + percNLTree_GS),
          percBLTree_scaled_F = percBLTree_F/(percBLTree_F + percNLTree_F),
          percNLTree_scaled_F = percNLTree_F/(percBLTree_F + percNLTree_F),
          percC3grass_scaled_CONUS = percC3grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
@@ -1193,8 +1196,8 @@ predsFuture1 <- predsFuture1  %>%
          percForb_scaled_CONUS = percForb_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS))
 
 predsFuture2 <- predsFuture2  %>% 
-    mutate(percBLTree_scaled_GS = 0,#percBLTree_GS/(percBLTree_GS + percNLTree_GS),
-         percNLTree_scaled_GS = 0,#percNLTree_GS/(percBLTree_GS + percNLTree_GS),
+    mutate(percBLTree_scaled_GS = NA,#percBLTree_GS/(percBLTree_GS + percNLTree_GS),
+         percNLTree_scaled_GS = NA,#percNLTree_GS/(percBLTree_GS + percNLTree_GS),
          percBLTree_scaled_F = percBLTree_F/(percBLTree_F + percNLTree_F),
          percNLTree_scaled_F = percNLTree_F/(percBLTree_F + percNLTree_F),
          percC3grass_scaled_CONUS = percC3grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
@@ -1207,8 +1210,8 @@ Then, we convert these predicted proportions into predictions of absolute cover.
 ```{r}
 ## for contemporary data
 contempPreds <- contempPreds %>% 
-    mutate(absNLTree_GS = 0,#(percNLTree_scaled_GS * absTotalTree_GS), 
-         absBLTree_GS = 0,#(percBLTree_scaled_GS * absTotalTree_GS), 
+    mutate(absNLTree_GS = NA,#(percNLTree_scaled_GS * absTotalTree_GS), 
+         absBLTree_GS = NA,#(percBLTree_scaled_GS * absTotalTree_GS), 
          absNLTree_F = (percNLTree_scaled_F * absTotalTree_F), 
          absBLTree_F = (percBLTree_scaled_F * absTotalTree_F), 
          absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C3 grass isn't ecoregion-level
@@ -1218,8 +1221,8 @@ contempPreds <- contempPreds %>%
 
 ## for first climate model
 predsFuture1 <- predsFuture1 %>% 
-    mutate(absNLTree_GS = 0,#(percNLTree_scaled_GS * absTotalTree_GS), 
-         absBLTree_GS = 0,#(percBLTree_scaled_GS * absTotalTree_GS),
+    mutate(absNLTree_GS = NA,#(percNLTree_scaled_GS * absTotalTree_GS), 
+         absBLTree_GS = NA,#(percBLTree_scaled_GS * absTotalTree_GS),
          absNLTree_F = (percNLTree_scaled_F * absTotalTree_F), 
          absBLTree_F = (percBLTree_scaled_F * absTotalTree_F), 
          absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C3 grass isn't ecoregion-level
@@ -1229,8 +1232,8 @@ predsFuture1 <- predsFuture1 %>%
 
 ## for second climate model 
 predsFuture2 <- predsFuture2 %>% 
-    mutate(absNLTree_GS = 0,#(percNLTree_scaled_GS * absTotalTree_GS), 
-         absBLTree_GS = 0,#(percBLTree_scaled_GS * absTotalTree_GS),
+    mutate(absNLTree_GS = NA,#(percNLTree_scaled_GS * absTotalTree_GS), 
+         absBLTree_GS = NA,#(percBLTree_scaled_GS * absTotalTree_GS),
          absNLTree_F = (percNLTree_scaled_F * absTotalTree_F), 
          absBLTree_F = (percBLTree_scaled_F * absTotalTree_F), 
          absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C3 grass isn't ecoregion-level
@@ -1243,22 +1246,30 @@ predsFuture2 <- predsFuture2 %>%
 Finally, for those functional types that are predicted at the ecoregion level, we scale them to be CONUS-wide.
 ```{r}
 contempPreds <- contempPreds %>% 
-  mutate(absBLTree_CONUS = (prob_grassShrub * absBLTree_GS) + (prob_Forest * absBLTree_F),
-         absNLTree_CONUS = (prob_grassShrub * absNLTree_GS) + (prob_Forest * absNLTree_F)
+  mutate(absBLTree_CONUS = #(prob_grassShrub * absBLTree_GS) + 
+           (prob_Forest * absBLTree_F),
+         absNLTree_CONUS = #(prob_grassShrub * absNLTree_GS) + 
+           (prob_Forest * absNLTree_F)
   )
 
 # ggplot(contempPreds) +
 #  geom_point(aes(x, y, col = absNLTree_CONUS))
 
 predsFuture1 <- predsFuture1 %>% 
-    mutate(absBLTree_CONUS = (prob_grassShrub * absBLTree_GS) + (prob_Forest * absBLTree_F),
-         absNLTree_CONUS = (prob_grassShrub * absNLTree_GS) + (prob_Forest * absNLTree_F)
+  mutate(absBLTree_CONUS = #(prob_grassShrub * absBLTree_GS) + 
+           (prob_Forest * absBLTree_F),
+         absNLTree_CONUS = #(prob_grassShrub * absNLTree_GS) + 
+           (prob_Forest * absNLTree_F)
   )
 
+
 predsFuture2 <- predsFuture2 %>% 
-    mutate(absBLTree_CONUS = (prob_grassShrub * absBLTree_GS) + (prob_Forest * absBLTree_F),
-         absNLTree_CONUS = (prob_grassShrub * absNLTree_GS) + (prob_Forest * absNLTree_F)
+  mutate(absBLTree_CONUS = #(prob_grassShrub * absBLTree_GS) + 
+           (prob_Forest * absBLTree_F),
+         absNLTree_CONUS = #(prob_grassShrub * absNLTree_GS) + 
+           (prob_Forest * absNLTree_F)
   )
+
 ```
 
 
@@ -1722,14 +1733,15 @@ preds_quantile <- totalHerb_F_predsQuantile  %>%
 
 # for total herbaceous and total tree, scale according to ecoregion
 preds_quantile <- preds_quantile %>% 
-  mutate(absTotalHerb_CONUS = (prob_grassShrub * absTotalHerb_GS) + (prob_Forest * absTotalHerb_F),
-         absTotalTree_CONUS = (prob_grassShrub * absTotalTree_GS) + (prob_Forest * absTotalTree_F),
+  mutate(absTotalHerb_CONUS = (prob_Forest * absTotalHerb_F) + (prob_grassShrub * absTotalHerb_GS),
+         absTotalTree_CONUS = #(prob_grassShrub * absTotalTree_GS) + 
+           (prob_Forest * absTotalTree_F),
          )
 
 ## For percentages (NL/BL tree and C4/C3/Forb), scale so that they sum to one (for C4/C3/Forb, already have CONUS-wide models) (for NL/BL tree, have versions for both grass/shrub and forest)
 preds_quantile <- preds_quantile %>% 
-  mutate(percBLTree_scaled_GS = 0,#percBLTree_GS/(percBLTree_GS + percNLTree_GS),
-         percNLTree_scaled_GS = 0,#percNLTree_GS/(percBLTree_GS + percNLTree_GS),
+  mutate(percBLTree_scaled_GS = NA,#percBLTree_GS/(percBLTree_GS + percNLTree_GS),
+         percNLTree_scaled_GS = NA,#percNLTree_GS/(percBLTree_GS + percNLTree_GS),
          percBLTree_scaled_F = percBLTree_F/(percBLTree_F + percNLTree_F),
          percNLTree_scaled_F = percNLTree_F/(percBLTree_F + percNLTree_F),
          percC3grass_scaled_CONUS = percC3grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
@@ -1738,8 +1750,8 @@ preds_quantile <- preds_quantile %>%
 
 ## Convert percentages for level 2 cover into absolute cover values
 preds_quantile <- preds_quantile %>% 
-  mutate(absNLTree_GS = (percNLTree_scaled_GS * absTotalTree_GS), 
-         absBLTree_GS = (percBLTree_scaled_GS * absTotalTree_GS), 
+  mutate(absNLTree_GS = NA, # (percNLTree_scaled_GS * absTotalTree_GS), 
+         absBLTree_GS = NA, #(percBLTree_scaled_GS * absTotalTree_GS), 
          absNLTree_F = (percNLTree_scaled_F * absTotalTree_F), 
          absBLTree_F = (percBLTree_scaled_F * absTotalTree_F), 
          absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C3 grass isn't ecoregion-level
@@ -1749,9 +1761,10 @@ preds_quantile <- preds_quantile %>%
 
 ## For tree level 2 cover, scale by ecoregion probability prediction to be CONUS_wide
 preds_quantile <- preds_quantile %>%
-  mutate(absBLTree_CONUS = (prob_grassShrub * absBLTree_GS) + (prob_Forest * absBLTree_F),
-         absNLTree_CONUS = (prob_grassShrub * absNLTree_GS) + (prob_Forest * absNLTree_F)
-         )
+  mutate(absBLTree_CONUS = #(prob_grassShrub * absBLTree_GS) + 
+           (prob_Forest * absBLTree_F),
+         absNLTree_CONUS = #(prob_grassShrub * absNLTree_GS) + 
+           (prob_Forest * absNLTree_F))
 
 ## with the observed data, convert proportions to absolute cover
 preds_quantile <- preds_quantile %>% 
@@ -1939,9 +1952,15 @@ quantPlot_totalHerb_F_F <- add_dotplot_inset(quantPlot_totalHerb_F_F, df = decil
 ## subset the predictions so that we are only making quantile plots using data points where we observations for both total tree and proportion of tree that is needle-leaved and broad-leaved
 preds_trees <- preds_quantile %>% 
   select(TotalTreeCover, absTotalTree_F, absTotalTree_GS,
-         ConifTreeCover_prop, percNLTree_GS, percNLTree_F, percNLTree_scaled_F, percNLTree_scaled_GS, NLTreeCover_abs, absNLTree_CONUS, absNLTree_GS, absNLTree_F,
-         AngioTreeCover_prop, percBLTree_GS, percBLTree_F, percBLTree_scaled_F, percBLTree_scaled_GS, BLTreeCover_abs, absBLTree_CONUS,
-         absBLTree_GS, absBLTree_F,
+         ConifTreeCover_prop, #percNLTree_GS, 
+         percNLTree_F, percNLTree_scaled_F, #percNLTree_scaled_GS, 
+         NLTreeCover_abs, absNLTree_CONUS, #absNLTree_GS, 
+         absNLTree_F,
+         AngioTreeCover_prop, #percBLTree_GS, 
+         percBLTree_F, percBLTree_scaled_F, #percBLTree_scaled_GS, 
+         BLTreeCover_abs, absBLTree_CONUS,
+         #absBLTree_GS, 
+         absBLTree_F,
          tmean:AWHC, newRegion, prob_Forest, prob_grassShrub) %>%
   drop_na()
 
@@ -2015,7 +2034,7 @@ quantPlot_totalTree_F_F <- decile_dotplot_pq(df = deciles_totalTree_F_F, respons
 quantPlot_totalTree_F_F <- add_dotplot_inset(quantPlot_totalTree_F_F, df = deciles_totalTree_F_F, response = c("TotalTreeCover", "absTotalTree_F"), dfRaw = preds_trees %>% filter(newRegion != "dryShrubGrass") %>% select(TotalTreeCover, absTotalTree_F,
                                                                               tmean, prcp, prcp_dry, isothermality, AWHC, prcpTempCorr, clay, carbon, coarse, sand)  %>% drop_na(), add_smooth = TRUE, deciles = FALSE)
 
-# for only F (model-defined using the F model
+# for only F (model-defined using the F model)
 deciles_totalTree_F_Fprob <- predvars2deciles(df = preds_trees %>% filter(prob_Forest>=0.5) %>% select(TotalTreeCover, absTotalTree_F,
                                                                                tmean, prcp, prcp_dry, isothermality, AWHC, prcpTempCorr, clay, carbon, coarse, sand) %>% drop_na()
                                    , response_vars = c("TotalTreeCover", "absTotalTree_F"), # name of observations, followed by name of predictions
@@ -2540,37 +2559,37 @@ ggplot(preds_trees) +
 
 ## comparing distributions of raw values for NL trees by hand 
 # scaled percentage of NL tree in forest - grass/shrub
-violin_GS_obs <- preds_trees %>% 
-  filter(prob_Forest < 0.5) %>% 
-  select(ConifTreeCover_prop, percNLTree_scaled_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% 
-  drop_na() %>% 
-  pivot_longer(cols = c(tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse)) %>%
-  ggplot() +
-  facet_wrap(~name, scales = "free") +
-  geom_point(aes(x = value, y = ConifTreeCover_prop), alpha = .1, col = "grey") + # observed
- # geom_point(aes(x = value, y = percNLTree_scaled_GS), alpha = .1, col = "lightblue") + # predicted
-  geom_violin(aes(x = value, y = ConifTreeCover_prop, group = cut_number(value,n = 10)), col = "black") #+ # observed 
-  #geom_violin(aes(x = jitter(value), y = percNLTree_scaled_GS, group = cut_number(value,n = 10)), col = "blue") # predicted
-violin_GS_preds <- preds_trees %>% 
-  filter(prob_Forest < 0.5) %>% 
-  select(ConifTreeCover_prop, percNLTree_scaled_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% 
-  drop_na() %>% 
-  pivot_longer(cols = c(tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse)) %>%
-  ggplot() +
-  facet_wrap(~name, scales = "free") +
-  #geom_point(aes(x = value, y = ConifTreeCover_prop), alpha = .1, col = "grey") + # observed
-  geom_point(aes(x = value, y = percNLTree_scaled_GS), alpha = .1, col = "lightblue") + # predicted
-  #geom_violin(aes(x = value, y = ConifTreeCover_prop, group = cut_number(value,n = 10)), col = "black") #+ # observed 
-  geom_violin(aes(x = jitter(value), y = percNLTree_scaled_GS, group = cut_number(value,n = 10)), col = "blue") # predicted
-ggarrange(violin_GS_obs, violin_GS_preds, ncol = 1)
+# violin_GS_obs <- preds_trees %>% 
+#   filter(prob_Forest < 0.5) %>% 
+#   select(ConifTreeCover_prop, percNLTree_scaled_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% 
+#   drop_na() %>% 
+#   pivot_longer(cols = c(tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse)) %>%
+#   ggplot() +
+#   facet_wrap(~name, scales = "free") +
+#   geom_point(aes(x = value, y = ConifTreeCover_prop), alpha = .1, col = "grey") + # observed
+#  # geom_point(aes(x = value, y = percNLTree_scaled_GS), alpha = .1, col = "lightblue") + # predicted
+#   geom_violin(aes(x = value, y = ConifTreeCover_prop, group = cut_number(value,n = 10)), col = "black") #+ # observed 
+#   #geom_violin(aes(x = jitter(value), y = percNLTree_scaled_GS, group = cut_number(value,n = 10)), col = "blue") # predicted
+# violin_GS_preds <- preds_trees %>% 
+#   filter(prob_Forest < 0.5) %>% 
+#   select(ConifTreeCover_prop, percNLTree_scaled_GS, tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse) %>% 
+#   drop_na() %>% 
+#   pivot_longer(cols = c(tmean, prcp, AWHC, prcpTempCorr, isothermality, prcpTempCorr_anom, coarse)) %>%
+#   ggplot() +
+#   facet_wrap(~name, scales = "free") +
+#   #geom_point(aes(x = value, y = ConifTreeCover_prop), alpha = .1, col = "grey") + # observed
+#   geom_point(aes(x = value, y = percNLTree_scaled_GS), alpha = .1, col = "lightblue") + # predicted
+#   #geom_violin(aes(x = value, y = ConifTreeCover_prop, group = cut_number(value,n = 10)), col = "black") #+ # observed 
+#   geom_violin(aes(x = jitter(value), y = percNLTree_scaled_GS, group = cut_number(value,n = 10)), col = "blue") # predicted
+# ggarrange(violin_GS_obs, violin_GS_preds, ncol = 1)
 
 
 ### locations where we have cover for total trees vs locations where we have values for cover of NL or BL trees
 totTreeLocations <- preds_quantile %>% 
   select(TotalTreeCover, x, y) %>% 
   drop_na() %>% 
-  terra::vect(geom = c("x", "y")) %>% 
-  terra::set.crs(crs(test_rast)) %>% 
+  terra::vect(geom = c("x", "y"), crs = crs("EPSG:4326")) %>% 
+  terra::project(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "TotalTreeCover", 
                    fun = mean, na.rm = TRUE) 
@@ -2596,8 +2615,8 @@ ncol = 1
 totTreeLocations_trim <- preds_quantile %>% 
   select(TotalTreeCover, AngioTreeCover_prop, ConifTreeCover_prop, x, y) %>% 
   drop_na() %>% 
-  terra::vect(geom = c("x", "y")) %>% 
-  terra::set.crs(crs(test_rast)) %>% 
+  terra::vect(geom = c("x", "y"), crs = crs("EPSG:4326")) %>% 
+  terra::project(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "TotalTreeCover", 
                    fun = mean, na.rm = TRUE) 
@@ -2624,8 +2643,8 @@ ncol = 1
 totHerbLocations <- preds_quantile %>% 
   select(TotalHerbaceousCover, x, y) %>% 
   drop_na() %>% 
-  terra::vect(geom = c("x", "y")) %>% 
-  terra::set.crs(crs(test_rast)) %>% 
+  terra::vect(geom = c("x", "y"), crs = crs("EPSG:4326")) %>% 
+  terra::project(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "TotalHerbaceousCover", 
                    fun = mean, na.rm = TRUE) 
@@ -2651,8 +2670,8 @@ ncol = 1
 totHerbLocations_trim <- preds_quantile %>% 
   select(TotalHerbaceousCover, C3GramCover_prop, C4GramCover_prop, ForbCover_prop, x, y) %>% 
   drop_na() %>% 
-  terra::vect(geom = c("x", "y")) %>% 
-  terra::set.crs(crs(test_rast)) %>% 
+  terra::vect(geom = c("x", "y"), crs = crs("EPSG:4326")) %>% 
+  terra::project(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast, 
                    field = "TotalHerbaceousCover", 
                    fun = mean, na.rm = TRUE) 
@@ -2933,9 +2952,12 @@ predsOverTime <- totalHerb_F_predsOverTime  %>%
 ## now, scale predictions according to ecoregion percentage
 predsOverTime <- predsOverTime %>% 
   mutate(absTotalHerb_CONUS = (prob_grassShrub * absTotalHerb_GS) + (prob_Forest * absTotalHerb_F),
-         absTotalTree_CONUS = (prob_grassShrub * absTotalTree_GS) + (prob_Forest * absTotalTree_F),
-         percBLTree_CONUS = (prob_grassShrub * percBLTree_GS) + (prob_Forest * percBLTree_F),
-         percNLTree_CONUS = (prob_grassShrub * percNLTree_GS) + (prob_Forest * percNLTree_F)
+         absTotalTree_CONUS = #(prob_grassShrub * absTotalTree_GS) + 
+           (prob_Forest * absTotalTree_F),
+         percBLTree_CONUS = #(prob_grassShrub * percBLTree_GS) + 
+           (prob_Forest * percBLTree_F),
+         percNLTree_CONUS = #(prob_grassShrub * percNLTree_GS) + 
+           (prob_Forest * percNLTree_F)
          )
 ## then, scale the percentages so they sum to 1
 predsOverTime <- predsOverTime %>% 
