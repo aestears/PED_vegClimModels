@@ -1,78 +1,103 @@
 ---
 title: "Equations For Scaling Of Cover Results"
 output: pdf_document
-date: "2025-11-19"
+date: "2-23-2026"
 classoption: landscape
 ---
 
-
-## Acquiring CONUS-wide predicitions of absolute cover of needle-leaved trees: Old version 
-##### Step 1: Get model predictions
-
-$$ percNLTree_{GS} \sim climate + weather + soils $$
-$$ percNLTree_{F}  \sim climate + weather + soils  $$ 
-$$ percBLTree_{GS}  \sim climate + weather + soils $$
-$$ percBLTree_{F}  \sim climate + weather + soils $$
-$$ absTotalTree_{GS}  \sim climate + soils $$
-$$ absTotalTree_{F} \sim climate + soils $$
-
-##### Step 2: Scale ecoregion predictions to be CONUS-wide
-$$ percNLtree_{CONUS} = (P(GS) * percNLTree_{GS}) + (P(F) * percNLTree_{F}) $$
-$$ percBLtree_{CONUS} = (P(GS) * percBLTree_{GS}) + (P(F) * percBLTree_{F}) $$
-$$ absTotalTree_{CONUS} = (P(GS) * absTotalTree_{GS}) + (P(F) * absTotalTree_{F}) $$
-
-##### Step 3: Scale the CONUS-wide predictions to sum to 1
-$$
-perNLtree\_scaled_{CONUS} = \frac{percNLtree_{CONUS}}{percNLtree_{CONUS} + percBLtree_{CONUS}} 
-$$
-
-##### Step 4: Convert these predictions of proportions to absolute cover
-$$
-absNLtree_{CONUS} = perNLtree\_scaled_{CONUS} * absTotalTree_{CONUS} 
-$$
-
-##### When we use substitution to combine these equations, we get: 
-$$
-absNLtree_{CONUS} = \frac{[(P(GS) * percNLTree_{GS}) + (P(F) * percNLTree_{F})]}{[(P(GS) * percNLTree_{GS}) + (P(F) * percNLTree_{F})] + [(P(GS) * percBLTree_{GS}) + (P(F) * percBLTree_{F})]}  * 
-$$
-
-$$
-[(P(GS) * absTotalTree_{GS}) + (P(F) * absTotalTree_{F})]
-$$
-
-
-
 ## Acquiring CONUS-wide predicitions of absolute cover of needle-leaved trees: New version 
 ##### Step 1: Get model predictions
-$$ percNLTree_{GS} \sim climate + weather + soils $$
+<!-- $$ percNLTree_{GS} \sim climate + weather + soils $$ -->
 $$ percNLTree_{F}  \sim climate + weather + soils  $$ 
-$$ percBLTree_{GS}  \sim climate + weather + soils $$
+
+<!-- $$ percBLTree_{GS}  \sim climate + weather + soils $$ -->
 $$ percBLTree_{F}  \sim climate + weather + soils $$
-$$ absTotalTree_{GS}  \sim climate + soils $$
+
+<!-- $$ absTotalTree_{GS}  \sim climate + soils $$ -->
 $$ absTotalTree_{F} \sim climate + soils $$
 
 ##### Step 2: For predictions of proportions, scale them so that they sum to 1 
-$$ percNLtree\_scaled_{GS} = \frac{percNLtree_{GS}}{percBLtree_{GS} + percNLtree_{GS}} $$
+<!-- $$ percNLtree\_scaled_{GS} = \frac{percNLtree_{GS}}{percBLtree_{GS} + percNLtree_{GS}} $$ -->
 $$ percNLtree\_scaled_{F} = \frac{percNLtree_{F}}{percBLtree_{F} + percNLtree_{F}} $$
 
+$$ percBLtree\_scaled_{F} = \frac{percBLtree_{F}}{percBLtree_{F} + percBLtree_{F}} $$
+
 ##### Step 3: Convert these predictions of proportions to absolute cover
-$$ absNLtree_{GS} = percNLtree\_scaled_{GS} * absTotalTree_{GS} $$
+<!-- $$ absNLtree_{GS} = percNLtree\_scaled_{GS} * absTotalTree_{GS} $$ -->
 $$ absNLtree_{F} = percNLtree\_scaled_{F} * absTotalTree_{F} $$
+$$ absBLtree_{F} = percBLtree\_scaled_{F} * absTotalTree_{F} $$
 
 ##### Step 4: Convert these predictions of absolute cover by ecoregion to be CONUS-wide
 $$
-absNLtree_{CONUS} = (P(GS) * absNLtree_{GS}) + (P(F) * absNLtree_{F})
+absNLtree_{CONUS} = (P(F)_{continuous} * absNLtree_{F}) + (P(F)_{binary} * absNLtree_{F})
+$$
+$$
+absBLtree_{CONUS} = (P(F)_{continuous} * absBLtree_{F}) + (P(F)_{binary} * absBLtree_{F})
+$$
+
+$$
+absTotalTree_{CONUS} = (P(F)_{continuous} * absTotalTree_{F}) + (P(F)_{binary} * absTotalTree_{F})
 $$
 
 ##### When we use substitution to combine these equations, we get: 
 $$
-absNLtree_{CONUS} = (P(GS) * [ (\frac{percNLtree_{GS}}{percBLtree_{GS} + percNLtree_{GS}}) * absTotalTree_{GS}]) + (P(F) * 
-[(\frac{percNLtree_{F}}{percBLtree_{F} + percNLtree_{F}}) * absTotalTree_{F}])
+absNLtree_{CONUS} = (P(F)_{continuous} * \frac{percNLtree_{F}}{percBLtree_{F} + percNLtree_{F}} * absTotalTree_{F}) + (P(F)_{binary} * \frac{percNLtree_{F}}{percBLtree_{F} + percNLtree_{F}} * absTotalTree_{F})
+$$
+
+$$
+absBLtree_{CONUS} = (P(F)_{continuous} * \frac{percBLtree_{F}}{percBLtree_{F} + percNLtree_{F}} * absTotalTree_{F}) + (P(F)_{binary} * \frac{percBLtree_{F}}{percBLtree_{F} + percNLtree_{F}} * absTotalTree_{F})
+$$
+         
+         
+## Acquiring CONUS-wide predicitions of absolute cover of needle-leaved trees: Alternative version where we don't scale the predicted proportion of NL vs BL trees
+##### Step 1: Get model predictions
+<!-- $$ percNLTree_{GS} \sim climate + weather + soils $$ -->
+$$ percNLTree_{F}  \sim climate + weather + soils  $$ 
+
+<!-- $$ percBLTree_{GS}  \sim climate + weather + soils $$ -->
+$$ percBLTree_{F}  \sim climate + weather + soils $$
+
+<!-- $$ absTotalTree_{GS}  \sim climate + soils $$ -->
+$$ absTotalTree_{F} \sim climate + soils $$
+
+##### Step 2: For predictions of proportions, scale them so that they sum to 1 
+<!-- $$ percNLtree\_scaled_{GS} = \frac{percNLtree_{GS}}{percBLtree_{GS} + percNLtree_{GS}} $$ -->
+$$ percNLtree\_scaled_{F} = \frac{percNLtree_{F}}{percBLtree_{F} + percNLtree_{F}} $$
+
+$$ percBLtree\_scaled_{F} = \frac{percBLtree_{F}}{percBLtree_{F} + percBLtree_{F}} $$
+
+
+##### Because these model predictions are proportions, we don't need to scale them according to ecoregion
+
+<!-- ##### Step 3: Convert these predictions of proportions to absolute cover -->
+<!-- <!-- $$ absNLtree_{GS} = percNLtree\_scaled_{GS} * absTotalTree_{GS} $$ --> -->
+<!-- $$ absNLtree_{F} = percNLtree\_scaled_{F} * absTotalTree_{F} $$ -->
+<!-- $$ absBLtree_{F} = percBLtree\_scaled_{F} * absTotalTree_{F} $$ -->
+
+##### Step 3: Convert these predictions of absolute cover by ecoregion to be CONUS-wide
+First, scale the total tree cover predictions to be CONUS-wide
+$$
+absTotalTree_{CONUS} = (P(F)_{continuous} * absTotalTree_{F}) + (P(F)_{binary} * absTotalTree_{F})
+$$
+Then, apply the predicted proportion of NL and BL trees to the scaled predictions of total trees 
+$$
+absNLtree_{CONUS} = percNLtree\_scaled_{F} * absTotalTree_{CONUS}
+$$
+$$
+absBLtree_{CONUS} = percBLtree\_scaled_{F} * absTotalTree_{CONUS}
+$$
+
+##### When we use substitution to combine these equations, we get: 
+$$
+absNLtree_{CONUS} = (\frac{percNLtree_{F}}{percBLtree_{F} + percNLtree_{F}}) * ((P(F)_{continuous} * absTotalTree_{F}) + (P(F)_{binary} * absTotalTree_{F}))
+$$
+
+$$
+absBLtree_{CONUS} =  (\frac{percBLtree_{F}}{percBLtree_{F} + percBLtree_{F}}) * ((P(F)_{continuous} * absTotalTree_{F}) + (P(F)_{binary} * absTotalTree_{F}))
 $$
 
 
-
-
+Ultimately, this turns out to be mathematically equivalent to the previous option.          
 <!-- Are the two version mathematically identical?  -->
 <!-- updated notations for simplicity:  -->
 <!-- $$ -->
