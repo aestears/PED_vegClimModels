@@ -27,7 +27,7 @@ For the sake of simplified comparison, I show data from 2016, 2020, and 2022, wh
 ```{r}
 # get necessary raster data for background data on maps
 test_rast <-  rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>%
-#   #terra::aggregate(fact = 3, fun = "mean") %>% 
+ terra::aggregate(fact = 4, fun = "mean") %>% 
 terra::project(crs("EPSG:4326")) %>% 
   terra::crop(ext(-150, -50, 20, 60))
   # transform to match format of veg. data 
@@ -149,7 +149,7 @@ ggarrange(testFigs[[1]],
 ## After removing burned area
 ```{r , fig.width= 20, fig.height = 14}
 # Read in data
-dat_2 <- readRDS(file = "../../../Data_processed/CoverData/dataForAnalysis_fireRemoved.rds") %>% 
+dat_2temp <- readRDS(file = "../../../Data_processed/CoverData/dataForAnalysis_fireRemoved.rds") %>% 
   st_transform(crs(test_rast))
 # trim to be only later than 2000, which is what we want to use for further analysis
 dat_2 <- dat_2temp %>% 
@@ -294,9 +294,9 @@ ggarrange(testFigs[[1]],
 ## After 'coarsifying' LANDFIRE data
 ```{r , fig.width= 20, fig.height = 14}
 # Read in data
-dat_3 <- readRDS(file = "../../../Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds")
+dat_3_temp <- readRDS(file = "../../../Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds")
 # trim to be only later than 2000, which is what we want to use for further analysis
-dat_3 <- dat_3 %>%
+dat_3 <- dat_3_temp %>%
   filter(Year >= 2000) %>% 
   st_drop_geometry()
 
@@ -824,6 +824,52 @@ ggarrange(ggplot(dat_7 %>%
   ncol = 2, align = "h",
   common.legend = TRUE,
   widths = c(.7, .3)
+)
+```
+
+### Making density plots of all of the cover type by data source (after removing burned area)
+```{r}
+# data are in the dat_3_temp data.frame
+# are there any locations where we have NL and BL tree but not total tree? 
+dat_3_temp[is.finite(dat_3_temp$AngioTreeCover_prop) & is.na(dat_3_temp$TotalTreeCover),]
+
+  ggplot() + 
+    facet_wrap(~Source, scales = "free") + 
+    geom_density(data = dat_3_temp, aes(TotalTreeCover, col = Source)) + 
+    geom_density(data = dat_3_temp[is.finite(dat_3_temp$AngioTreeCover_prop),], aes(TotalTreeCover, col = Source),lty = 2) + 
+    ggtitle("Density plots of total tree cover data (prior to spatial averaging) \nsolid lines = all available total tree cover data \ndashed line = total tree cover data in locations where we also have \nNL and BL tree cover data")
+  
+kable(x = data.frame("FIA" = c(table(dat_3_temp[is.finite(dat_3_temp$TotalTreeCover), "Source"] %>% st_drop_geometry())["FIA"], 
+                                table(dat_3_temp[is.finite(dat_3_temp$AngioTreeCover_prop) ,"Source"] %>% st_drop_geometry())["FIA"]), 
+                     "LANDFIRE" = c(table(dat_3_temp[is.finite(dat_3_temp$TotalTreeCover), "Source"] %>% st_drop_geometry() )["LANDFIRE"],
+                                table(dat_3_temp[is.finite(dat_3_temp$AngioTreeCover_prop) ,"Source"] %>% st_drop_geometry())["LANDFIRE"]),
+                     "AIM" = c(table(dat_3_temp[is.finite(dat_3_temp$TotalTreeCover), "Source"] %>% st_drop_geometry() )["LDC"],
+                                table(dat_3_temp[is.finite(dat_3_temp$AngioTreeCover_prop) ,"Source"] %>% st_drop_geometry())["LDC"]),
+                     "RAP" = c(table(dat_3_temp[is.finite(dat_3_temp$TotalTreeCover), "Source"] %>% st_drop_geometry() )["RAP"], NA),
+                     row.names = c("allTotalTreeCoverData", "completeTreeData")
+                     ), 
+      row.names = TRUE,
+      format = "html"
+) %>% 
+kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+  
+# maps 
+## locations where we have observations for total tree cover vs. locations where we have observations for all tree types 
+dat_3_temp$totalTreeDataAvail <- NA
+dat_3_temp$completeTreeDataAvail <- NA
+dat_3_temp[!is.na(dat_3_temp$TotalTreeCover), "totalTreeDataAvail"] <- TRUE
+dat_3_temp[!is.na(dat_3_temp$TotalTreeCover) & !is.na(dat_3_temp$ConifTreeCover_prop) & !is.na(dat_3_temp$AngioTreeCover_prop), "completeTreeDataAvail"] <- TRUE
+ggarrange(
+  ggplot(data = dat_3_temp %>% filter(!is.na(totalTreeDataAvail))) + 
+    facet_grid(row = vars(Source)) + 
+    geom_point(aes(x = Lon, y = Lat,  col = Source), pch = 20) + 
+    ggtitle("Locations with total tree cover data"),
+ ggarrange( ggplot(data = dat_3_temp  %>% filter(!is.na(completeTreeDataAvail))) +
+    facet_grid(row = vars(Source)) +  
+    geom_point(aes(x = Lon, y = Lat,  col = Source), pch = 20) + 
+    ggtitle("Locations with total tree cover data + NL and BL tree cover data"),
+    ggplot() + geom_point(), ncol = 1, heights = c(.75, .25)), 
+  align = "h"
 )
 ```
 

@@ -2175,15 +2175,6 @@ preds_quantile %>%
 widths = c(1, .5)
 ) 
 
-
-## OBSERVED DATA
-## with the observed data, convert proportions to absolute cover
-preds_quantile <- preds_quantile %>% 
-  mutate(C3GramCover_abs = C3GramCover_prop * TotalHerbaceousCover, 
-         C4GramCover_abs = C4GramCover_prop * TotalHerbaceousCover, 
-         ForbCover_abs = ForbCover_prop * TotalHerbaceousCover, 
-         NLTreeCover_abs = ConifTreeCover_prop * TotalTreeCover, 
-         BLTreeCover_abs = AngioTreeCover_prop * TotalTreeCover)
 ```
 
 
