@@ -321,10 +321,10 @@ longdf2deciles <- function(df, response_vars, filter_var = FALSE,
       summarize(across(unname(response_vars), .fns = list(
         mean = ~mean(.x, na.rm = TRUE), 
         #sd = ~sd(.x, na.rm = TRUE), 
-        CI_upper = ~(mean(.x,  na.rm = TRUE) + (sd(.x, na.rm = TRUE)*1.96)),
-        CI_lower = ~(mean(.x,  na.rm = TRUE) - (sd(.x, na.rm = TRUE)*1.96)),
-        IQR_low = ~quantile(.x, probs = .25, na.rm = TRUE, type = 9), 
-        IQR_high = ~quantile(.x, probs = .75, na.rm = TRUE, type = 9))),
+        CI_upper = ~quantile(.x, probs = .025, na.rm = TRUE, type = 4),# despite the name, actually doing the 95% IQR instead? # use type 4, which I think shouldn't care if the variable is normally distributed? ~(mean(.x,  na.rm = TRUE) + (sd(.x, na.rm = TRUE)*1.96)),
+        CI_lower =  ~quantile(.x, probs = .975, na.rm = TRUE, type = 4),
+        IQR_low = ~quantile(.x, probs = .25, na.rm = TRUE, type = 4),  # use type 4, which I think shouldn't care if the variable is normally distributed?
+        IQR_high = ~quantile(.x, probs = .75, na.rm = TRUE, type = 4))),
                 mean_value = mean(value, na.rm = TRUE), # mean of predictor for that decile
                # IQR_high = ,
                 #IQR_low = , 

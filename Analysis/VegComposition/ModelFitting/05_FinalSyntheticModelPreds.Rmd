@@ -1869,7 +1869,7 @@ preds_quantile <- preds_quantile %>%
 ```
 
 
-```{r}
+```{r diagnostic plots for NL/BL issue, eval = FALSE}
 
 ## locations where we have observations for total tree cover vs. locations where we have observations for all tree types 
 preds_quantile$totalTreeDataAvail <- NA
@@ -2485,85 +2485,85 @@ quantPlot_totalTrees_noF_NLBL <- add_dotplot_inset(quantPlot_totalTrees_noF_NLBL
 ## are there any locations where we have observations for NL tree and not BL tree? (we shouldn't) 
 #sum(is.na(preds_quantile[!is.na(preds_quantile$NLTreeCover_abs), "BLTreeCover_abs"])) # as expected, no places where we have NL but not BL trees 
 
-## compare data 
-# dataset w/ all available tree observations
-allAvailTreeDat <- preds_quantile %>% 
-  #filter(prob_Forest_b == 0) %>% 
-  select(TotalTreeCover, absTotalTree_CONUS,
-         NLTreeCover_abs, absNLTree_CONUS,
-         BLTreeCover_abs, absBLTree_CONUS,
-         decilePredNames_totalTree, prob_Forest_b
-         ) %>% drop_na(TotalTreeCover, absTotalTree_CONUS, decilePredNames_totalTree, prob_Forest_b) %>% 
-  mutate(TotalTreeCover_curtailed = replace(TotalTreeCover, is.na(NLTreeCover_abs), NA),
-         absTotalTree_CONUS_curtailed = replace(absTotalTree_CONUS, is.na(NLTreeCover_abs), NA))
-  ggplot(allAvailTreeDat) + 
-  facet_wrap(~as.factor(prob_Forest_b), scales = "free") + 
-  geom_density(aes(x = TotalTreeCover), col = "black") +  # observations (all available data)
-  geom_density(aes(x = absTotalTree_CONUS), col = "lightblue") + # predictions (all available data)
-  geom_density(aes(x = TotalTreeCover_curtailed), lty = 2, col = "black") +  # observations (all available data)
-  geom_density(aes(x = absTotalTree_CONUS_curtailed), lty = 2, col = "lightblue") + # predictions (all available data)
-  ggtitle("Total tree cover data in non-forest (0) and forest (1)" , 
-          subtitle = "black = observations and blue = model predictions \nsolid lines = all available total tree data \ndashed line = data w/ observed total tree, NL tree and BL tree")
-
-preds_quantile %>% 
-  #filter(prob_Forest_b == 0) %>% 
-  select(TotalTreeCover, absTotalTree_CONUS,
-         NLTreeCover_abs, absNLTree_CONUS,
-         BLTreeCover_abs, absBLTree_CONUS,
-         decilePredNames_totalTree, prob_Forest_b
-         ) %>% drop_na() %>% 
-  ggplot() + 
-  facet_wrap(~as.factor(prob_Forest_b)) + 
-  geom_density(aes(x = TotalTreeCover), col = "black") +  # observations
-  geom_density(aes(x = absTotalTree_CONUS), col = "lightblue") + # predictions
-  ggtitle("Total tree cover data (only locations with total tree, NL tree and BL tree) in non-forest (0) and forest (1)" , 
-          subtitle = "black = observations and blue = model predictions")
-
-preds_quantile %>% 
-  #filter(prob_Forest_b == 0) %>% 
-  select(TotalTreeCover, absTotalTree_CONUS,
-         NLTreeCover_abs, absNLTree_CONUS,
-         BLTreeCover_abs, absBLTree_CONUS,
-         decilePredNames_totalTree, prob_Forest_b
-         ) %>% drop_na() %>% 
-  ggplot() + 
-  facet_wrap(~as.factor(prob_Forest_b)) + 
-  geom_density(aes(x = NLTreeCover_abs), col = "black") +  # observations
-  geom_density(aes(x = absNLTree_CONUS), col = "lightblue") + # predictions
-  # geom_density(aes(x = TotalTreeCover), col = "grey") +  # observations
-  # geom_density(aes(x = absTotalTree_CONUS), col = "darkblue") + # predictions
-  ggtitle("NL tree cover data (all available observations) in non-forest (0) and forest (1)" , 
-          subtitle = "black = observations and blue = model predictions")
-
-preds_quantile %>% 
-  #filter(prob_Forest_b == 0) %>% 
-  select(TotalTreeCover, absTotalTree_CONUS,
-         NLTreeCover_abs, absNLTree_CONUS,
-         BLTreeCover_abs, absBLTree_CONUS,
-         decilePredNames_totalTree, prob_Forest_b
-         ) %>% drop_na() %>% 
-  ggplot() + 
-  facet_wrap(~as.factor(prob_Forest_b)) + 
-  geom_density(aes(x = TotalTreeCover), col = "black") +  # observations
-  geom_density(aes(x = absTotalTree_CONUS), col = "lightblue") + # predictions
-  ggtitle("Total tree cover data (only locations with total tree, NL tree and BL tree) in non-forest (0) and forest (1)" , 
-          subtitle = "black = observations and blue = model predictions")
-
-
-
-
-
-testDat_curtailedPreds <- preds_quantile %>% 
-  #filter(prob_Forest_b == 0) %>% 
-  select(TotalTreeCover, absTotalTree_CONUS,
-         NLTreeCover_abs, absNLTree_CONUS,
-         BLTreeCover_abs, absBLTree_CONUS,
-         decilePredNames_totalTree, prob_Forest_b
-         ) %>% drop_na() #%>% 
-  table(testDat_curtailedPreds$prob_Forest_b)
+# ## compare data 
+# # dataset w/ all available tree observations
+# allAvailTreeDat <- preds_quantile %>% 
+#   #filter(prob_Forest_b == 0) %>% 
+#   select(TotalTreeCover, absTotalTree_CONUS,
+#          NLTreeCover_abs, absNLTree_CONUS,
+#          BLTreeCover_abs, absBLTree_CONUS,
+#          decilePredNames_totalTree, prob_Forest_b
+#          ) %>% drop_na(TotalTreeCover, absTotalTree_CONUS, decilePredNames_totalTree, prob_Forest_b) %>% 
+#   mutate(TotalTreeCover_curtailed = replace(TotalTreeCover, is.na(NLTreeCover_abs), NA),
+#          absTotalTree_CONUS_curtailed = replace(absTotalTree_CONUS, is.na(NLTreeCover_abs), NA))
+#   ggplot(allAvailTreeDat) + 
+#   facet_wrap(~as.factor(prob_Forest_b), scales = "free") + 
+#   geom_density(aes(x = TotalTreeCover), col = "black") +  # observations (all available data)
+#   geom_density(aes(x = absTotalTree_CONUS), col = "lightblue") + # predictions (all available data)
+#   geom_density(aes(x = TotalTreeCover_curtailed), lty = 2, col = "black") +  # observations (all available data)
+#   geom_density(aes(x = absTotalTree_CONUS_curtailed), lty = 2, col = "lightblue") + # predictions (all available data)
+#   ggtitle("Total tree cover data in non-forest (0) and forest (1)" , 
+#           subtitle = "black = observations and blue = model predictions \nsolid lines = all available total tree data \ndashed line = data w/ observed total tree, NL tree and BL tree")
+# 
+# preds_quantile %>% 
+#   #filter(prob_Forest_b == 0) %>% 
+#   select(TotalTreeCover, absTotalTree_CONUS,
+#          NLTreeCover_abs, absNLTree_CONUS,
+#          BLTreeCover_abs, absBLTree_CONUS,
+#          decilePredNames_totalTree, prob_Forest_b
+#          ) %>% drop_na() %>% 
+#   ggplot() + 
+#   facet_wrap(~as.factor(prob_Forest_b)) + 
+#   geom_density(aes(x = TotalTreeCover), col = "black") +  # observations
+#   geom_density(aes(x = absTotalTree_CONUS), col = "lightblue") + # predictions
+#   ggtitle("Total tree cover data (only locations with total tree, NL tree and BL tree) in non-forest (0) and forest (1)" , 
+#           subtitle = "black = observations and blue = model predictions")
+# 
+# preds_quantile %>% 
+#   #filter(prob_Forest_b == 0) %>% 
+#   select(TotalTreeCover, absTotalTree_CONUS,
+#          NLTreeCover_abs, absNLTree_CONUS,
+#          BLTreeCover_abs, absBLTree_CONUS,
+#          decilePredNames_totalTree, prob_Forest_b
+#          ) %>% drop_na() %>% 
+#   ggplot() + 
+#   facet_wrap(~as.factor(prob_Forest_b)) + 
+#   geom_density(aes(x = NLTreeCover_abs), col = "black") +  # observations
+#   geom_density(aes(x = absNLTree_CONUS), col = "lightblue") + # predictions
+#   # geom_density(aes(x = TotalTreeCover), col = "grey") +  # observations
+#   # geom_density(aes(x = absTotalTree_CONUS), col = "darkblue") + # predictions
+#   ggtitle("NL tree cover data (all available observations) in non-forest (0) and forest (1)" , 
+#           subtitle = "black = observations and blue = model predictions")
+# 
+# preds_quantile %>% 
+#   #filter(prob_Forest_b == 0) %>% 
+#   select(TotalTreeCover, absTotalTree_CONUS,
+#          NLTreeCover_abs, absNLTree_CONUS,
+#          BLTreeCover_abs, absBLTree_CONUS,
+#          decilePredNames_totalTree, prob_Forest_b
+#          ) %>% drop_na() %>% 
+#   ggplot() + 
+#   facet_wrap(~as.factor(prob_Forest_b)) + 
+#   geom_density(aes(x = TotalTreeCover), col = "black") +  # observations
+#   geom_density(aes(x = absTotalTree_CONUS), col = "lightblue") + # predictions
+#   ggtitle("Total tree cover data (only locations with total tree, NL tree and BL tree) in non-forest (0) and forest (1)" , 
+#           subtitle = "black = observations and blue = model predictions")
+# 
+# 
+# 
+# 
+# 
+# testDat_curtailedPreds <- preds_quantile %>% 
+#   #filter(prob_Forest_b == 0) %>% 
+#   select(TotalTreeCover, absTotalTree_CONUS,
+#          NLTreeCover_abs, absNLTree_CONUS,
+#          BLTreeCover_abs, absBLTree_CONUS,
+#          decilePredNames_totalTree, prob_Forest_b
+#          ) %>% drop_na() #%>% 
+#   table(testDat_curtailedPreds$prob_Forest_b)
 ```
 
-```{r}
+```{r, eval = FALSE}
 # Comparing the data used to make total tree model quantile plot, NL tree quantile plot and BL tree quantile plots, as well as the data used to make quantile plots above (that has observations for total trees, NL trees and BL trees)
 # data used to make total tree quantile plot 
 quantilePredDat <- deciles_totTree %>% 

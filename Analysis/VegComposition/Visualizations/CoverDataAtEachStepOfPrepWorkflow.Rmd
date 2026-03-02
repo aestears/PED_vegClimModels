@@ -699,12 +699,12 @@ ggarrange(ggplot(dat_4 %>%
 )
 ```
 ## After adding climate/weather data
-```{r, echo = FALSE, , fig.width= 20, fig.height = 14}
+```{r, echo = FALSE,  fig.width= 20, fig.height = 14}
 # Read in data
-dat_5 <- readRDS("../../../Data_processed/CoverData/DataForModels_spatiallyAveraged_sf_sampledLANDFIRE.rds")
+dat_5_temp <- readRDS("../../../Data_processed/CoverData/DataForModels_spatiallyAveraged_sf_sampledLANDFIRE.rds")
 
 ## make figures
-dat_5 <- dat_5 %>%
+dat_5 <- dat_5_temp %>%
   pivot_longer(cols = c(ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_
                         ),
                names_to = "coverType",
@@ -787,10 +787,10 @@ ggarrange(ggplot(dat_6 %>%
 ## After adding soils data and removing RAP points that are in ag/developed areas
 ```{r, echo = FALSE, , fig.width= 20, fig.height = 14}
 # Read in data
-dat_7 <- readRDS("../../../Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf_sampledLANDFIRE.rds")
+dat_7_temp <- readRDS("../../../Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf_sampledLANDFIRE.rds")
 
 ## make figures
-dat_7 <- dat_7 %>%
+dat_7 <- dat_7_temp %>%
   pivot_longer(cols = c(ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_
                         ),
                names_to = "coverType",
@@ -828,15 +828,80 @@ ggarrange(ggplot(dat_7 %>%
 ```
 
 ### Making density plots of all of the cover type by data source (after removing burned area)
+First, predict forest classification using the model we later fit to the data to determine forest or non-forest
+```{r}
+#dat_5_temp has the climate data, so I think I should be able to add the climate data from there to the data in dat_3_temp? 
+dat_7_clim <- dat_7_temp %>% 
+  st_as_sf(coords = c("x", "y"), crs = st_crs(dat_5_temp), remove = FALSE) %>% 
+  #cbind(dat_7_temp %>% select("x", "y")) %>% 
+          st_transform(crs = st_crs(dat_3_temp), remove = FALSE) %>% 
+  mutate(locationID = paste0(round(.data[["x"]], 5),"_", round(.data[["y"]], 5)))
+
+dat_3_tempClim <- dat_3_temp %>% 
+  #slice(1) %>% 
+ sf::st_join(
+    dat_7_clim %>% 
+      select(locationID),
+      join = st_nearest_feature,#st_nearest_feature,
+    left = TRUE
+  ) 
+dat_3_tempClim <- dat_3_tempClim %>% 
+  st_drop_geometry() %>% 
+  left_join(dat_7_clim %>% 
+              st_drop_geometry() %>% 
+              select(Year, x:locationID), 
+            by = c("Year" = "Year", "locationID" = "locationID")
+             )
+
+dat_3_tempClim <- 
+  dat_3_tempClim %>% 
+  mutate(ForestPred =  as.numeric(1/ (1 + exp(-(-0.67478165 +  
+                                            1.71345065*((prcp_meanAnnTotal_CLIM - 483.34337211) / 321.52170566) + 
+                                            -0.01633932*((precip_Seasonality_meanAnnAvg_CLIM - 0.97338094) / 0.23365057) + 
+                                            -0.91285243*((PrecipTempCorr_meanAnnAvg_CLIM - 0.01681097) / 0.39882063) +  
+                                            0.53377439*((annWetDegDays_meanAnnAvg_CLIM - 1808.61043539) / 1083.25298131) + 
+                                            -0.60523936*((annWaterDeficit_95percentile_CLIM - 164.68611646) / 104.14892564) +  
+                                            0.20578879*((avgCoarsePerc_acrossDepth - 9.66120017) / 10.16883531) + 
+                                            -0.61568228*((totalAvailableWaterHoldingCapacity - 14.61190409) / 5.65765542) + 
+                                            -0.31818631*I(((tmean_meanAnnAvg_CLIM - 11.0291275) / 4.89048541)^2) + 
+                                            0.20104126*I(((precip_Seasonality_meanAnnAvg_CLIM - 0.97338094) / 0.23365057)^2) + 
+                                            -0.89055646*I(((PrecipTempCorr_meanAnnAvg_CLIM - 0.01681097) / 0.39882063)^2) +  
+                                            0.14226917*I(((isothermality_meanAnnAvg_CLIM - 37.76731082) / 5.2256935)^2) + 
+                                            -0.11810211*I(((surfaceClay_perc - 19.59171509) / 8.51944876)^2) +  
+                                            0.11278028*I(((totalAvailableWaterHoldingCapacity - 14.61190409) / 5.65765542)^2) +  
+                                            0.91656456*((annWetDegDays_meanAnnAvg_CLIM - 1808.61043539) / 1083.25298131)*((annWaterDeficit_95percentile_CLIM - 164.68611646) / 104.14892564) + 
+                                            -0.29650844*((precip_driestMonth_meanAnnAvg_CLIM - 3.18622575) / 5.36400552)*((isothermality_meanAnnAvg_CLIM - 37.76731082) / 5.2256935) + 
+                                            -0.02061048*((PrecipTempCorr_meanAnnAvg_CLIM - 0.01681097) / 0.39882063)*((isothermality_meanAnnAvg_CLIM - 37.76731082) / 5.2256935) +
+                                            -0.28504255*((isothermality_meanAnnAvg_CLIM - 37.76731082) / 5.2256935)*((tmean_meanAnnAvg_CLIM - 11.0291275) / 4.89048541) + 
+                                            0.50549093*((PrecipTempCorr_meanAnnAvg_CLIM - 0.01681097) / 0.39882063)*((precip_driestMonth_meanAnnAvg_CLIM - 3.18622575) / 5.36400552) +
+                                            -0.25285633*((PrecipTempCorr_meanAnnAvg_CLIM - 0.01681097) / 0.39882063)*((tmean_meanAnnAvg_CLIM - 11.0291275) / 4.89048541) + 
+                                            -0.16290284*((totalAvailableWaterHoldingCapacity - 14.61190409) / 5.65765542)*((surfaceClay_perc - 19.59171509) / 8.51944876) +  
+                                            0.09163249*((avgCoarsePerc_acrossDepth - 9.66120017) / 10.16883531)*((surfaceClay_perc - 19.59171509) / 8.51944876)))))) %>% 
+  drop_na(ForestPred)
+# ggplot(dat_3_tempClim) + 
+#   geom_point(aes(x = Lon, y = Lat, col = ForestPred))
+
+# convert the continuous probability predictions to binary using previously-identified threshold 
+dat_3_tempClim <- dat_3_tempClim %>% 
+  mutate(pred_binary = ForestPred,
+    pred_binary = replace(pred_binary, pred_binary > 0.3819095, 1),
+         pred_binary = replace(pred_binary, pred_binary <= 0.3819095, 0))
+
+# interpolate the continuous predictions
+dat_3_tempClim$preds_interp <- NA
+dat_3_tempClim[!is.na(dat_3_tempClim$ForestPred), "preds_interp"] <- approxfun_pred(dat_3_tempClim[ !is.na(dat_3_tempClim$ForestPred), "ForestPred"])
+
+```
+
 ```{r}
 # data are in the dat_3_temp data.frame
 # are there any locations where we have NL and BL tree but not total tree? 
-dat_3_temp[is.finite(dat_3_temp$AngioTreeCover_prop) & is.na(dat_3_temp$TotalTreeCover),]
+#dat_3_temp[is.finite(dat_3_temp$AngioTreeCover_prop) & is.na(dat_3_temp$TotalTreeCover),]
 
   ggplot() + 
-    facet_wrap(~Source, scales = "free") + 
-    geom_density(data = dat_3_temp, aes(TotalTreeCover, col = Source)) + 
-    geom_density(data = dat_3_temp[is.finite(dat_3_temp$AngioTreeCover_prop),], aes(TotalTreeCover, col = Source),lty = 2) + 
+    facet_wrap(vars(Source, pred_binary), ncol = 2, scales = "free") + 
+    geom_density(data = dat_3_tempClim, aes(TotalTreeCover, col = Source)) + 
+    geom_density(data = dat_3_tempClim[is.finite(dat_3_tempClim$AngioTreeCover_prop),], aes(TotalTreeCover, col = Source),lty = 2) + 
     ggtitle("Density plots of total tree cover data (prior to spatial averaging) \nsolid lines = all available total tree cover data \ndashed line = total tree cover data in locations where we also have \nNL and BL tree cover data")
   
 kable(x = data.frame("FIA" = c(table(dat_3_temp[is.finite(dat_3_temp$TotalTreeCover), "Source"] %>% st_drop_geometry())["FIA"], 

@@ -9,9 +9,9 @@ output:
     code_folding: hide
     dev: "jpeg"
 params:
-  run: FALSE      
+  run: TRUE      
   save_figs: TRUE
-  ecoregion: noTrees # trees or noTrees
+  ecoregion: trees # trees or noTrees
   response: TotalTreeCover
   removeTexasLouisianaPlain: FALSE
   removeAllAnoms: FALSE
@@ -173,6 +173,13 @@ modDat_1_s <- modDat_1 %>%
 saveRDS(modDat_1_s, file = "./models/scaledModelInputData.rds")
 ```
 
+## If predicting total tree cover, restrict the data only to the locations where we have observations for total tree cover and the proportion of that total tree cover that is either needle-leaved or broad-leaved
+```{r}
+if(response == "TotalTreeCover") {
+  modDat_1_s <- modDat_1_s %>% 
+    filter(!is.na(response) & !is.na(AngioTreeCover_prop) & !is.na(ConifTreeCover_prop))
+}
+```
 ### Subset the data to only include data for the ecoregion of interest based on classification from yes/no tree model (using bestLambda model)
 ```{r subset data to that ecoregion}
 if (ecoregion == "noTrees") {
@@ -972,6 +979,8 @@ Then, we predict (on the training set) using both of these models (best lambda a
   ## predict on the test data
   # lasso model predictions with the optimal lambda
   optimal_pred <- predict(fit_glm_bestLambda, newx=X[,2:ncol(X)], type = "response")
+ optimal_pred_ByHand <- exp(predict(fit_glm_bestLambda, newx=X[,2:ncol(X)]))/
+   (1 +  exp(predict(fit_glm_bestLambda, newx=X[,2:ncol(X)])))
   optimal_pred_1se <-  predict(fit_glm_se, newx=X[,2:ncol(X)], type = "response")
   optimal_pred_halfse <- predict(fit_glm_halfse, newx = X[,2:ncol(X)], type = "response")
   
@@ -1015,12 +1024,19 @@ ggplot() +
   xlab(colnames(X)[2])
   #ylim(c(0,200))
  
+plot(density(fullModOut$modelPredictions$obs), 
+     ylim = c(0,4))
+lines(density(fullModOut$modelPredictions$pred_opt), col = "red")
+lines(density(optimal_pred_ByHand), col = "red", lty = 2)
+lines(density(fullModOut$modelPredictions$pred_opt_halfse), col = "orange")
+lines(density(fullModOut$modelPredictions$pred_opt_se), col = "green")
+lines(density(fullModOut$modelPredictions$pred_null), col = "blue")
 ```
 
 The internal cross-validation process to fit the global LASSO model identified an optimal lambda value (regularization parameter) of `r{print(best_lambda)}`. The lambda value such that the cross validation error is within 1 standard error of the minimum ("1se lambda") was `r{print(fit$lambda.1se)}`` . The following coefficients were kept in each model: 
 ```{r coefficients in the global model}
 # the coefficient matrix from the 'best model' -- find and print those coefficients that aren't 0 in a table
-# the coefficient matrix from the 'best model' -- find and print those coefficients that aren't 0 in a table
+# the coefficient   matrix from the 'best model' -- find and print those coefficients that aren't 0 in a table
 coef_glm_bestLambda <- coef(fit_glm_bestLambda) %>% 
   data.frame() 
 coef_glm_bestLambda$coefficientName <- rownames(coef_glm_bestLambda)
@@ -1643,7 +1659,7 @@ predicted probability for each percentile.
 if (length(prednames_fig) == 0) {
   print("The best lambda model only contains one predictor (an intercept), so decile plots aren't possible to generate")
 } else {
-  pred_glm1_deciles <- predvars2deciles(pred_glm1,
+  pred_glm1_deciles <- predvars2deciles(df = pred_glm1,
                                       response_vars = response_vars,
                                         pred_vars = prednames_fig, 
                                        cut_points = seq(0, 1, 0.01))
@@ -1666,12 +1682,26 @@ if (length(prednames_fig) == 0) {
 } else {
 
 # publication quality version
-g3 <- decile_dotplot_pq(df = pred_glm1_deciles, response = c(response, paste0(response, "_pred")), IQR = TRUE,
-                        CI = FALSE
+g3 <- decile_dotplot_pq(df = pred_glm1_deciles, response = c(response, paste0(response, "_pred")), IQR = FALSE,
+                        CI = TRUE
                         ) + ggtitle("Decile Plot")
 
 g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles, response = c(response, paste0(response, "_pred")), dfRaw = pred_glm1, add_smooth = TRUE, deciles = FALSE)
 
+  # make a density plot 
+ g4 <- ggarrange(g4, ggplot(pred_glm1) + 
+  geom_density(aes(.data[[response]])) + 
+  geom_density(aes(.data[[paste0(response,"_pred")]]), col = "lightblue") + 
+    ggtitle("Density of observed values (black) and predicted values (blue)"),
+  ncol = 1, heights = c(.75, .25)
+ )
+
+# ggplot(pred_glm1) + 
+#   geom_point(aes(y =.data[[response]], 
+#                   x = .data[[paste0(response,"_pred")]])) +
+# geom_abline(aes(slope = 1, intercept = 0), col = "red") + 
+#   geom_smooth(aes(y =.data[[response]], 
+#                   x = .data[[paste0(response,"_pred")]]), col = "grey")
   
 if(save_figs) {
   # png(paste0("../../../Figures/CoverDatFigures/ figures/quantile_plots/quantile_plot_", response,  "_",ecoregion,".png"), 
@@ -1697,7 +1727,13 @@ g3 <- decile_dotplot_pq(pred_glm1_deciles_1se, response = c(response, paste0(res
 
 g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles_1se, response = c(response, paste0(response, "_pred")), dfRaw = pred_glm1_1se, add_smooth = TRUE, deciles = FALSE)
 
-  
+    # make a density plot 
+ g4 <- ggarrange(g4, ggplot(pred_glm1_1se) + 
+  geom_density(aes(.data[[response]])) + 
+  geom_density(aes(.data[[paste0(response,"_pred")]]), col = "lightblue") + 
+    ggtitle("Density of observed values (black) and predicted values (blue)"),
+  ncol = 1, heights = c(.75, .25)
+ )
 if(save_figs) {
   # png(paste0("figures/quantile_plots/quantile_plot_", response,  "_",ecoregion,".png"), 
   #    units = "in", res = 600, width = 5.5, height = 3.5 )
