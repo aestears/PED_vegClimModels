@@ -212,7 +212,7 @@ df_pred <- modDat_1_s[, prednames]
 ## Visualize the response variable 
 ```{r visualize response variable}
 hist(modDat_1_s[,response], main = paste0("Histogram of ",response),
-     xlab = paste0(response))
+     xlab = paste0(response), breaks = 50)
 # plot(density(modDat_1_s[,response]), col = "brown", main = "TotalTreeCover values: observed dataset \nblack = complete dataset; brown = un-forested locations; \ngreen = forested locations", xlab = "Total Tree Cover")
 # lines(density(modDat[!is.na(modDat$TotalTreeCover),response]), col = "black")
 # lines(density(modDat[(modDat$treeProb_bestLambda_binary == 1) & (!is.na(modDat$TotalTreeCover)) & !is.na(modDat$treeProb_bestLambda_binary),
@@ -863,7 +863,12 @@ if (trimAnom == TRUE) {
 
 ## 
 ## fit w/ the identified coefficients from the 'best' lambda, but using the glm function
-  mat_glmnet_best <- bestLambda_coef$VariableName 
+  # make the modDat_1_s matrix into a data.frame for model fitting
+  X_dataFrame <- X[,2:ncol(X)] %>% 
+    cbind(y) %>% as.data.frame() 
+  names(X_dataFrame)[ncol(X_dataFrame)] <- response
+  
+mat_glmnet_best <- bestLambda_coef$VariableName 
 
   if (length(mat_glmnet_best) == 0) {
     f_glm_bestLambda <- as.formula(paste0(response, "~ 1"))
@@ -872,7 +877,8 @@ if (trimAnom == TRUE) {
   }
   
 ## fit using betareg
-  fit_glm_bestLambda <- fit_glm_bestLambda_quasiBETA <- glm(formula = f_glm_bestLambda, data = modDat_1_s, family =quasibeta_family(link = "logit") )
+  fit_glm_bestLambda <- fit_glm_bestLambda_quasiBETA <- glm(formula = f_glm_bestLambda,data = X_dataFrame#modDat_1_s
+                                                            , family =quasibeta_family(link = "logit") )
     
   #fit_glm_bestLambda_BETAREG <- betareg(formula =  f_glm_bestLambda, data = modDat_1_s, link = "logit")
   ## fit using quasi-beta
@@ -902,8 +908,8 @@ if (trimAnom == TRUE) {
   f_glm_1se <- as.formula(paste0(response, " ~ ", paste0(mat_glmnet_1se, collapse = " + ")))
   }
 
-
-  fit_glm_se <- glm(formula = f_glm_1se, data = modDat_1_s, family =quasibeta_family(link = "logit") )
+  fit_glm_se <- glm(formula = f_glm_1se, data = X_dataFrame#modDat_1_s
+                    , family =quasibeta_family(link = "logit") )
   # glm(data = modDat_1_s, formula = f_glm_1se,
   #                   family =  stats::Gamma(link = "log"))
   
@@ -916,7 +922,8 @@ if (trimAnom == TRUE) {
   f_glm_halfse <- as.formula(paste0(response, " ~ ", paste0(mat_glmnet_halfse, collapse = " + ")))
   }
 
-  fit_glm_halfse <- glm(formula = f_glm_halfse, data = modDat_1_s, family =quasibeta_family(link = "logit") )
+  fit_glm_halfse <- glm(formula = f_glm_halfse, data = X_dataFrame#modDat_1_s
+                        , family =quasibeta_family(link = "logit") )
   
   ## save models 
   if (trimAnom == TRUE) {
@@ -977,19 +984,25 @@ Then, we predict (on the training set) using both of these models (best lambda a
 ```{r}
   
   ## predict on the test data
-  # lasso model predictions with the optimal lambda
-  optimal_pred <- predict(fit_glm_bestLambda, newx=X[,2:ncol(X)], type = "response")
- optimal_pred_ByHand <- exp(predict(fit_glm_bestLambda, newx=X[,2:ncol(X)]))/
-   (1 +  exp(predict(fit_glm_bestLambda, newx=X[,2:ncol(X)])))
-  optimal_pred_1se <-  predict(fit_glm_se, newx=X[,2:ncol(X)], type = "response")
-  optimal_pred_halfse <- predict(fit_glm_halfse, newx = X[,2:ncol(X)], type = "response")
+## newdata for predictions
+newdata_DF <- data.frame(X[,2:ncol(X)])
+names(newdata_DF) <- colnames(X[,2:ncol(X)])  
+# lasso model predictions with the optimal lambda
+  optimal_pred <- predict.glm(fit_glm_bestLambda, newdata = newdata_DF, type = "response")
+  # plot(density(optimal_pred_OLD)) 
+  # lines(density(optimal_pred_NEW), col = "red")
+  
+ optimal_pred_ByHand <- exp(predict.glm(fit_glm_bestLambda, newdata = newdata_DF))/
+   (1 +  exp(predict.glm(fit_glm_bestLambda, newdata = newdata_DF)))
+  optimal_pred_1se <-  predict.glm(fit_glm_se, newdata = newdata_DF, type = "response")
+  optimal_pred_halfse <- predict.glm(fit_glm_halfse, newdata = newdata_DF, type = "response")
   
     null_fit <- glm(#data = data.frame("y" = y, X[,paste0(prednames, "_s")]), 
       formula = y ~ 1, #data = modDat_1_s, 
       family = quasibeta_family(link = "logit")
       #formula = y ~ 1, family = stats::Gamma(link = "log")
       )
-  null_pred <- predict(null_fit, newdata = as.data.frame(X), type = "response"
+  null_pred <- predict.glm(null_fit, newdata = as.data.frame(X), type = "response"
                        )
 
   # ## snap values above 100 and below 0 to be 100 or z
@@ -1202,6 +1215,7 @@ if (alternativeModel2 == "X1.2.se.lambda.model") {
 ```{r predict with best lambda on data used for fitting}
   # create prediction for each each model
 # (i.e. for each fire proporation variable)
+##AES
 predict_by_response <- function(mod, df) {
   df_out <- df
   response_name <- paste0(response, "_pred")
@@ -1342,7 +1356,7 @@ labs(title = paste0("Observations of ", response, " in the ",ecoregion, " ecoreg
 # histogram of observations
 hist_obs <- pred_glm1%>% 
   ggplot() + 
-  geom_histogram(aes(.data[[response]]), fill = "lightgrey", col = "darkgrey")
+  geom_histogram(aes(.data[[response]]), fill = "lightgrey", col = "darkgrey", breaks = 50)
 
 library(ggpubr)
 ggarrange( map_obs, hist_obs, heights = c(3, 1), ncol = 1)
