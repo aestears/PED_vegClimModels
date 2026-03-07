@@ -9,10 +9,10 @@ output:
     code_folding: hide
     dev: "jpeg"
 params:
-  run: TRUE      
+  run: FALSE      
   save_figs: TRUE
-  ecoregion: trees # trees or noTrees
-  response: TotalTreeCover
+  ecoregion: noTrees # trees or noTrees
+  response: TotalHerbaceousCover
   removeTexasLouisianaPlain: FALSE
   removeAllAnoms: FALSE
   trimAnomalies: TRUE
@@ -88,7 +88,7 @@ Data compiled in the `prepDataForModels.R` script
 ```{r}
 here::i_am("Analysis/VegComposition/ModelFitting/03_modelFitting_testingBetaLASSO.Rmd")
 
-# get data that already have 
+# get data that already have forest classification from previous model 
 modDat <- readRDS( here("Data_processed", "CoverData", "CoverModelData_withTreeNoTreePreds.rds")) %>% st_drop_geometry()
 
 # change Level 1 cover variables to be between 0 and 1 rather than 0 and 100
@@ -277,7 +277,7 @@ modDat_1_s <- modDat_1_s %>%
 
 ## Predictor variables compared to binned response variables
 
-```{r climVar_boxplots, fig.height=9, fig.width=8, eval=FALSE}
+```{r climVar_boxplots, fig.height=9, fig.width=8, eval=TRUE}
 set.seed(12011993)
 # vector of name of response variables
 vars_response <- response
@@ -384,6 +384,7 @@ modDat_1_s %>%
 kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 
 ```
+
 
 
 
@@ -880,7 +881,8 @@ mat_glmnet_best <- bestLambda_coef$VariableName
   fit_glm_bestLambda <- fit_glm_bestLambda_quasiBETA <- glm(formula = f_glm_bestLambda,data = X_dataFrame#modDat_1_s
                                                             , family =quasibeta_family(link = "logit") )
     
-  #fit_glm_bestLambda_BETAREG <- betareg(formula =  f_glm_bestLambda, data = modDat_1_s, link = "logit")
+  fit_glm_bestLambda_BETAREG <- betareg(formula =  f_glm_bestLambda, data = X_dataFrame#modDat_1_s
+                                        , link = "logit")
   ## fit using quasi-beta
   # ## compare coefficients
   # modCoeffsTest <- data.frame("coefficientName" = names(coefficients(fit_glm_bestLambda_BETAREG)),
@@ -981,14 +983,17 @@ mat_glmnet_best <- bestLambda_coef$VariableName
 
 
 Then, we predict (on the training set) using both of these models (best lambda and 1se lambda) 
-```{r}
+```{r Prediction}
   
-  ## predict on the test data
+## predict on the test data
 ## newdata for predictions
 newdata_DF <- data.frame(X[,2:ncol(X)])
 names(newdata_DF) <- colnames(X[,2:ncol(X)])  
-# lasso model predictions with the optimal lambda
-  optimal_pred <- predict.glm(fit_glm_bestLambda, newdata = newdata_DF, type = "response")
+
+# predictions w/ the 'best lambda' glm model   
+optimal_pred <- predict.glm(fit_glm_bestLambda, newdata = newdata_DF, type = "response")
+# predictions w/ the 'best lambda' model fit with betareg()
+optimal_pred_betareg <- betareg:::predict.betareg(object = fit_glm_bestLambda_BETAREG, newdata = newdata_DF, type = "response")
   # plot(density(optimal_pred_OLD)) 
   # lines(density(optimal_pred_NEW), col = "red")
   
@@ -1037,13 +1042,44 @@ ggplot() +
   xlab(colnames(X)[2])
   #ylim(c(0,200))
  
+```
+
+```{r model evaluation figures, eval=FALSE}
+# lasso model predictions with the optimal lambda
+x <- quasibeta_family()
+
+  pred_rawLASSO <- x[["linkinv"]](glmnet::predict.glmnet(object = fit$glmnet.fit, newx = X[,2:ncol(X)], s = best_lambda)  )
+  pred_rawLASSO_link <- glmnet::predict.glmnet(object = fit$glmnet.fit, newx = X[,2:ncol(X)], s = best_lambda, type = "link")
+  # predictions by hand 
+  predVector <- fit$glmnet.fit$beta[,fit$index["min",]]
+  pred_rawLASSO_byHand_link <- c(fit$glmnet.fit$a0[fit$index["min",]] + 
+                                   predVector[1] * X[,names(predVector[1])] + predVector[2] * X[,names(predVector[2])] + predVector[3] * X[,names(predVector[3])] + predVector[4] * X[,names(predVector[4])] + predVector[5] * X[,names(predVector[5])] + predVector[6] * X[,names(predVector[6])] + predVector[7] * X[,names(predVector[7])] + predVector[8] * X[,names(predVector[8])] + predVector[9] * X[,names(predVector[9])] + predVector[10] * X[,names(predVector[10])] + predVector[11] * X[,names(predVector[11])] + predVector[12] * X[,names(predVector[12])] + predVector[13] * X[,names(predVector[13])] + predVector[14] * X[,names(predVector[14])] + predVector[15] * X[,names(predVector[15])] + predVector[16] * X[,names(predVector[16])] + predVector[17] * X[,names(predVector[17])] + predVector[18] * X[,names(predVector[18])] + predVector[19] * X[,names(predVector[19])] + predVector[20] * X[,names(predVector[20])] + predVector[21] * X[,names(predVector[21])] + predVector[22] * X[,names(predVector[22])] + predVector[23] * X[,names(predVector[23])] + predVector[24] * X[,names(predVector[24])] + predVector[25] * X[,names(predVector[25])] + predVector[26] * X[,names(predVector[26])] + predVector[27] * X[,names(predVector[27])] + predVector[28] * X[,names(predVector[28])] + predVector[29] * X[,names(predVector[29])] + predVector[30] * X[,names(predVector[30])] +  predVector[31] * X[,names(predVector[31])] + predVector[32] * X[,names(predVector[32])] + predVector[33] * X[,names(predVector[33])] + predVector[34] * X[,names(predVector[34])] + predVector[35] * X[,names(predVector[35])] + predVector[36] * X[,names(predVector[36])] + predVector[37] * X[,names(predVector[37])] + predVector[38] * X[,names(predVector[38])] + predVector[39] * X[,names(predVector[39])] +predVector[40] * X[,names(predVector[40])] + predVector[41] * X[,names(predVector[41])] + predVector[42] * X[,names(predVector[42])] + predVector[43] * X[,names(predVector[43])] + predVector[44] * X[,names(predVector[44])] + predVector[45] * X[,names(predVector[45])] + predVector[46] * X[,names(predVector[46])] + predVector[47] * X[,names(predVector[47])] + predVector[48] * X[,names(predVector[48])] + predVector[49] * X[,names(predVector[49])] +predVector[50] * X[,names(predVector[50])] + predVector[51] * X[,names(predVector[51])] + predVector[52] * X[,names(predVector[52])] + predVector[53] * X[,names(predVector[53])] + predVector[54] * X[,names(predVector[54])] + predVector[55] * X[,names(predVector[55])] + predVector[56] * X[,names(predVector[56])] + predVector[57] * X[,names(predVector[57])] + predVector[58] * X[,names(predVector[58])] + predVector[59] * X[,names(predVector[59])] +predVector[60] * X[,names(predVector[60])] + predVector[61] * X[,names(predVector[61])] + predVector[62] * X[,names(predVector[62])] + predVector[63] * X[,names(predVector[63])] + predVector[64] * X[,names(predVector[64])] + predVector[65] * X[,names(predVector[65])] + predVector[66] * X[,names(predVector[66])] + predVector[67] * X[,names(predVector[67])] + predVector[68] * X[,names(predVector[68])] + predVector[69] * X[,names(predVector[69])] +predVector[70] * X[,names(predVector[70])] + predVector[71] * X[,names(predVector[71])] + predVector[72] * X[,names(predVector[72])] + predVector[73] * X[,names(predVector[73])] + predVector[74] * X[,names(predVector[74])] + predVector[75] * X[,names(predVector[75])] + predVector[76] * X[,names(predVector[76])] + predVector[77] * X[,names(predVector[77])] + predVector[78] * X[,names(predVector[78])] + predVector[79] * X[,names(predVector[79])] +predVector[80] * X[,names(predVector[80])] + predVector[81] * X[,names(predVector[81])] + predVector[82] * X[,names(predVector[82])] + predVector[83] * X[,names(predVector[83])] + predVector[84] * X[,names(predVector[84])] + predVector[85] * X[,names(predVector[85])] + predVector[86] * X[,names(predVector[86])] + predVector[87] * X[,names(predVector[87])] + predVector[88] * X[,names(predVector[88])] + predVector[89] * X[,names(predVector[89])] +predVector[90] * X[,names(predVector[90])] + predVector[91] * X[,names(predVector[91])] + predVector[92] * X[,names(predVector[92])] + predVector[93] * X[,names(predVector[93])] + predVector[94] * X[,names(predVector[94])] + 
+                                   predVector[95] * X[,names(predVector[95])] + predVector[96] * X[,names(predVector[96])] + predVector[97] * X[,names(predVector[97])] + predVector[98] * X[,names(predVector[98])] + predVector[99] * X[,names(predVector[99])] +predVector[100] * X[,names(predVector[100])] + predVector[101] * X[,names(predVector[101])] + predVector[102] * X[,names(predVector[102])] + predVector[103] * X[,names(predVector[103])] + predVector[104] * X[,names(predVector[104])] + predVector[105] * X[,names(predVector[105])] + predVector[106] * X[,names(predVector[106])] + predVector[107] * X[,names(predVector[107])] + predVector[108] * X[,names(predVector[108])] + predVector[109] * X[,names(predVector[109])] +predVector[110] * X[,names(predVector[110])] + predVector[111] * X[,names(predVector[111])] + predVector[112] * X[,names(predVector[112])] + predVector[113] * X[,names(predVector[113])] + predVector[114] * X[,names(predVector[114])] + predVector[115] * X[,names(predVector[115])] + predVector[116] * X[,names(predVector[116])] + predVector[117] * X[,names(predVector[117])] + predVector[118] * X[,names(predVector[118])] + predVector[119] * X[,names(predVector[119])] +predVector[120] * X[,names(predVector[120])] + predVector[121] * X[,names(predVector[121])] + predVector[122] * X[,names(predVector[122])] + predVector[123] * X[,names(predVector[123])] + predVector[124] * X[,names(predVector[124])] + predVector[125] * X[,names(predVector[125])] + predVector[126] * X[,names(predVector[126])] + predVector[127] * X[,names(predVector[127])] + predVector[128] * X[,names(predVector[128])] + predVector[129] * X[,names(predVector[129])] +predVector[130] * X[,names(predVector[130])] + predVector[131] * X[,names(predVector[131])] + predVector[132] * X[,names(predVector[132])] + predVector[133] * X[,names(predVector[133])] + predVector[134] * X[,names(predVector[134])] + predVector[135] * X[,names(predVector[135])] + predVector[136] * X[,names(predVector[136])] + predVector[137] * X[,names(predVector[137])] + predVector[138] * X[,names(predVector[138])] + predVector[139] * X[,names(predVector[139])] +predVector[140] * X[,names(predVector[140])] + predVector[141] * X[,names(predVector[141])] + predVector[142] * X[,names(predVector[142])] + predVector[143] * X[,names(predVector[143])] + predVector[144] * X[,names(predVector[144])] + predVector[145] * X[,names(predVector[145])] + predVector[146] * X[,names(predVector[146])] + predVector[147] * X[,names(predVector[147])] + predVector[148] * X[,names(predVector[148])] + predVector[149] * X[,names(predVector[149])] 
+  )
+  
+  # transform to the scale of the response by hand 
+  pred_rawLASSO_byHand <- exp(pred_rawLASSO_byHand_link)/(1 + exp(pred_rawLASSO_byHand_link))
+  
+  
+  plot(density(pred_rawLASSO), col = "red", xlim = c(-2, 2), 
+       main = "predictions from LASSO model (prior to stability selection, trim anoms, etc.) \ngreen = preds. on the logit-link scale, \nred = preds. on the response scale; black = observations", 
+       )
+  lines(density(pred_rawLASSO_link), col = "green")
+  lines(density(y), col = "black")
+  lines(density( pred_rawLASSO_byHand_link), col = "darkgreen")
+  lines(density( pred_rawLASSO_byHand), col = "brown")
+  #lines(density(y), col = "black")
+  
 plot(density(fullModOut$modelPredictions$obs), 
-     ylim = c(0,4))
+     ylim = c(0,4), 
+     main = c("black = observed values \n red = predictions from 'best lambda' model with quasi-beta \n blue = predictions from 'best lambda' model with betareg()")) #\n orange = predictions for '1/2se' lambda model \n green = predictions from '1se' lambda model "))
 lines(density(fullModOut$modelPredictions$pred_opt), col = "red")
-lines(density(optimal_pred_ByHand), col = "red", lty = 2)
+lines(density(optimal_pred_betareg), col = "blue")
+
+#lines(density(optimal_pred_ByHand), col = "red", lty = 2)
 lines(density(fullModOut$modelPredictions$pred_opt_halfse), col = "orange")
 lines(density(fullModOut$modelPredictions$pred_opt_se), col = "green")
-lines(density(fullModOut$modelPredictions$pred_null), col = "blue")
+#lines(density(fullModOut$modelPredictions$pred_null), col = "blue")
 ```
 
 The internal cross-validation process to fit the global LASSO model identified an optimal lambda value (regularization parameter) of `r{print(best_lambda)}`. The lambda value such that the cross validation error is within 1 standard error of the minimum ("1se lambda") was `r{print(fit$lambda.1se)}`` . The following coefficients were kept in each model: 
@@ -1215,20 +1251,21 @@ if (alternativeModel2 == "X1.2.se.lambda.model") {
 ```{r predict with best lambda on data used for fitting}
   # create prediction for each each model
 # (i.e. for each fire proporation variable)
-##AES
+
 predict_by_response <- function(mod, df) {
   df_out <- df
   response_name <- paste0(response, "_pred")
-  preds <- predict(mod, newx= df_out, #s="lambda.min", 
+  preds <- predict(mod, newdata = df_out, #s="lambda.min", 
                                      type = "response")
-  preds[preds<0] <- 0
+  #preds[preds<0] <- 0
   #preds[preds>100] <- 100
   df_out <- df_out %>% cbind(preds)
    colnames(df_out)[ncol(df_out)] <- response_name
   return(df_out)
 }
 
-pred_glm1 <- predict_by_response(fit_glm_bestLambda, X[,2:ncol(X)])
+pred_glm1 <- predict_by_response(fit_glm_bestLambda, newdata_DF#X[,2:ncol(X)]
+                                 )
 
 ## back-transform the 
 # add back in true y values
@@ -1251,7 +1288,7 @@ if ( name_secondBestMod == "Intercept_Only") {
   print("The next best lambda model only contains one predictor (an intercept)")
 } else {
 
-pred_glm1_1se <- predict_by_response(mod_secondBest, X[,2:ncol(X)])
+pred_glm1_1se <- predict_by_response(mod_secondBest, newdata_DF)
 
 # add back in true y values
 pred_glm1_1se <- pred_glm1_1se %>% 
@@ -1356,10 +1393,16 @@ labs(title = paste0("Observations of ", response, " in the ",ecoregion, " ecoreg
 # histogram of observations
 hist_obs <- pred_glm1%>% 
   ggplot() + 
-  geom_histogram(aes(.data[[response]]), fill = "lightgrey", col = "darkgrey", breaks = 50)
+  geom_histogram(aes(.data[[response]]), fill = "lightgrey", col = "darkgrey", bins = 50)
 
 library(ggpubr)
 ggarrange( map_obs, hist_obs, heights = c(3, 1), ncol = 1)
+
+
+
+hist(modDat_1_s[,response], main = paste0("Histogram of ",response),
+     xlab = paste0(response), breaks = 50)
+hist(pred_glm1[,response], breaks = 50,  col = "blue")
 
 # 
 # # rasterize
@@ -1950,8 +1993,11 @@ y_cv <- as.matrix(modDat_1_s[,response])
   testDat_all <- modDat_1_s %>%
     slice(test) %>%
     dplyr::select(-newRegion)
-
-  # get the model matrices for input and response variables for cross validation model specification
+## make testDat_all a data.frame that matches data used for fit_glm_bestLambda model (fit to matrix)
+testDat_DF <- data.frame(X[test,2:ncol(X)])
+names(testDat_DF) <- colnames(X)[2:ncol(X)]
+  
+# get the model matrices for input and response variables for cross validation model specification
   X_train <- as.matrix(X_cv[train,])
   X_test <- as.matrix(X_cv[test,])
 
@@ -1974,11 +2020,12 @@ y_cv <- as.matrix(modDat_1_s[,response])
     )
     
   # lasso model predictions with the optimal lambda (back transformed)
-  optimal_pred <- predict(fit_i, newdata= testDat_all, type = "response") 
+  optimal_pred <- predict.glm(fit_i, newdata= testDat_all, type = "response") 
   # null model and predictions
   # the "null" model in this case is the global model
   # predict on the test data for this iteration w/ the global model (back transformed)
-  null_pred <- predict.glm(fit_glm_bestLambda, newdata = testDat_all, type = "response") 
+  ##AES
+  null_pred <- predict.glm(fit_glm_bestLambda, newdata = testDat_DF, type = "response") 
 
 
   # save data
@@ -2157,7 +2204,9 @@ y_cv <- as.matrix(modDat_1_s[,response])
   testDat_all <- modDat_1_s %>%
     slice(test) %>%
     dplyr::select(-newRegion)
-
+## make testDat_all a data.frame that matches data used for fit_glm_bestLambda model (fit to matrix)
+testDat_DF <- data.frame(X[test,2:ncol(X)])
+names(testDat_DF) <- colnames(X)[2:ncol(X)]
   # get the model matrices for input and response variables for cross validation model specification
   X_train <- as.matrix(X_cv[train,])
   X_test <- as.matrix(X_cv[test,])
@@ -2187,7 +2236,7 @@ y_cv <- as.matrix(modDat_1_s[,response])
   # null model and predictions
   # the "null" model in this case is the global model
   # predict on the test data for this iteration w/ the global model
-  null_pred <- predict.glm(mod_secondBest, newdata = testDat_all, type = "response") 
+  null_pred <- predict.glm(mod_secondBest, newdata = testDat_DF, type = "response") 
 
   # save data
   tmp <- data.frame(ecoRegion_holdout = rep(test_eco,length(y_test)),

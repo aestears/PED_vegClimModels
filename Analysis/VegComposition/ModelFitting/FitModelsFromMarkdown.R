@@ -365,7 +365,7 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFittin
 # Beta-version: total tree models that exclude anomalies ----------------------
 #grass/shrub
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFitting_testingBetaLASSO.Rmd", 
-                  params = list(  run = FALSE, 
+                  params = list(  run = TRUE, 
                                   save_figs = TRUE,
                                   trimAnomalies = FALSE,
                                   ecoregion = "shrubGrass",
@@ -378,7 +378,7 @@ rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFittin
                   output_file = "betaLASSO_GrassShrub_TotalTreeCover_removeAllAnoms.html")
 #forest
 rmarkdown::render(input = "./Analysis/VegComposition/ModelFitting/03_modelFitting_testingBetaLASSO.Rmd", 
-                  params = list(  run = FALSE,
+                  params = list(  run = TRUE,
                                   save_figs = FALSE,
                                   trimAnomalies = FALSE,
                                   ecoregion = "forest",
