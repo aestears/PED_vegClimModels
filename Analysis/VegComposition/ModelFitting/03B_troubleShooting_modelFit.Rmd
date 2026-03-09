@@ -467,18 +467,22 @@ library(patchwork)
   # penalty values
   lambdas <- 10^seq(1,-5, length.out = 200)  # sequence of penalties to test
  
+prednames_new <- c ("tmean" , "I(log(prcp+1))",  "I(log(prcp_dry+1))",  #"prcpTempCorr",  
+                     "isothermality" , "I(log(annWatDef+2))"  , "sand" ,  "coarse" ,  "I(log(carbon+1))",  "AWHC",                    "tmin_anom",  "tmax_anom" , "t_warm_anom" ,  "prcp_wet_anom",  "precp_dry_anom" ,  "prcp_seasonality_anom",   "prcpTempCorr_anom" , "aboveFreezingMonth_anom", "isothermality_anom",  #"annWatDef_anom", 
+                      "annWetDegDays_anom",      "VPD_min_anom")
+
 if (removeAllAnoms) { ## if the model parameters indicate that we don't want any anomalies... 
     # make model matrix (which includes transformations and interactions)
   ## only include interactions within and between climate and anomaly variables, and within and between soils variables
  ## break predictors into climate, weather, and soils 
-  prednames_clim <- prednames[which(prednames %in% c("tmin" , "tmax",  "tmean",
-     "prcp", "t_warm" , "t_cold" , "prcp_wet" , "prcp_dry" , "prcp_seasonality", "prcpTempCorr", "abvFreezingMonth" , "isothermality" , "annWatDef" , "annWetDegDays",  "VPD_mean",  "VPD_max",  "VPD_min" , "VPD_max_95", "annWatDef_95", "annWetDegDays_5",  "frostFreeDays_5", "frostFreeDays"))]
+  prednames_clim <- prednames_new[which(prednames_new %in% c("tmin" , "tmax",  "tmean",
+     "I(log(prcp_dry+1))", "t_warm" , "t_cold" , "prcp_wet" , "I(log(prcp_dry+1))" , "prcp_seasonality", "prcpTempCorr", "abvFreezingMonth" , "isothermality" , "I(log(annWatDef+2))" , "annWetDegDays",  "VPD_mean",  "VPD_max",  "VPD_min" , "VPD_max_95", "annWatDef_95", "annWetDegDays_5",  "frostFreeDays_5", "frostFreeDays"))]
 
-  prednames_soils <- prednames[which(prednames %in% c( "soilDepth" , "clay", 
-     "sand" , "coarse" ,  "carbon", "AWHC"))]
-   prednames_weath <- prednames[which(prednames %in% c("tmean_anom", "tmin_anom",  "tmax_anom", 
+  prednames_weath <- prednames_new[which(prednames_new %in% c("tmean_anom", "tmin_anom",  "tmax_anom", 
     "prcp_anom",      "t_warm_anom" , "t_cold_anom",  "prcp_wet_anom" , "precp_dry_anom" ,  "prcp_seasonality_anom" ,  "prcpTempCorr_anom" , "aboveFreezingMonth_anom",  "isothermality_anom" ,  "annWatDef_anom", "annWetDegDays_anom",  "VPD_mean_anom" , "VPD_min_anom" , "VPD_max_anom", "VPD_max_95_anom", "annWatDef_95_anom" , "annWetDegDays_5_anom",  "frostFreeDays_5_anom" , "frostFreeDays_anom"))]
   
+  prednames_soils <- prednames_new[which(prednames_new %in% c( "soilDepth" , "clay", 
+     "sand" , "coarse" ,  "I(log(carbon+1))", "AWHC"))]
   # get a text string of possible interactions between climate and weather variables
   combos <- data.frame(gtools::permutations(n = length(c(prednames_clim)),
                                             r = 2,
@@ -498,37 +502,36 @@ if (removeAllAnoms) { ## if the model parameters indicate that we don't want any
   int_string <-str_flatten(c(combos$interactions, combos_2$interactions), collapse = " + ")
   
   # make text string of transformations (log, squared)
-  transform_string <- str_flatten(c(# add square root term 
-                                    paste0("I(log(",prednames_clim,"+30))"), 
-                                    paste0("I(log(",prednames_soils,"+30))"),
-                                    
-                                    paste0("I(sqrt(",prednames_clim,"+30))"), 
-                                    paste0("I(sqrt(",prednames_soils,"+30))"),
-                                    
-                                    paste0("I(",prednames_clim,"^2)"), 
-                                    paste0("I(",prednames_soils,"^2)"))
-                                    , collapse = " + ")
+  # transform_string <- str_flatten(c(# add square root term 
+  #                                   paste0("I(log(",prednames_clim,"+30))"), 
+  #                                   paste0("I(log(",prednames_soils,"+30))"),
+  #                                   
+  #                                   paste0("I(sqrt(",prednames_clim,"+30))"), 
+  #                                   paste0("I(sqrt(",prednames_soils,"+30))"),
+  #                                   
+  #                                   paste0("I(",prednames_clim,"^2)"), 
+  #                                   paste0("I(",prednames_soils,"^2)"))
+  #                                   , collapse = " + ")
               
   # get a text string of the possible untransformed model terms
   mod_string <- paste(response, "~", paste0(c(prednames_clim, prednames_soils), collapse = "+"))
   
   # make a text string of the model formula w/ interactions and transformations included
-  modWithInteractions <- paste(mod_string, "+",int_string , "+", transform_string
+  modWithInteractions <- paste(mod_string, "+",int_string #, "+", transform_string
                                )
    
 } else { ## if the model parameters indicate that we DO want anomalies... 
     # make model matrix (which includes transformations and interactions)
   ## only include interactions within and between climate and anomaly variables, and within and between soils variables
 
- ## break predictors into climate, weather, and soils 
-  prednames_clim <- prednames[which(prednames %in% c("tmin" , "tmax",  "tmean",
-     "prcp", "t_warm" , "t_cold" , "prcp_wet" , "prcp_dry" , "prcp_seasonality", "prcpTempCorr", "abvFreezingMonth" , "isothermality" , "annWatDef" , "annWetDegDays",  "VPD_mean",  "VPD_max",  "VPD_min" , "VPD_max_95", "annWatDef_95", "annWetDegDays_5",  "frostFreeDays_5", "frostFreeDays"))]
+  prednames_clim <- prednames_new[which(prednames_new %in% c("tmin" , "tmax",  "tmean",
+     "I(log(prcp_dry+1))", "t_warm" , "t_cold" , "prcp_wet" , "I(log(prcp_dry+1))" , "prcp_seasonality", "prcpTempCorr", "abvFreezingMonth" , "isothermality" , "I(log(annWatDef+2))" , "annWetDegDays",  "VPD_mean",  "VPD_max",  "VPD_min" , "VPD_max_95", "annWatDef_95", "annWetDegDays_5",  "frostFreeDays_5", "frostFreeDays"))]
 
-  prednames_weath <- prednames[which(prednames %in% c("tmean_anom", "tmin_anom",  "tmax_anom", 
+  prednames_weath <- prednames_new[which(prednames_new %in% c("tmean_anom", "tmin_anom",  "tmax_anom", 
     "prcp_anom",      "t_warm_anom" , "t_cold_anom",  "prcp_wet_anom" , "precp_dry_anom" ,  "prcp_seasonality_anom" ,  "prcpTempCorr_anom" , "aboveFreezingMonth_anom",  "isothermality_anom" ,  "annWatDef_anom", "annWetDegDays_anom",  "VPD_mean_anom" , "VPD_min_anom" , "VPD_max_anom", "VPD_max_95_anom", "annWatDef_95_anom" , "annWetDegDays_5_anom",  "frostFreeDays_5_anom" , "frostFreeDays_anom"))]
   
-  prednames_soils <- prednames[which(prednames %in% c( "soilDepth" , "clay", 
-     "sand" , "coarse" ,  "carbon", "AWHC"))]
+  prednames_soils <- prednames_new[which(prednames_new %in% c( "soilDepth" , "clay", 
+     "sand" , "coarse" ,  "I(log(carbon+1))", "AWHC"))]
   
   
   # get a text string of possible interactions between climate and weather variables
@@ -549,26 +552,26 @@ if (removeAllAnoms) { ## if the model parameters indicate that we don't want any
   # make text string of all possible interactions
   int_string <-str_flatten(c(combos$interactions, combos_2$interactions), collapse = " + ")
   
-  # make text string of transformations (log, squared)
-  transform_string <- str_flatten(c(# add square root term 
-                                    paste0("I(log(",prednames_clim,"+30))"), 
-                                    paste0("I(log(",prednames_weath,"+30))"),
-                                    paste0("I(log(",prednames_soils,"+30))"),
-                                    
-                                    paste0("I(sqrt(",prednames_clim,"+30))"), 
-                                    paste0("I(sqrt(",prednames_weath,"+30))"),
-                                    paste0("I(sqrt(",prednames_soils,"+30))"),
-                                    
-                                    paste0("I(",prednames_clim,"^2)"), 
-                                    paste0("I(",prednames_weath,"^2)"),
-                                    paste0("I(",prednames_soils,"^2)"))
-                                    , collapse = " + ")
+  # # make text string of transformations (log, squared)
+  # transform_string <- str_flatten(c(# add square root term 
+  #                                   paste0("I(log(",prednames_clim,"+30))"), 
+  #                                   paste0("I(log(",prednames_weath,"+30))"),
+  #                                   paste0("I(log(",prednames_soils,"+30))"),
+  #                                   
+  #                                   paste0("I(sqrt(",prednames_clim,"+30))"), 
+  #                                   paste0("I(sqrt(",prednames_weath,"+30))"),
+  #                                   paste0("I(sqrt(",prednames_soils,"+30))"),
+  #                                   
+  #                                   paste0("I(",prednames_clim,"^2)"), 
+  #                                   paste0("I(",prednames_weath,"^2)"),
+  #                                   paste0("I(",prednames_soils,"^2)"))
+  #                                   , collapse = " + ")
               
   # get a text string of the possible untransformed model terms
   mod_string <- paste(response, "~", paste0(prednames, collapse = "+"))
   
   # make a text string of the model formula w/ interactions and transformations included
-  modWithInteractions <- paste(mod_string, "+",int_string , "+", transform_string
+  modWithInteractions <- paste(mod_string, "+",int_string #, "+", transform_string
                                )
    
 }
@@ -625,6 +628,16 @@ if (length(corrNames_i)>1) {
 X <- X[,!(colnames(X) %in% badNames)]
 ```
 
+Visualize all of the variables in the final list of possible predictors 
+```{r fig.width = 12, fig.height = 8}
+as.data.frame(X) %>% 
+  select(-"(Intercept)") %>% 
+  pivot_longer(cols = any_of(colnames(X)), names_to = "variable", values_to = "values") %>% 
+  ggplot() + 
+  facet_wrap(~variable, scales = "free", ncol = 6) + 
+  geom_density(aes(values))
+```
+
 ```{r}
 if (run == TRUE) {
   # set up custom folds
@@ -657,7 +670,14 @@ if (run == TRUE) {
       parallel = TRUE
     )
      base::saveRDS(fit, paste0("../ModelFitting/models/betaLASSO/", response, "_globalLASSOmod_betaLogitLink_",ecoregion,"_removeAnomalies", removeAllAnoms,".rds"))
-    
+  
+        ## testing
+     x <- quasibeta_family()
+  pred_rawLASSO <- x[["linkinv"]](glmnet::predict.glmnet(object = fit$glmnet.fit, newx = X[,2:ncol(X)], s = best_lambda)  )
+  pred_rawLASSO_link <- glmnet::predict.glmnet(object = fit$glmnet.fit, newx = X[,2:ncol(X)], s = best_lambda, type = "link")
+plot(density(y), ylim = c(0,2)
+     )
+lines(density(pred_rawLASSO), col = "red")  
     
      best_lambda <- fit$lambda.min
   # save the lambda for the most regularized model w/ an MSE that is still 1SE w/in the best lambda model
@@ -890,8 +910,11 @@ mat_glmnet_best <- bestLambda_coef$VariableName
   }
   
 ## fit using betareg
-  fit_glm_bestLambda <- fit_glm_bestLambda_quasiBETA <- glm(formula = f_glm_bestLambda,data = X_dataFrame#modDat_1_s
-                                                            , family =quasibeta_family(link = "logit") )
+  fit_glm_bestLambda <- fit_glm_bestLambda_quasiBETA <- betareg(
+      formula = f_glm_bestLambda, data = modDat_1_s, link = "logit"
+  )
+    # glm(formula = f_glm_bestLambda,data = X_dataFrame#modDat_1_s
+    #                                                         , family =quasibeta_family(link = "logit") )
 
     
   #fit_glm_bestLambda_BETAREG <- betareg(formula =  f_glm_bestLambda, data = X_dataFrame#modDat_1_s
@@ -950,8 +973,10 @@ mat_glmnet_best <- bestLambda_coef$VariableName
   f_glm_1se <- as.formula(paste0(response, " ~ ", paste0(mat_glmnet_1se, collapse = " + ")))
   }
 
-  fit_glm_se <- glm(formula = f_glm_1se, data = X_dataFrame#modDat_1_s
-                    , family =quasibeta_family(link = "logit") )
+  fit_glm_se <- betareg(#glm(
+    formula = f_glm_1se, data = modDat_1_s
+                    , #family =quasibeta_family(link = "logit"),
+      link = "logit")
   # glm(data = modDat_1_s, formula = f_glm_1se,
   #                   family =  stats::Gamma(link = "log"))
   
@@ -964,8 +989,10 @@ mat_glmnet_best <- bestLambda_coef$VariableName
   f_glm_halfse <- as.formula(paste0(response, " ~ ", paste0(mat_glmnet_halfse, collapse = " + ")))
   }
 
-  fit_glm_halfse <- glm(formula = f_glm_halfse, data = X_dataFrame#modDat_1_s
-                        , family =quasibeta_family(link = "logit") )
+  fit_glm_halfse <- #glm(
+    betareg(formula = f_glm_halfse, data = modDat_1_s
+                        , #family =quasibeta_family(link = "logit") 
+            link = "logit")
   
   ## save models 
   if (trimAnom == TRUE) {
@@ -1031,21 +1058,23 @@ newdata_DF <- data.frame(X[,2:ncol(X)])
 names(newdata_DF) <- colnames(X[,2:ncol(X)])  
 
 # predictions w/ the 'best lambda' glm model   
-optimal_pred <- predict.glm(fit_glm_bestLambda, newdata = newdata_DF, type = "response")
+##AES
+optimal_pred <- betareg::predict(fit_glm_bestLambda, newdata = modDat_1_s, type = "response")
   # plot(density(optimal_pred_OLD)) 
   # lines(density(optimal_pred_NEW), col = "red")
   
- optimal_pred_ByHand <- exp(predict.glm(fit_glm_bestLambda, newdata = newdata_DF))/
-   (1 +  exp(predict.glm(fit_glm_bestLambda, newdata = newdata_DF)))
-  optimal_pred_1se <-  predict.glm(fit_glm_se, newdata = newdata_DF, type = "response")
-  optimal_pred_halfse <- predict.glm(fit_glm_halfse, newdata = newdata_DF, type = "response")
+ optimal_pred_ByHand <- exp(betareg::predict(fit_glm_bestLambda, newdata = modDat_1_s))/
+   (1 +  exp(betareg::predict(fit_glm_bestLambda, newdata = modDat_1_s)))
+  optimal_pred_1se <-  betareg::predict(fit_glm_se, newdata = modDat_1_s, type = "response")
+  optimal_pred_halfse <- betareg::predict(fit_glm_halfse, newdata = modDat_1_s, type = "response")
   
-    null_fit <- glm(#data = data.frame("y" = y, X[,paste0(prednames, "_s")]), 
+    null_fit <- betareg(#glm(#data = data.frame("y" = y, X[,paste0(prednames, "_s")]), 
       formula = y ~ 1, #data = modDat_1_s, 
-      family = quasibeta_family(link = "logit")
+      #family = quasibeta_family(link = "logit")
+      link = "logit"
       #formula = y ~ 1, family = stats::Gamma(link = "log")
       )
-  null_pred <- predict.glm(null_fit, newdata = as.data.frame(X), type = "response"
+  null_pred <- betareg::predict(null_fit, newdata = as.data.frame(X), type = "response"
                        )
 
   # ## snap values above 100 and below 0 to be 100 or z
@@ -1090,9 +1119,7 @@ ggplot() +
   names(X_dataFrame)[ncol(X_dataFrame)] <- response
   
 # predictions w/ the 'best lambda' model fit with betareg()
-optimal_pred_betareg <- betareg:::predict.betareg(object = fit_glm_bestLambda_BETAREG, newdata = newdata_DF, type = "response")
-optimal_pred_betareg_byHand <- betareg:::predict.betareg(object = fit_glm_bestLambda_BETAREG_byHand, newdata = newdata_DF, type = "response")
-optimal_pred_betareg_byHandSTAR <- betareg:::predict.betareg(object = fit_glm_bestLambda_BETAREG_byHandSTAR, newdata = newdata_DF, type = "response")
+optimal_pred_betareg <- betareg:::predict.betareg(object = fit_glm_bestLambda, newdata = modDat_1_s, type = "response")
 
 # lasso model predictions with the optimal lambda
 x <- quasibeta_family()
@@ -1115,27 +1142,25 @@ x <- quasibeta_family()
   #pred_rawLASSO_byHand <- exp(pred_rawLASSO_byHand_link)/(1 + exp(pred_rawLASSO_byHand_link))
   
   
-  plot(density(y), col = "black", xlim = c(-2, 2), ylim = c(0,3),
-       main = "predictions from LASSO model (prior to stability selection, trim anoms, etc.) \ngreen = preds. on the logit-link scale, \nred = preds. on the response scale; black = observations \nsolid line = best lambda LASSO, dashed line = unregularized LASSO", 
-       )
-  #lines(density(pred_rawLASSO_link), col = "green")
-  #lines(density(pred_rawLASSO), col = "red") 
-  #lines(density(pred_rawLASSO_link_ALL), col = "green", lty = 2)
-  #lines(density(pred_rawLASSO_ALL), col = "red", lty = 2)
-  lines(density(optimal_pred_betareg_byHand), col = "purple")
-  lines(density(optimal_pred_betareg_byHandSTAR), col = "blue")
-  
-    
+  # plot(density(y), col = "black", xlim = c(-2, 2), ylim = c(0,3),
+  #      main = "predictions from LASSO model (prior to stability selection, trim anoms, etc.) \ngreen = preds. on the logit-link scale, \nred = preds. on the response scale; black = observations \nsolid line = best lambda LASSO, dashed line = unregularized LASSO", 
+  #      )
+  # #lines(density(pred_rawLASSO_link), col = "green")
+  # #lines(density(pred_rawLASSO), col = "red") 
+  # #lines(density(pred_rawLASSO_link_ALL), col = "green", lty = 2)
+  # #lines(density(pred_rawLASSO_ALL), col = "red", lty = 2)
+  # lines(density(optimal_pred_betareg_byHand), col = "purple")
+  # lines(density(optimal_pred_betareg_byHandSTAR), col = "blue")
+  # 
+  #   
   #lines(density( pred_rawLASSO_byHand_link), col = "darkgreen")
   #lines(density( pred_rawLASSO_byHand), col = "brown")
   #lines(density(y), col = "black")
   
 plot(density(fullModOut$modelPredictions$obs), 
      ylim = c(0,4), 
-     main = c("black = observed values \n red = predictions from 'best lambda' model with quasi-beta \n blue = predictions from 'best lambda' model with betareg()")) #\n orange = predictions for '1/2se' lambda model \n green = predictions from '1se' lambda model "))
+     main = c("black = observed values \n red = predictions from 'best lambda' model with quasi-beta \n orange = predictions for '1/2se' lambda model \n green = predictions from '1se' lambda model "))
 lines(density(fullModOut$modelPredictions$pred_opt), col = "red")
-lines(density(optimal_pred_betareg), col = "blue")
-
 #lines(density(optimal_pred_ByHand), col = "red", lty = 2)
 lines(density(fullModOut$modelPredictions$pred_opt_halfse), col = "orange")
 lines(density(fullModOut$modelPredictions$pred_opt_se), col = "green")
@@ -1175,6 +1200,9 @@ response_vars <- c(response, var_prop_pred)
 prednames_fig <- paste(str_split(globModTerms, ":", simplify = TRUE)) 
 prednames_fig <- str_replace(prednames_fig, "I\\(", "")
 prednames_fig <- str_replace(prednames_fig, "\\^2\\)", "")
+prednames_fig <- str_replace(prednames_fig, "log\\(", "")
+prednames_fig <- str_replace(prednames_fig, " \\+ 1\\)\\)", "")
+prednames_fig <- str_replace(prednames_fig, " \\+ 2\\)\\)", "")
 prednames_fig <- unique(prednames_fig[prednames_fig>0])
 prednames_fig <- prednames_fig
 prednames_fig_num <- length(prednames_fig)
@@ -1184,12 +1212,18 @@ if (length(globModTerms_1se) == 1) {
 prednames_fig_1se <- paste(str_split(globModTerms_1se, ":", simplify = TRUE)) 
 prednames_fig_1se <- str_replace(prednames_fig_1se, "I\\(", "")
 prednames_fig_1se <- str_replace(prednames_fig_1se, "\\^2\\)", "")
+prednames_fig_1se <- str_replace(prednames_fig_1se, "log\\(", "")
+prednames_fig_1se <- str_replace(prednames_fig_1se, " \\+ 1\\)\\)", "")
+prednames_fig_1se <- str_replace(prednames_fig_1se, " \\+ 2\\)\\)", "")
 prednames_fig_1se <- unique(prednames_fig_1se[prednames_fig_1se>0])
 prednames_fig_1se_num <- c(0)
 } else {
 prednames_fig_1se <- paste(str_split(globModTerms_1se, ":", simplify = TRUE)) 
 prednames_fig_1se <- str_replace(prednames_fig_1se, "I\\(", "")
 prednames_fig_1se <- str_replace(prednames_fig_1se, "\\^2\\)", "")
+prednames_fig_1se <- str_replace(prednames_fig_1se, "log\\(", "")
+prednames_fig_1se <- str_replace(prednames_fig_1se, " \\+ 1\\)\\)", "")
+prednames_fig_1se <- str_replace(prednames_fig_1se, " \\+ 2\\)\\)", "")
 prednames_fig_1se <- unique(prednames_fig_1se[prednames_fig_1se>0])
 prednames_fig_1se_num <- length(prednames_fig_1se)
 }
@@ -1199,12 +1233,18 @@ if (length(globModTerms_halfse) == 1) {
 prednames_fig_halfse <- paste(str_split(globModTerms_halfse, ":", simplify = TRUE)) 
 prednames_fig_halfse <- str_replace(prednames_fig_halfse, "I\\(", "")
 prednames_fig_halfse <- str_replace(prednames_fig_halfse, "\\^2\\)", "")
+prednames_fig_halfse <- str_replace(prednames_fig_halfse, "log\\(", "")
+prednames_fig_halfse <- str_replace(prednames_fig_halfse, " \\+ 1\\)\\)", "")
+prednames_fig_halfse <- str_replace(prednames_fig_halfse, " \\+ 2\\)\\)", "")
 prednames_fig_halfse <- unique(prednames_fig_halfse[prednames_fig_halfse>0])
 prednames_fig_halfse_num <- c(0)
 } else {
 prednames_fig_halfse <- paste(str_split(globModTerms_halfse, ":", simplify = TRUE)) 
 prednames_fig_halfse <- str_replace(prednames_fig_halfse, "I\\(", "")
 prednames_fig_halfse <- str_replace(prednames_fig_halfse, "\\^2\\)", "")
+prednames_fig_halfse <- str_replace(prednames_fig_halfse, "log\\(", "")
+prednames_fig_halfse <- str_replace(prednames_fig_halfse, " \\+ 1\\)\\)", "")
+prednames_fig_halfse <- str_replace(prednames_fig_halfse, " \\+ 2\\)\\)", "")
 prednames_fig_halfse <- unique(prednames_fig_halfse[prednames_fig_halfse>0])
 prednames_fig_halfse_num <- length(prednames_fig_halfse)
 }
@@ -1324,18 +1364,18 @@ predict_by_response <- function(mod, df) {
   return(df_out)
 }
 
-pred_glm1 <- predict_by_response(fit_glm_bestLambda, newdata_DF#X[,2:ncol(X)]
+pred_glm1 <- predict_by_response(fit_glm_bestLambda, modDat_1_s#newdata_DF#X[,2:ncol(X)]
                                  )
 
 ## back-transform the 
 # add back in true y values
-pred_glm1 <- pred_glm1 %>% 
-  cbind(data.frame(response = modDat_1_s[,c(response)])) 
-names(pred_glm1)[names(pred_glm1) == "response"] <- response
-
-# add back in lat/long data 
-pred_glm1 <- pred_glm1 %>% 
-  cbind(modDat_1_s[,c("x", "y", "Year")])
+# pred_glm1 <- pred_glm1 %>% 
+#   cbind(data.frame(response = modDat_1_s[,c(response)])) 
+# names(pred_glm1)[names(pred_glm1) == "response"] <- response
+# 
+# # add back in lat/long data 
+# pred_glm1 <- pred_glm1 %>% 
+#   cbind(modDat_1_s[,c("x", "y", "Year")])
 
 pred_glm1$resid  <- pred_glm1[,response] - pred_glm1[,paste0(response, "_pred")]
 pred_glm1$extremeResid <- NA
@@ -1348,16 +1388,16 @@ if ( name_secondBestMod == "Intercept_Only") {
   print("The next best lambda model only contains one predictor (an intercept)")
 } else {
 
-pred_glm1_1se <- predict_by_response(mod_secondBest, newdata_DF)
-
-# add back in true y values
-pred_glm1_1se <- pred_glm1_1se %>% 
-  cbind(data.frame(response = modDat_1_s[,c(response)])) 
-names(pred_glm1_1se)[names(pred_glm1_1se) == "response"] <- response
-
-# add back in lat/long data 
-pred_glm1_1se <- pred_glm1_1se %>% 
-  cbind(modDat_1_s[,c("x", "y", "Year")])
+pred_glm1_1se <- predict_by_response(mod_secondBest, modDat_1_s)#newdata_DF)
+# 
+# # add back in true y values
+# pred_glm1_1se <- pred_glm1_1se %>% 
+#   cbind(data.frame(response = modDat_1_s[,c(response)])) 
+# names(pred_glm1_1se)[names(pred_glm1_1se) == "response"] <- response
+# 
+# # add back in lat/long data 
+# pred_glm1_1se <- pred_glm1_1se %>% 
+#   cbind(modDat_1_s[,c("x", "y", "Year")])
 
 pred_glm1_1se$resid <- pred_glm1_1se[,response] - pred_glm1_1se[,paste0(response, "_pred")]
 pred_glm1_1se$extremeResid <- NA
@@ -1444,7 +1484,7 @@ labs(title = paste0("Observations of ", response, " in the ",ecoregion, " ecoreg
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "forestgreen" , 
-                       midpoint = 0,   na.value = "white") + 
+                       midpoint = 0.5,   na.value = "white") + 
   coord_sf(datum = st_crs(pred_glm1_RAST)) +
    # xlim(-104, -100) + 
    # ylim(30, 33)
@@ -1458,11 +1498,11 @@ hist_obs <- pred_glm1%>%
 library(ggpubr)
 ggarrange( map_obs, hist_obs, heights = c(3, 1), ncol = 1)
 
-
-
-hist(modDat_1_s[,response], main = paste0("Histogram of ",response),
-     xlab = paste0(response), breaks = 50)
-hist(pred_glm1[,response], breaks = 50,  col = "blue")
+# 
+# 
+# hist(modDat_1_s[,response], main = paste0("Histogram of ",response),
+#      xlab = paste0(response), breaks = 50)
+# hist(pred_glm1[,response], breaks = 50,  col = "blue")
 
 # 
 # # rasterize
@@ -1540,11 +1580,10 @@ geom_spatraster(data = pred_glm1_RAST, aes(fill = .data[[paste0(response,"_pred"
 geom_sf(data=cropped_states_2 ,fill=NA ) +
   labs(title = paste0("Predictions from the 'best lambda' fitted model of ", response, " in the ",ecoregion, " ecoregion"),
      subtitle =  "bestLambda model")  +
-  scale_fill_gradient2(low = "wheat",
-                       mid = "darkgreen",
-                       high = "red" , 
-                       midpoint = 1,   na.value = "white",
-                       limits = c(0,1)) + 
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "forestgreen" , 
+                       midpoint = 0.5,   na.value = "white") + 
   xlim(-2000000, 2500000) + 
   ylim(-1800000, 900000)
 
@@ -1585,11 +1624,10 @@ geom_spatraster(data = pred_glm1_RAST, aes(fill = .data[[paste0(response,"_pred"
  geom_sf(data=cropped_states_2 ,fill=NA ) +
 labs(title = paste0("Predictions from the ", name_secondBestMod, "fitted model of ", response, " in the ",ecoregion, " ecoregion"),
      subtitle =  name_secondBestMod)  +
-  scale_fill_gradient2(low = "wheat",
-                       mid = "darkgreen",
-                       high = "red" , 
-                       midpoint = 1,   na.value = "white",
-                       limits = c(0, 1)) +
+ scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "forestgreen" , 
+                       midpoint = 0.5,   na.value = "white") + 
   xlim(-2000000, 2500000) + 
   ylim(-1800000, 900000)
 
