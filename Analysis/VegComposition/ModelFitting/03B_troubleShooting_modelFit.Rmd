@@ -12,10 +12,10 @@ params:
   run: FALSE      
   save_figs: TRUE
   ecoregion: trees # trees or noTrees
-  response: TotalTreeCover
+  response: AngioTreeCover_abs #TotalTreeCover
   removeTexasLouisianaPlain: FALSE
-  removeAllAnoms: FALSE
-  trimAnomalies: TRUE
+  removeAllAnoms: TRUE
+  trimAnomalies: FALSE
   autoKfold: FALSE
   whichSecondBestMod: "auto"# 1se OR halfse OR auto (chose the model w/ fewest # of predictors)
 subtitle: "Based on code from Martin Holdrege's Sagebrush-Fire paper"
@@ -97,6 +97,11 @@ modDat[,"TotalHerbaceousCover"] <- modDat[,"TotalHerbaceousCover"]/100
 modDat[,"BareGroundCover"] <- modDat[,"BareGroundCover"]/100
 modDat[,"ShrubCover"] <- modDat[,"ShrubCover"]/100
 
+
+# calculate absolute NL tree cover and absolute BL tree cover
+modDat$AngioTreeCover_abs <- modDat$AngioTreeCover_prop * modDat$TotalTreeCover
+modDat$ConifTreeCover_abs <- modDat$ConifTreeCover_prop * modDat$TotalTreeCover
+
 # For all response variables, make sure there are no 0s add  .0001 from each, since the Beta model framework can't handle that
 modDat[modDat$TotalTreeCover == 0 & !is.na(modDat$TotalTreeCover), "TotalTreeCover"] <- 0.0001
 modDat[modDat$TotalHerbaceousCover == 0  & !is.na(modDat$TotalHerbaceousCover), "TotalHerbaceousCover"] <- 0.0001
@@ -107,6 +112,8 @@ modDat[modDat$ConifTreeCover_prop == 0 & !is.na(modDat$ConifTreeCover_prop), "Co
 modDat[modDat$C4GramCover_prop == 0 & !is.na(modDat$C4GramCover_prop), "C4GramCover_prop"] <- 0.0001
 modDat[modDat$C3GramCover_prop == 0 & !is.na(modDat$C3GramCover_prop), "C3GramCover_prop"] <- 0.0001
 modDat[modDat$ForbCover_prop == 0 & !is.na(modDat$ForbCover_prop), "ForbCover_prop"] <- 0.0001
+modDat[modDat$AngioTreeCover_abs == 0 & !is.na(modDat$AngioTreeCover_abs), "AngioTreeCover_abs"] <- 0.0001
+modDat[modDat$ConifTreeCover_abs == 0 & !is.na(modDat$ConifTreeCover_abs), "ConifTreeCover_abs"] <- 0.0001
 
 # For all response variables, make sure there are no values of 1 -- subtract .0001 from each, since the Beta model framework can't handle that
 modDat[modDat$TotalTreeCover == 1 & !is.na(modDat$TotalTreeCover), "TotalTreeCover"] <- 0.9999
@@ -118,6 +125,8 @@ modDat[modDat$ConifTreeCover_prop == 1 & !is.na(modDat$ConifTreeCover_prop), "Co
 modDat[modDat$C4GramCover_prop == 1 & !is.na(modDat$C4GramCover_prop), "C4GramCover_prop"] <- 0.9999
 modDat[modDat$C3GramCover_prop == 1 & !is.na(modDat$C3GramCover_prop), "C3GramCover_prop"] <- 0.9999
 modDat[modDat$ForbCover_prop == 1 & !is.na(modDat$ForbCover_prop), "ForbCover_prop"] <- 0.9999
+modDat[modDat$AngioTreeCover_abs == 1 & !is.na(modDat$AngioTreeCover_abs), "AngioTreeCover_abs"] <- 0.9999
+modDat[modDat$ConifTreeCover_abs == 1 & !is.na(modDat$ConifTreeCover_abs), "ConifTreeCover_abs"] <-0.9999
 ```
 
 # Prep data
@@ -145,12 +154,43 @@ if (ecoregion == "noTrees") {
 } else if (ecoregion == "trees") {
   # select potential predictor variables for the ecoregion of interest
   prednames <- 
-    c(
-"tmean"             , "prcp"          , "prcp_dry"          , "prcpTempCorr"          ,"isothermality"    , "annWatDef" ,           
-"sand"              , "coarse"        , "carbon"            , "AWHC"                  ,"tmin_anom"        , "tmax_anom" ,       
+ c(
+"tmean"             , "prcp"          , 
+"prcp_dry"          , "prcpTempCorr"          ,"isothermality"    , "annWatDef" ,
+"sand"              , "coarse"        , "carbon"            , "AWHC"                  ,"tmin_anom"        , "tmax_anom" ,
 "t_warm_anom"       , "prcp_wet_anom" , "precp_dry_anom"    , "prcp_seasonality_anom" ,"prcpTempCorr_anom", "aboveFreezingMonth_anom",
-"isothermality_anom", "annWatDef_anom", "annWetDegDays_anom", "VPD_min_anom"  
+"isothermality_anom", "annWatDef_anom", "annWetDegDays_anom", "VPD_min_anom"
 )
+    # c(
+    #        "tmin", 
+    #   "tmax", 
+    #   "tmean",
+    #   "prcp",
+    #   "t_warm",
+    #   "t_cold",
+    #   "prcp_wet",
+    #   "prcp_dry",
+    #   "prcp_seasonality",
+    #   "prcpTempCorr",
+    #   "abvFreezingMonth",
+    #   "isothermality",
+    #   "annWatDef",
+    #   "annWetDegDays",
+    #   "VPD_mean",
+    #   "VPD_max",
+    #   "VPD_min",
+    #   "VPD_max_95",
+    #   "annWatDef_95",
+    #   "annWetDegDays_5",
+    #   "frostFreeDays_5",
+    #   "frostFreeDays",
+    #   "soilDepth",
+    #   "clay",
+    #   "sand",
+    #   "coarse",
+    #   "carbon",
+    #   "AWHC"
+    # )
 } else if (ecoregion == "CONUS") {
   prednames <- c(
 "tmean"         , "prcp"              , "prcp_seasonality"    , "prcpTempCorr"      , "isothermality"           ,"annWetDegDays" ,         
@@ -173,13 +213,13 @@ modDat_1_s <- modDat_1 %>%
 saveRDS(modDat_1_s, file = "./models/scaledModelInputData.rds")
 ```
 
-## If predicting total tree cover, restrict the data only to the locations where we have observations for total tree cover and the proportion of that total tree cover that is either needle-leaved or broad-leaved
-```{r}
-if(response == "TotalTreeCover") {
-  modDat_1_s <- modDat_1_s %>% 
-    filter(!is.na(response) & !is.na(AngioTreeCover_prop) & !is.na(ConifTreeCover_prop))
-}
-```
+<!-- ## If predicting total tree cover, restrict the data only to the locations where we have observations for total tree cover and the proportion of that total tree cover that is either needle-leaved or broad-leaved -->
+<!-- ```{r} -->
+<!-- if(response == "TotalTreeCover") { -->
+<!--   modDat_1_s <- modDat_1_s %>%  -->
+<!--     filter(!is.na(response) & !is.na(AngioTreeCover_prop) & !is.na(ConifTreeCover_prop)) -->
+<!-- } -->
+<!-- ``` -->
 ### Subset the data to only include data for the ecoregion of interest based on classification from yes/no tree model (using bestLambda model)
 ```{r subset data to that ecoregion}
 if (ecoregion == "noTrees") {
@@ -212,8 +252,11 @@ df_pred <- modDat_1_s[, prednames]
 
 ## Visualize the response variable 
 ```{r visualize response variable}
-hist(modDat_1_s[,response], main = paste0("Histogram of ",response),
-     xlab = paste0(response), breaks = 50)
+ modDat_1_s%>% 
+  ggplot() + 
+  geom_histogram(aes(.data[[response]]), fill = "lightgrey", col = "darkgrey", bins = 50) + 
+  ggtitle( paste0("Histogram of ",response))
+
 # plot(density(modDat_1_s[,response]), col = "brown", main = "TotalTreeCover values: observed dataset \nblack = complete dataset; brown = un-forested locations; \ngreen = forested locations", xlab = "Total Tree Cover")
 # lines(density(modDat[!is.na(modDat$TotalTreeCover),response]), col = "black")
 # lines(density(modDat[(modDat$treeProb_bestLambda_binary == 1) & (!is.na(modDat$TotalTreeCover)) & !is.na(modDat$treeProb_bestLambda_binary),
@@ -419,7 +462,8 @@ hull <- modDat_1_sf %>%
   group_by(NA_L2NAME) %>%
   slice(chull(tmean, prcp))
 
-plot1<-ggplot(data=modDat_1_sf,aes(x=tmean,y=prcp)) +
+plot1<-ggplot(data=modDat_1_sf,aes(x=tmean,y=prcp
+                                   )) +
   geom_polygon(data = hull, alpha = 0.25,aes(fill=NA_L2NAME) )+
   geom_point(aes(group=NA_L2NAME,color=NA_L2NAME),alpha=0.25) +
   theme_minimal() + xlab("Annual Average T_mean - long-term average") +
@@ -428,7 +472,7 @@ plot1<-ggplot(data=modDat_1_sf,aes(x=tmean,y=prcp)) +
   #scale_fill_okabeito()
 
 plot2<-ggplot(data=modDat_1_sf %>%
-                pivot_longer(cols=tmean:prcp),
+                pivot_longer(cols=c(tmean:prcp)),
               aes(x=value,group=name)) +
   # geom_polygon(data = hull, alpha = 0.25,aes(fill=fold) )+
   geom_density(aes(group=NA_L2NAME,fill=NA_L2NAME),alpha=0.25) +
@@ -467,16 +511,27 @@ library(patchwork)
   # penalty values
   lambdas <- 10^seq(1,-5, length.out = 200)  # sequence of penalties to test
  
-prednames_new <- c ("tmean" , "I(log(prcp+1))",  "I(log(prcp_dry+1))",  #"prcpTempCorr",  
-                     "isothermality" , "I(log(annWatDef+2))"  , "sand" ,  "coarse" ,  "I(log(carbon+1))",  "AWHC",                    "tmin_anom",  "tmax_anom" , "t_warm_anom" ,  "prcp_wet_anom",  "precp_dry_anom" ,  "prcp_seasonality_anom",   "prcpTempCorr_anom" , "aboveFreezingMonth_anom", "isothermality_anom",  #"annWatDef_anom", 
+prednames_new <-   c("tmean" , "I(log(prcp+1))",  
+                     "I(log(prcp_dry+1))",  "prcpTempCorr",
+                     "isothermality" , "I(log(annWatDef+2))"  , "sand" ,  "coarse" ,  "I(log(carbon+1))",  "AWHC",                    "tmin_anom",  "tmax_anom" , "t_warm_anom" ,  "prcp_wet_anom",  "precp_dry_anom" ,  "prcp_seasonality_anom",   "prcpTempCorr_anom" , "aboveFreezingMonth_anom", "isothermality_anom",  #"annWatDef_anom",
                       "annWetDegDays_anom",      "VPD_min_anom")
+  #c(
+# "tmin"             ,"tmax"        , "tmean"     , "I(log(prcp+1))"             ,"t_warm"          ,
+# "t_cold"           ,"prcp_wet"    , "I(log(prcp_dry+1))"  , "prcp_seasonality" ,#"prcpTempCorr"    ,
+# "abvFreezingMonth" ,"isothermality", "I(log(annWatDef+2))",  "I(log(annWetDegDays+2))"   , "VPD_mean"       , 
+# "VPD_max"          ,"VPD_min"     , "VPD_max_95", "annWatDef_95"     ,"annWetDegDays_5" ,
+# "frostFreeDays_5"  ,"frostFreeDays", "soilDepth",  "clay"            , "sand"           , 
+# "coarse"           ,"I(log(carbon+1))"      , "AWHC"           
+# )
+  
+
 
 if (removeAllAnoms) { ## if the model parameters indicate that we don't want any anomalies... 
     # make model matrix (which includes transformations and interactions)
   ## only include interactions within and between climate and anomaly variables, and within and between soils variables
  ## break predictors into climate, weather, and soils 
   prednames_clim <- prednames_new[which(prednames_new %in% c("tmin" , "tmax",  "tmean",
-     "I(log(prcp_dry+1))", "t_warm" , "t_cold" , "prcp_wet" , "I(log(prcp_dry+1))" , "prcp_seasonality", "prcpTempCorr", "abvFreezingMonth" , "isothermality" , "I(log(annWatDef+2))" , "annWetDegDays",  "VPD_mean",  "VPD_max",  "VPD_min" , "VPD_max_95", "annWatDef_95", "annWetDegDays_5",  "frostFreeDays_5", "frostFreeDays"))]
+     "I(log(prcp+1))", "t_warm" , "t_cold" , "prcp_wet" , "I(log(prcp_dry+1))" , "prcp_seasonality", "prcpTempCorr", "abvFreezingMonth" , "isothermality" , "I(log(annWatDef+2))" , "annWetDegDays",  "VPD_mean",  "VPD_max",  "VPD_min" , "VPD_max_95", "annWatDef_95", "annWetDegDays_5",  "frostFreeDays_5", "frostFreeDays"))]
 
   prednames_weath <- prednames_new[which(prednames_new %in% c("tmean_anom", "tmin_anom",  "tmax_anom", 
     "prcp_anom",      "t_warm_anom" , "t_cold_anom",  "prcp_wet_anom" , "precp_dry_anom" ,  "prcp_seasonality_anom" ,  "prcpTempCorr_anom" , "aboveFreezingMonth_anom",  "isothermality_anom" ,  "annWatDef_anom", "annWetDegDays_anom",  "VPD_mean_anom" , "VPD_min_anom" , "VPD_max_anom", "VPD_max_95_anom", "annWatDef_95_anom" , "annWetDegDays_5_anom",  "frostFreeDays_5_anom" , "frostFreeDays_anom"))]
@@ -525,7 +580,7 @@ if (removeAllAnoms) { ## if the model parameters indicate that we don't want any
   ## only include interactions within and between climate and anomaly variables, and within and between soils variables
 
   prednames_clim <- prednames_new[which(prednames_new %in% c("tmin" , "tmax",  "tmean",
-     "I(log(prcp_dry+1))", "t_warm" , "t_cold" , "prcp_wet" , "I(log(prcp_dry+1))" , "prcp_seasonality", "prcpTempCorr", "abvFreezingMonth" , "isothermality" , "I(log(annWatDef+2))" , "annWetDegDays",  "VPD_mean",  "VPD_max",  "VPD_min" , "VPD_max_95", "annWatDef_95", "annWetDegDays_5",  "frostFreeDays_5", "frostFreeDays"))]
+     "I(log(prcp+1))", "t_warm" , "t_cold" , "prcp_wet" , "I(log(prcp_dry+1))" , "prcp_seasonality", "prcpTempCorr", "abvFreezingMonth" , "isothermality" , "I(log(annWatDef+2))" , "annWetDegDays",  "VPD_mean",  "VPD_max",  "VPD_min" , "VPD_max_95", "annWatDef_95", "annWetDegDays_5",  "frostFreeDays_5", "frostFreeDays"))]
 
   prednames_weath <- prednames_new[which(prednames_new %in% c("tmean_anom", "tmin_anom",  "tmax_anom", 
     "prcp_anom",      "t_warm_anom" , "t_cold_anom",  "prcp_wet_anom" , "precp_dry_anom" ,  "prcp_seasonality_anom" ,  "prcpTempCorr_anom" , "aboveFreezingMonth_anom",  "isothermality_anom" ,  "annWatDef_anom", "annWetDegDays_anom",  "VPD_mean_anom" , "VPD_min_anom" , "VPD_max_anom", "VPD_max_95_anom", "annWatDef_95_anom" , "annWetDegDays_5_anom",  "frostFreeDays_5_anom" , "frostFreeDays_anom"))]
@@ -586,35 +641,35 @@ if (removeAllAnoms) { ## if the model parameters indicate that we don't want any
   y <- as.matrix(modDat_1_s[,response])
 
 ```
-Get rid of transformed predictions and interactions that are correlated 
+Get rid of transformed predictions and interactions that are correlated
 ```{r}
 # get first pass of names correlated variables
-X_df <- X %>% 
-  as.data.frame() %>% 
-  dplyr::select(-'(Intercept)')  
-corrNames_i <- X_df %>% 
-  cor()  %>% 
+X_df <- X %>%
+  as.data.frame() %>%
+  dplyr::select(-'(Intercept)')
+corrNames_i <- X_df %>%
+  cor()  %>%
    caret::findCorrelation(cutoff = .7, verbose = FALSE, names = TRUE, exact = TRUE)
-# remove those names that are untransformed main effects 
-  # vector of columns to remove 
+# remove those names that are untransformed main effects
+  # vector of columns to remove
 badNames <- corrNames_i[!(corrNames_i %in% prednames)]
 while (sum(!(corrNames_i %in% prednames))>0) {
- corrNames_i <-  X_df %>% 
-    dplyr::select(-badNames) %>% 
-     cor()  %>% 
+ corrNames_i <-  X_df %>%
+    dplyr::select(-badNames) %>%
+     cor()  %>%
    caret::findCorrelation(cutoff = .7, verbose = FALSE, names = TRUE, exact = TRUE)
- # update the vector of names to remove 
+ # update the vector of names to remove
  badNames <- unique(c(badNames, corrNames_i[!(corrNames_i %in% prednames)]))
 }
 
 ## see if there are any correlated variables left (would be all main effects at this point)
-# if there are, step through and remove the variable that each is most correlated with 
+# if there are, step through and remove the variable that each is most correlated with
 if (length(corrNames_i)>1) {
   for (i in 1:length(corrNames_i)) {
-    X_i <- X_df %>% 
+    X_i <- X_df %>%
       dplyr::select(-badNames)
     if (corrNames_i[i] %in% names(X_i)) {
-    corMat_i <- cor(x = X_i[corrNames_i[i]], y = X_i %>% dplyr::select(-corrNames_i[i])) 
+    corMat_i <- cor(x = X_i[corrNames_i[i]], y = X_i %>% dplyr::select(-corrNames_i[i]))
     badNames_i <- colnames(corMat_i)[abs(corMat_i)>=.7]
     # if there are any predictors in the 'badNames_i', remove them from this list
     if (length(badNames_i) > 0 & sum(c(badNames_i %in% prednames))>0) {
@@ -629,7 +684,7 @@ X <- X[,!(colnames(X) %in% badNames)]
 ```
 
 Visualize all of the variables in the final list of possible predictors 
-```{r fig.width = 12, fig.height = 8}
+```{r fig.width = 12, fig.height =10}
 as.data.frame(X) %>% 
   select(-"(Intercept)") %>% 
   pivot_longer(cols = any_of(colnames(X)), names_to = "variable", values_to = "values") %>% 
@@ -656,7 +711,7 @@ if (run == TRUE) {
     fit <- cv.glmnet(
       x = X[,2:ncol(X)], 
       y = y, 
-      family = quasibeta_family(),
+      family = quasibeta_family(link = "logit"),
       keep = FALSE,
       alpha = 1,  # 0 == ridge regression, 1 == lasso, 0.5 ~~ elastic net
       lambda = lambdas,
@@ -671,20 +726,26 @@ if (run == TRUE) {
     )
      base::saveRDS(fit, paste0("../ModelFitting/models/betaLASSO/", response, "_globalLASSOmod_betaLogitLink_",ecoregion,"_removeAnomalies", removeAllAnoms,".rds"))
   
-        ## testing
-     x <- quasibeta_family()
-  pred_rawLASSO <- x[["linkinv"]](glmnet::predict.glmnet(object = fit$glmnet.fit, newx = X[,2:ncol(X)], s = best_lambda)  )
-  pred_rawLASSO_link <- glmnet::predict.glmnet(object = fit$glmnet.fit, newx = X[,2:ncol(X)], s = best_lambda, type = "link")
-plot(density(y), ylim = c(0,2)
-     )
-lines(density(pred_rawLASSO), col = "red")  
-    
+
      best_lambda <- fit$lambda.min
   # save the lambda for the most regularized model w/ an MSE that is still 1SE w/in the best lambda model
   lambda_1SE <- fit$lambda.1se
   # save the lambda for the most regularized model w/ an MSE that is still .5SE w/in the best lambda model
   lambda_halfSE <- best_lambda + ((lambda_1SE - best_lambda)/2)
  
+          ## testing
+     x <- quasibeta_family(link = "logit")
+  pred_rawLASSO <- x[["linkinv"]](glmnet::predict.glmnet(object = fit$glmnet.fit, newx = X[,2:ncol(X)], s = best_lambda)  )
+  pred_rawLASSO_1se <- x[["linkinv"]](glmnet::predict.glmnet(object = fit$glmnet.fit, newx = X[,2:ncol(X)], s = lambda_1SE)  )
+  pred_rawLASSO_unreg <- x[["linkinv"]](glmnet::predict.glmnet(object = fit$glmnet.fit, newx = X[,2:ncol(X)], s = 0)  )
+  pred_rawLASSO_link <- glmnet::predict.glmnet(object = fit$glmnet.fit, newx = X[,2:ncol(X)], s = best_lambda, type = "link")
+# plot(density(y), ylim = c(0,5)
+#      )
+# lines(density(pred_rawLASSO), col = "red")  
+# lines(density(pred_rawLASSO_1se), col = "orange")
+# lines(density(pred_rawLASSO_unreg), col = "blue")
+    
+
 ## Now, we need to do stability selection to ensure the coefficients that are being chosen with each lambda are stable 
 
 ## stability selection for best lambda model 
@@ -894,6 +955,7 @@ if (trimAnom == TRUE) {
       }
 
 
+
 ## 
 ## fit w/ the identified coefficients from the 'best' lambda, but using the glm function
   # make the modDat_1_s matrix into a data.frame for model fitting
@@ -913,6 +975,13 @@ mat_glmnet_best <- bestLambda_coef$VariableName
   fit_glm_bestLambda <- fit_glm_bestLambda_quasiBETA <- betareg(
       formula = f_glm_bestLambda, data = modDat_1_s, link = "logit"
   )
+  # fit_glm_bestLambda_varDev <-  betareg(
+  #     formula = as.formula(paste0(response, " ~ ", paste0(paste0(mat_glmnet_best, collapse = " + "), "| I(log(prcp + 1)) + prcp_wet")))
+  #       
+  #                      , data = modDat_1_s, link = "logit"
+  # )
+  # 
+  # AIC(fit_glm_bestLambda, fit_glm_bestLambda_varDev)
     # glm(formula = f_glm_bestLambda,data = X_dataFrame#modDat_1_s
     #                                                         , family =quasibeta_family(link = "logit") )
 
@@ -1051,17 +1120,22 @@ mat_glmnet_best <- bestLambda_coef$VariableName
 
 Then, we predict (on the training set) using both of these models (best lambda and 1se lambda) 
 ```{r Prediction}
-  
+ x <- quasibeta_family(link = "logit")
+  pred_rawLASSO <- x[["linkinv"]](glmnet::predict.glmnet(object = fit$glmnet.fit, newx = X[,2:ncol(X)], s = best_lambda)  )
+  pred_rawLASSO_1se <- x[["linkinv"]](glmnet::predict.glmnet(object = fit$glmnet.fit, newx = X[,2:ncol(X)], s = lambda_1SE)  )
+  pred_rawLASSO_unreg <- x[["linkinv"]](glmnet::predict.glmnet(object = fit$glmnet.fit, newx = X[,2:ncol(X)], s = 0)  )
+  pred_rawLASSO_link <- glmnet::predict.glmnet(object = fit$glmnet.fit, newx = X[,2:ncol(X)], s = best_lambda, type = "link")
 ## predict on the test data
 ## newdata for predictions
 newdata_DF <- data.frame(X[,2:ncol(X)])
 names(newdata_DF) <- colnames(X[,2:ncol(X)])  
 
 # predictions w/ the 'best lambda' glm model   
-##AES
 optimal_pred <- betareg::predict(fit_glm_bestLambda, newdata = modDat_1_s, type = "response")
   # plot(density(optimal_pred_OLD)) 
   # lines(density(optimal_pred_NEW), col = "red")
+
+#optimal_pred_varDev <- betareg::predict(fit_glm_bestLambda_varDev, newdata = modDat_1_s, type = "response")
   
  optimal_pred_ByHand <- exp(betareg::predict(fit_glm_bestLambda, newdata = modDat_1_s))/
    (1 +  exp(betareg::predict(fit_glm_bestLambda, newdata = modDat_1_s)))
@@ -1111,13 +1185,13 @@ ggplot() +
  
 ```
 
-```{r model evaluation figures, eval=FALSE}
+```{r model evaluation figures}
 
-
-  X_dataFrame <- X[,2:ncol(X)] %>% 
-    cbind(y) %>% as.data.frame() 
-  names(X_dataFrame)[ncol(X_dataFrame)] <- response
-  
+  # 
+  # X_dataFrame <- X[,2:ncol(X)] %>% 
+  #   cbind(y) %>% as.data.frame() 
+  # names(X_dataFrame)[ncol(X_dataFrame)] <- response
+  # 
 # predictions w/ the 'best lambda' model fit with betareg()
 optimal_pred_betareg <- betareg:::predict.betareg(object = fit_glm_bestLambda, newdata = modDat_1_s, type = "response")
 
@@ -1158,13 +1232,19 @@ x <- quasibeta_family()
   #lines(density(y), col = "black")
   
 plot(density(fullModOut$modelPredictions$obs), 
-     ylim = c(0,4), 
-     main = c("black = observed values \n red = predictions from 'best lambda' model with quasi-beta \n orange = predictions for '1/2se' lambda model \n green = predictions from '1se' lambda model "))
+     ylim = c(0,6), 
+     main = c("black = observed values \n red = predictions from 'best lambda' model\n orange = predictions for '1/2se' lambda model \n green = predictions from '1se' lambda model 
+              blue = preds. from LASSO (best lambda) \npurple = preds. from unregularized LASSO"))
 lines(density(fullModOut$modelPredictions$pred_opt), col = "red")
+#lines(density(optimal_pred_varDev), col = "brown")
 #lines(density(optimal_pred_ByHand), col = "red", lty = 2)
 lines(density(fullModOut$modelPredictions$pred_opt_halfse), col = "orange")
 lines(density(fullModOut$modelPredictions$pred_opt_se), col = "green")
 #lines(density(fullModOut$modelPredictions$pred_null), col = "blue")
+lines(density(pred_rawLASSO), col = "blue")  
+#lines(density(pred_rawLASSO_1se), col = "")
+lines(density(pred_rawLASSO_unreg), col = "purple")
+    
 ```
 
 The internal cross-validation process to fit the global LASSO model identified an optimal lambda value (regularization parameter) of `r{print(best_lambda)}`. The lambda value such that the cross validation error is within 1 standard error of the minimum ("1se lambda") was `r{print(fit$lambda.1se)}`` . The following coefficients were kept in each model: 
@@ -1262,7 +1342,6 @@ RMSE_1se <- yardstick::rmse(fullModOut$modelPredictions[,c("obs", "pred_opt_se")
 bias_best <-  mean((fullModOut$modelPredictions$obs) - fullModOut$modelPredictions$pred_opt)
 bias_halfse <-  mean((fullModOut$modelPredictions$obs) - fullModOut$modelPredictions$pred_opt_halfse)
 bias_1se <- mean((fullModOut$modelPredictions$obs) - fullModOut$modelPredictions$pred_opt_se)
-
 
 uniqueCoeffs <- data.frame("Best lambda model" = c(signif(RMSE_best,3), as.character(signif(bias_best, 3)),
   as.integer(length(globModTerms)-1), as.integer(prednames_fig_num), 
@@ -1569,6 +1648,13 @@ ggarrange( map_obs, hist_obs, heights = c(3, 1), ncol = 1)
 # 
 # library(ggpubr)
 # ggarrange(map_obs, hist_obs, heights = c(3,1), ncol = 1)
+
+hist_obs <- pred_glm1%>% 
+  ggplot() + 
+  geom_histogram(aes(.data[[response]]), fill = "lightgrey", col = "darkgrey", bins = 50)
+
+
+
 ```
 
 Predictions across the temporal range of the dataset
@@ -1656,8 +1742,8 @@ badResids_low <- pred_glm1 %>%
 map <- ggplot() +
 geom_spatraster(data = pred_glm1_RAST, aes(fill = resid), maxcell = 50000000) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
-  geom_sf(data = badResids_high, col = "blue") +
-  geom_sf(data = badResids_low, col = "red") +
+  geom_sf(data = badResids_high, col = "blue", pch = 20) +
+  geom_sf(data = badResids_low, col = "red", pch = 20) +
 labs(title = paste0("Resids. (obs. - pred.) from the ", ecoregion," ecoregion-wide model of ", response),
      subtitle = "bestLambda model \n red points indicate locations that have residuals below -0.5 \n blue points indicate locations that have residuals above 0.5") +
   scale_fill_gradient2(low = "red",
@@ -1699,8 +1785,8 @@ badResids_low <- pred_glm1_1se %>%
 map <- ggplot() +
 geom_spatraster(data = pred_glm1_1se_RAST, aes(fill = resid), maxcell = 50000000) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
-  geom_sf(data = badResids_high, col = "blue") +
-  geom_sf(data = badResids_low, col = "red") +
+  geom_sf(data = badResids_high, col = "blue", pch = 20) +
+  geom_sf(data = badResids_low, col = "red", pch = 20) +
 labs(title = paste0("Resids. (obs. - pred.) from the ", ecoregion," ecoregion-wide model of ", response),
      subtitle = "bestLambda model \n red points indicate locations that have residuals below -0.5 \n blue points indicate locations that have residuals above 0.5") +
   scale_fill_gradient2(low = "red",
@@ -1722,6 +1808,151 @@ ggarrange(map, hist, heights = c(3,1), ncol = 1)
 
 }
 ```
+
+
+Interlude to determine where the predictions at the two 'peaks' of the density distribution occur in space (and time?) 
+```{r, eval = FALSE}
+## identify the values of the peaks
+densOfPreds <- (density(pred_glm1$TotalTreeCover_pred))
+# function from stack overflow for finding local maxima
+localMaxima <- function(x) {
+  # Use -Inf instead if x is numeric (non-integer)
+  y <- diff(c(-.Machine$integer.max, x)) > 0L
+  rle(y)$lengths
+  y <- cumsum(rle(y)$lengths)
+  y <- y[seq.int(1L, length(y), 2L)]
+  if (x[[1]] == x[[2]]) {
+    y <- y[-1]
+  }
+  y
+}
+densOfPreds_max <- densOfPreds$x[localMaxima(densOfPreds$y)]
+
+ggplot(pred_glm1) + 
+  geom_density(aes(TotalTreeCover_pred)) + 
+  geom_vline(aes(xintercept = densOfPreds_max[1]), col = "red")+ 
+  #geom_vline(aes(xintercept = densOfPreds_max[2]), col = "red")+ 
+  #geom_vline(aes(xintercept = densOfPreds_max[3]), col = "red") + 
+  ggtitle("Locations of local maxima in the density of model predictions")
+
+## now, round those values and identify model predictions that are close to those values
+pred_glm1_sf2 <- pred_glm1 %>% 
+  st_as_sf(coords = c("x", "y"), crs = crs("EPSG:4326")) %>% 
+  st_transform(crs(test_rast))
+pred_glm1_sf2$Peak1 <- FALSE
+pred_glm1_sf2 <- pred_glm1_sf2 %>% 
+  mutate(Peak1 = replace(Peak1, (TotalTreeCover_pred < densOfPreds_max[1] + .01) & (TotalTreeCover_pred > densOfPreds_max[1] - .01), TRUE))
+#pred_glm1_sf[round(pred_glm1_sf$TotalTreeCover_pred, -1) == round(densOfPreds_max[1],-1), "Peak1"] <- TRUE
+pred_glm1_sf2$Peak2 <- FALSE
+#pred_glm1_sf2[round(pred_glm1_sf2$TotalTreeCover_pred, -1) == round(densOfPreds_max[2],-1), "Peak2"] <- TRUE
+# pred_glm1_sf2 <- pred_glm1_sf2 %>% 
+#   mutate(Peak2 = replace(Peak2, (TotalTreeCover_pred < densOfPreds_max[2] + .01) & (TotalTreeCover_pred > densOfPreds_max[2] - .01), TRUE))
+## make a map showing the location of predictions in these 'peaks'
+ggplot() +
+geom_spatraster(data = pred_glm1_RAST, aes(fill = .data[[paste0(response,"_pred")]]), maxcell = 50000000) + 
+ geom_sf(data=cropped_states_2 ,fill=NA ) +
+ geom_sf(data = pred_glm1_sf2[pred_glm1_sf2$Peak1 == TRUE,], aes(), col = "purple", pch = 20) + 
+ geom_sf(data = pred_glm1_sf2[pred_glm1_sf2$Peak2 == TRUE,], aes(), col = "orange", pch = 20) + 
+labs(title = paste0("Location of model predictions that are in the bimodal 
+                    peaks of the distribution of predictions; 
+                    This shows predictions that are +/- .01 from the 
+                    rounded value of the peak"),
+     subtitle =  paste0("purple = values near peak 1 (",round(densOfPreds_max[1],2)#,"); 
+     #orange = values near peak 2 (",round(densOfPreds_max[2],2),")"
+     )
+     )  +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat",
+                       high = "darkgreen" , 
+                       midpoint = .5,   na.value = "white",
+                       limits = c(0,1)) + 
+  xlim(-2000000, 2500000) + 
+  ylim(-1800000, 900000)
+
+pred_glm1_sf2 %>% 
+  ggplot() + 
+  geom_point(aes(x = Year, y = jitter(as.numeric(Peak1))), col = "purple") + 
+  geom_smooth(aes(x = Year, y =jitter(as.numeric(Peak1))), col = "magenta") + 
+  ggtitle("Are predictions in a given year near the first peak? (1 = yes, 0 = no)",
+          subtitle = paste0("value of peak = ", round(densOfPreds_max[1],2)))
+# pred_glm1_sf2 %>% 
+#   ggplot() + 
+#   geom_point(aes(x = Year, y = jitter(as.numeric(Peak2))), col = "orange") + 
+#   geom_smooth(aes(x = Year, y =jitter(as.numeric(Peak2))), col = "darkorange") + 
+#   ggtitle("Are predictions in a given year near the second peak? (1 = yes, 0 = no)",
+#           subtitle = paste0("value of peak = ", round(densOfPreds_max[2],2)))
+
+
+pred_glm1_sf2 %>% 
+  ggplot() + 
+  geom_point(aes(x = Year, y = TotalTreeCover)) + 
+  geom_smooth(aes(x = Year, y = TotalTreeCover)) + 
+  ggtitle("Observed total tree cover values by year")
+
+
+modDat_1_s %>% 
+  group_by(Year) %>% 
+  summarize(n =n()) %>% 
+  ggplot() + 
+  geom_point(aes(x = Year, y = n)) + 
+  #geom_smooth(aes(x = Year, y = n)) + 
+  ggtitle("Number of total tree observations by year")
+
+
+modDat_1_sf %>% 
+  ggplot() + 
+  facet_wrap(~Year) + 
+  geom_sf(aes(), pch = 20) + 
+  #geom_smooth(aes(x = Year, y = n)) + 
+  ggtitle("Number of total tree observations by year")
+
+## what are the values of the predictors for locations near the peaks? 
+# names of model terms
+comparisonFigureNames <- c(  
+  
+   "tmean"                          , "log_prcp_dry"  ,                    
+ "sand"                             , "coarse"                                     ,"log_carbon"    ,                    
+ "AWHC"                             , "log_prcp_dry:log_annWatDef" ,"tmean:log_annWatDef" ,              
+ "log_prcp_dry:isothermality", "tmean:isothermality"                       , "coarse:AWHC"                 ,              
+ "log_carbon:AWHC"          , "sand:AWHC"          ,  "log_prcp:log_prcp_dry"                    
+                          
+                 
+                     
+ 
+)
+# "tmean"               , "log_prcp"                     ,
+# "isothermality"                     , "sand"                , "coarse"                               ,
+# "log_carbon"                , "AWHC"                , "log_prcp:log_prcp_dry",
+# "isothermality:log_prcp_dry", "tmean:isothermality" , "log_carbon:AWHC"              ,
+# "sand:coarse"       )   
+pred_glm1_sf3 <- pred_glm1_sf2 %>% 
+  mutate(#"log_prcp" = log(prcp + 1), 
+          "log_prcp_dry" = log(prcp_dry+1),
+         "log_carbon" = log(carbon +1),
+         "log_prcp_dry:log_annWatDef" = log(prcp_dry+1)*log(annWatDef + 2),
+         "tmean:log_annWatDef" = tmean*log(annWatDef + 2) ,   
+         "log_prcp_dry:isothermality" =  log(prcp_dry+1)*isothermality,
+         "log_prcp:log_prcp_dry" = log(prcp + 1) *log(prcp_dry + 1),
+         #"isothermality:log_prcp_dry" = isothermality*log(prcp_dry + 1),
+         "tmean:isothermality" = tmean*isothermality,
+          "coarse:AWHC" =  coarse*AWHC,
+         "log_carbon:AWHC" = log(carbon + 1)*AWHC,
+          "sand:AWHC"=  sand*AWHC,
+         "prcpTempCorr:tmean"  = prcpTempCorr*tmean,
+         "prcpTempCorr:isothermality" = prcpTempCorr:isothermality
+         #"sand:coarse" = sand*coarse
+         ) %>% 
+  pivot_longer(cols = any_of(comparisonFigureNames), names_to = "PredNames", values_to = "PredValues")
+  ggplot() + 
+    facet_wrap(~PredNames, scales = "free") + 
+  geom_density(data = pred_glm1_sf3, aes(PredValues)) + 
+  geom_density(data = pred_glm1_sf3[pred_glm1_sf3$Peak1 == TRUE,], aes(PredValues), col = "purple") + 
+  #geom_density(data = pred_glm1_sf3[pred_glm1_sf3$Peak2 == TRUE,], aes(PredValues), col = "orange") + 
+    ggtitle("Comparing the predictor values for points in the two different peaks (purple = peak 1, orange = peak 2)")
+  
+
+```
+
 
 ### Are there biases of the model predictions across year/lat/long? 
 ```{r bias figures best lambda model, fig.align=8, fig.height=10}
@@ -2065,10 +2296,10 @@ outList <- vector(mode = "list", length = length(sort(unique(modDat_1_s$NA_L2NAM
 #                        )
 
 ## get the model specification from the global model
-mat <- as.matrix(coef(fit_glm_bestLambda, s = "lambda.min"))
-mat2 <- mat[mat[,1] != 0,]
-
-f_cv <- as.formula(paste0(response, " ~ ", paste0(names(mat2)[2:length(names(mat2))], collapse = " + ")))
+mat <- coef_glm_bestLambda
+mat2 <- mat[(mat[,1] != 0),]
+mat2 <- mat2[which(mat2$coefficientName != "(phi)"),]
+f_cv <- as.formula(paste0(response, " ~ ", paste0(mat2$coefficientName[2:nrow(mat2)], collapse = " + ")))
 
 X_cv <- model.matrix(object = f_cv, data = modDat_1_s)
 # get response variable
@@ -2109,9 +2340,12 @@ y_cv <- as.matrix(modDat_1_s[,response])
   train_eco <- modDat_1_s$NA_L2NAME[train]
 
   ## just try a regular glm w/ the components from the global model
-  fit_i <- glm(data = trainDat_all, formula = f_cv,
+  
+fit_i <- betareg(data = trainDat_all, 
+                   formula =f_cv,
     ,
-               family =  quasibeta_family(link = "logit")
+    link = "logit"
+               #family =  quasibeta_family(link = "logit")
     )
     
   # lasso model predictions with the optimal lambda (back transformed)
@@ -2119,7 +2353,7 @@ y_cv <- as.matrix(modDat_1_s[,response])
   # null model and predictions
   # the "null" model in this case is the global model
   # predict on the test data for this iteration w/ the global model (back transformed)
-  null_pred <- predict.glm(fit_glm_bestLambda, newdata = testDat_all, type = "response") 
+  null_pred <- predict(fit_glm_bestLambda, newdata = testDat_all, type = "response") 
 
 
   # save data
@@ -2272,10 +2506,10 @@ outList <- vector(mode = "list", length = length(sort(unique(modDat_1_s$NA_L2NAM
 #                        )
 
 ## get the model specification from the global model
-mat <- as.matrix(coef(mod_secondBest, s = "lambda.min"))
-mat2 <- mat[mat[,1] != 0,]
-
-f_cv <- as.formula(paste0(response, " ~ ", paste0(names(mat2)[2:length(names(mat2))], collapse = " + ")))
+mat <- coef_glm_bestLambda
+mat2 <- mat[(mat[,1] != 0),]
+mat2 <- mat2[which(mat2$coefficientName != "(phi)"),]
+f_cv <- as.formula(paste0(response, " ~ ", paste0(mat2$coefficientName[2:nrow(mat2)], collapse = " + ")))
 
 X_cv <- model.matrix(object = f_cv, data = modDat_1_s)
 # get response variable
@@ -2316,9 +2550,10 @@ y_cv <- as.matrix(modDat_1_s[,response])
   train_eco <- modDat_1_s$NA_L2NAME[train]
 
   ## just try a regular glm w/ the components from the global model
-  fit_i <- glm(data = trainDat_all, formula = f_cv,
+  fit_i <- betareg(data = trainDat_all, formula = f_cv,
     ,
-               family =  quasibeta_family(link = "logit")
+    link = "logit"
+               #family =  quasibeta_family(link = "logit")
     )
 
     coef(fit_i)
@@ -2328,7 +2563,7 @@ y_cv <- as.matrix(modDat_1_s[,response])
   # null model and predictions
   # the "null" model in this case is the global model
   # predict on the test data for this iteration w/ the global model
-  null_pred <- predict.glm(mod_secondBest, newdata = testDat_all, type = "response") 
+  null_pred <- predict(mod_secondBest, newdata = testDat_all, type = "response") 
 
   # save data
   tmp <- data.frame(ecoRegion_holdout = rep(test_eco,length(y_test)),
