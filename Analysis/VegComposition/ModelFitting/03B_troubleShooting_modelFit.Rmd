@@ -1116,6 +1116,35 @@ mat_glmnet_best <- bestLambda_coef$VariableName
   plot(fit)
 
 ```
+Try fitting a ZOIB (zero-inflated beta regression) 
+```{r}
+library("brms")
+model_formula <- brms::bf(
+  ConifTreeCover_abs ~ tmean + I(log(prcp + 1)) + prcpTempCorr + 
+    isothermality + sand + coarse + I(log(carbon + 1)) + AWHC + 
+    I(log(prcp_dry + 1)):I(log(annWatDef + 2)) + tmean:I(log(annWatDef + 
+    2)) + I(log(prcp + 1)):I(log(prcp_dry + 1)) + I(log(prcp_dry + 
+    1)):prcpTempCorr + prcpTempCorr:isothermality + tmean:isothermality + 
+    tmean:prcpTempCorr + coarse:AWHC + I(log(carbon + 1)):AWHC + 
+    sand:AWHC + sand:coarse,
+  phi ~ 1, 
+  zi ~ tmean + I(log(prcp + 1)) + prcpTempCorr + 
+    isothermality + sand + coarse + I(log(carbon + 1)) + AWHC + 
+    I(log(prcp_dry + 1)):I(log(annWatDef + 2)) + tmean:I(log(annWatDef + 
+    2)) + I(log(prcp + 1)):I(log(prcp_dry + 1)) + I(log(prcp_dry + 
+    1)):prcpTempCorr + prcpTempCorr:isothermality + tmean:isothermality + 
+    tmean:prcpTempCorr + coarse:AWHC + I(log(carbon + 1)):AWHC + 
+    sand:AWHC + sand:coarse
+)
+model_zi_beta <- brm(formula = model_formula, 
+                     data = modDat_1_s,
+                         family = zero_inflated_beta(),
+  chains = 4,   # Number of MCMC chains
+  iter = 2000,  # Number of iterations per chain
+  cores = 4,    # Number of CPU cores to use
+  seed = 1234
+  )
+```
 
 
 Then, we predict (on the training set) using both of these models (best lambda and 1se lambda) 
@@ -1563,10 +1592,10 @@ labs(title = paste0("Observations of ", response, " in the ",ecoregion, " ecoreg
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "forestgreen" , 
-                       midpoint = 0.5,   na.value = "white") + 
+                       midpoint = 0.5,  limits = c(0, 1),  na.value = "white") + 
   coord_sf(datum = st_crs(pred_glm1_RAST)) +
    # xlim(-104, -100) + 
-   # ylim(30, 33)
+   # ylim(30, 33) 
   xlim(-2000000, 2500000) + 
   ylim(-1800000, 900000)
 # histogram of observations

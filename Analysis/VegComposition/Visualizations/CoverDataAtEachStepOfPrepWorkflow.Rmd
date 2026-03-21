@@ -17,8 +17,39 @@ library(sf)
 library(terra)
 library(ggpubr)
 library(tidyterra)
-library(USA.state.boundaries)
+library(USAboundaries)
 ggplot2::theme_set(theme_classic())
+# custom functions for plotting inset figures
+            # make function to add inset
+           get_inset <- function(df) {
+              p <- ggplot(data = df) +
+             facet_wrap(~lyr, ncol = 1, scales = "free_y") +
+                geom_density(aes(Cover)) +
+                theme_bw(base_size=9) +  ## makes everything smaller
+                theme(panel.background = element_rect(fill="transparent"),  ## white plot background
+                      panel.border = element_blank(),
+          axis.title.y = element_blank(),
+          axis.title.x = element_blank(),
+          axis.text.x = element_text(size=rel(0.8)), ## tiny axis text
+          axis.text.y = element_text(size=rel(0.8)), ## tiny axis text
+          axis.line.x = element_line(size = .5),
+          axis.line.y = element_line(size = .5),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          plot.background = element_blank(),
+          strip.background = element_blank(),
+          strip.text = element_blank()) 
+  return(p)
+           }
+           # custom function to add inset to main plot
+           annotation_custom2 <- function (grob, xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf, data)
+{
+  layer(data = data, stat = StatIdentity, position = PositionIdentity,
+        geom = ggplot2:::GeomCustomAnn,
+        inherit.aes = TRUE, params = list(grob = grob,
+                                          xmin = xmin, xmax = xmax,
+                                          ymin = ymin, ymax = ymax))
+}
 ```
 
 This document visualizes the data of vegetation cover by functional type that we use in subsequent analysis at each step of the data-processing workflow. These maps serve both as a reference and a check that the workflow is performing as intended. 
@@ -26,41 +57,55 @@ This document visualizes the data of vegetation cover by functional type that we
 For the sake of simplified comparison, I show data from 2016, 2020, and 2022, which are years for which we have easy to access rasters of FIA data to compare to. 
 ```{r}
 # get necessary raster data for background data on maps
-test_rast <-  rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>%
- terra::aggregate(fact = 4, fun = "mean") %>% 
-terra::project(crs("EPSG:4326")) %>% 
-  terra::crop(ext(-150, -50, 20, 60))
+test_rastTemp <-  rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>%
+  terra::crop(ext(-2000000, 2600000, -1900000, 1500000))
+
+## aggregate test_rastTemp by 13, the scale that the dayMet data are aggregated to 
+test_rast_RAP <- test_rastTemp %>% 
+  terra::aggregate(fact = 13, fun = "mean") #%>% 
+#terra::project(crs("EPSG:4326")) %>% 
+  #terra::crop(ext(-150, -50, 20, 60))
+  
+# aggregate to regular plotting density for other data types
+test_rast <- test_rastTemp %>%
+ terra::aggregate(fact = 8, fun = "mean")#%>% 
+#terra::project(crs("EPSG:4326")) %>% 
+ # terra::crop(ext(-150, -50, 20, 60))
   # transform to match format of veg. data 
 
-data("state_boundaries_wgs84")
-cropped_states <- suppressMessages(state_boundaries_wgs84 %>%
-  dplyr::filter(NAME!="Hawaii") %>%
-  dplyr::filter(NAME!="Alaska") %>%
-  dplyr::filter(NAME!="Puerto Rico") %>%
-  dplyr::filter(NAME!="American Samoa") %>%
-  dplyr::filter(NAME!="Guam") %>%
-  dplyr::filter(NAME!="Commonwealth of the Northern Mariana Islands") %>%
-  dplyr::filter(NAME!="United States Virgin Islands") %>%
-  sf::st_sf() %>%
+cropped_states_2 <- us_states(resolution = "low")
+cropped_states_2 <- suppressMessages(cropped_states_2 %>%
+  dplyr::filter(name!="Hawaii") %>%
+  dplyr::filter(name!="Alaska") %>%
+  dplyr::filter(name!="Puerto Rico") %>%
+  dplyr::filter(name!="American Samoa") %>%
+  dplyr::filter(name!="Guam") %>%
+  dplyr::filter(name!="Commonwealth of the Northern Mariana Islands") %>%
+  dplyr::filter(name!="United States Virgin Islands") %>%
   sf::st_transform(sf::st_crs(test_rast))) 
-# make shapefile of cropped state boundaries in appropriate crs
-cropped_states_2 <- cropped_states %>% 
-  st_make_valid() %>% 
-  st_crop(ext(-150, -50, 20, 60))
 ```
 
 # RAP 
 ## Initial dataset
-```{r, echo = FALSE, fig.width= 20, fig.height = 14}
+```{r, echo = FALSE, fig.width= 20, fig.height = 14, warning=FALSE}
 # Read in data 
-dat_1temp <- st_read(dsn = "../../../Data_processed/CoverData/DataForAnalysisPoints", layer = "vegCompPoints") #%>% #, driver = "ESRI Shapefile")
-  #st_transform(crs(test_rast))
-crs(test_rast) == crs(dat_1temp)
+dat_1temp <- st_read(dsn = "../../../Data_processed/CoverData/DataForAnalysisPoints", layer = "vegCompPoints") %>% #, driver = "ESRI Shapefile")
+  st_transform(crs(test_rast))
+
 # trim to be only later than 2000, which is what we want to use for further analysis
 dat_1 <- dat_1temp %>% 
   filter(Year >= 2000) %>% 
   mutate(Lon = st_coordinates(.)[,1],
-         Lat = st_coordinates(.)[,2])
+         Lat = st_coordinates(.)[,2]) %>% 
+  rename(ShrubCover = ShrbCvr, 
+         TotalTreeCover = TtlTrCv, 
+         TotalHerbaceousCover = TtlHrbC,
+         BareGroundCover = BrGrndC,
+         ForbCover = ForbCvr,
+         C3GramCover = C3GrmCv,
+         C4GramCover = C4GrmCv, 
+         BroadLeavedTreeCover = AngTrCv,
+         NeedleLeavedTreeCover = CnfTrCv)
  # st_drop_geometry()
 
 ###### rasterized version
@@ -69,17 +114,55 @@ dat_1_RAST <-
   lapply(c("FIA", "LANDFIRE", "LDC","RAP"), 
          FUN = function(y) {
            tempDat <- dat_1 %>% 
-             filter(Source == y)
+             filter(Source == y )
            tempDat1 <- tempDat %>% 
              st_drop_geometry()
            # get vector of years for the specific data type 
            if (y %in% c("FIA", "LDC", "RAP")) {
              datYears <- c("2016", "2020", "2022")
+             if (y %in% "RAP") {
+               # remove data from before 2010
+               tempDat1 <- tempDat1 %>% 
+                 filter(Year >=2010)
+             }
            } else {
              datYears <- c("2003", "2007", "2015")
            }
-           # get data for each cover type by year
-           tempOut <- apply(expand.grid(c("ShrbCvr", "TtlTrCv", "TtlHrbC", "BrGrndC"), datYears, stringsAsFactors = FALSE), 
+           if (y == c( "RAP")) {
+             # get data for each cover type by year
+           tempOut <- apply(expand.grid(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover"), datYears, stringsAsFactors = FALSE), 
+                            MARGIN = 1,
+                            FUN = function(x) {
+                              tempDat2 <- tempDat %>% 
+                                filter(Year == x["Var2"])
+                              
+                              temp <- terra::rasterize(x = tempDat2,#tempDat2[,c("Lon", "Lat")], 
+                                               y = test_rast_RAP,
+                                               field = x["Var1"],
+                                               #values = tempDat2[,names(tempDat2) == x["Var1"]],
+                                               fun = mean, 
+                                               na.rm = TRUE
+                                               ) 
+                      names(temp) <-  paste0(x["Var1"], "_", x["Var2"])
+                      return(temp)
+                    }
+                    )
+           # get dat across all years
+           tempOut2 <- lapply(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover"), 
+                            FUN = function(z) {
+                              temp <- terra::rasterize(x = tempDat1[,c("Lon", "Lat")], 
+                                               y = test_rast_RAP,
+                                               values = tempDat1[,z],
+                                               fun = mean
+                                               ) 
+                      
+                      names(temp) <-  paste0(z, "_all")
+                      return(temp)
+                    }
+                    )
+           } else {
+             # get data for each cover type by year
+           tempOut <- apply(expand.grid(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover"), datYears, stringsAsFactors = FALSE), 
                             MARGIN = 1,
                             FUN = function(x) {
                               tempDat2 <- tempDat %>% 
@@ -91,29 +174,31 @@ dat_1_RAST <-
                                                #values = tempDat2[,names(tempDat2) == x["Var1"]],
                                                fun = mean, 
                                                na.rm = TRUE
-                                               )
+                                               ) 
                       names(temp) <-  paste0(x["Var1"], "_", x["Var2"])
                       return(temp)
                     }
                     )
            # get dat across all years
-           tempOut2 <- lapply(c("ShrbCvr", "TtlTrCv", "TtlHrbC", "BrGrndC"), 
+           tempOut2 <- lapply(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover"), 
                             FUN = function(z) {
                               temp <- terra::rasterize(x = tempDat1[,c("Lon", "Lat")], 
                                                y = test_rast,
                                                values = tempDat1[,z],
                                                fun = mean
-                                               )
+                                               ) 
                       
                       names(temp) <-  paste0(z, "_all")
                       return(temp)
                     }
                     )
+           }
+           
            # for each data type, put data for each year in one raster in the list, and the data across all years in another raster
-           outDat <- list(c(tempOut[[1]], tempOut[[2]], tempOut[[3]], tempOut[[4]]), 
-                          c(tempOut[[5]], tempOut[[6]], tempOut[[7]], tempOut[[8]]),
-                          c(tempOut[[9]], tempOut[[10]], tempOut[[11]], tempOut[[12]]), 
-                          c(tempOut2[[1]], tempOut2[[2]], tempOut2[[3]], tempOut2[[4]]))
+           outDat <- list(c(tempOut[[1]], tempOut[[2]], tempOut[[3]], tempOut[[4]], tempOut[[5]], tempOut[[6]], tempOut[[7]], tempOut[[8]], tempOut[[9]]), 
+                          c(tempOut[[10]], tempOut[[11]], tempOut[[12]], tempOut[[13]], tempOut[[14]], tempOut[[15]], tempOut[[16]], tempOut[[17]], tempOut[[18]]),
+                          c(tempOut[[19]], tempOut[[20]], tempOut[[21]], tempOut[[22]], tempOut[[23]], tempOut[[24]], tempOut[[25]], tempOut[[26]], tempOut[[27]]), 
+                          c(tempOut2[[1]], tempOut2[[2]], tempOut2[[3]], tempOut2[[4]], tempOut2[[5]], tempOut2[[6]], tempOut2[[7]], tempOut2[[8]], tempOut2[[9]]))
            names(outDat) <- c(datYears, "allYears")
            return(outDat)
          }
@@ -126,533 +211,1016 @@ names(dat_1_RAST) <- c("FIA", "LANDFIRE", "LDC","RAP")
 # points(tempDat$geometry)
 ## 
 ## make figure for RAP 
-testFigs <- lapply(names(dat_1_RAST$RAP), FUN = function(y) {
-           tempFig <- ggplot() +
+testFigs <- lapply(names(dat_1_RAST$RAP)[[4]], FUN = function(y) {
+  # make a map for this year
+           tempFig <- 
+  ggplot() +
              facet_wrap(~lyr, ncol = 1) +
-geom_spatraster(data = dat_1_RAST$RAP[[y]]) + 
+geom_spatraster(data = dat_1_RAST$RAP[[y]][[1:4]], maxcell = 5e+10) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
+ xlim(-2150000, 2510000) +
+ ylim(-2005000, 1000000) +
+  coord_sf(datum = st_crs(test_rastTemp)) +
              scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
-                          limits = c(0,100)) +
-  xlim(-125, -65) + 
-  ylim(25, 50)
-           return(tempFig)
+                          limits = c(0,100), na.value = "white") 
+  # add an inset showing a density plot  
+           # get data
+           data_inset <- terra::values(dat_1_RAST$RAP[[y]][[1:4]]) %>% 
+               as_tibble() %>% 
+               pivot_longer(1:4, names_to = "lyr", values_to = "Cover")
+ 
+           # make insets
+           inset_plots <- data_inset %>%
+             split(f = .$lyr) %>%
+             purrr::map(~annotation_custom2(
+    grob = ggplotGrob(get_inset(.) #+
+                        #scale_y_continuous(limits=c(0,105), breaks = c(0, 50, 100))
+                      ),
+    data = data.frame(lyr=unique(.$lyr)),
+    ymin = -2025000, ymax=-1205000, xmin=-2280000, xmax=-180000)
+  )
+
+         tempFig2 <- tempFig + inset_plots
+
+           return(tempFig2)
 })
 
-ggarrange(testFigs[[1]], 
-          testFigs[[2]], 
-          testFigs[[3]], 
-          testFigs[[4]], 
-          nrow = 1, common.legend = TRUE)
-
+jpeg(filename = "/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/Figures/CoverDatFigures/RAPInputs_step1.jpeg",
+    width = 800, height = 2000)
+ggarrange(#testFigs[[1]], 
+          #testFigs[[2]], 
+          ##testFigs[[3]], 
+          testFigs[[1]], 
+          nrow = 1, common.legend = TRUE, legend = "bottom"
+          ) %>% 
+  annotate_figure(top = "Map of RAP data on a dayMet x 13 grid")
+dev.off()
+```
+```{r}
+# barplots of # of observations per data type per year
+dat_1 %>% 
+  st_drop_geometry() %>% 
+  filter(Source == "RAP" & Year >=2010) %>%
+  group_by(Year) %>% 
+  summarize(ShrubCover = sum(!is.na(ShrubCover)), 
+            TotalTreeCover = sum(!is.na(TotalTreeCover)),
+            TotalHerbaceousCover = sum(!is.na(TotalHerbaceousCover)),
+            BareGroundCover = sum(!is.na(BareGroundCover))) %>% 
+  pivot_longer(2:5, values_to = "No_Observations", names_to = "functionalGroup") %>% 
+  ggplot() + 
+  geom_col(aes(x = Year, y = No_Observations, fill = functionalGroup), position = "dodge", col = "grey20")  + 
+   scale_fill_discrete(type = c("#000000", #"#E69F00" ,"#56B4E9", "#009E73", "#F0E442" ,"#0072B2" ,
+                                "#D55E00", "#CC79A7", "#999999"),
+                       labels = c("BareGroundCover", #"BroadLeavedTreeCover", "C3GramCover","C4GramCover","ForbCover", "NeedleLeavedTreeCover",
+                                  "ShrubCover",  "TotalHerbaceousCover", "TotalTreeCover")
+   )
 ```
 
-## After removing burned area
-```{r , fig.width= 20, fig.height = 14}
-# Read in data
-dat_2temp <- readRDS(file = "../../../Data_processed/CoverData/dataForAnalysis_fireRemoved.rds") %>% 
-  st_transform(crs(test_rast))
-# trim to be only later than 2000, which is what we want to use for further analysis
-dat_2 <- dat_2temp %>% 
-  filter(Year >= 2000) %>% 
-  mutate(Lon = st_coordinates(.)[,1],
-         Lat = st_coordinates(.)[,2])
- # st_drop_geometry()
+<!-- ## After removing burned area -->
+<!-- ```{r , fig.width= 20, fig.height = 14} -->
+<!-- # Read in data -->
+<!-- dat_2temp <- readRDS(file = "../../../Data_processed/CoverData/dataForAnalysis_fireRemoved.rds") %>%  -->
+<!--   st_transform(crs(test_rast)) -->
+<!-- # trim to be only later than 2000, which is what we want to use for further analysis -->
+<!-- dat_2 <- dat_2temp %>%  -->
+<!--   filter(Year >= 2000) %>%  -->
+<!--   mutate(Lon = st_coordinates(.)[,1], -->
+<!--          Lat = st_coordinates(.)[,2]) %>%  -->
+<!--   rename(ShrubCover = ShrbCvr,  -->
+<!--          TotalTreeCover = TtlTrCv,  -->
+<!--          TotalHerbaceousCover = TtlHrbC, -->
+<!--          BareGroundCover = BrGrndC, -->
+<!--          ForbCover = ForbCvr, -->
+<!--          C3GramCover = C3GrmCv, -->
+<!--          C4GramCover = C4GrmCv,  -->
+<!--          BroadLeavedTreeCover = AngTrCv, -->
+<!--          NeedleLeavedTreeCover = CnfTrCv) -->
+<!--  # st_drop_geometry() -->
 
-###### rasterized version
-# make a multi-layer raster w/ layers for each variable of interest
-dat_2_RAST <- 
-  lapply(c("FIA", "LANDFIRE", "LDC","RAP"), 
-         FUN = function(y) {
-           tempDat <- dat_2 %>% 
-             filter(Source == y) 
-           tempDat1 <- tempDat %>% 
-             st_drop_geometry()
-           # get vector of years for the specific data type 
-           if (y %in% c("FIA", "LDC", "RAP")) {
-             datYears <- c("2016", "2020", "2022")
-           } else {
-             datYears <- c("2003", "2007", "2015")
-           }
-           # get data for each cover type by year
-           tempOut <- apply(expand.grid(c("ShrbCvr", "TtlTrCv", "TtlHrbC", "BrGrndC"), datYears, stringsAsFactors = FALSE), 
-                            MARGIN = 1,
-                            FUN = function(x) {
-                              tempDat2 <- tempDat1 %>% 
-                                filter(Year == x["Var2"])
-                              temp <- terra::rasterize(x = tempDat2[,c("Lon", "Lat")], 
-                                               y = test_rast,
-                                               values = tempDat2[,names(tempDat2) == x["Var1"]],
-                                               fun = mean, 
-                                               na.rm = TRUE
-                                               )
-                      names(temp) <-  paste0(x["Var1"], "_", x["Var2"])
-                      return(temp)
-                    }
-                    )
-           # get dat across all years
-           tempOut2 <- lapply(c("ShrbCvr", "TtlTrCv", "TtlHrbC", "BrGrndC"), 
-                            FUN = function(z) {
-                              temp <- terra::rasterize(x = tempDat1[,c("Lon", "Lat")], 
-                                               y = test_rast,
-                                               values = tempDat1[,z],
-                                               fun = mean
-                                               )
-                      
-                      names(temp) <-  paste0(z, "_all")
-                      return(temp)
-                    }
-                    )
-           # for each data type, put data for each year in one raster in the list, and the data across all years in another raster
-           outDat <- list(c(tempOut[[1]], tempOut[[2]], tempOut[[3]], tempOut[[4]]), 
-                          c(tempOut[[5]], tempOut[[6]], tempOut[[7]], tempOut[[8]]),
-                          c(tempOut[[9]], tempOut[[10]], tempOut[[11]], tempOut[[12]]), 
-                          c(tempOut2[[1]], tempOut2[[2]], tempOut2[[3]], tempOut2[[4]]))
-           names(outDat) <- c(datYears, "allYears")
-           return(outDat)
-         }
-)
+<!-- ###### rasterized version -->
+<!-- # make a multi-layer raster w/ layers for each variable of interest -->
+<!-- dat_2_RAST <-  -->
+<!--   lapply(c("FIA", "LANDFIRE", "LDC","RAP"),  -->
+<!--          FUN = function(y) { -->
+<!--            tempDat <- dat_2 %>%  -->
+<!--              filter(Source == y)  -->
+<!--            tempDat1 <- tempDat %>%  -->
+<!--              st_drop_geometry() -->
+<!--            # get vector of years for the specific data type  -->
+<!--            if (y %in% c("FIA", "LDC", "RAP")) { -->
+<!--              datYears <- c("2016", "2020", "2022") -->
+<!--              if (y %in% "RAP") { -->
+<!--                # remove data from before 2010 -->
+<!--                tempDat1 <- tempDat1 %>%  -->
+<!--                  filter(Year >=2010) -->
+<!--              } -->
+<!--            } else { -->
+<!--              datYears <- c("2003", "2007", "2015") -->
+<!--            } -->
+<!--            # get data for each cover type by year -->
+<!--            tempOut <- apply(expand.grid(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover"), datYears, stringsAsFactors = FALSE),  -->
+<!--                             MARGIN = 1, -->
+<!--                             FUN = function(x) { -->
+<!--                               tempDat2 <- tempDat1 %>%  -->
+<!--                                 filter(Year == x["Var2"]) -->
+<!--                               temp <- terra::rasterize(x = tempDat2[,c("Lon", "Lat")],  -->
+<!--                                                y = test_rast, -->
+<!--                                                values = tempDat2[,names(tempDat2) == x["Var1"]], -->
+<!--                                                fun = mean,  -->
+<!--                                                na.rm = TRUE -->
+<!--                                                ) -->
+<!--                       names(temp) <-  paste0(x["Var1"], "_", x["Var2"]) -->
+<!--                       return(temp) -->
+<!--                     } -->
+<!--                     ) -->
+<!--            # get dat across all years -->
+<!--            tempOut2 <- lapply(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover"),  -->
+<!--                                FUN = function(z) { -->
+<!--                               temp <- terra::rasterize(x = tempDat1[,c("Lon", "Lat")],  -->
+<!--                                                y = test_rast, -->
+<!--                                                values = tempDat1[,z], -->
+<!--                                                fun = mean -->
+<!--                                                ) -->
 
+<!--                       names(temp) <-  paste0(z, "_all") -->
+<!--                       return(temp) -->
+<!--                     } -->
+<!--                     ) -->
+<!--            # for each data type, put data for each year in one raster in the list, and the data across all years in another raster -->
+<!--                   outDat <- list(c(tempOut[[1]], tempOut[[2]], tempOut[[3]], tempOut[[4]], tempOut[[5]], tempOut[[6]], tempOut[[7]], tempOut[[8]], tempOut[[9]]),  -->
+<!--                           c(tempOut[[10]], tempOut[[11]], tempOut[[12]], tempOut[[13]], tempOut[[14]], tempOut[[15]], tempOut[[16]], tempOut[[17]], tempOut[[18]]), -->
+<!--                           c(tempOut[[19]], tempOut[[20]], tempOut[[21]], tempOut[[22]], tempOut[[23]], tempOut[[24]], tempOut[[25]], tempOut[[26]], tempOut[[27]]),  -->
+<!--                           c(tempOut2[[1]], tempOut2[[2]], tempOut2[[3]], tempOut2[[4]], tempOut2[[5]], tempOut2[[6]], tempOut2[[7]], tempOut2[[8]], tempOut2[[9]])) -->
+<!--            names(outDat) <- c(datYears, "allYears") -->
+<!--            return(outDat) -->
+<!--          } -->
+<!-- ) -->
 
-######AES
-dat_2 <- dat_2 %>%
-  filter(Year >= 2000) %>% 
-  st_drop_geometry()
+<!-- names(dat_2_RAST) <- c("FIA", "LANDFIRE", "LDC","RAP") -->
 
-# make a multi-layer raster w/ layers for each variable of interest
-dat_2_RAST <- 
-  lapply(c("FIA", "LANDFIRE", "LDC","RAP"), 
-         FUN = function(y) {
-           tempDat <- dat_2 %>% 
-             filter(Source == y)
-           # get vector of years for the specific data type 
-           if (y %in% c("FIA", "LDC", "RAP")) {
-             datYears <- c("2016", "2020", "2022")
-           } else {
-             datYears <- c("2003", "2007", "2015")
-           }
-           # get data for each cover type by year
-           tempOut <- apply(expand.grid(c("ShrbCvr", "TtlTrCv", "TtlHrbC", "BrGrndC"), datYears, stringsAsFactors = FALSE), 
-                            MARGIN = 1,
-                            FUN = function(x) {
-                              tempDat2 <- tempDat %>% 
-                                filter(Year == x["Var2"])
-                              temp <- terra::rasterize(x = tempDat2[,c("Lon", "Lat")], 
-                                               y = test_rast,
-                                               values = tempDat2[,names(tempDat2) == x["Var1"]],
-                                               fun = mean, 
-                                               na.rm = TRUE, 
-                                               by 
-                                               )
-                      names(temp) <-  paste0(x["Var1"], "_", x["Var2"])
-                      return(temp)
-                    }
-                    )
-           # get dat across all years
-           tempOut2 <- lapply(c("ShrbCvr", "TtlTrCv", "TtlHrbC", "BrGrndC"), 
-                            FUN = function(x) {
-                              temp <- terra::rasterize(x = tempDat[,c("Lon", "Lat")], 
-                                               y = test_rast,
-                                               values = tempDat[,x],
-                                               fun = mean, 
-                                               na.rm = TRUE, 
-                                               by 
-                                               )
-                      names(temp) <-  paste0(x, "_all")
-                      return(temp)
-                    }
-                    )
-           # for each data type, put data for each year in one raster in the list, and the data across all years in another raster
-           outDat <- list(c(tempOut[[1]], tempOut[[2]], tempOut[[3]], tempOut[[4]]), 
-                          c(tempOut[[5]], tempOut[[6]], tempOut[[7]], tempOut[[8]]),
-                          c(tempOut[[9]], tempOut[[10]], tempOut[[11]], tempOut[[12]]), 
-                          c(tempOut2[[1]], tempOut2[[2]], tempOut2[[3]], tempOut2[[4]]))
-           names(outDat) <- c(datYears, "allYears")
-           return(outDat)
-         }
-)
-names(dat_2_RAST) <- c("FIA", "LANDFIRE", "LDC","RAP")
+<!-- ## make figure for RAP  -->
+<!-- testFigs <- lapply(names(dat_2_RAST$RAP), FUN = function(y) { -->
+<!--   # make a map for this year -->
+<!--            tempFig <- ggplot() + -->
+<!--              facet_wrap(~lyr, ncol = 1) + -->
+<!-- geom_spatraster(data = dat_2_RAST$RAP[[y]][[1:4]], maxcell = 5e+10) +  -->
+<!--   geom_sf(data=cropped_states_2 ,fill=NA ) + -->
+<!--  xlim(-140, -65) + -->
+<!--  ylim(16, 50) + -->
+<!--   coord_sf(datum = st_crs(test_rastTemp)) + -->
+<!--              scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"),  -->
+<!--                           limits = c(0,100), na.value = "white")  -->
+<!--   # add an inset showing a density plot   -->
+<!--            # get data -->
+<!--            data_inset <- terra::values(dat_2_RAST$RAP[[y]][[1:4]]) %>%  -->
+<!--                as_tibble() %>%  -->
+<!--                pivot_longer(1:4, names_to = "lyr", values_to = "Cover") -->
 
-## make figure for RAP 
-testFigs <- lapply(names(dat_2_RAST$RAP), FUN = function(y) {
-           tempFig <- ggplot() +
-             facet_wrap(~lyr, ncol = 1) +
-geom_spatraster(data = dat_2_RAST$RAP[[y]]) + 
-  geom_sf(data=cropped_states_2 ,fill=NA ) +
-             scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
-                          limits = c(0,100)) +
-  xlim(-125, -65) + 
-  ylim(25, 50)
-           return(tempFig)
-})
-ggarrange(testFigs[[1]], 
-          testFigs[[2]], 
-          testFigs[[3]], 
-          testFigs[[4]], 
-          nrow = 1, common.legend = TRUE)
-```
+<!--            # make insets -->
+<!--            inset_plots <- data_inset %>% -->
+<!--              split(f = .$lyr) %>% -->
+<!--              purrr::map(~annotation_custom2( -->
+<!--     grob = ggplotGrob(get_inset(.) #+ -->
+<!--                         #scale_y_continuous(limits=c(0,105), breaks = c(0, 50, 100)) -->
+<!--                       ), -->
+<!--     data = data.frame(lyr=unique(.$lyr)), -->
+<!--     ymin = 15, ymax=30, xmin=-140, xmax=-105) -->
+<!--   ) -->
 
-## After 'coarsifying' LANDFIRE data
-```{r , fig.width= 20, fig.height = 14}
-# Read in data
-dat_3_temp <- readRDS(file = "../../../Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds")
-# trim to be only later than 2000, which is what we want to use for further analysis
-dat_3 <- dat_3_temp %>%
-  filter(Year >= 2000) %>% 
-  st_drop_geometry()
+<!--          tempFig2 <- tempFig + inset_plots -->
 
-# make a multi-layer raster w/ layers for each variable of interest
-dat_3_RAST <- 
-  lapply(c("FIA", "LANDFIRE", "LDC","RAP"), 
-         FUN = function(y) {
-           tempDat <- dat_3 %>% 
-             filter(Source == y)
-           # get vector of years for the specific data type 
-           if (y %in% c("FIA", "LDC", "RAP")) {
-             datYears <- c("2016", "2020", "2022")
-           } else {
-             datYears <- c("2003", "2007", "2015")
-           }
-           # get data for each cover type by year
-           tempOut <- apply(expand.grid(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover"), datYears, stringsAsFactors = FALSE), 
-                            MARGIN = 1,
-                            FUN = function(x) {
-                              tempDat2 <- tempDat %>% 
-                                filter(Year == x["Var2"])
-                              temp <- terra::rasterize(x = tempDat2[,c("Lon", "Lat")], 
-                                               y = test_rast,
-                                               values = tempDat2[,names(tempDat2) == x["Var1"]],
-                                               fun = mean, 
-                                               na.rm = TRUE, 
-                                               by 
-                                               )
-                      names(temp) <-  paste0(x["Var1"], "_", x["Var2"])
-                      return(temp)
-                    }
-                    )
-           # get dat across all years
-           tempOut2 <- lapply(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover"), 
-                            FUN = function(x) {
-                              temp <- terra::rasterize(x = tempDat[,c("Lon", "Lat")], 
-                                               y = test_rast,
-                                               values = tempDat[,x],
-                                               fun = mean, 
-                                               na.rm = TRUE, 
-                                               by 
-                                               )
-                      names(temp) <-  paste0(x, "_all")
-                      return(temp)
-                    }
-                    )
-           # for each data type, put data for each year in one raster in the list, and the data across all years in another raster
-           outDat <- list(c(tempOut[[1]], tempOut[[2]], tempOut[[3]], tempOut[[4]]), 
-                          c(tempOut[[5]], tempOut[[6]], tempOut[[7]], tempOut[[8]]),
-                          c(tempOut[[9]], tempOut[[10]], tempOut[[11]], tempOut[[12]]), 
-                          c(tempOut2[[1]], tempOut2[[2]], tempOut2[[3]], tempOut2[[4]]))
-           names(outDat) <- c(datYears, "allYears")
-           return(outDat)
-         }
-)
-names(dat_3_RAST) <- c("FIA", "LANDFIRE", "LDC","RAP")
+<!--            return(tempFig2) -->
+<!-- }) -->
 
-## make figure for RAP 
-testFigs <- lapply(names(dat_3_RAST$RAP), FUN = function(y) {
-           tempFig <- ggplot() +
-             facet_wrap(~lyr, ncol = 1) +
-geom_spatraster(data = dat_3_RAST$RAP[[y]]) + 
-  geom_sf(data=cropped_states_2 ,fill=NA ) +
-             scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
-                          limits = c(0,100)) +
-  xlim(-125, -65) + 
-  ylim(25, 50)
-           return(tempFig)
-})
+<!-- ggarrange(testFigs[[1]],  -->
+<!--           testFigs[[2]],  -->
+<!--           ##testFigs[[3]],  -->
+<!--           testFigs[[4]],  -->
+<!--           nrow = 1, common.legend = TRUE, legend = "bottom" -->
+<!--           ) %>%  -->
+<!--   annotate_figure(top = "Map of RAP data on a dayMet x 8 grid") -->
+<!-- # testFigs <- lapply(names(dat_2_RAST$RAP), FUN = function(y) { -->
+<!-- #            tempFig <- ggplot() + -->
+<!-- #              facet_wrap(~lyr, ncol = 1) + -->
+<!-- # geom_spatraster(data = dat_2_RAST$RAP[[y]]) +  -->
+<!-- #   geom_sf(data=cropped_states_2 ,fill=NA ) + -->
+<!-- #              scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"),  -->
+<!-- #                           limits = c(0,100)) + -->
+<!-- #   xlim(-125, -65) +  -->
+<!-- #   ylim(25, 50) -->
+<!-- #            return(tempFig) -->
+<!-- # }) -->
+<!-- # ggarrange(testFigs[[1]],  -->
+<!-- #           testFigs[[2]],  -->
+<!-- #           testFigs[[3]],  -->
+<!-- #           testFigs[[4]],  -->
+<!-- #           nrow = 1, common.legend = TRUE) -->
+<!-- ``` -->
 
-ggarrange(testFigs[[1]], 
-          testFigs[[2]], 
-          testFigs[[3]], 
-          testFigs[[4]], 
-          nrow = 1, common.legend = TRUE)
-```
+<!-- ## After 'coarsifying' LANDFIRE data -->
+<!-- ```{r , fig.width= 20, fig.height = 14} -->
+<!-- # Read in data -->
+<!-- dat_3_temp <- readRDS(file = "../../../Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds") -->
+<!-- # trim to be only later than 2000, which is what we want to use for further analysis -->
+<!-- dat_3 <- dat_3_temp %>% -->
+<!--   filter(Year >= 2000) %>%  -->
+<!--   st_drop_geometry() -->
+
+<!-- # make a multi-layer raster w/ layers for each variable of interest -->
+<!-- dat_3_RAST <-  -->
+<!--   lapply(c("FIA", "LANDFIRE", "LDC","RAP"),  -->
+<!--          FUN = function(y) { -->
+<!--            tempDat <- dat_3 %>%  -->
+<!--              filter(Source == y) -->
+<!--            # get vector of years for the specific data type  -->
+<!--            if (y %in% c("FIA", "LDC", "RAP")) { -->
+<!--              datYears <- c("2016", "2020", "2022") -->
+<!--            } else { -->
+<!--              datYears <- c("2003", "2007", "2015") -->
+<!--            } -->
+<!--            # get data for each cover type by year -->
+<!--            tempOut <- apply(expand.grid(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover"), datYears, stringsAsFactors = FALSE),  -->
+<!--                             MARGIN = 1, -->
+<!--                             FUN = function(x) { -->
+<!--                               tempDat2 <- tempDat %>%  -->
+<!--                                 filter(Year == x["Var2"]) -->
+<!--                               temp <- terra::rasterize(x = tempDat2[,c("Lon", "Lat")],  -->
+<!--                                                y = test_rast, -->
+<!--                                                values = tempDat2[,names(tempDat2) == x["Var1"]], -->
+<!--                                                fun = mean,  -->
+<!--                                                na.rm = TRUE,  -->
+<!--                                                by  -->
+<!--                                                ) -->
+<!--                       names(temp) <-  paste0(x["Var1"], "_", x["Var2"]) -->
+<!--                       return(temp) -->
+<!--                     } -->
+<!--                     ) -->
+<!--            # get dat across all years -->
+<!--            tempOut2 <- lapply(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover"),  -->
+<!--                             FUN = function(x) { -->
+<!--                               temp <- terra::rasterize(x = tempDat[,c("Lon", "Lat")],  -->
+<!--                                                y = test_rast, -->
+<!--                                                values = tempDat[,x], -->
+<!--                                                fun = mean,  -->
+<!--                                                na.rm = TRUE,  -->
+<!--                                                by  -->
+<!--                                                ) -->
+<!--                       names(temp) <-  paste0(x, "_all") -->
+<!--                       return(temp) -->
+<!--                     } -->
+<!--                     ) -->
+<!--            # for each data type, put data for each year in one raster in the list, and the data across all years in another raster -->
+<!--            outDat <- list(c(tempOut[[1]], tempOut[[2]], tempOut[[3]], tempOut[[4]]),  -->
+<!--                           c(tempOut[[5]], tempOut[[6]], tempOut[[7]], tempOut[[8]]), -->
+<!--                           c(tempOut[[9]], tempOut[[10]], tempOut[[11]], tempOut[[12]]),  -->
+<!--                           c(tempOut2[[1]], tempOut2[[2]], tempOut2[[3]], tempOut2[[4]])) -->
+<!--            names(outDat) <- c(datYears, "allYears") -->
+<!--            return(outDat) -->
+<!--          } -->
+<!-- ) -->
+<!-- names(dat_3_RAST) <- c("FIA", "LANDFIRE", "LDC","RAP") -->
+
+<!-- ## make figure for RAP  -->
+<!-- testFigs <- lapply(names(dat_3_RAST$RAP), FUN = function(y) { -->
+<!--            tempFig <- ggplot() + -->
+<!--              facet_wrap(~lyr, ncol = 1) + -->
+<!-- geom_spatraster(data = dat_3_RAST$RAP[[y]]) +  -->
+<!--   geom_sf(data=cropped_states_2 ,fill=NA ) + -->
+<!--              scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"),  -->
+<!--                           limits = c(0,100)) + -->
+<!--   xlim(-125, -65) +  -->
+<!--   ylim(25, 50) -->
+<!--            return(tempFig) -->
+<!-- }) -->
+
+<!-- ggarrange(testFigs[[1]],  -->
+<!--           testFigs[[2]],  -->
+<!--           testFigs[[3]],  -->
+<!--           testFigs[[4]],  -->
+<!--           nrow = 1, common.legend = TRUE) -->
+<!-- ``` -->
 
 # AIM (BLM Assessment, Inventory and Monitoring data)
 ## Initial Dataset
-```{r fig.width= 20, fig.height = 14}
+```{r fig.width= 8, fig.height =25}
 ## make figure for LDC
-testFigs <- lapply(names(dat_1_RAST$LDC), FUN = function(y) {
-           tempFig <- ggplot() +
+testFigs <- lapply(names(dat_1_RAST$LDC)[4], FUN = function(y) {
+  # make a map for this year
+           tempFig <- 
+  ggplot() +
              facet_wrap(~lyr, ncol = 1) +
-geom_spatraster(data = dat_1_RAST$LDC[[y]]) + 
- #geom_sf(data = pred_glm1_full_RAST, aes(col = TotalTreeCover)) + 
-  # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
+geom_spatraster(data = dat_1_RAST$LDC[[y]], maxcell = 5e+10) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
+ xlim(-2150000, 2510000) +
+ ylim(-2005000, 1000000) +
+  coord_sf(datum = st_crs(test_rastTemp)) +
              scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
-                          limits = c(0,100)) +
-  # scale_fill_gradient2(low = "brown",
-  #                      mid = "wheat" ,
-  #                      high = "forestgreen" , 
-  #                      midpoint = 0,   na.value = "white") + 
-  xlim(-125, -65) + 
-  ylim(25, 50)
-           return(tempFig)
-})
-ggarrange(testFigs[[1]], 
-          testFigs[[2]], 
-          testFigs[[3]], 
-          testFigs[[4]], 
-          nrow = 1, common.legend = TRUE)
-```
+                          limits = c(0,100), na.value = "white") 
+  # add an inset showing a density plot  
+           # get data
+           data_inset <- terra::values(dat_1_RAST$LDC[[y]]) %>% 
+               as_tibble() %>% 
+               pivot_longer(1:9, names_to = "lyr", values_to = "Cover")
+           
 
-## After removing burned area
-```{r , fig.width= 20, fig.height = 14}
-## make figure for LDC
-testFigs <- lapply(names(dat_2_RAST$LDC), FUN = function(y) {
-           tempFig <- ggplot() +
+           # make insets
+           inset_plots <- data_inset %>%
+             split(f = .$lyr) %>%
+             purrr::map(~annotation_custom2(
+    grob = ggplotGrob(get_inset(.) #+
+                        #scale_y_continuous(limits=c(0,105), breaks = c(0, 50, 100))
+                      ),
+    data = data.frame(lyr=unique(.$lyr)),
+    ymin = -2025000, ymax=-1205000, xmin=-2280000, xmax=-180000)
+  )
+
+         tempFig2 <- tempFig + inset_plots
+
+           return(tempFig2)
+})
+
+testFigs_splitForPlotting <- lapply(names(dat_1_RAST$LDC)[4], FUN = function(y) {
+  # make a map for this year
+           tempFig_a <- 
+  ggplot() +
              facet_wrap(~lyr, ncol = 1) +
-geom_spatraster(data = dat_2_RAST$LDC[[y]]) + 
+geom_spatraster(data = dat_1_RAST$LDC[[y]][[1:4]], maxcell = 5e+10) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
+ xlim(-2150000, 2510000) +
+ ylim(-2005000, 1000000) +
+  coord_sf(datum = st_crs(test_rastTemp)) +
              scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
-                          limits = c(0,100)) +
-  xlim(-125, -65) + 
-  ylim(25, 50)
-           return(tempFig)
+                          limits = c(0,100), na.value = "white") 
+  # add an inset showing a density plot  
+           # get data
+           data_inset_a <- terra::values(dat_1_RAST$LDC[[y]][[1:4]]) %>% 
+               as_tibble() %>% 
+               pivot_longer(1:4, names_to = "lyr", values_to = "Cover")
+           
+
+           # make insets
+           inset_plots_a <- data_inset_a %>%
+             split(f = .$lyr) %>%
+             purrr::map(~annotation_custom2(
+    grob = ggplotGrob(get_inset(.) #+
+                        #scale_y_continuous(limits=c(0,105), breaks = c(0, 50, 100))
+                      ),
+    data = data.frame(lyr=unique(.$lyr)),
+    ymin = -2025000, ymax=-1205000, xmin=-2280000, xmax=-180000)
+  )
+
+         tempFig2_a <- tempFig_a + inset_plots_a
+         
+         ## second subset
+                    tempFig_b <- 
+  ggplot() +
+             facet_wrap(~lyr, ncol = 1) +
+geom_spatraster(data = dat_1_RAST$LDC[[y]][[5:7]], maxcell = 5e+10) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
+ xlim(-2150000, 2510000) +
+ ylim(-2005000, 1000000) +
+  coord_sf(datum = st_crs(test_rastTemp)) +
+             scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100), na.value = "white") 
+  # add an inset showing a density plot  
+           # get data
+           data_inset_b <- terra::values(dat_1_RAST$LDC[[y]][[5:7]]) %>% 
+               as_tibble() %>% 
+               pivot_longer(1:3, names_to = "lyr", values_to = "Cover")
+           
+
+           # make insets
+           inset_plots_b <- data_inset_b %>%
+             split(f = .$lyr) %>%
+             purrr::map(~annotation_custom2(
+    grob = ggplotGrob(get_inset(.) #+
+                        #scale_y_continuous(limits=c(0,105), breaks = c(0, 50, 100))
+                      ),
+    data = data.frame(lyr=unique(.$lyr)),
+    ymin = -2025000, ymax=-1205000, xmin=-2280000, xmax=-180000)
+  )
+
+         tempFig2_b <- tempFig_b + inset_plots_b
+         
+                  ## third subset
+                    tempFig_c <- 
+  ggplot() +
+             facet_wrap(~lyr, ncol = 1) +
+geom_spatraster(data = dat_1_RAST$LDC[[y]][[8:9]], maxcell = 5e+10) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
+ xlim(-2150000, 2510000) +
+ ylim(-2005000, 1000000) +
+  coord_sf(datum = st_crs(test_rastTemp)) +
+             scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100), na.value = "white") 
+  # add an inset showing a density plot  
+           # get data
+           data_inset_c <- terra::values(dat_1_RAST$LDC[[y]][[8:9]]) %>% 
+               as_tibble() %>% 
+               pivot_longer(1:2, names_to = "lyr", values_to = "Cover")
+           
+
+           # make insets
+           inset_plots_c <- data_inset_c %>%
+             split(f = .$lyr) %>%
+             purrr::map(~annotation_custom2(
+    grob = ggplotGrob(get_inset(.) #+
+                        #scale_y_continuous(limits=c(0,105), breaks = c(0, 50, 100))
+                      ),
+    data = data.frame(lyr=unique(.$lyr)),
+    ymin = -2025000, ymax=-1205000, xmin=-2280000, xmax=-180000)
+  )
+
+         tempFig2_c <- tempFig_c + inset_plots_c
+
+           return(list(tempFig2_a, tempFig2_b, tempFig2_c))
 })
-ggarrange(testFigs[[1]], 
-          testFigs[[2]], 
-          testFigs[[3]], 
-          testFigs[[4]], 
-          nrow = 1, common.legend = TRUE)
+jpeg(filename = "/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/Figures/CoverDatFigures/AIMInputs_step1_partA.jpeg",
+    width = 800, height = 2000)
+ggarrange(#testFigs[[1]], 
+          #testFigs[[2]], 
+          ##testFigs[[3]], 
+          #testFigs[[1]], 
+  testFigs_splitForPlotting[[1]][[1]],
+          nrow = 1, common.legend = TRUE, legend = "bottom"
+          ) %>% 
+  annotate_figure(top = "Map of AIM data on a dayMet x 8 grid")
+dev.off()
 
+
+jpeg(filename = "/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/Figures/CoverDatFigures/AIMInputs_step1_partB.jpeg",
+    width = 800, height = 1500)
+  testFigs_splitForPlotting[[1]][[2]]
+dev.off()
+
+
+jpeg(filename = "/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/Figures/CoverDatFigures/AIMInputs_step1_partC.jpeg",
+    width = 800, height = 1000)
+  testFigs_splitForPlotting[[1]][[3]]
+dev.off()
 ```
 
-
-## After 'coarsifying' LANDFIRE data
-```{r , fig.width= 20, fig.height = 14}
-## make figure for AIM
-# get data just for AIM
-AIM_3 <- dat_3 %>%
-  filter(Source == "LDC") %>%
-  pivot_longer(cols = c(ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_
-                        ),
-               names_to = "coverType",
-               values_to = "coverValues"
-                ) %>%
-  filter(!is.na(coverValues))
-
-ggarrange(ggplot(AIM_3 %>%
-  filter(Year %in% c(2016, 2020, 2022))) +
-  facet_grid(rows = vars(coverType), cols = vars(Year)) +
-  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .1) +
-     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"),
-                          limits = c(0,100)) +
-    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) +
-    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
-  xlim(c(-130,-65)) +
-    ylim(c(25, 50)) +
-  ggtitle("After 'coarsifying' LANDFIRE data - AIM"),
-
-  ggplot(AIM_3) +
-  facet_grid(rows = vars(coverType)) +
-  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .1) +
-     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"),
-                          limits = c(0,100)) +
-    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) +
-    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
-  xlim(c(-130,-65)) +
-    ylim(c(25, 50)) +
-  ggtitle("After 'coarsifying' LANDFIRE data, \nall years - AIM "),
-
-  ncol = 2, align = "h",
-  common.legend = TRUE,
-  widths = c(.7, .3)
-)
+```{r}
+# barplots of # of observations per data type per year
+dat_1 %>% 
+  st_drop_geometry() %>% 
+  filter(Source == "LDC" & Year >=2010) %>%
+  group_by(Year) %>% 
+  summarize(ShrubCover = sum(!is.na(ShrubCover)), 
+            TotalTreeCover = sum(!is.na(TotalTreeCover)),
+            TotalHerbaceousCover = sum(!is.na(TotalHerbaceousCover)),
+           BareGroundCover = sum(!is.na(BareGroundCover)),
+            BroadLeavedTreeCover = sum(!is.na(BroadLeavedTreeCover)),
+            NeedleLeavedTreeCover = sum(!is.na(NeedleLeavedTreeCover)),
+            ForbCover = sum(!is.na(ForbCover)),
+            C3GramCover = sum(!is.na(C3GramCover)),
+            C4GramCover = sum(!is.na(C4GramCover))
+            ) %>% 
+  pivot_longer(2:10, values_to = "No_Observations", names_to = "functionalGroup") %>% 
+  ggplot() + 
+  geom_col(aes(x = Year, y = No_Observations, fill = functionalGroup), position = "dodge", col = "grey20")  + 
+   scale_fill_discrete(type = c("#000000", "#E69F00" ,"#56B4E9", "#009E73", "#F0E442" ,"#0072B2" ,
+                                "#D55E00", "#CC79A7", "#999999"),
+                       labels = c("BareGroundCover", "BroadLeavedTreeCover", "C3GramCover","C4GramCover","ForbCover", "NeedleLeavedTreeCover",
+                                  "ShrubCover",  "TotalHerbaceousCover", "TotalTreeCover")
+   )
 ```
+
+<!-- ## After removing burned area -->
+<!-- ```{r , fig.width= 20, fig.height = 14} -->
+<!-- ## make figure for LDC -->
+<!-- testFigs <- lapply(names(dat_2_RAST$LDC), FUN = function(y) { -->
+<!--            tempFig <- ggplot() + -->
+<!--              facet_wrap(~lyr, ncol = 1) + -->
+<!-- geom_spatraster(data = dat_2_RAST$LDC[[y]]) +  -->
+<!--   coord_sf(datum = st_crs(test_rastTemp)) + -->
+<!--   geom_sf(data=cropped_states_2 ,fill=NA ) + -->
+<!--              scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"),  -->
+<!--                           limits = c(0,100)) + -->
+<!--   xlim(-125, -65) +  -->
+<!--   ylim(25, 50) -->
+<!--            return(tempFig) -->
+<!-- }) -->
+<!-- ggarrange(testFigs[[1]],  -->
+<!--           testFigs[[2]],  -->
+<!--           testFigs[[3]],  -->
+<!--           testFigs[[4]],  -->
+<!--           nrow = 1, common.legend = TRUE) -->
+
+<!-- ``` -->
+
+
+<!-- ## After 'coarsifying' LANDFIRE data -->
+<!-- ```{r , fig.width= 20, fig.height = 14} -->
+<!-- ## make figure for AIM -->
+<!-- # get data just for AIM -->
+<!-- AIM_3 <- dat_3 %>% -->
+<!--   filter(Source == "LDC") %>% -->
+<!--   pivot_longer(cols = c(ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_ -->
+<!--                         ), -->
+<!--                names_to = "coverType", -->
+<!--                values_to = "coverValues" -->
+<!--                 ) %>% -->
+<!--   filter(!is.na(coverValues)) -->
+
+<!-- ggarrange(ggplot(AIM_3 %>% -->
+<!--   filter(Year %in% c(2016, 2020, 2022))) + -->
+<!--   facet_grid(rows = vars(coverType), cols = vars(Year)) + -->
+<!--   stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .1) + -->
+<!--      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), -->
+<!--                           limits = c(0,100)) + -->
+<!--     #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + -->
+<!--     #geom_point(aes(x = Lon, y = Lat, col = coverValues)) + -->
+<!--   xlim(c(-130,-65)) + -->
+<!--     ylim(c(25, 50)) + -->
+<!--   ggtitle("After 'coarsifying' LANDFIRE data - AIM"), -->
+
+<!--   ggplot(AIM_3) + -->
+<!--   facet_grid(rows = vars(coverType)) + -->
+<!--   stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .1) + -->
+<!--      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), -->
+<!--                           limits = c(0,100)) + -->
+<!--     #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + -->
+<!--     #geom_point(aes(x = Lon, y = Lat, col = coverValues)) + -->
+<!--   xlim(c(-130,-65)) + -->
+<!--     ylim(c(25, 50)) + -->
+<!--   ggtitle("After 'coarsifying' LANDFIRE data, \nall years - AIM "), -->
+
+<!--   ncol = 2, align = "h", -->
+<!--   common.legend = TRUE, -->
+<!--   widths = c(.7, .3) -->
+<!-- ) -->
+<!-- ``` -->
 
 
 # FIA (USFS Forest Inventory and Analysis data)
 ## Initial Dataset
-```{r fig.width= 20, fig.height = 14}
+```{r fig.width= 20, fig.height = 26}
 ## make figure for FIA
-testFigs <- lapply(names(dat_1_RAST$FIA), FUN = function(y) {
-           tempFig <- ggplot() +
+testFigs <- lapply(names(dat_1_RAST$FIA)[4], FUN = function(y) {
+  # make a map for this year
+           tempFig <- 
+  ggplot() +
              facet_wrap(~lyr, ncol = 1) +
-geom_spatraster(data = dat_1_RAST$FIA[[y]]) + 
- #geom_sf(data = pred_glm1_full_RAST, aes(col = TotalTreeCover)) + 
-  # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
+geom_spatraster(data = dat_1_RAST$FIA[[y]][[c(1:5,8:9)]], maxcell = 5e+10) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
+ xlim(-2150000, 2510000) +
+ ylim(-2005000, 1000000) +
+  coord_sf(datum = st_crs(test_rastTemp)) +
              scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
-                          limits = c(0,100)) +
-  # scale_fill_gradient2(low = "brown",
-  #                      mid = "wheat" ,
-  #                      high = "forestgreen" , 
-  #                      midpoint = 0,   na.value = "white") + 
-  xlim(-125, -65) + 
-  ylim(25, 50)
-           return(tempFig)
+                          limits = c(0,100), na.value = "white") 
+  # add an inset showing a density plot  
+           # get data
+           data_inset <- terra::values(dat_1_RAST$FIA[[y]][[c(1:5,8:9)]]) %>% 
+               as_tibble() %>% 
+               pivot_longer(1:7, names_to = "lyr", values_to = "Cover")
+           
+           # make insets
+           inset_plots <- data_inset %>%
+             split(f = .$lyr) %>%
+             purrr::map(~annotation_custom2(
+    grob = ggplotGrob(get_inset(.) #+
+                        #scale_y_continuous(limits=c(0,105), breaks = c(0, 50, 100))
+                      ),
+    data = data.frame(lyr=unique(.$lyr)),
+    ymin = -2025000, ymax=-1205000, xmin=-2280000, xmax=-180000)
+  )
+
+         tempFig2 <- tempFig + inset_plots
+
+           return(tempFig2)
 })
 
-ggarrange(testFigs[[1]], 
-          testFigs[[2]], 
-          testFigs[[3]], 
-          testFigs[[4]], 
-          nrow = 1, common.legend = TRUE)
-```
-
-## After removing burned area
-```{r , fig.width= 20, fig.height = 14}
-## make figure for FIA
-testFigs <- lapply(names(dat_2_RAST$FIA), FUN = function(y) {
-           tempFig <- ggplot() +
+testFigs_splitForPlotting <- lapply(names(dat_1_RAST$FIA)[4], FUN = function(y) {
+  # make a map for this year
+           tempFig_a <- 
+  ggplot() +
              facet_wrap(~lyr, ncol = 1) +
-geom_spatraster(data = dat_2_RAST$FIA[[y]]) + 
+geom_spatraster(data = dat_1_RAST$FIA[[y]][[c(1:4)]], maxcell = 5e+10) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
+ xlim(-2150000, 2510000) +
+ ylim(-2005000, 1000000) +
+  coord_sf(datum = st_crs(test_rastTemp)) +
              scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
-                          limits = c(0,100)) +
-  xlim(-125, -65) + 
-  ylim(25, 50)
-           return(tempFig)
+                          limits = c(0,100), na.value = "white") 
+  # add an inset showing a density plot  
+           # get data
+           data_inset_a <- terra::values(dat_1_RAST$FIA[[y]][[c(1:4)]]) %>% 
+               as_tibble() %>% 
+               pivot_longer(1:4, names_to = "lyr", values_to = "Cover")
+           
+
+           # make insets
+           inset_plots_a <- data_inset_a %>%
+             split(f = .$lyr) %>%
+             purrr::map(~annotation_custom2(
+    grob = ggplotGrob(get_inset(.) #+
+                        #scale_y_continuous(limits=c(0,105), breaks = c(0, 50, 100))
+                      ),
+    data = data.frame(lyr=unique(.$lyr)),
+    ymin = -2025000, ymax=-1205000, xmin=-2280000, xmax=-180000)
+  )
+
+         tempFig2_a <- tempFig_a + inset_plots_a
+         
+         ## second subset
+                    tempFig_b <- 
+  ggplot() +
+             facet_wrap(~lyr, ncol = 1) +
+geom_spatraster(data = dat_1_RAST$FIA[[y]][[c(5,8:9)]], maxcell = 5e+10) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
+ xlim(-2150000, 2510000) +
+ ylim(-2005000, 1000000) +
+  coord_sf(datum = st_crs(test_rastTemp)) +
+             scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100), na.value = "white") 
+  # add an inset showing a density plot  
+           # get data
+           data_inset_b <- terra::values(dat_1_RAST$FIA[[y]][[c(5,8:9)]]) %>% 
+               as_tibble() %>% 
+               pivot_longer(1:3, names_to = "lyr", values_to = "Cover")
+           
+
+           # make insets
+           inset_plots_b <- data_inset_b %>%
+             split(f = .$lyr) %>%
+             purrr::map(~annotation_custom2(
+    grob = ggplotGrob(get_inset(.) #+
+                        #scale_y_continuous(limits=c(0,105), breaks = c(0, 50, 100))
+                      ),
+    data = data.frame(lyr=unique(.$lyr)),
+    ymin = -2025000, ymax=-1205000, xmin=-2280000, xmax=-180000)
+  )
+
+         tempFig2_b <- tempFig_b + inset_plots_b
+         
+                
+           return(list(tempFig2_a, tempFig2_b))
 })
-ggarrange(testFigs[[1]], 
-          testFigs[[2]], 
-          testFigs[[3]], 
-          testFigs[[4]], 
-          nrow = 1, common.legend = TRUE)
+jpeg(filename = "/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/Figures/CoverDatFigures/FIAInputs_step1_partA.jpeg",
+    width = 800, height = 2000)
+ggarrange(#testFigs[[1]], 
+          #testFigs[[2]], 
+          ##testFigs[[3]], 
+          #testFigs[[1]], 
+  testFigs_splitForPlotting[[1]][[1]],
+          nrow = 1, common.legend = TRUE, legend = "bottom"
+          ) %>% 
+  annotate_figure(top = "Map of FIA data on a dayMet x 8 grid")
+dev.off()
+
+
+jpeg(filename = "/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/Figures/CoverDatFigures/FIAInputs_step1_partB.jpeg",
+    width = 800, height = 1500)
+  testFigs_splitForPlotting[[1]][[2]]
+dev.off()
 ```
 
 
-## After 'coarsifying' LANDFIRE data
-```{r , fig.width= 20, fig.height = 14}
-## make figure for FIA
-# get data just for FIA
-FIA_3 <- dat_3 %>%
+```{r fig.width=9, fig.height=6}
+# barplots of # of observations per data type per year
+dat_1 %>% 
+  st_drop_geometry() %>% 
   filter(Source == "FIA") %>%
-  pivot_longer(cols = c(ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_
-                        ),
-               names_to = "coverType",
-               values_to = "coverValues"
-                ) %>%
-  filter(!is.na(coverValues))
-
-ggarrange(ggplot(FIA_3 %>%
-  filter(Year %in% c(2016, 2020, 2022))) +
-  facet_grid(rows = vars(coverType), cols = vars(Year)) +
-  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .1) +
-     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"),
-                          limits = c(0,100)) +
-    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) +
-    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
-  xlim(c(-130,-65)) +
-    ylim(c(25, 50)) +
-  ggtitle("After 'coarsifying' LANDFIRE data - FIA"),
-
-  ggplot(FIA_3) +
-  facet_grid(rows = vars(coverType)) +
-  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .1) +
-     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"),
-                          limits = c(0,100)) +
-    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) +
-    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
-  xlim(c(-130,-65)) +
-    ylim(c(25, 50)) +
-  ggtitle("After 'coarsifying' LANDFIRE data, \nall years - FIA "),
-
-  ncol = 2, align = "h",
-  common.legend = TRUE,
-  widths = c(.7, .3)
-)
+  group_by(Year) %>% 
+  summarize(ShrubCover = sum(!is.na(ShrubCover)), 
+            TotalTreeCover = sum(!is.na(TotalTreeCover)),
+            TotalHerbaceousCover = sum(!is.na(TotalHerbaceousCover)),
+           BareGroundCover = sum(!is.na(BareGroundCover)),
+            BroadLeavedTreeCover = sum(!is.na(BroadLeavedTreeCover)),
+            NeedleLeavedTreeCover = sum(!is.na(NeedleLeavedTreeCover)),
+            ForbCover = sum(!is.na(ForbCover))#,
+            #C3GramCover = sum(!is.na(C3GramCover)),
+            #C4GramCover = sum(!is.na(C4GramCover))
+            ) %>% 
+  pivot_longer(2:8, values_to = "No_Observations", names_to = "functionalGroup") %>% 
+  ggplot() + 
+  geom_col(aes(x = Year, y = No_Observations, fill = functionalGroup), position = "dodge", col = "grey20") + 
+   scale_fill_discrete(type = c("#000000",
+     "#E69F00" ,#"#56B4E9", "#009E73", 
+     "#F0E442" ,"#0072B2" ,"#D55E00", "#CC79A7", "#999999"),
+                       labels = c("BareGroundCover",
+                         "BroadLeavedTreeCover", #"C3GramCover","C4GramCover",
+                         "ForbCover", "NeedleLeavedTreeCover",
+                                  "ShrubCover",  "TotalHerbaceousCover", "TotalTreeCover")
+ )
 ```
+
+<!-- ## After removing burned area -->
+<!-- ```{r , fig.width= 20, fig.height = 14} -->
+<!-- ## make figure for FIA -->
+<!-- testFigs <- lapply(names(dat_2_RAST$FIA), FUN = function(y) { -->
+<!--            tempFig <- ggplot() + -->
+<!--              facet_wrap(~lyr, ncol = 1) + -->
+<!-- geom_spatraster(data = dat_2_RAST$FIA[[y]]) +  -->
+<!--   coord_sf(datum = st_crs(test_rastTemp)) + -->
+<!--   geom_sf(data=cropped_states_2 ,fill=NA ) + -->
+<!--              scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"),  -->
+<!--                           limits = c(0,100)) + -->
+<!--   xlim(-125, -65) +  -->
+<!--   ylim(25, 50) -->
+<!--            return(tempFig) -->
+<!-- }) -->
+<!-- ggarrange(testFigs[[1]],  -->
+<!--           testFigs[[2]],  -->
+<!--           testFigs[[3]],  -->
+<!--           testFigs[[4]],  -->
+<!--           nrow = 1, common.legend = TRUE) -->
+<!-- ``` -->
+
+
+<!-- ## After 'coarsifying' LANDFIRE data -->
+<!-- ```{r , fig.width= 20, fig.height = 14} -->
+<!-- ## make figure for FIA -->
+<!-- # get data just for FIA -->
+<!-- FIA_3 <- dat_3 %>% -->
+<!--   filter(Source == "FIA") %>% -->
+<!--   pivot_longer(cols = c(ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_ -->
+<!--                         ), -->
+<!--                names_to = "coverType", -->
+<!--                values_to = "coverValues" -->
+<!--                 ) %>% -->
+<!--   filter(!is.na(coverValues)) -->
+
+<!-- ggarrange(ggplot(FIA_3 %>% -->
+<!--   filter(Year %in% c(2016, 2020, 2022))) + -->
+<!--   facet_grid(rows = vars(coverType), cols = vars(Year)) + -->
+<!--   stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .1) + -->
+<!--      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), -->
+<!--                           limits = c(0,100)) + -->
+<!--     #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + -->
+<!--     #geom_point(aes(x = Lon, y = Lat, col = coverValues)) + -->
+<!--   xlim(c(-130,-65)) + -->
+<!--     ylim(c(25, 50)) + -->
+<!--   ggtitle("After 'coarsifying' LANDFIRE data - FIA"), -->
+
+<!--   ggplot(FIA_3) + -->
+<!--   facet_grid(rows = vars(coverType)) + -->
+<!--   stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .1) + -->
+<!--      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), -->
+<!--                           limits = c(0,100)) + -->
+<!--     #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + -->
+<!--     #geom_point(aes(x = Lon, y = Lat, col = coverValues)) + -->
+<!--   xlim(c(-130,-65)) + -->
+<!--     ylim(c(25, 50)) + -->
+<!--   ggtitle("After 'coarsifying' LANDFIRE data, \nall years - FIA "), -->
+
+<!--   ncol = 2, align = "h", -->
+<!--   common.legend = TRUE, -->
+<!--   widths = c(.7, .3) -->
+<!-- ) -->
+<!-- ``` -->
 
 
 # LANDFIRE Reference database  (use different years for LANDFIRE due to data availability)
 ## Initial Dataset
-```{r fig.width= 20, fig.height = 14}
+```{r fig.width=16, fig.height = 26, warning = FALSE}
 ## make figure for LANDFIRE
-testFigs <- lapply(names(dat_1_RAST$LANDFIRE), FUN = function(y) {
-           tempFig <- ggplot() +
+testFigs <- lapply(names(dat_1_RAST$LANDFIRE)[4], FUN = function(y) {
+  # make a map for this year
+           tempFig <- 
+  ggplot() +
              facet_wrap(~lyr, ncol = 1) +
-geom_spatraster(data = dat_1_RAST$LANDFIRE[[y]]) + 
- #geom_sf(data = pred_glm1_full_RAST, aes(col = TotalTreeCover)) + 
-  # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
+geom_spatraster(data = dat_1_RAST$LANDFIRE[[y]][[c(1:3,5:9)]], maxcell = 5e+10) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
+ xlim(-2150000, 2510000) +
+ ylim(-2005000, 1000000) +
+  coord_sf(datum = st_crs(test_rastTemp)) +
              scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
-                          limits = c(0,100)) +
-  # scale_fill_gradient2(low = "brown",
-  #                      mid = "wheat" ,
-  #                      high = "forestgreen" , 
-  #                      midpoint = 0,   na.value = "white") + 
-  xlim(-125, -65) + 
-  ylim(25, 50)
-           return(tempFig)
+                          limits = c(0,100), na.value = "white") 
+  # add an inset showing a density plot  
+           # get data
+           data_inset <- terra::values(dat_1_RAST$LANDFIRE[[y]][[c(1:3,5:9)]]) %>% 
+               as_tibble() %>% 
+               pivot_longer(1:8, names_to = "lyr", values_to = "Cover")
+           
+           # make insets
+           inset_plots <- data_inset %>%
+             split(f = .$lyr) %>%
+             purrr::map(~annotation_custom2(
+    grob = ggplotGrob(get_inset(.) #+
+                        #scale_y_continuous(limits=c(0,105), breaks = c(0, 50, 100))
+                      ),
+    data = data.frame(lyr=unique(.$lyr)),
+    ymin = -2025000, ymax=-1205000, xmin=-2280000, xmax=-180000)
+  )
+
+         tempFig2 <- tempFig + inset_plots
+
+           return(tempFig2)
 })
 
-ggarrange(testFigs[[1]], 
-          testFigs[[2]], 
-          testFigs[[3]], 
-          testFigs[[4]], 
-          nrow = 1, common.legend = TRUE)
-```
-
-## After removing burned area
-```{r , fig.width= 20, fig.height = 14}
-## make figure for LANDFIRE
-testFigs <- lapply(names(dat_2_RAST$LANDFIRE), FUN = function(y) {
-           tempFig <- ggplot() +
+testFigs_splitForPlotting <- lapply(names(dat_1_RAST$LANDFIRE)[4], FUN = function(y) {
+  # make a map for this year
+           tempFig_a <- 
+  ggplot() +
              facet_wrap(~lyr, ncol = 1) +
-geom_spatraster(data = dat_2_RAST$LANDFIRE[[y]]) + 
+geom_spatraster(data = dat_1_RAST$LANDFIRE[[y]][[c(1:3,5)]], maxcell = 5e+10) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
+ xlim(-2150000, 2510000) +
+ ylim(-2005000, 1000000) +
+  coord_sf(datum = st_crs(test_rastTemp)) +
              scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
-                          limits = c(0,100)) +
-  xlim(-125, -65) + 
-  ylim(25, 50)
-           return(tempFig)
+                          limits = c(0,100), na.value = "white") 
+  # add an inset showing a density plot  
+           # get data
+           data_inset_a <- terra::values(dat_1_RAST$LANDFIRE[[y]][[c(1:3,5)]]) %>% 
+               as_tibble() %>% 
+               pivot_longer(1:4, names_to = "lyr", values_to = "Cover")
+           
+
+           # make insets
+           inset_plots_a <- data_inset_a %>%
+             split(f = .$lyr) %>%
+             purrr::map(~annotation_custom2(
+    grob = ggplotGrob(get_inset(.) #+
+                        #scale_y_continuous(limits=c(0,105), breaks = c(0, 50, 100))
+                      ),
+    data = data.frame(lyr=unique(.$lyr)),
+    ymin = -2025000, ymax=-1205000, xmin=-2280000, xmax=-180000)
+  )
+
+         tempFig2_a <- tempFig_a + inset_plots_a
+         
+         ## second subset
+                    tempFig_b <- 
+  ggplot() +
+             facet_wrap(~lyr, ncol = 1) +
+geom_spatraster(data = dat_1_RAST$LANDFIRE[[y]][[c(6:9)]], maxcell = 5e+10) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
+ xlim(-2150000, 2510000) +
+ ylim(-2005000, 1000000) +
+  coord_sf(datum = st_crs(test_rastTemp)) +
+             scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), 
+                          limits = c(0,100), na.value = "white") 
+  # add an inset showing a density plot  
+           # get data
+           data_inset_b <- terra::values(dat_1_RAST$LANDFIRE[[y]][[c(6:9)]]) %>% 
+               as_tibble() %>% 
+               pivot_longer(1:4, names_to = "lyr", values_to = "Cover")
+           
+
+           # make insets
+           inset_plots_b <- data_inset_b %>%
+             split(f = .$lyr) %>%
+             purrr::map(~annotation_custom2(
+    grob = ggplotGrob(get_inset(.) #+
+                        #scale_y_continuous(limits=c(0,105), breaks = c(0, 50, 100))
+                      ),
+    data = data.frame(lyr=unique(.$lyr)),
+    ymin = -2025000, ymax=-1205000, xmin=-2280000, xmax=-180000)
+  )
+
+         tempFig2_b <- tempFig_b + inset_plots_b
+         
+                
+           return(list(tempFig2_a, tempFig2_b))
 })
-ggarrange(testFigs[[1]], 
-          testFigs[[2]], 
-          testFigs[[3]], 
-          testFigs[[4]], 
-          nrow = 1, common.legend = TRUE)
+jpeg(filename = "/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/Figures/CoverDatFigures/LANDFIREInputs_step1_partA.jpeg",
+    width = 800, height = 2000)
+ggarrange(#testFigs[[1]], 
+          #testFigs[[2]], 
+          ##testFigs[[3]], 
+          #testFigs[[1]], 
+  testFigs_splitForPlotting[[1]][[1]],
+          nrow = 1, common.legend = TRUE, legend = "bottom"
+          ) %>% 
+  annotate_figure(top = "Map of LANDFIRE data on a dayMet x 8 grid")
+dev.off()
+
+
+jpeg(filename = "/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/Figures/CoverDatFigures/LANDFIREInputs_step1_partB.jpeg",
+    width = 800, height = 2000)
+  testFigs_splitForPlotting[[1]][[2]]
+dev.off()
 ```
 
-## After 'coarsifying' LANDFIRE data
-```{r , fig.width= 20, fig.height = 14}
-## make figure for LANDFIRE
-LANDFIRE_3 <- dat_3 %>%
+```{r fig.width=9, fig.height=6}
+# barplots of # of observations per data type per year
+dat_1 %>% 
+  st_drop_geometry() %>% 
   filter(Source == "LANDFIRE") %>%
-  pivot_longer(cols = c(ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_
-                        ),
-               names_to = "coverType",
-               values_to = "coverValues"
-                ) %>%
-  filter(!is.na(coverValues))
-
-ggarrange(ggplot(LANDFIRE_3 %>%
-  filter(Year %in% c(2003, 2007, 2015))) +
-  facet_grid(rows = vars(coverType), cols = vars(Year)) +
-  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .1) +
-     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"),
-                          limits = c(0,100)) +
-    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) +
-    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
-  xlim(c(-130,-65)) +
-    ylim(c(25, 50)) +
-  ggtitle("After 'coarsifying' LANDFIRE data - LANDFIRE"),
-
-  ggplot(LANDFIRE_3) +
-  facet_grid(rows = vars(coverType)) +
-  stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .1) +
-     scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"),
-                          limits = c(0,100)) +
-    #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) +
-    #geom_point(aes(x = Lon, y = Lat, col = coverValues)) +
-  xlim(c(-130,-65)) +
-    ylim(c(25, 50)) +
-  ggtitle("After 'coarsifying' LANDFIRE data, \nall years - LANDFIRE "),
-
-  ncol = 2, align = "h",
-  common.legend = TRUE,
-  widths = c(.7, .3)
-)
+  group_by(Year) %>% 
+  summarize(ShrubCover = sum(!is.na(ShrubCover)), 
+            TotalTreeCover = sum(!is.na(TotalTreeCover)),
+            TotalHerbaceousCover = sum(!is.na(TotalHerbaceousCover)),
+           # BareGroundCover = sum(!is.na(BareGroundCover)),
+            BroadLeavedTreeCover = sum(!is.na(BroadLeavedTreeCover)),
+            NeedleLeavedTreeCover = sum(!is.na(NeedleLeavedTreeCover)),
+            ForbCover = sum(!is.na(ForbCover)),
+            C3GramCover = sum(!is.na(C3GramCover)),
+            C4GramCover = sum(!is.na(C4GramCover))
+            ) %>% 
+  pivot_longer(2:9, values_to = "No_Observations", names_to = "functionalGroup") %>% 
+  ggplot() + 
+  geom_col(aes(x = Year, y = No_Observations, fill = functionalGroup), position = "dodge", col = "grey20") + 
+   scale_fill_discrete(type = c(#"#000000", 
+     "#E69F00" ,"#56B4E9", "#009E73", "#F0E442" ,"#0072B2" ,"#D55E00", "#CC79A7", "#999999"),
+                       labels = c(#"BareGroundCover", 
+                         "BroadLeavedTreeCover", "C3GramCover","C4GramCover","ForbCover", "NeedleLeavedTreeCover",
+                                  "ShrubCover",  "TotalHerbaceousCover", "TotalTreeCover")
+ )
 ```
 
+<!-- ## After removing burned area -->
+<!-- ```{r , fig.width= 20, fig.height = 14} -->
+<!-- ## make figure for LANDFIRE -->
+<!-- testFigs <- lapply(names(dat_2_RAST$LANDFIRE), FUN = function(y) { -->
+<!--            tempFig <- ggplot() + -->
+<!--              facet_wrap(~lyr, ncol = 1) + -->
+<!-- geom_spatraster(data = dat_2_RAST$LANDFIRE[[y]]) +  -->
+<!--   coord_sf(datum = st_crs(test_rastTemp)) + -->
+<!--   geom_sf(data=cropped_states_2 ,fill=NA ) + -->
+<!--              scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"),  -->
+<!--                           limits = c(0,100)) + -->
+<!--   xlim(-125, -65) +  -->
+<!--   ylim(25, 50) -->
+<!--            return(tempFig) -->
+<!-- }) -->
+
+<!-- ggarrange(testFigs[[1]],  -->
+<!--           testFigs[[2]],  -->
+<!--           testFigs[[3]],  -->
+<!--           testFigs[[4]],  -->
+<!--           nrow = 1, common.legend = TRUE) -->
+<!-- ``` -->
+
+<!-- ## After 'coarsifying' LANDFIRE data -->
+<!-- ```{r , fig.width= 20, fig.height = 14} -->
+<!-- ## make figure for LANDFIRE -->
+<!-- LANDFIRE_3 <- dat_3 %>% -->
+<!--   filter(Source == "LANDFIRE") %>% -->
+<!--   pivot_longer(cols = c(ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_ -->
+<!--                         ), -->
+<!--                names_to = "coverType", -->
+<!--                values_to = "coverValues" -->
+<!--                 ) %>% -->
+<!--   filter(!is.na(coverValues)) -->
+
+<!-- ggarrange(ggplot(LANDFIRE_3 %>% -->
+<!--   filter(Year %in% c(2003, 2007, 2015))) + -->
+<!--   facet_grid(rows = vars(coverType), cols = vars(Year)) + -->
+<!--   stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .1) + -->
+<!--      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), -->
+<!--                           limits = c(0,100)) + -->
+<!--     #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + -->
+<!--     #geom_point(aes(x = Lon, y = Lat, col = coverValues)) + -->
+<!--   xlim(c(-130,-65)) + -->
+<!--     ylim(c(25, 50)) + -->
+<!--   ggtitle("After 'coarsifying' LANDFIRE data - LANDFIRE"), -->
+
+<!--   ggplot(LANDFIRE_3) + -->
+<!--   facet_grid(rows = vars(coverType)) + -->
+<!--   stat_summary_2d(aes(x = Lon, y = Lat, z = coverValues), fun = mean, binwidth = .1) + -->
+<!--      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), -->
+<!--                           limits = c(0,100)) + -->
+<!--     #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + -->
+<!--     #geom_point(aes(x = Lon, y = Lat, col = coverValues)) + -->
+<!--   xlim(c(-130,-65)) + -->
+<!--     ylim(c(25, 50)) + -->
+<!--   ggtitle("After 'coarsifying' LANDFIRE data, \nall years - LANDFIRE "), -->
+
+<!--   ncol = 2, align = "h", -->
+<!--   common.legend = TRUE, -->
+<!--   widths = c(.7, .3) -->
+<!-- ) -->
+<!-- ``` -->
+
+# Map of locations w/ fire history
+```{r}
+mtbs <- st_read(dsn = "../../../Data_raw/mtbs_perimeter_data/", layer = "mtbs_perims_DD")
+
+#combined wildland fire 
+cwf_layers <- st_layers(dsn = "../../../Data_raw/combinedWildlandFireDB/Fire_Feature_Data_Pro2_8_Geodatabase/Fire_Feature_Data.gdb/")
+cwf <- st_read(dsn = "../../../Data_raw/combinedWildlandFireDB/Fire_Feature_Data_Pro2_8_Geodatabase/Fire_Feature_Data.gdb/", layer = "USGS_Wildland_Fire_Combined_Dataset")
+ # transform crs to match mtbs
+cwf <- cwf %>% 
+  st_transform(st_crs(mtbs)) %>% 
+  st_sf() %>% 
+  st_cast()
+
+## fix those geometries that are "multisurface"
+cwf_multi <- cwf[st_geometry_type(cwf) == "MULTISURFACE",]
+cwf_nonMulti <- cwf[st_geometry_type(cwf) != "MULTISURFACE",]
+
+# cwf_multi_fixed <- cwf_multi %>% 
+# 
+#   #st_make_valid() %>% 
+#   surf_to_poly()
+
+cwf_new <- #cwf_multi_fixed %>% 
+ # rbind(cwf_nonMulti) %>% 
+  cwf_nonMulti
+
+str(cwf)
+library(mapview)
+mapview(cwf_new)
+```
+
+# Map of locations we exclude because of land use 
+```{r}
+
+```
 
 # After data has been spatially averaged (can no longer look at data by data source)
 ## After initial spatial averaging
