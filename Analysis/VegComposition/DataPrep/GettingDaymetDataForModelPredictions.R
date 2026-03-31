@@ -59,7 +59,7 @@ if (test) {
 dayMet_points$sliceID <- rep(1:1000000, each = binSize, length.out = nrow(dayMet_points))
 
 # now start a huge loop where we go through an iteration for each slice of the point data
-for (z in 1:unique(dayMet_points$sliceID)) {
+for (z in 1:length(unique(dayMet_points$sliceID))) {
   # subset the points into data for the current slice
   dayMet_points_z <- dayMet_points[dayMet_points$sliceID == z,]
   # Acquire weather data and calculate variables ----------------------------
@@ -693,16 +693,7 @@ for (z in 1:unique(dayMet_points$sliceID)) {
   gc()
   
   climDatNew <- testNew 
-  
-  # fix issue w/ anomaly of precip driest month -----------------------------
-  
-  climDatNew[(climDatNew$precip_driestMonth_meanAnnAvg_CLIM == 0 & !is.na(climDatNew$precip_driestMonth_meanAnnAvg_CLIM))
-             & (climDatNew$precip_driestMonth_meanAnnAvg_3yr == 0 & !is.na(climDatNew$precip_driestMonth_meanAnnAvg_3yr)),
-             c("precip_driestMonth_meanAnnAvg_3yrAnom")] <- 0
-  climDatNew[(climDatNew$precip_driestMonth_meanAnnAvg_29yr == 0 & !is.na(climDatNew$precip_driestMonth_meanAnnAvg_29yr))
-             & (climDatNew$precip_driestMonth_meanAnnAvg_2yr == 0 & !is.na(climDatNew$precip_driestMonth_meanAnnAvg_2yr)),
-             c("precip_driestMonth_meanAnnAvg_2yrAnom")] <- 0
-  
+
   if (!test) {
     # save climate values for analysis
     
@@ -710,6 +701,24 @@ for (z in 1:unique(dayMet_points$sliceID)) {
     #climDatNew <- readRDS("./Data_processed/CoverData/dayMetClimateValuesForAnalysis_final.rds")
   }
 # remove values for the current slice and proceed to the next   
-rm(allMetDat, allMetDat2, annMeans, annMeans_30yr, annMeans_30yr_temp1, annMeans_all, annMetDat, climDatNew, precipSeasonalityDat, testLag, testNew)
+rm(allMetDat, allMetDat2, annMeans, annMeans_30yr, annMeans_30yr_temp1, annMeans_all, annMetDat, climDatNew, testLag, testNew)
 gc()
 }
+
+
+# Now add data from different slices together  ---------------------------------
+# get file names 
+climDatNames <- list.files("./Data_processed/CoverData/dayMet_intermediate/WallToWall/", pattern = "dayMetClimateValuesForAnalysis_final_slice")
+
+listOut <- apply(as.matrix(climDatNames), MARGIN = 1, FUN = function(x) {
+  # get data fore each slice and remove any data that aren't for 2023
+ readRDS(paste0("./Data_processed/CoverData/dayMet_intermediate/WallToWall/",x)) %>% 
+           filter(year == 2023)
+  #return(get(x))
+}) %>% 
+  purrr::list_rbind()
+
+# save for further analysis 
+listOut %>% 
+  select(-precip_driestMonth_meanAnnAvg_3yrAnom, -precip_driestMonth_meanAnnAvg_2yrAnom) %>% 
+  saveRDS("./Data_processed/WallToWallClimateData/DayMetData_allCONUS_2023ClimateValues.rds")
