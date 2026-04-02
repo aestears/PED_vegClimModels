@@ -288,9 +288,16 @@ geom_spatraster(data = dat_1_RAST$RAP[[y]][[1:4]], maxcell = 5e+10) +
              
   # add an inset showing a density plot  
            # get data
-           data_inset <- terra::values(dat_1_RAST$RAP[[y]][[1:4]]) %>% 
-               as_tibble() %>% 
-               pivot_longer(1:4, names_to = "lyr", values_to = "Cover")
+           data_inset <- #terra::values(dat_1_RAST$RAP[[y]][[1:4]]) %>% 
+             dat_1 %>% 
+             st_drop_geometry() %>% 
+             filter(Source == "RAP") %>% 
+               #as_tibble() %>% 
+             rename(ShrubCover_all = ShrubCover, 
+                    TotalTreeCover_all = TotalTreeCover, 
+                    TotalHerbaceousCover_all = TotalHerbaceousCover, 
+                    BareGroundCover_all = BareGroundCover) %>% 
+               pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all, BareGroundCover_all), names_to = "lyr", values_to = "Cover")
  
            # make insets
            inset_plots <- data_inset %>%
@@ -372,9 +379,26 @@ geom_spatraster(data = dat_1_RAST$LDC[[y]], maxcell = 5e+10) +
              ggtitle("Map of AIM data on a dayMet x 13 grid")
   # add an inset showing a density plot
            # get data
-           data_inset <- terra::values(dat_1_RAST$LDC[[y]]) %>%
-               as_tibble() %>%
-               pivot_longer(1:9, names_to = "lyr", values_to = "Cover")
+           data_inset <- dat_1 %>% 
+             st_drop_geometry() %>% 
+             filter(Source == "LDC") %>% 
+             rename(ShrubCover_all = ShrubCover, 
+                    TotalTreeCover_all = TotalTreeCover, 
+                    TotalHerbaceousCover_all = TotalHerbaceousCover, 
+                    BareGroundCover_all = BareGroundCover,
+                    ForbCover_all = ForbCover, 
+                    C3GramCover_all = C3GramCover, 
+                    C4GramCover_all = C4GramCover, 
+                    BroadLeavedTreeCover_all = BroadLeavedTreeCover,
+                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>% 
+               pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all, BareGroundCover_all,
+                              ForbCover_all,  C3GramCover_all,  C4GramCover_all,  BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all), 
+                            names_to = "lyr", values_to = "Cover")
+ 
+           
+           # data_inset <- terra::values(dat_1_RAST$LDC[[y]]) %>%
+           #     as_tibble() %>%
+           #     pivot_longer(1:9, names_to = "lyr", values_to = "Cover")
 
 
            # make insets
@@ -400,7 +424,8 @@ This barplot shows the sample size for each functional group across years in the
 # barplots of # of observations per data type per year
 dat_1 %>%
   st_drop_geometry() %>%
-  filter(Source == "LDC" & Year >=2010) %>%
+  filter(Source == "LDC" #& Year >=2010
+         ) %>%
   group_by(Year) %>%
   summarize(ShrubCover = sum(!is.na(ShrubCover)),
             TotalTreeCover = sum(!is.na(TotalTreeCover)),
@@ -450,9 +475,24 @@ geom_spatraster(data = dat_1_RAST$FIA[[y]][[c(1:5,8:9)]], maxcell = 5e+10) +
              ggtitle("Map of FIA data on a dayMet x 13 grid")
   # add an inset showing a density plot
            # get data
-           data_inset <- terra::values(dat_1_RAST$FIA[[y]][[c(1:5,8:9)]]) %>%
-               as_tibble() %>%
-               pivot_longer(1:7, names_to = "lyr", values_to = "Cover")
+                      data_inset <- dat_1 %>% 
+             st_drop_geometry() %>% 
+             filter(Source == "FIA") %>% 
+             rename(ShrubCover_all = ShrubCover, 
+                    TotalTreeCover_all = TotalTreeCover, 
+                    TotalHerbaceousCover_all = TotalHerbaceousCover, 
+                    BareGroundCover_all = BareGroundCover,
+                    ForbCover_all = ForbCover, 
+                    C3GramCover_all = C3GramCover, 
+                    C4GramCover_all = C4GramCover, 
+                    BroadLeavedTreeCover_all = BroadLeavedTreeCover,
+                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>% 
+               pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all, BareGroundCover_all,
+                              ForbCover_all, BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all), 
+                            names_to = "lyr", values_to = "Cover")
+           # data_inset <- terra::values(dat_1_RAST$FIA[[y]][[c(1:5,8:9)]]) %>%
+           #     as_tibble() %>%
+           #     pivot_longer(1:7, names_to = "lyr", values_to = "Cover")
 
            # make insets
            inset_plots <- data_inset %>%
@@ -532,10 +572,24 @@ geom_spatraster(data = dat_1_RAST$LANDFIRE[[y]][[c(1:3,5:9)]], maxcell = 5e+10) 
              ggtitle("Map of LANDFIRE data on a dayMet x 13 grid")
   # add an inset showing a density plot
            # get data
-           data_inset <- terra::values(dat_1_RAST$LANDFIRE[[y]][[c(1:3,5:9)]]) %>%
-               as_tibble() %>%
-               pivot_longer(1:8, names_to = "lyr", values_to = "Cover")
-
+           # data_inset <- terra::values(dat_1_RAST$LANDFIRE[[y]][[c(1:3,5:9)]]) %>%
+           #     as_tibble() %>%
+           #     pivot_longer(1:8, names_to = "lyr", values_to = "Cover")
+        data_inset <- dat_1 %>% 
+             st_drop_geometry() %>% 
+             filter(Source == "LANDFIRE") %>% 
+             rename(ShrubCover_all = ShrubCover, 
+                    TotalTreeCover_all = TotalTreeCover, 
+                    TotalHerbaceousCover_all = TotalHerbaceousCover, 
+                    BareGroundCover_all = BareGroundCover,
+                    ForbCover_all = ForbCover, 
+                    C3GramCover_all = C3GramCover, 
+                    C4GramCover_all = C4GramCover, 
+                    BroadLeavedTreeCover_all = BroadLeavedTreeCover,
+                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>% 
+               pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all, 
+ForbCover_all, C3GramCover_all, C4GramCover_all, BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all), 
+                            names_to = "lyr", values_to = "Cover")
            # make insets
            inset_plots <- data_inset %>%
              split(f = .$lyr) %>%
@@ -585,8 +639,15 @@ dat_1 %>%
   ylab(c("Number of Observations"))
 ```
 
-# Map of locations w/ fire history
-```{r , fig.width=12}
+## (2) Remove cover observations from locations that have been recently burned 
+
+We combine fire perimeter information from two data sources: 
+  1) mtbs
+  2) cwf
+If the location where cover data was collected was burned *within* 20 years prior to the year when cover data were collected, we do not use that cover information. 
+If the location was burned *more* than 20 years prior to the year when cover data were collected, we retain cover information for non-tree cover classes, but exclude information about total tree cover, needle-leaved tree cover, and broad-leaved tree cover. 
+
+```{r, fig.width=12, fig.height=8}
 # get version of the data w/ fire info added
 dat_fireRemoved <- readRDS(file = "/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/Data_processed/CoverData/dataForAnalysis_FireDataPRE_fireRemoved.rds") %>% 
   st_transform(crs(dat_1)) %>% 
@@ -609,7 +670,7 @@ dat_fireCompletelyRemoved <- dat_fireRemoved %>%
 
 ## data excluded completely b/c of fire <20 years prior to sampling
 ## make a map of all burned locations in CONUS
-ggplot() +
+burnPlot_20yr <- ggplot() +
   #facet_wrap(~Year) +
   geom_spatraster(data = dat_fireCompletelyRemoved_RAST) +
   #geom_sf(data = dat_fireCompletelyRemoved# %>% filter(Year == 2012)
@@ -625,10 +686,13 @@ ggplot() +
                    title = element_text(size = 18),
                    axis.ticks = element_blank()) +
              ggtitle("Locations where we excluded all cover data \ndue to fire within 20 years prior to sampling",
-                     subtitle = "Color corresponds to the year when cover data were collected")
+                     subtitle = "Color corresponds to the year when excluded cover data were collected")
 
+burnPlot_20yr
 ```
-```{r, fig.width = 12}
+
+
+```{r, fig.width=12, fig.height=8}
 # locations where we removed tree \
 dat_firePartlyRemoved <- dat_fireRemoved %>% 
   filter(burnedMoreThan20YearsAgo == TRUE)
@@ -644,7 +708,7 @@ dat_firePartlyRemoved <- dat_fireRemoved %>%
 
 ## data excluded completely b/c of fire <20 years prior to sampling
 ## make a map of all burned locations in CONUS
-ggplot() +
+burnPlot_all <- ggplot() +
   #facet_wrap(~Year) +
   geom_spatraster(data = dat_firePartlyRemoved_RAST) +
   #geom_sf(data = dat_firePartlyRemoved# %>% filter(Year == 2012)
@@ -660,12 +724,137 @@ ggplot() +
                    title = element_text(size = 18),
                    axis.ticks = element_blank()) +
              ggtitle("Locations where we excluded tree cover data \ndue to any fire prior to sampling",
-                     subtitle = "Color corresponds to the year when cover data were collected")
+                     subtitle = "Color corresponds to the year when excluded cover data were collected")
+
+burnPlot_all
 ```
 
-# Map of locations we exclude because of land use
-```{r}
 
+```{r fig.width=10}
+## add plots showing density of observations by functional group both before 
+dat_postBurnRemoval <- dat_fireRemoved %>%  
+  rename(ShrubCover = ShrbCvr, 
+         TotalTreeCover = TtlTrCv, 
+         TotalHerbaceousCover = TtlHrbC,
+         BareGroundCover = BrGrndC,
+         ForbCover = ForbCvr,
+         C3GramCover = C3GrmCv,
+         C4GramCover = C4GrmCv, 
+         BroadLeavedTreeCover = AngTrCv,
+         NeedleLeavedTreeCover = CnfTrCv) %>% 
+  dplyr::select(-c(SttUntC, Plot, PltCndt, Month, Day, TtlGrmC, AnnlHGC, PrnnHGC, TrBsA_2, LttrCvr, LttrDpt, AngTrC_, CnfTrC_, C4GrmC_, C3GrmC_, FrbCvr_, group)) %>% 
+  pivot_longer(cols = c(TotalTreeCover, TotalHerbaceousCover, ShrubCover, BareGroundCover, C3GramCover, C4GramCover, ForbCover, BroadLeavedTreeCover, NeedleLeavedTreeCover), 
+               names_to = "CoverType", values_to = "CoverValue") %>% 
+  filter(burnedMoreThan20YearsAgo != "RECENTLY_BURNED_REMOVE") %>%  # remove all observations that were burned recently
+  mutate(CoverValue = replace(x = CoverValue, 
+                              list = (CoverType %in% c("TotalTreeCover", "BroadLeavedTreeCover", "NeedleLeavedTreeCover")) & burnedMoreThan20YearsAgo == TRUE, 
+                              values = NA),  # for plots that were burned at any point, remove observations for tree data 
+  CoverValue = replace(x = CoverValue, 
+                       list = (CoverType %in% c("BroadLeavedTreeCover", "NeedleLeavedTreeCover", "C3GramCover", "C4GramCover", "ForbCover")) & Source == "RAP", 
+                       values = NA))# for RAP data, remove values for BroadLeavedTreeCover, C3GramCover, C4GramCOver, ForbCover, and NeedleLeavedTreeCover (put zeros when the corresponding level-1 value is 0, but those are the only values)
+  # make pre-fire removal data 'long' 
+  dat_1_long <- dat_1 %>% 
+    pivot_longer(cols = c(TotalTreeCover, TotalHerbaceousCover, ShrubCover, BareGroundCover, C3GramCover, C4GramCover, ForbCover, BroadLeavedTreeCover, NeedleLeavedTreeCover), 
+               names_to = "CoverType", values_to = "CoverValue") %>% 
+    mutate(CoverValue = replace(x = CoverValue, 
+                       list = (CoverType %in% c("BroadLeavedTreeCover", "NeedleLeavedTreeCover", "C3GramCover", "C4GramCover", "ForbCover")) & Source == "RAP", 
+                       values = NA))# for RAP data, remove values for BroadLeavedTreeCover, C3GramCover, C4GramCOver, ForbCover, and NeedleLeavedTreeCover (put zeros when the corresponding level-1 value is 0, but those are the only values)
+  ggplot() +
+    facet_wrap(~CoverType, scales = "free") + 
+    geom_density(data = dat_1_long, aes(CoverValue#, col= Source
+                                                 ), col = "grey") + 
+    geom_density(data = dat_postBurnRemoval , aes(CoverValue#, col = Source
+                                        ),  col = "black") + 
+    ggtitle("Density plots of cover by functional group across all datasets", 
+            subtitle = "Grey = Data prior to excluding burned locations; \nBlack = Data after excluding burned locations")
+```
+
+## (3) Remove cover observations from locations that are developed 
+We excluded data from locations that the LCMAP dataset designates as developed (LCMAP class 1), cropland (LCMAP class 2) or water (LCMAP class 5)
+
+```{r fig.width=12, fig.height=8}
+# data after removing developed/ag. locations
+dat_LCMAPremoved <- readRDS("../Data_processed/CoverData/DataForModels.RDS")
+
+# # raster layer of locations excluded based on LCMAP classification
+# LCMAP_mask <- terra::rast("../Data_raw/LCMAP/LCMAP_CU_2021_V13_LCPRI.tif")
+# # change the NA values to 0, for plotting purposes
+# LCMAP_mask2 <- LCMAP_mask %>% 
+#   terra::classify(rcl = matrix(c(1,2,3,4,5,6,7,8, 1,2,NA,NA,5,NA,NA,NA), ncol = 2))
+# # put on the dayMet grid 
+# LCMAP_mask3 <- LCMAP_mask2 %>%
+#   terra::project(test_rastTemp)
+# 
+# # mask the LCMAP data so there aren't any values outside of the state boundary shapefile
+# LCMAP_mask4 <- LCMAP_mask3 %>% 
+#   terra::mask(mask =  vect(cropped_states_2)) %>% 
+#   round() %>% 
+#   terra::classify(rcl = matrix(c(1,2,3,4,5, as.integer(1), as.integer(2), NA, NA, as.integer(5)), ncol = 2)) %>% 
+#   as.factor()
+# lvls <- data.frame(id=c(1,2,5), cover=c("developed", "cropland", "water"))
+# levels(LCMAP_mask4) <- lvls
+
+# save the values to use later
+#terra::writeRaster(LCMAP_mask4, "../Data_processed/LCMAP/LCMAP_forPlotting_dayMetGrid.tif")
+# read in raster for plotting
+LCMAP_mask4 <- terra::rast("../Data_processed/LCMAP/LCMAP_forPlotting_dayMetGrid.tif")
+
+# give a colortable to the LCMAP raster
+coltb <- data.frame(value=1:5, col= c("firebrick3", "darkgoldenrod2", NA, NA, "royalblue"))
+coltab(LCMAP_mask4) <- coltb
+
+# now find the gridcells that we removed ()
+ ggplot() +
+  geom_spatraster(data = LCMAP_mask4) +
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
+ xlim(-2150000, 2510000) +
+ ylim(-2005000, 1000000) +
+   scale_fill_coltab(LCMAP_mask4, na.translate = TRUE, na.value = "transparent", labels = c("Developed", "Cropland", "Water", ""), 
+                     name = "Land Cover Type") + 
+              # paletteer::scale_fill_paletteer_d("scico::tofino", guide = guide_colorbar(title = "Land Use Type"),
+              #                                   #limits = c(2000,2023), 
+              #                                   na.value = "white") + 
+             theme(
+                   axis.text = element_blank(),
+                   strip.text = element_text(size = 15),
+                   title = element_text(size = 18),
+                   axis.ticks = element_blank()) +
+             ggtitle("Locations where we excluded data due to land cover type",
+                     subtitle = "Land cover type information from LCMAP")
+
+```
+
+
+```{r fig.width=10}
+## add plots showing density of observations by functional group both before and after excluding burned areas 
+## for pre-LCMAP filtering, the data is in the d.f: 
+#dat_postBurnRemoval 
+
+  # make  post-LCMAP removal data 'long' 
+  dat_LCMAPremoved_long  <- dat_LCMAPremoved %>% 
+  st_drop_geometry() %>% 
+  rename(ShrubCover = ShrbCvr, 
+         TotalTreeCover = TtlTrCv, 
+         TotalHerbaceousCover = TtlHrbC,
+         BareGroundCover = BrGrndC,
+         ForbCover = ForbCvr,
+         C3GramCover = C3GrmCv,
+         C4GramCover = C4GrmCv, 
+         BroadLeavedTreeCover = AngTrCv,
+         NeedleLeavedTreeCover = CnfTrCv) %>% 
+    pivot_longer(cols = c(TotalTreeCover, TotalHerbaceousCover, ShrubCover, BareGroundCover, C3GramCover, C4GramCover, ForbCover, BroadLeavedTreeCover, NeedleLeavedTreeCover), 
+               names_to = "CoverType", values_to = "CoverValue") %>% 
+    mutate(CoverValue = replace(x = CoverValue, 
+                       list = (CoverType %in% c("BroadLeavedTreeCover", "NeedleLeavedTreeCover", "C3GramCover", "C4GramCover", "ForbCover")) & Source == "RAP", 
+                       values = NA))# for RAP data, remove values for BroadLeavedTreeCover, C3GramCover, C4GramCOver, ForbCover, and NeedleLeavedTreeCover (put zeros when the corresponding level-1 value is 0, but those are the only values)
+  ggplot() +
+    facet_wrap(~CoverType, scales = "free") + 
+    geom_density(data = dat_postBurnRemoval, aes(CoverValue#, col= Source
+                                                 ), col = "grey") + 
+    geom_density(data = dat_LCMAPremoved_long , aes(CoverValue#, col = Source
+                                        ),  col = "black") + 
+    ggtitle("Density plots of cover by functional group across all datasets", 
+            subtitle = "Grey = Data prior to excluding locations with unsuitable land cover type ;  \nBlack = Data after excluding locations with unsuitable land cover type")
 ```
 
 <!-- # After data has been spatially averaged (can no longer look at data by data source) -->
