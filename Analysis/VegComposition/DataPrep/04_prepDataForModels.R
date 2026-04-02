@@ -10,7 +10,6 @@
 library(tidyverse)
 library(terra)
 #library(betareg)
-library(glmmTMB)
 library(corrplot)
 library(sf)
 #library(StepBeta)
@@ -20,58 +19,30 @@ library(sf)
 
 # load vegetation data
 vegDat <- readRDS("./Data_processed/CoverData/dataForAnalysis_fireRemoved.rds") 
-# load meteorological data
-# dayMet <- readRDS("./Data_processed/CoverData/dayMetClimateValuesForAnalysis_final.rds")
-# # # remove monthly values 
-# # dayMet2 <- dayMet %>% 
-# #   select(-names(dayMet)[c(4:22)])
-# # make dayMet spatial 
-# dayMet3 <- dayMet %>% 
-#   st_as_sf(coords = c("Long", "Lat"))
-# 
 
-# Add ecoregion data  -----------------------------------------------------
-# regions <- sf::st_read(dsn = "./Data_raw/Level2Ecoregions/", layer = "NA_CEC_Eco_Level2") 
 
-# regions_2 <- st_transform(regions, crs = st_crs(vegDat)) %>% 
-#   st_make_valid()
-# 
-# crs(regions_2) == crs(vegDat)
-# 
-# #mapview(regions_2 %>% slice_sample(n = 10000)) + mapview(modDat_2 %>% slice_sample(n = 10000))
-# 
-# # match the ecoregion to point data ---------------------------------------
-# vegDat_3 <- sf::st_join(vegDat, regions_2)
-# 
-# # missing for places right on the coast... but not a big deal to not have those
-# 
-# # group into coarser ecoregions -------------------------------------------
-# # make a lookup table
-# # (eastern forest) put eastern temperate forests, tropical wet forests and northern forests together
-# # (dry shrub and grass) put great plains, southern semiarid highlands, Mediterranean California and north american deserts together 
-# # (western forest) put northwestern forested mountains, marine west coast forests together, and temperate sierras together
-# 
-# ecoReg_lu <- data.frame("NA_L1NAME" = sort(unique(vegDat_3$NA_L1NAME)), 
-#                         "newRegion" = c("eastForest", "dryShrubGrass", "westForest",
-#                                         "dryShrubGrass", "dryShrubGrass", "eastForest",
-#                                         "westForest", "dryShrubGrass", "westForest", 
-#                                         "eastForest", NA
-#                         ))
-# 
-# # add to main data.frame 
-# newDat <- vegDat_3 %>% 
-#   left_join(ecoReg_lu) %>% 
-#   mutate(newRegion = as.factor(newRegion), 
-#          rowID = 1:nrow(vegDat_3)) 
-# # 
-# # ggplot(newDat[1:1000000,]) +
-# #   geom_sf(aes(col = newRegion))
-# # newDat %>% 
-# #   filter(Source == "FIA") %>% 
-# #   #filter(Year == 2016) %>% 
-# #   ggplot() + 
-# #   geom_sf(aes(col = TtlTrCv))
-# # 
-# # # 
+# remove locations that are ag. or developed using data from LCMAP --------
+# retrieve the layer w/ LCMAP data that have been reclassified into "use/1" (not ag, water, or city) or "don't use/0" "ag, water, or city) 
+LCMAP_temp <- terra::rast("./Data_raw/LCMAP/LCMAP_reclassifiedToUse.tif")
+# reproject to dayMet crs 
+# LCMAP_dayMet <- LCMAP_temp %>% 
+#   terra::project(y = rast("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif"))
+# # write to file to save for later use 
+# terra::writeRaster(LCMAP_dayMet, filename = "./Data_processed/LCMAP/LCMAP_reclassifiedToUseBiomass_dayMetScale.tif")
+# reproject to the crs of vegDat data
+LCMAP_use <-  LCMAP_temp %>% 
+terra::project(y = vegDat) 
+LCMAP_use2 <- LCMAP_use %>% 
+  round()
+crs(LCMAP_use2) == crs(vegDat)
+#plot(LCMAP_use2) 
+## there are some RAP points that are in areas that we excluded according to LCMAP class (random points w/in dayMet cells originally excluded these areas, but because of the upscaling appraoch, we ended up w/ some values from areas that we wanted to exclude according to LCMAP use... so just to be safe, remove those values now)
+vegDat_removeLCMAP <- terra::extract(x = LCMAP_use2, y = vegDat, ID = TRUE)
+vegDat <- vegDat %>% 
+  mutate("LCMAP_use" = vegDat_removeLCMAP$LCMAP_CU_2021_V13_LCPRI)
+
+vegDat <- vegDat %>% 
+  filter(!is.na(LCMAP_use))
+
 # ## save data for further analysis 
 saveRDS(vegDat, file = "./Data_processed/CoverData/DataForModels.RDS")

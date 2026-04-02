@@ -37,7 +37,10 @@ aboveground_biomass_hacked <- spawnBiomass_2 * 2
 names(aboveground_biomass_hacked) <- "aboveground_biomass_hacked"
 
 spawnBiomass_2 <- c(spawnBiomass_2, aboveground_biomass_hacked)
+# rename the layers to be more informative
+terra::set.names(spawnBiomass_2, value  = c("aboveground_biomass_carbon_2010", "aboveground_biomass_2010_EstimatedByCarbonTimes2"))
 
 ## save
 terra::writeRaster(spawnBiomass_2, filename = "./Data_processed/BiomassQuantityData/Spawn2020_biomassRaster.tif", overwrite = TRUE)
 
+#spawnBiomass_2 <- rast("./Data_processed/BiomassQuantityData/Spawn2020_biomassRaster.tif")

@@ -30,3 +30,5 @@ terra::crop(ext(-2560750, 3053250, -2091500, 1584500))
 ## save
 terra::writeRaster(GEDIBiomass_2, filename = "./Data_processed/BiomassQuantityData/GEDI_biomassRaster.tif", overwrite = TRUE)
 
+GEDIbiomass_2 <- terra::rast("./Data_processed/BiomassQuantityData/GEDI_biomassRaster.tif")
+

@@ -61,7 +61,7 @@ dayMet_points$sliceID <- rep(1:1000000, each = binSize, length.out = nrow(dayMet
 # now start a huge loop where we go through an iteration for each slice of the point data
 for (z in 1:length(unique(dayMet_points$sliceID))) {
   # subset the points into data for the current slice
-  dayMet_points_z <- dayMet_points[dayMet_points$sliceID == z,]
+  dayMet_points_z <- dayMet_points[dayMet_points$sliceID == z,]]
   # Acquire weather data and calculate variables ----------------------------
   ## calculating climate for 2023; so I only need climate data starting in 1992 (2023-31 = 1992)
   # get names of rasters (starts in 1980, only need data from )
@@ -70,10 +70,10 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
     
     # load monthly total precip values and make into a raster stack
     for (i in 14:length(rastNames[str_detect(string = rastNames,
-                                             pattern = "prcp_monttl_na_.....tif$")])){
+                                             pattern = "prcp_monttl_na_.....tif$")]])){
       
       name_i <- rastNames[str_detect(string = rastNames,
-                                     pattern = "prcp_monttl_na_.....tif$")][i]
+                                     pattern = "prcp_monttl_na_.....tif$")]][i]]
       temp_rast <- rast(paste0("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/", name_i))
       
       # get the data for the locations we want
@@ -82,8 +82,8 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
         terra::extract(dayMet_points_z)
       
       # make column for year and change column names to month value only
-      temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
-      names(temp_points)[2:13] <- c("prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April",
+      temp_points$year <- as.numeric(str_extract(names(temp_points)[2]], pattern = "\\d{4}"))
+      names(temp_points)[2:13]] <- c("prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April",
                                     "prcp_May", "prcp_June", "prcp_July", "prcp_Aug",
                                     "prcp_Sept", "prcp_Oct", "prcp_Nov", "prcp_Dec")
       temp_points <- temp_points %>%
@@ -101,10 +101,10 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
     
     # load monthly average tmax values and make into a raster stack
     for (i in 14:length(rastNames[str_detect(string = rastNames,
-                                             pattern = "tmax_monavg_na_.....tif$")])){
+                                             pattern = "tmax_monavg_na_.....tif$")]])){
       
       name_i <- rastNames[str_detect(string = rastNames,
-                                     pattern = "tmax_monavg_na_.....tif$")][i]
+                                     pattern = "tmax_monavg_na_.....tif$")]][i]]
       temp_rast <- rast(paste0("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/", name_i))
       # get the data for the locations we want
       temp_points <-
@@ -112,8 +112,8 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
         terra::extract(dayMet_points_z)
       
       # make column for year and change column names to month value only
-      temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
-      names(temp_points)[2:13] <- c("tmax_Jan", "tmax_Feb", "tmax_March", "tmax_April",
+      temp_points$year <- as.numeric(str_extract(names(temp_points)[2]], pattern = "\\d{4}"))
+      names(temp_points)[2:13]] <- c("tmax_Jan", "tmax_Feb", "tmax_March", "tmax_April",
                                     "tmax_May", "tmax_June", "tmax_July", "tmax_Aug",
                                     "tmax_Sept", "tmax_Oct", "tmax_Nov", "tmax_Dec")
       temp_points <- temp_points %>%
@@ -130,10 +130,10 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
     
     # load monthly average tmin values and make into a raster stack
     for (i in 14:length(rastNames[str_detect(string = rastNames,
-                                             pattern = "tmin_monavg_na_.....tif$")])){
+                                             pattern = "tmin_monavg_na_.....tif$")]])){
       
       name_i <- rastNames[str_detect(string = rastNames,
-                                     pattern = "tmin_monavg_na_.....tif$")][i]
+                                     pattern = "tmin_monavg_na_.....tif$")]][i]]
       temp_rast <- rast(paste0("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/", name_i))
       # get the data for the locations we want
       temp_points <-
@@ -141,8 +141,8 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
         terra::extract(dayMet_points_z)
       
       # make column for year and change column names to month value only
-      temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
-      names(temp_points)[2:13] <- c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April",
+      temp_points$year <- as.numeric(str_extract(names(temp_points)[2]], pattern = "\\d{4}"))
+      names(temp_points)[2:13]] <- c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April",
                                     "tmin_May", "tmin_June", "tmin_July", "tmin_Aug",
                                     "tmin_Sept", "tmin_Oct", "tmin_Nov", "tmin_Dec")
       temp_points <- temp_points %>%
@@ -188,10 +188,10 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
     
     # load annual total precip values and make into a raster stack
     for (i in 14:length(rastNames2[str_detect(string = rastNames2,
-                                              pattern = "prcp_annttl_na_.....tif$")])){
+                                              pattern = "prcp_annttl_na_.....tif$")]])){
       
       name_i <- rastNames2[str_detect(string = rastNames2,
-                                      pattern = "prcp_annttl_na_.....tif$")][i]
+                                      pattern = "prcp_annttl_na_.....tif$")]][i]]
       temp_rast <- rast(paste0("./Data_raw/dayMet/yearly/", name_i))
       
       # get the data for the locations we want
@@ -200,8 +200,8 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
         terra::extract(dayMet_points_z)
       
       # make column for year and change column names to month value only
-      temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
-      names(temp_points)[2] <- c("prcp_annTotal")
+      temp_points$year <- as.numeric(str_extract(names(temp_points)[2]], pattern = "\\d{4}"))
+      names(temp_points)[2]] <- c("prcp_annTotal")
       temp_points <- temp_points %>%
         select(year, prcp_annTotal) %>%
         cbind(st_coordinates(dayMet_points_z)) %>%
@@ -216,10 +216,10 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
     
     # load annual tmax ann avg values and make into a raster stack
     for (i in 14:length(rastNames2[str_detect(string = rastNames2,
-                                              pattern = "tmax_annavg_na_.....tif$")])){
+                                              pattern = "tmax_annavg_na_.....tif$")]])){
       
       name_i <- rastNames2[str_detect(string = rastNames2,
-                                      pattern = "tmax_annavg_na_.....tif$")][i]
+                                      pattern = "tmax_annavg_na_.....tif$")]][i]]
       temp_rast <- rast(paste0("./Data_raw/dayMet/yearly/", name_i))
       
       # get the data for the locations we want
@@ -228,8 +228,8 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
         terra::extract(dayMet_points_z)
       
       # make column for year and change column names to month value only
-      temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
-      names(temp_points)[2] <- c("tmax_annAvg")
+      temp_points$year <- as.numeric(str_extract(names(temp_points)[2]], pattern = "\\d{4}"))
+      names(temp_points)[2]] <- c("tmax_annAvg")
       temp_points <- temp_points %>%
         select(year, tmax_annAvg) %>%
         cbind(st_coordinates(dayMet_points_z)) %>%
@@ -244,10 +244,10 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
     
     # load annual tmin ann avg values and make into a raster stack
     for (i in 14:length(rastNames2[str_detect(string = rastNames2,
-                                              pattern = "tmin_annavg_na_.....tif$")])){
+                                              pattern = "tmin_annavg_na_.....tif$")]])){
       
       name_i <- rastNames2[str_detect(string = rastNames2,
-                                      pattern = "tmin_annavg_na_.....tif$")][i]
+                                      pattern = "tmin_annavg_na_.....tif$")]][i]]
       temp_rast <- rast(paste0("./Data_raw/dayMet/yearly/", name_i))
       
       # get the data for the locations we want
@@ -256,8 +256,8 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
         terra::extract(dayMet_points_z)
       
       # make column for year and change column names to month value only
-      temp_points$year <- as.numeric(str_extract(names(temp_points)[2], pattern = "\\d{4}"))
-      names(temp_points)[2] <- c("tmin_annAvg")
+      temp_points$year <- as.numeric(str_extract(names(temp_points)[2]], pattern = "\\d{4}"))
+      names(temp_points)[2]] <- c("tmin_annAvg")
       temp_points <- temp_points %>%
         select(year, tmin_annAvg) %>%
         cbind(st_coordinates(dayMet_points_z)) %>%
@@ -306,13 +306,13 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
   # calculating climate variables for models -------------------------------
   climVar <- allMetDat2 %>%
     #slice(23507:23909) %>%
-    mutate(totalAnnPrecip = rowSums(.[c("prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April", "prcp_May", "prcp_June", "prcp_July", "prcp_Aug", "prcp_Sept", "prcp_Oct" ,"prcp_Nov", "prcp_Dec")]), # total annual precipitation
-           #maxAnnSwe = rowSums(.[28:39]), # total annual swe
-           T_warmestMonth = pmap_dbl(.[c("tmax_Jan", "tmax_Feb", "tmax_March", "tmax_April", "tmax_May", "tmax_June", "tmax_July", "tmax_Aug", "tmax_Sept", "tmax_Oct",  "tmax_Nov",  "tmax_Dec")], max), # temperature of warmest month
-           T_coldestMonth = pmap_dbl(.[c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April", "tmin_May", "tmin_June", "tmin_July", "tmin_Aug", "tmin_Sept", "tmin_Oct",  "tmin_Nov",  "tmin_Dec")], min), # temperature of coldest month
-           #Tmin_annAvgOfMonthly_OLD = rowSums(.[c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April", "tmin_May", "tmin_June", "tmin_July", "tmin_Aug", "tmin_Sept", "tmin_Oct",  "tmin_Nov",  "tmin_Dec")])/12,
+    mutate(totalAnnPrecip = rowSums(.[c("prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April", "prcp_May", "prcp_June", "prcp_July", "prcp_Aug", "prcp_Sept", "prcp_Oct" ,"prcp_Nov", "prcp_Dec")]]), # total annual precipitation
+           #maxAnnSwe = rowSums(.[28:39]]), # total annual swe
+           T_warmestMonth = pmap_dbl(.[c("tmax_Jan", "tmax_Feb", "tmax_March", "tmax_April", "tmax_May", "tmax_June", "tmax_July", "tmax_Aug", "tmax_Sept", "tmax_Oct",  "tmax_Nov",  "tmax_Dec")]], max), # temperature of warmest month
+           T_coldestMonth = pmap_dbl(.[c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April", "tmin_May", "tmin_June", "tmin_July", "tmin_Aug", "tmin_Sept", "tmin_Oct",  "tmin_Nov",  "tmin_Dec")]], min), # temperature of coldest month
+           #Tmin_annAvgOfMonthly_OLD = rowSums(.[c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April", "tmin_May", "tmin_June", "tmin_July", "tmin_Aug", "tmin_Sept", "tmin_Oct",  "tmin_Nov",  "tmin_Dec")]])/12,
            ##
-           Tmin_annAvgOfMonthly = pmap_dbl(.[c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April", "tmin_May", "tmin_June", "tmin_July", "tmin_Aug", "tmin_Sept", "tmin_Oct",  "tmin_Nov",  "tmin_Dec")],
+           Tmin_annAvgOfMonthly = pmap_dbl(.[c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April", "tmin_May", "tmin_June", "tmin_July", "tmin_Aug", "tmin_Sept", "tmin_Oct",  "tmin_Nov",  "tmin_Dec")]],
                                            .f = function(tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec) {
                                              return(mean(c(
                                                tmin_Jan * 31/31, tmin_Feb * 28.5/31, tmin_March * 31/31, tmin_April * 30/31,
@@ -322,9 +322,9 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
                                              )) # in degrees C
                                            }),
            ##
-           #Tmax_annAvgOfMonthly_OLD = rowSums(.[c("tmax_Jan", "tmax_Feb", "tmax_March", "tmax_April", "tmax_May", "tmax_June", "tmax_July", "tmax_Aug", "tmax_Sept", "tmax_Oct",  "tmax_Nov",  "tmax_Dec")])/12,
+           #Tmax_annAvgOfMonthly_OLD = rowSums(.[c("tmax_Jan", "tmax_Feb", "tmax_March", "tmax_April", "tmax_May", "tmax_June", "tmax_July", "tmax_Aug", "tmax_Sept", "tmax_Oct",  "tmax_Nov",  "tmax_Dec")]])/12,
            ##
-           Tmax_annAvgOfMonthly = pmap_dbl(.[c("tmax_Jan", "tmax_Feb", "tmax_March", "tmax_April", "tmax_May", "tmax_June", "tmax_July", "tmax_Aug", "tmax_Sept", "tmax_Oct",  "tmax_Nov",  "tmax_Dec")],
+           Tmax_annAvgOfMonthly = pmap_dbl(.[c("tmax_Jan", "tmax_Feb", "tmax_March", "tmax_April", "tmax_May", "tmax_June", "tmax_July", "tmax_Aug", "tmax_Sept", "tmax_Oct",  "tmax_Nov",  "tmax_Dec")]],
                                            .f = function(tmax_Jan, tmax_Feb, tmax_March, tmax_April, tmax_May, tmax_June, tmax_July, tmax_Aug, tmax_Sept, tmax_Oct,  tmax_Nov,  tmax_Dec) {
                                              return(mean(c(
                                                tmax_Jan * 31/31, tmax_Feb * 28.5/31, tmax_March * 31/31, tmax_April * 30/31,
@@ -334,29 +334,29 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
                                              )) # in degrees C
                                            }),
            ##
-           precip_wettestMonth = pmap_dbl(.[c("prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April", "prcp_May", "prcp_June", "prcp_July", "prcp_Aug", "prcp_Sept", "prcp_Oct" ,"prcp_Nov", "prcp_Dec")],
+           precip_wettestMonth = pmap_dbl(.[c("prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April", "prcp_May", "prcp_June", "prcp_July", "prcp_Aug", "prcp_Sept", "prcp_Oct" ,"prcp_Nov", "prcp_Dec")]],
                                           max), # precip of wettest month
-           precip_driestMonth = pmap_dbl(.[c("prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April", "prcp_May", "prcp_June", "prcp_July", "prcp_Aug", "prcp_Sept", "prcp_Oct" ,"prcp_Nov", "prcp_Dec")],
+           precip_driestMonth = pmap_dbl(.[c("prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April", "prcp_May", "prcp_June", "prcp_July", "prcp_Aug", "prcp_Sept", "prcp_Oct" ,"prcp_Nov", "prcp_Dec")]],
                                          min), # precip of driest month
-           precip_Seasonality = pmap_dbl(.[c("prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April", "prcp_May", "prcp_June", "prcp_July", "prcp_Aug", "prcp_Sept", "prcp_Oct" ,"prcp_Nov", "prcp_Dec")],   # coefficient of variation (sd/mean) of precipitation
+           precip_Seasonality = pmap_dbl(.[c("prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April", "prcp_May", "prcp_June", "prcp_July", "prcp_Aug", "prcp_Sept", "prcp_Oct" ,"prcp_Nov", "prcp_Dec")]],   # coefficient of variation (sd/mean) of precipitation
                                          .f = function(prcp_Jan, prcp_Feb, prcp_March, prcp_April, prcp_May, prcp_June, prcp_July, prcp_Aug, prcp_Sept, prcp_Oct ,prcp_Nov, prcp_Dec, ...)
                                          {temp <- c(prcp_Jan, prcp_Feb, prcp_March, prcp_April, prcp_May, prcp_June, prcp_July, prcp_Aug, prcp_Sept, prcp_Oct ,prcp_Nov, prcp_Dec)
                                          sd(temp)/mean(temp)
                                          }
            ),
            PrecipTempCorr = pmap_dbl(.[c("tmax_Jan", "tmax_Feb", "tmax_March", "tmax_April", "tmax_May", "tmax_June", "tmax_July", "tmax_Aug", "tmax_Sept", "tmax_Oct",  "tmax_Nov",  "tmax_Dec",
-                                         "prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April", "prcp_May", "prcp_June", "prcp_July", "prcp_Aug", "prcp_Sept", "prcp_Oct" ,"prcp_Nov", "prcp_Dec")], #correlation of monthly temp and precip
+                                         "prcp_Jan", "prcp_Feb", "prcp_March", "prcp_April", "prcp_May", "prcp_June", "prcp_July", "prcp_Aug", "prcp_Sept", "prcp_Oct" ,"prcp_Nov", "prcp_Dec")]], #correlation of monthly temp and precip
                                      .f = function(tmax_Jan, tmax_Feb, tmax_March, tmax_April, tmax_May, tmax_June, tmax_July, tmax_Aug, tmax_Sept, tmax_Oct,  tmax_Nov,  tmax_Dec,
                                                    prcp_Jan, prcp_Feb, prcp_March, prcp_April, prcp_May, prcp_June, prcp_July, prcp_Aug, prcp_Sept, prcp_Oct ,prcp_Nov, prcp_Dec, ...) {
                                        cor(y = c(tmax_Jan, tmax_Feb, tmax_March, tmax_April, tmax_May, tmax_June, tmax_July, tmax_Aug, tmax_Sept, tmax_Oct,  tmax_Nov,  tmax_Dec),
                                            x = c(prcp_Jan, prcp_Feb, prcp_March, prcp_April, prcp_May, prcp_June, prcp_July, prcp_Aug, prcp_Sept, prcp_Oct ,prcp_Nov, prcp_Dec))
                                      }),
-           aboveFreezing_month = pmap_dbl(.[c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April", "tmin_May", "tmin_June", "tmin_July", "tmin_Aug", "tmin_Sept", "tmin_Oct",  "tmin_Nov",  "tmin_Dec")], # month when temp gets above freezing (when tmin > 0 degrees C, so no freeze at night )
+           aboveFreezing_month = pmap_dbl(.[c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April", "tmin_May", "tmin_June", "tmin_July", "tmin_Aug", "tmin_Sept", "tmin_Oct",  "tmin_Nov",  "tmin_Dec")]], # month when temp gets above freezing (when tmin > 0 degrees C, so no freeze at night )
                                           .f = function(tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec) {
                                             temp <- c(tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec)
-                                            which(temp > 0)[1] # in degrees C
+                                            which(temp > 0)[1]] # in degrees C
                                           }),
-           lastAboveFreezing_month = pmap_dbl(.[c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April", "tmin_May", "tmin_June", "tmin_July", "tmin_Aug", "tmin_Sept", "tmin_Oct",  "tmin_Nov",  "tmin_Dec")], # month when temp gets above freezing (when tmin > 0 degrees C, so no freeze at night )
+           lastAboveFreezing_month = pmap_dbl(.[c("tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April", "tmin_May", "tmin_June", "tmin_July", "tmin_Aug", "tmin_Sept", "tmin_Oct",  "tmin_Nov",  "tmin_Dec")]], # month when temp gets above freezing (when tmin > 0 degrees C, so no freeze at night )
                                               .f = function(tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec) {
                                                 temp <- c(tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec)
                                                 temp2 <- which(temp > 0) # in degrees C
@@ -368,7 +368,7 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
                                               }),
            
            isothermality = pmap_dbl(.[c("tmax_Jan", "tmax_Feb", "tmax_March", "tmax_April", "tmax_May", "tmax_June", "tmax_July", "tmax_Aug", "tmax_Sept", "tmax_Oct",  "tmax_Nov",  "tmax_Dec",
-                                        "tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April", "tmin_May", "tmin_June", "tmin_July", "tmin_Aug", "tmin_Sept", "tmin_Oct",  "tmin_Nov",  "tmin_Dec")], # isothermality
+                                        "tmin_Jan", "tmin_Feb", "tmin_March", "tmin_April", "tmin_May", "tmin_June", "tmin_July", "tmin_Aug", "tmin_Sept", "tmin_Oct",  "tmin_Nov",  "tmin_Dec")]], # isothermality
                                     .f = function(tmax_Jan, tmax_Feb, tmax_March, tmax_April, tmax_May, tmax_June, tmax_July, tmax_Aug, tmax_Sept, tmax_Oct,  tmax_Nov,  tmax_Dec,
                                                   tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec, ...) {
                                       tmins <- c(tmin_Jan, tmin_Feb, tmin_March, tmin_April, tmin_May, tmin_June, tmin_July, tmin_Aug, tmin_Sept, tmin_Oct,  tmin_Nov,  tmin_Dec)
@@ -484,14 +484,14 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
     transmute(#keep = c("year", "Long", "Lat"),
       #mutate(
       # annual water deficit (mm of water over degrees celsius)(sum across all months?)
-      tmean = pmap_dbl(.[c("tmean_Jan", "tmean_Feb", "tmean_March", "tmean_April", "tmean_May", "tmean_June", "tmean_July", "tmean_Aug", "tmean_Sept", "tmean_Oct" ,"tmean_Nov", "tmean_Dec")],
+      tmean = pmap_dbl(.[c("tmean_Jan", "tmean_Feb", "tmean_March", "tmean_April", "tmean_May", "tmean_June", "tmean_July", "tmean_Aug", "tmean_Sept", "tmean_Oct" ,"tmean_Nov", "tmean_Dec")]],
                        .f = function(tmean_Jan, tmean_Feb, tmean_March, tmean_April, tmean_May, tmean_June, tmean_July, tmean_Aug, tmean_Sept, tmean_Oct ,tmean_Nov, tmean_Dec, ...) {
                          temp <- sum(tmean_Jan* 31/31, tmean_Feb* 28.5/31, tmean_March* 31/31, tmean_April * 30/31,
                                      tmean_May * 31/31, tmean_June * 30/31, tmean_July * 31/31, tmean_Aug * 31/31,
                                      tmean_Sept * 30/31, tmean_Oct * 31/31, tmean_Nov * 30/31, tmean_Dec * 31/31)/12
                          return(temp)
                        }),
-      # tmean_OLD = pmap_dbl(.[c("tmean_Jan", "tmean_Feb", "tmean_March", "tmean_April", "tmean_May", "tmean_June", "tmean_July", "tmean_Aug", "tmean_Sept", "tmean_Oct" ,"tmean_Nov", "tmean_Dec")],
+      # tmean_OLD = pmap_dbl(.[c("tmean_Jan", "tmean_Feb", "tmean_March", "tmean_April", "tmean_May", "tmean_June", "tmean_July", "tmean_Aug", "tmean_Sept", "tmean_Oct" ,"tmean_Nov", "tmean_Dec")]],
       #                      .f = function(tmean_Jan, tmean_Feb, tmean_March, tmean_April, tmean_May, tmean_June, tmean_July, tmean_Aug, tmean_Sept, tmean_Oct ,tmean_Nov, tmean_Dec, ...) {
       #                        temp <- sum(tmean_Jan, tmean_Feb, tmean_March, tmean_April,
       #                                    tmean_May, tmean_June, tmean_July, tmean_Aug,
@@ -499,37 +499,37 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
       #                        return(temp)
       #                      }),
       # annual water deficit (mm of water over degrees celsius)(sum across all months?)
-      annWaterDeficit = pmap_dbl(.[c("awd_Jan", "awd_Feb", "awd_March", "awd_April", "awd_May", "awd_June", "awd_July", "awd_Aug", "awd_Sept", "awd_Oct" ,"awd_Nov", "awd_Dec")],
+      annWaterDeficit = pmap_dbl(.[c("awd_Jan", "awd_Feb", "awd_March", "awd_April", "awd_May", "awd_June", "awd_July", "awd_Aug", "awd_Sept", "awd_Oct" ,"awd_Nov", "awd_Dec")]],
                                  .f = function(awd_Jan, awd_Feb, awd_March, awd_April, awd_May, awd_June, awd_July, awd_Aug, awd_Sept, awd_Oct ,awd_Nov, awd_Dec, ...){
                                    temp <- c(awd_Jan, awd_Feb, awd_March, awd_April, awd_May, awd_June, awd_July, awd_Aug, awd_Sept, awd_Oct ,awd_Nov, awd_Dec)
-                                   sum(temp[temp>0])
+                                   sum(temp[temp>0]])
                                  }
       ),
       # annual wet degree days (temp*days) (sum only positive values)
-      annWetDegDays = pmap_dbl(.[c("awdd_Jan", "awdd_Feb", "awdd_March", "awdd_April", "awdd_May", "awdd_June", "awdd_July", "awdd_Aug", "awdd_Sept", "awdd_Oct" ,"awdd_Nov", "awdd_Dec")],
+      annWetDegDays = pmap_dbl(.[c("awdd_Jan", "awdd_Feb", "awdd_March", "awdd_April", "awdd_May", "awdd_June", "awdd_July", "awdd_Aug", "awdd_Sept", "awdd_Oct" ,"awdd_Nov", "awdd_Dec")]],
                                .f = function(awdd_Jan, awdd_Feb, awdd_March, awdd_April, awdd_May, awdd_June, awdd_July, awdd_Aug, awdd_Sept, awdd_Oct ,awdd_Nov, awdd_Dec, ...)
                                {
                                  temp <- c(awdd_Jan, awdd_Feb, awdd_March, awdd_April, awdd_May, awdd_June, awdd_July, awdd_Aug, awdd_Sept, awdd_Oct ,awdd_Nov, awdd_Dec)
-                                 sum(temp[temp>0], na.rm = TRUE)
+                                 sum(temp[temp>0]], na.rm = TRUE)
                                }
       ),
       # annual average vapor pressure deficit (in milibars) ()
-      annVPD_mean = pmap_dbl(.[c("VPD_Jan", "VPD_Feb", "VPD_March","VPD_April" ,"VPD_May","VPD_June", "VPD_July","VPD_Aug","VPD_Sept","VPD_Oct","VPD_Nov","VPD_Dec")],
+      annVPD_mean = pmap_dbl(.[c("VPD_Jan", "VPD_Feb", "VPD_March","VPD_April" ,"VPD_May","VPD_June", "VPD_July","VPD_Aug","VPD_Sept","VPD_Oct","VPD_Nov","VPD_Dec")]],
                              .f = function(VPD_Jan, VPD_Feb, VPD_March,VPD_April ,VPD_May,VPD_June, VPD_July,VPD_Aug,VPD_Sept,VPD_Oct,VPD_Nov,VPD_Dec) {
                                mean(c(VPD_Jan* 31/31, VPD_Feb * 28.5/31, VPD_March * 31/31, VPD_April* 30/31,
                                       VPD_May * 31/31, VPD_June * 30/31, VPD_July * 31/31, VPD_Aug * 31/31,
                                       VPD_Sept * 30/31, VPD_Oct * 31/31, VPD_Nov * 30/31, VPD_Dec * 31/31))
                              }),
-      # annVPD_mean_OLD = pmap_dbl(.[c("VPD_Jan", "VPD_Feb", "VPD_March","VPD_April" ,"VPD_May","VPD_June", "VPD_July","VPD_Aug","VPD_Sept","VPD_Oct","VPD_Nov","VPD_Dec")],
+      # annVPD_mean_OLD = pmap_dbl(.[c("VPD_Jan", "VPD_Feb", "VPD_March","VPD_April" ,"VPD_May","VPD_June", "VPD_July","VPD_Aug","VPD_Sept","VPD_Oct","VPD_Nov","VPD_Dec")]],
       #                            .f = function(VPD_Jan, VPD_Feb, VPD_March,VPD_April ,VPD_May,VPD_June, VPD_July,VPD_Aug,VPD_Sept,VPD_Oct,VPD_Nov,VPD_Dec) {
       #                              mean(VPD_Jan, VPD_Feb, VPD_March , VPD_April,
       #                                     VPD_May , VPD_June , VPD_July , VPD_Aug ,
       #                                     VPD_Sept , VPD_Oct , VPD_Nov, VPD_Dec)
       #                            }),
       # annual maximum vapor pressure deficit (in milibars)
-      annVPD_max = pmap_dbl(.[c("VPD_Jan", "VPD_Feb", "VPD_March","VPD_April" ,"VPD_May","VPD_June", "VPD_July","VPD_Aug","VPD_Sept","VPD_Oct","VPD_Nov","VPD_Dec")], max),
+      annVPD_max = pmap_dbl(.[c("VPD_Jan", "VPD_Feb", "VPD_March","VPD_April" ,"VPD_May","VPD_June", "VPD_July","VPD_Aug","VPD_Sept","VPD_Oct","VPD_Nov","VPD_Dec")]], max),
       # annual minimum vapor pressure deficit (in milibars)
-      annVPD_min = pmap_dbl(.[c("VPD_Jan", "VPD_Feb", "VPD_March","VPD_April" ,"VPD_May","VPD_June", "VPD_July","VPD_Aug","VPD_Sept","VPD_Oct","VPD_Nov","VPD_Dec")], min)
+      annVPD_min = pmap_dbl(.[c("VPD_Jan", "VPD_Feb", "VPD_March","VPD_April" ,"VPD_May","VPD_June", "VPD_July","VPD_Aug","VPD_Sept","VPD_Oct","VPD_Nov","VPD_Dec")]], min)
     )
   
   
@@ -559,7 +559,7 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
   #   geom_point(aes(x = totalAnnPrecip, y = precip_Seasonality), alpha = .3) +
   #   geom_smooth(aes(y = precip_Seasonality, x = totalAnnPrecip))
   # as precip gets closer to 0, seasonality goes up (the average is 2), so that's what I'll change the NA values to
-  climVar[is.na(climVar$precip_Seasonality), "precip_Seasonality"] <- 2
+  climVar[is.na(climVar$precip_Seasonality), "precip_Seasonality"]] <- 2
   
   # precip temp corr
   #It would make sense to change this to 0 (as we approach 0 precip, it seems likely that precip and temp are uncorrelated)
@@ -570,7 +570,7 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
   #   geom_smooth(aes(y = PrecipTempCorr, x = tmean))
   
   #with low precip, the correlation is close to zero, but actually a bit below... will change to -.25
-  climVar[is.na(climVar$PrecipTempCorr), "PrecipTempCorr"] <- -.25
+  climVar[is.na(climVar$PrecipTempCorr), "PrecipTempCorr"]] <- -.25
   
   # calculate sliding window inter-annual climate means ----------------------
   
@@ -621,7 +621,7 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
   annMeans <- #future_lapply
     mclapply(X = endDats, #MARGIN = 1,
              FUN = function(x)
-               slidingMetMeans(inDat = climVar[climVar$year %in% c(as.numeric(x-31):(as.numeric(x)-1)),]
+               slidingMetMeans(inDat = climVar[climVar$year %in% c(as.numeric(x-31):(as.numeric(x)-1)),]]
                                , start = as.numeric(x-31), end = as.numeric(x))
     )
   
@@ -630,15 +630,15 @@ for (z in 1:length(unique(dayMet_points$sliceID))) {
   
   names(annMeans_all) <- c(2023)
   annMeans_30yr_temp1 <- lapply(endDats, function(x) {
-    temp <- cbind(annMeans_all[[as.character(x)]], x)
+    temp <- cbind(annMeans_all[[as.character(x)]]]], x)
     temp$Start <- x-31
-    names(temp) <- c(names(annMeans_all[[1]]), "End", "Start")
+    names(temp) <- c(names(annMeans_all[[1]]]]), "End", "Start")
     return(temp)
   })
   
   annMeans_30yr <- data.table::rbindlist(c(annMeans_30yr_temp1))
   
-  names(annMeans_30yr)[3:26] <- paste0(names(annMeans_30yr)[3:26], "_30yr")
+  names(annMeans_30yr)[3:26]] <- paste0(names(annMeans_30yr)[3:26]], "_30yr")
   if (!test) {
     saveRDS(annMeans_30yr, paste0("./Data_processed/CoverData/dayMet_intermediate/WallToWall/annMeans_30yrs_slice",z ,".csv"))
     #annMeans_30yr <- readRDS("./Data_processed/CoverData/dayMet_intermediate/WallToWall/annMeans_30yrs.rds")
@@ -705,7 +705,6 @@ rm(allMetDat, allMetDat2, annMeans, annMeans_30yr, annMeans_30yr_temp1, annMeans
 gc()
 }
 
-
 # Now add data from different slices together  ---------------------------------
 # get file names 
 climDatNames <- list.files("./Data_processed/CoverData/dayMet_intermediate/WallToWall/", pattern = "dayMetClimateValuesForAnalysis_final_slice")
@@ -722,3 +721,52 @@ listOut <- apply(as.matrix(climDatNames), MARGIN = 1, FUN = function(x) {
 listOut %>% 
   select(-precip_driestMonth_meanAnnAvg_3yrAnom, -precip_driestMonth_meanAnnAvg_2yrAnom) %>% 
   saveRDS("./Data_processed/WallToWallClimateData/DayMetData_allCONUS_2023ClimateValues.rds")
+
+# save as a raster w/ layers for each variable ----------------------------
+listOut <- readRDS("./Data_processed/WallToWallClimateData/DayMetData_allCONUS_2023ClimateValues.rds")
+
+# data averaged over 1992 to 2022 -- data used as predictors for cover data collected in 2023
+# turn into a raster 
+testOutVect <- listOut %>% 
+  select(year, Long, Lat, tmin_meanAnnAvg_CLIM:Start_CLIM) %>% 
+    vect(geom = c("Long", "Lat"), crs = crs(temp_rast)) 
+
+testOutRast <- lapply(c("tmin_meanAnnAvg_CLIM"                   ,"tmax_meanAnnAvg_CLIM"  ,                
+                        "tmean_meanAnnAvg_CLIM"                  ,"prcp_meanAnnTotal_CLIM",                 "T_warmestMonth_meanAnnAvg_CLIM"      ,  
+                        "T_coldestMonth_meanAnnAvg_CLIM"         ,"precip_wettestMonth_meanAnnAvg_CLIM"    ,"precip_driestMonth_meanAnnAvg_CLIM"  ,  
+                        "precip_Seasonality_meanAnnAvg_CLIM"     ,"PrecipTempCorr_meanAnnAvg_CLIM"         ,"aboveFreezing_month_meanAnnAvg_CLIM" ,  
+                        "isothermality_meanAnnAvg_CLIM"          ,"annWaterDeficit_meanAnnAvg_CLIM"        ,"annWetDegDays_meanAnnAvg_CLIM"       ,  
+                        "annVPD_mean_meanAnnAvg_CLIM"            ,"annVPD_max_meanAnnAvg_CLIM"             ,"annVPD_min_meanAnnAvg_CLIM"          ,  
+                        "annVPD_max_95percentile_CLIM"           ,"annWaterDeficit_95percentile_CLIM"      ,"annWetDegDays_5percentile_CLIM"      ,  
+                        "durationFrostFreeDays_5percentile_CLIM" ,"durationFrostFreeDays_meanAnnAvg_CLIM"), 
+                      FUN = function(x) {
+                        tempRast <- testOutVect %>% 
+                          rasterize(y = temp_rast_mask, field = (x))
+                        return(tempRast)
+                      })
+names(testOutRast) <- c("tmin_meanAnnAvg_CLIM"                   ,"tmax_meanAnnAvg_CLIM"  ,                
+                        "tmean_meanAnnAvg_CLIM"                  ,"prcp_meanAnnTotal_CLIM",                 "T_warmestMonth_meanAnnAvg_CLIM"      ,  
+                        "T_coldestMonth_meanAnnAvg_CLIM"         ,"precip_wettestMonth_meanAnnAvg_CLIM"    ,"precip_driestMonth_meanAnnAvg_CLIM"  ,  
+                        "precip_Seasonality_meanAnnAvg_CLIM"     ,"PrecipTempCorr_meanAnnAvg_CLIM"         ,"aboveFreezing_month_meanAnnAvg_CLIM" ,  
+                        "isothermality_meanAnnAvg_CLIM"          ,"annWaterDeficit_meanAnnAvg_CLIM"        ,"annWetDegDays_meanAnnAvg_CLIM"       ,  
+                        "annVPD_mean_meanAnnAvg_CLIM"            ,"annVPD_max_meanAnnAvg_CLIM"             ,"annVPD_min_meanAnnAvg_CLIM"          ,  
+                        "annVPD_max_95percentile_CLIM"           ,"annWaterDeficit_95percentile_CLIM"      ,"annWetDegDays_5percentile_CLIM"      ,  
+                        "durationFrostFreeDays_5percentile_CLIM" ,"durationFrostFreeDays_meanAnnAvg_CLIM")
+
+testOutRast_final <- c(testOutRast[[1]], testOutRast[[2]], testOutRast[[3]],testOutRast[[4]],testOutRast[[5]],testOutRast[[6]],testOutRast[[7]],testOutRast[[8]],
+                       testOutRast[[9]],testOutRast[[10]],testOutRast[[11]],testOutRast[[12]],testOutRast[[13]],testOutRast[[14]],testOutRast[[15]],testOutRast[[16]],
+                       testOutRast[[17]],testOutRast[[18]],testOutRast[[19]],testOutRast[[20]],testOutRast[[21]],testOutRast[[22]])
+
+terra::set.names(testOutRast_final, value = c("tmin_meanAnnAvg_CLIM"                   ,"tmax_meanAnnAvg_CLIM"  ,                
+                                     "tmean_meanAnnAvg_CLIM"                  ,"prcp_meanAnnTotal_CLIM",                 "T_warmestMonth_meanAnnAvg_CLIM"      ,  
+                                     "T_coldestMonth_meanAnnAvg_CLIM"         ,"precip_wettestMonth_meanAnnAvg_CLIM"    ,"precip_driestMonth_meanAnnAvg_CLIM"  ,  
+                                     "precip_Seasonality_meanAnnAvg_CLIM"     ,"PrecipTempCorr_meanAnnAvg_CLIM"         ,"aboveFreezing_month_meanAnnAvg_CLIM" ,  
+                                     "isothermality_meanAnnAvg_CLIM"          ,"annWaterDeficit_meanAnnAvg_CLIM"        ,"annWetDegDays_meanAnnAvg_CLIM"       ,  
+                                     "annVPD_mean_meanAnnAvg_CLIM"            ,"annVPD_max_meanAnnAvg_CLIM"             ,"annVPD_min_meanAnnAvg_CLIM"          ,  
+                                     "annVPD_max_95percentile_CLIM"           ,"annWaterDeficit_95percentile_CLIM"      ,"annWetDegDays_5percentile_CLIM"      ,  
+                                     "durationFrostFreeDays_5percentile_CLIM" ,"durationFrostFreeDays_meanAnnAvg_CLIM")
+)
+
+# save raster
+terra::writeRaster(x = testOutRast_final, filename = "./Data_processed/WallToWallClimateData/DayMetData_allCONUS_2023ClimateValues_raster.tif")
+
