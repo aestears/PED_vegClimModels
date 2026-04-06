@@ -347,7 +347,7 @@ plot(samplePoints_F_squares)
 #   st_as_sf()
 # #mapview(outDat, zcol = 'vegetation-cover_v3_2000_annual_forb_and_grass')
 
-# read in RAP points sampled from Google Earth Engine ---------------------
+# read in RAP points sampled from Google Earth Engine -- NonForest---------------------
 
 ## get RAP information downloaded from GEE
 # file names
@@ -425,50 +425,102 @@ ggplot(RAPdat_4 %>% filter(Year %in% c(2010:2020))) +
   geom_point(aes(Lon, Lat, col = PerennialHerbGramCover), pch = 20)
 
 
+# read in RAP points sampled from Google Earth Engine -- Forest points ---------------------
 
-# add climate data, which we'll use to remove forested data ---------------
+## get RAP information downloaded from GEE
+# file names
+RAPnames_Forest <- list.files("./Data_processed/RAP_samplePoints_Forest/SampledData/")
+for (i in 1:length(RAPnames_Forest)) {
+  ## read in the raster
+  tempRast <- rast(x = paste0("./Data_processed/RAP_samplePoints_Forest//SampledData/", RAPnames_Forest[i])) #%>% 
+  ## transform the raster to the crs of samplePoints
+  #terra::project(crs(samplePoints))
+  # get raster centroids 
+  if (i == 1) {
+    RAPrasterGrid <- raster::rasterToPolygons(raster::raster(tempRast)) 
+    RAPraster_centroids <- st_centroid(st_as_sf(RAPrasterGrid))
+  }
+  ## save the raster
+  assign(paste0("RAPraster_Forest_", str_extract(RAPnames_Forest[i], "[:digit:]{4}")), value = tempRast)
+  ## get the values of the raster
+  tempValues <- tempRast %>% 
+    terra::extract(y = #as.data.frame(terra::xyFromCell(tempRast, cell = c(1:94094)))
+                     terra::vect(x = data.frame(terra::xyFromCell(tempRast, cell = terra::cells(!is.na(tempRast)))),
+                                 geom = c("x", "y"),
+                                 ,crs = crs(tempRast))
+                   ,
+                   xy = TRUE) %>% drop_na() %>% 
+    mutate(Year = str_extract(RAPnames_Forest[i], "[:digit:]{4}")) %>% 
+    dplyr::select(-ID)
+  tempValues2 <- st_as_sf(tempValues, coords = c("x", "y"), crs = crs(tempRast), remove = FALSE)
+  ## save output 
+  if (i == 1) {
+    RAPvalues_Forest_DF <- tempValues2
+  } else {
+    RAPvalues_Forest_DF <- RAPvalues_Forest_DF %>% 
+      rbind(tempValues2)
+  }
+}
 
-climDatNew <- readRDS( "./Data_processed/CoverData/dayMetClimateValuesForAnalysis_final.rds")
-## assign a 'unique ID' to each location (So the same location has the same ID across years)
-climDatNew$locID <- paste0(climDatNew$Lat, "_", climDatNew$Long)
-climDatNew$uniqueID <- c(1:nrow(climDatNew))
+## change cover value column titles to be meaningful 
+RAPvalues_Forest_DF <- RAPvalues_Forest_DF %>% 
+  rename(Lat = y, 
+         Lon = x, 
+         AnnualHerbGramCover = AFG,
+         PerennialHerbGramCover = PFG,
+         BareGroundCover = BGR, 
+         LitterCover = LTR, 
+         ShrubCover = SHR,
+         TotalTreeCover = TRE
+  ) %>% 
+  mutate(
+    UniqueID = 1:nrow(.), 
+    StateUnitCounty = NA,
+    Plot = NA, 
+    PlotCondition = NA,
+    date = Year, 
+    Lat = Lat, 
+    Lon = Lon,
+    ShrubCover = ShrubCover,
+    HerbCover = NA,
+    AnnualHerbGramCover = AnnualHerbGramCover,
+    PerennialHerbGramCover = PerennialHerbGramCover,
+    TotalGramCover = NA,
+    C3GramCover = NA, 
+    C4GramCover = NA, 
+    AngioTreeCover = NA, 
+    ConifTreeCover = NA,
+    TotalTreeCover = TotalTreeCover,
+    TreeBasalArea_in2 = NA, 
+    BareGroundCover = BareGroundCover, 
+    LitterCover = LitterCover,
+    LitterDepth = NA,
+    Source = "RAP"
+  )
 
-# make points for "locID" in a single year into an sf data.frame, then convert to NAD83
-climSF <- climDatNew %>% 
-  dplyr::filter(year == as.integer(2011)) %>% 
-  sf::st_as_sf(coords = c("Long", "Lat"), crs =  c("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]")) %>% 
-  sf::st_transform(crs = crs("EPSG:4269")) %>% 
-  select(locID)
+# ggplot(RAPvalues_Forest_DF %>% filter(Year %in% c(2010:2023))) + 
+#   facet_wrap(~Year) + 
+#   geom_point(aes(Lon, Lat, col = PerennialHerbGramCover), pch = 20)
 
-# udpate CRS of test5 
-RAPdat_5 <- RAPdat_4 %>%
-  st_transform(crs("EPSG:4269") )
-st_crs(RAPdat_5) == st_crs(climSF)
 
-#mapview::mapview(test6) + mapview::mapview(climSF, col.regions = "red")
-# plot(climSF$geometry)
-# points(test6$geometry, col = "red")
+# add forest and non-forest data together ---------------------------------
+RAPvalues_all <- RAPvalues_Forest_DF %>% 
+  rbind(RAPdat_4)
 
-#Add in the 'locID' column from the climSF data.frame
-RAPplusClim_temp <- RAPdat_5 %>%
-  dplyr::ungroup() %>% 
-  #   #slice_sample(n = 1000) %>% 
-  #   rename(Lon = x, Lat = y) %>% 
-  #   sf::st_as_sf(coords = c("Lon", "Lat"), crs = st_crs(dat2)) %>%
-  #   st_transform(crs(test)) %>% 
-  mutate("x" = st_coordinates(.)[,1],
-         "y" = st_coordinates(.)[,2],
-         Year = as.numeric(Year)) %>% 
-  #st_buffer(400) %>% 
-  sf::st_join(climSF, join = st_nearest_feature)
+# ggplot(RAPvalues_all %>% filter(Year %in% c(2010:2023))) +
+#   facet_wrap(~Year) +
+#   geom_point(aes(Lon, Lat, col = PerennialHerbGramCover), pch = 20)
 
-# add back in all climate data based on the "locID"
-RAPplusClim <- RAPplusClim_temp %>% 
-  left_join(climDatNew, by = c("locID", "Year" = "year"))
 
-# remove RAP data from 2024, since we don't have climate data for 2024
-allDat_avg <- allDat_avg %>% 
-  filter(Year < 2024)
+# Remove non-forest locations in all places where tree cover is >10% --------
+RAPvalues_all[RAPvalues_all$TotalTreeCover > 10, c("PerennialHerbGramCover", "ShrubCover", "BareGroundCover", 
+                                                   "AnnualHerbGramCover", "LitterCover", "HerbCover" , "TotalGramCover",  "C3GramCover", "C4GramCover",           
+                                                   "AngioTreeCover",  "ConifTreeCover", "TreeBasalArea_in2", "LitterDepth" )] <- NA
+
+# ggplot(RAPvalues_all %>% filter(Year %in% c(2010:2020))) + 
+#   facet_wrap(~Year) + 
+#   geom_point(aes(Lon, Lat, col = PerennialHerbGramCover), pch = 20)
+
 ## save for further analysis! 
-saveRDS(RAPdat_4, "./Data_raw/RAP_samplePoints/RAPdata_useSF.rds")
-write.csv(st_drop_geometry(RAPdat_4), "./Data_raw/RAP_samplePoints/RAPdata_use.csv", row.names = FALSE)
+saveRDS(RAPvalues_all, "./Data_raw/RAP_samplePoints/RAPdata_useSF.rds")
+write.csv(st_drop_geometry(RAPvalues_all), "./Data_raw/RAP_samplePoints/RAPdata_use.csv", row.names = FALSE)

@@ -7,5 +7,6 @@ rmarkdown::render(input = "./Documentation/CoverMethodsOverview.Rmd",
                   output_dir = "/Users/astears/Library/CloudStorage/OneDrive-DOI/VegClim_modelOutputs/Documentation/",
                   output_file = paste0("./CoverMethodsOverview_",Sys.Date(),".html"))
 # save in additional local documentation folder
-file.copy(from = "/Users/astears/Library/CloudStorage/OneDrive-DOI/VegClim_modelOutputs/Documentation/CoverMethodsOverview_2026-04-02.html", 
+file.copy(from = 
+            paste0("/Users/astears/Library/CloudStorage/OneDrive-DOI/VegClim_modelOutputs/Documentation/CoverMethodsOverview_",Sys.Date(),".html"),
               to = paste0("./Documentation/CoverMethodsOverview_",Sys.Date(),".html"))
