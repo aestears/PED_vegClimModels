@@ -79,6 +79,8 @@ source("../../../Functions/transformPreds.R")
 modDat_1_s <- readRDS("./models/scaledModelInputData.rds")
 # data ready for yes/no forest modeling (that has been scaled)
 modDat_tree_s <- readRDS("./models/scaledModelInputData_yesNoTreeMod.rds")
+## prevalence threshold for the yes/no forest model
+best_threshold_bestLambda <- readRDS("./models/ForestModelPrevalence.rds")
   
 # get the soil raster, which we'll use for rasterizing the imagery
 soilRastTemp <- readRDS("../../../Data_processed/SoilsRaster.rds") %>% 
@@ -456,8 +458,8 @@ preds_byHand <- climDatPred_unscaled %>%
 # convert the continuous probability predictions to binary using previously-identified threshold 
 preds_byHand <- preds_byHand %>% 
   mutate(pred_binary = pred,
-    pred_binary = replace(pred_binary, pred_binary > 0.45226130653266, 1),
-         pred_binary = replace(pred_binary, pred_binary <= 0.45226130653266, 0))
+    pred_binary = replace(pred_binary, pred_binary > best_threshold_bestLambda, 1),
+         pred_binary = replace(pred_binary, pred_binary <= best_threshold_bestLambda, 0))
 # ggplot(preds_byHand) +
 #   geom_point(aes(x = x, y = y, col = pred_binary))
 #predictionsModel <- predict(object = forestMod, type = "response", newdata = climDatPred_unscaled)
@@ -528,15 +530,15 @@ preds_future1_byHand <- forecastClimSoilsDat_1 %>%
   mutate(pred =  as.numeric(1/ (1 + exp(-(3.38565522 + -0.79822221*((tmean - 10.6678425) / 5.14823079) +  4.74536062*((prcp - 767.94900623) / 506.45362111) + -0.49798680*((prcpTempCorr - -0.02007952) / 0.40677333) +  0.22745494*((isothermality - 36.51862827) / 5.41402375) + -0.39051271*((clay - 17.45502795) / 8.23327615) +  0.53857137*((coarse - 11.18397843) / 11.24234211) + -0.40059849*((AWHC - 14.91029339) / 5.4856826) + -0.83406990*I(((prcp - 767.94900623) / 506.45362111)^2) + -0.94850342*I(((prcpTempCorr - -0.02007952) / 0.40677333)^2) +  0.19450621*I(((isothermality - 36.51862827) / 5.41402375)^2) + -0.04772718*I(((clay - 17.45502795) / 8.23327615)^2) + -0.26519959*I(((coarse - 11.18397843) / 11.24234211)^2) +  0.07438930*I(((AWHC - 14.91029339) / 5.4856826)^2) + -0.29049829*((prcp - 767.94900623) / 506.45362111):((isothermality - 36.51862827) / 5.41402375) + -0.16800569*((tmean - 10.6678425) / 5.14823079):((isothermality - 36.51862827) / 5.41402375) +  0.07625545*((tmean - 10.6678425) / 5.14823079):((prcp - 767.94900623) / 506.45362111) + -0.55536190*((tmean - 10.6678425) / 5.14823079):((prcpTempCorr - -0.02007952) / 0.40677333) + -0.37720980*((clay - 17.45502795) / 8.23327615):((AWHC - 14.91029339) / 5.4856826))))))
 preds_future1_byHand <- preds_future1_byHand %>% 
   mutate(pred_binary = pred,
-    pred_binary = replace(pred_binary, pred_binary > 0.45226130653266, 1),
-         pred_binary = replace(pred_binary, pred_binary <= 0.45226130653266, 0))
+    pred_binary = replace(pred_binary, pred_binary > best_threshold_bestLambda, 1),
+         pred_binary = replace(pred_binary, pred_binary <= best_threshold_bestLambda, 0))
 # predict with modeled future climate data v2
 preds_future2_byHand <- forecastClimSoilsDat_2 %>% 
   mutate(pred =  as.numeric(1/ (1 + exp(-(-(3.38565522 + -0.79822221*((tmean - 10.6678425) / 5.14823079) +  4.74536062*((prcp - 767.94900623) / 506.45362111) + -0.49798680*((prcpTempCorr - -0.02007952) / 0.40677333) +  0.22745494*((isothermality - 36.51862827) / 5.41402375) + -0.39051271*((clay - 17.45502795) / 8.23327615) +  0.53857137*((coarse - 11.18397843) / 11.24234211) + -0.40059849*((AWHC - 14.91029339) / 5.4856826) + -0.83406990*I(((prcp - 767.94900623) / 506.45362111)^2) + -0.94850342*I(((prcpTempCorr - -0.02007952) / 0.40677333)^2) +  0.19450621*I(((isothermality - 36.51862827) / 5.41402375)^2) + -0.04772718*I(((clay - 17.45502795) / 8.23327615)^2) + -0.26519959*I(((coarse - 11.18397843) / 11.24234211)^2) +  0.07438930*I(((AWHC - 14.91029339) / 5.4856826)^2) + -0.29049829*((prcp - 767.94900623) / 506.45362111):((isothermality - 36.51862827) / 5.41402375) + -0.16800569*((tmean - 10.6678425) / 5.14823079):((isothermality - 36.51862827) / 5.41402375) +  0.07625545*((tmean - 10.6678425) / 5.14823079):((prcp - 767.94900623) / 506.45362111) + -0.55536190*((tmean - 10.6678425) / 5.14823079):((prcpTempCorr - -0.02007952) / 0.40677333) + -0.37720980*((clay - 17.45502795) / 8.23327615):((AWHC - 14.91029339) / 5.4856826)))))))
 preds_future2_byHand <- preds_future2_byHand %>% 
   mutate(pred_binary = pred,
-    pred_binary = replace(pred_binary, pred_binary > 0.45226130653266, 1),
-         pred_binary = replace(pred_binary, pred_binary <= 0.45226130653266, 0))
+    pred_binary = replace(pred_binary, pred_binary > best_threshold_bestLambda, 1),
+         pred_binary = replace(pred_binary, pred_binary <= best_threshold_bestLambda, 0))
 
 ## Plot predictions with contemporary data
 # make into a raster
@@ -1631,8 +1633,8 @@ preds_byHand_quantile <- modDat_ecoregionFitQuantile %>%
 # convert the continuous probability predictions to binary using previously-identified threshold 
 preds_byHand_quantile <- preds_byHand_quantile %>% 
   mutate(pred_binary = pred,
-    pred_binary = replace(pred_binary, pred_binary > 0.45226130653266, 1),
-         pred_binary = replace(pred_binary, pred_binary <= 0.45226130653266, 0))
+    pred_binary = replace(pred_binary, pred_binary > best_threshold_bestLambda, 1),
+         pred_binary = replace(pred_binary, pred_binary <= best_threshold_bestLambda, 0))
 
 # interpolate the continuous predictions
 preds_byHand_quantile$preds_interp <- NA
@@ -3535,8 +3537,8 @@ preds_byHand_time <- climDat_time_unscaled %>%
 # convert the continuous probability predictions to binary using previously-identified threshold 
 preds_byHand_time <- preds_byHand_time %>% 
   mutate(pred_binary = pred,
-    pred_binary = replace(pred_binary, pred_binary > 0.45226130653266, 1),
-         pred_binary = replace(pred_binary, pred_binary <= 0.45226130653266, 0))
+    pred_binary = replace(pred_binary, pred_binary > best_threshold_bestLambda, 1),
+         pred_binary = replace(pred_binary, pred_binary <= best_threshold_bestLambda, 0))
 # interpolate continuous predictions
 preds_byHand_time$preds_interp <- NA
 preds_byHand_time[!is.na(preds_byHand_time$pred), "preds_interp"] <- approxfun_pred(preds_byHand_time[ !is.na(preds_byHand_time$pred), "pred"])
@@ -3966,7 +3968,7 @@ relCover_B_Maps_contemp <- lapply(responseNames,
                                         # make a histogram
                                         resp_hist <- ggplot() + 
                                           geom_density(aes(contempPreds[,x]), col = "black", fill = "darkgrey") + 
-                                          xlab(paste0("Predictions of Total Relative Cover (non-tree) with contemporary data")) +
+                                          xlab(paste0("Predictions of Total Absolute Cover (non-tree) with contemporary data")) +
                                           theme_classic()
                                         
                                          # make a map of future preds w/ model 1

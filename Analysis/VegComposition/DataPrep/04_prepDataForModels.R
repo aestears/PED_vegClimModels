@@ -37,12 +37,13 @@ LCMAP_use2 <- LCMAP_use %>%
 crs(LCMAP_use2) == crs(vegDat)
 #plot(LCMAP_use2) 
 ## there are some RAP points that are in areas that we excluded according to LCMAP class (random points w/in dayMet cells originally excluded these areas, but because of the upscaling appraoch, we ended up w/ some values from areas that we wanted to exclude according to LCMAP use... so just to be safe, remove those values now)
-vegDat_removeLCMAP <- terra::extract(x = LCMAP_use2, y = vegDat, ID = TRUE)
-vegDat <- vegDat %>% 
-  mutate("LCMAP_use" = vegDat_removeLCMAP$LCMAP_CU_2021_V13_LCPRI)
+vegDat$UniquID <- 1:nrow(vegDat)
+vegDat_removeLCMAP <- terra::extract(x = LCMAP_use2$LCMAP_CU_2021_V13_LCPRI, y = vegDat %>% select(UniquID, geometry), #%>% slice(1:5000) , 
+                                     ID = TRUE, bind = TRUE)
 
-vegDat <- vegDat %>% 
-  filter(!is.na(LCMAP_use))
+vegDat_newTest_withOGdata <- vegDat %>% 
+  left_join(vegDat_removeLCMAP %>% as.data.frame(), by = "UniquID") %>% 
+  filter(!is.na(LCMAP_CU_2021_V13_LCPRI))
 
 # ## save data for further analysis 
-saveRDS(vegDat, file = "./Data_processed/CoverData/DataForModels.RDS")
+saveRDS(vegDat_newTest_withOGdata, file = "./Data_processed/CoverData/DataForModels.RDS")

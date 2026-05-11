@@ -57,8 +57,8 @@ modDat_2a <- modDat_2[!is.na(modDat_2$prcp_annTotal),]
 
 # match the ecoregion to point data ---------------------------------------
 modDat_3 <- sf::st_join(modDat_2a, regions_2)
-badRows <- (duplicated(modDat_3[,1:105]))
-modDat_3_noDups <- modDat_3[!badRows,]
+#badRows <- (duplicated(modDat_3[,1:105]))
+modDat_3_noDups <- modDat_3#[!badRows,]
 
 # missing for places right on the coast... but not a big deal to not have those
 # ggplot(modDat_3) + 
@@ -84,6 +84,10 @@ newDat <- modDat_3_noDups %>%
 
 ggplot(newDat[1:1000000,]) +
   geom_sf(aes(col = newRegion))
+
+# remove Long and Lat columns, which were from the climate/weather data
+newDat <- newDat %>% 
+  select(-Lat, -Long)
 
 # Save Data for further analysis ------------------------------------------
 saveRDS(newDat, "./Data_processed/CoverData/DataForModels_withEcoregion_sampledLANDFIRE.rds")

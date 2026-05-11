@@ -9,13 +9,13 @@ output:
     code_folding: hide
     dev: "jpeg"
 params:
-  run: FALSE      
+  run: TRUE      
   save_figs: TRUE
   ecoregion: CONUS
   response: TotalTreeCover
   treeThreshold: 10
   whichSecondBestMod: "halfse"# 1se OR halfse OR auto (chose the model w/ fewest # of predictors)
-  thresholdMethod: "PredPrev=Obs" # apporoach for identifying best threshold
+  thresholdMethod: "PredPrev=Obs" # approach for identifying best threshold
 subtitle: "Based on code from Martin Holdrege's Sagebrush-Fire paper"
 ---
 This workflow fits a model across all of CONUS that predicts whether a location does or does not have trees. 
@@ -117,6 +117,14 @@ library(pROC)
            }
 ```
 
+Source the script that calculates the proportion of CONUS by area that is un-forested, which we will use to calibrate our model
+```{r message=FALSE}
+source("../DataPrep/09_non-forest_area.R")
+# object w/ the raster of the forest locations is called notForest
+# object w/ the proportion of the unmasked raster area that is not forested (<1% trees in a grid cell) is called area_not_forest_km2
+# object w/ the mean proportion non-forest (area-weighted) is called mean_frac
+```
+
 # Read in data
 
 Data compiled in the `prepDataForModels.R` script
@@ -199,7 +207,17 @@ modDat_1 <- modDat %>%
   ) %>% 
   dplyr::select(-c(tmin_meanAnnAvg_3yr:durationFrostFreeDays_meanAnnAvg_3yr))
 
+# get necessary raster data for background data on maps
+test_rastTemp <-  rast("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>%
+  terra::crop(ext(-2000000, 2600000, -1900000, 1500000))
+
+
+## want to use x_vegDat_sf and y_vegDat_sf, so rename to x and y
+modDat_1 <- modDat_1 %>% 
+  rename(x = x_vegDat_sf, 
+         y = y_vegDat_sf)
 ```
+
 
 #### Predictors
 The following are the candidate predictor variables for this ecoregion: 
@@ -448,7 +466,7 @@ library(patchwork)
   3. interactions between climate and weather variables
   4. transformed main effects (squared, log-transformed (add a uniform integer -- 20-- to all variables prior to log-transformation), square root-transformed (add a uniform integer -- 20-- to all variables prior to log-transformation))
 ```{r fit global model, echo = FALSE}
-  # penalty values
+# penalty values
   lambdas <- 10^seq(1,-5, length.out = 200)  # sequence of penalties to test
 
  ## if the model parameters indicate that we DO want anomalies... 
@@ -820,7 +838,7 @@ ggplot() +
  
 ```
 
-#### The internal cross-validation process to fit the global LASSO model identified an optimal lambda value (regularization parameter) of `r{print(best_lambda)}`. The lambda value such that the cross validation error is within 1 standard error of the minimum ("1se lambda") was `r{print(fit$lambda.1se)}`` . The following coefficients were kept in each model: 
+#### The internal cross-validation process to fit the global LASSO model identified an optimal lambda value (regularization parameter) of `r{print(best_lambda)}`. The lambda value such that the cross validation error is within 1 standard error of the minimum ("1se lambda") was `r{print(fit$lambda.1se)}``. The following coefficients were kept in each model: 
 ```{r coefficients in the global model}
 # the coefficient matrix from the 'best model' -- find and print those coefficients that aren't 0 in a table
 coef_glm_bestLambda <- coef(fit_glm_bestLambda) %>% 
@@ -927,6 +945,49 @@ kable(uniqueCoeffs,
 kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
 ```
 
+## 
+Make sure that the locations we're using for the model-fitting are the same as the locations used to determine the proportion of CONUS that is un-forested (i.e. masks out the same locations due to fire and/or land use)
+```{r}
+
+# rasterize the model-fitting data on the dayMet grid 
+modDat_1_rast <- modDat_1 %>%  
+  st_as_sf(coords = c("x", "y"), crs = crs(vegDat)) %>% 
+  terra::vect() %>% 
+  terra::rasterize(y = test_rastTemp, field = "TotalTreeCover")
+
+## compare to the the RAP forest data from Martin (is the 'notForest' object)
+# reproject notForest to match data I'm using
+notForest <- notForest %>% 
+  terra::project(crs(modDat_1_rast))
+# make sure crs matches
+crs(notForest) == crs(modDat_1_rast)
+# crop modDat_1_rast to match the extent of the notForest data
+modDat_1_rast <- modDat_1_rast %>% 
+  terra::crop(ext(notForest))
+
+## where are the locations that are masked in the layer from Martin, but un-masked in my data? (i.e. are there locations that I should not include in my model fitting dataset?)
+# round vaues and change 0s to 1, so that every location w/ data has a value of '1'
+notForest_TEST <- notForest %>% 
+  round() %>% 
+  subst(from = c(0), to = c(1)) %>% 
+  subst(from = c(NA), to = c(0))
+# change NAs to -9999
+modDat_1_rast_TEST <- 
+  terra::app(x = modDat_1_rast, fun = function(x) {
+    ceiling(x/100)
+  }) %>% 
+  subst(from = c(0), to = c(1)) %>% 
+  subst(from = c(NA), to = c(100)) %>% 
+  subst(from = c(1), to = c(200)) 
+  
+
+testBadLayer <- sum(c(notForest_TEST, modDat_1_rast_TEST))
+# get only the locations w/ 200, which are places where we have data for modDat but *not* for notForest (bad)
+badLayer <- testBadLayer %>% 
+  subst(from = c(100, 101, 201), c(NA))
+plot(testBadLayer)
+plot(badLayer, col = "red", add = TRUE)
+```
 # Visualizations of Model Predictions and Residuals 
 
 In the following figures, we show model predictions made using the best lambda model, as well as an alternative "second-best" lambda model. As the alternative to the best lambda model, we use the model (1se or 1/2se of best Lambda) that has the fewest number of unique predictors, but is not a null model. 
@@ -1068,6 +1129,8 @@ roc_curve <- roc(pred_glm1_test$TotalTreeCover_binom, pred_glm1_test$TotalTreeCo
 # Plot ROC curve
 plot(roc_curve, main =  paste0("ROC Curve for best lambda model \n","AUC: ",round(roc_curve$auc,2)))
 
+## save this prevalence for later 
+saveRDS(best_threshold_bestLambda, "./models/ForestModelPrevalence.rds")
 ```
 
 For the second-bestLambda model: 
@@ -1182,10 +1245,6 @@ pred_glm1_1se_full[pred_glm1_1se_full$TotalTreeCover_binom == 1 &
 ### Observations - continuous and binary total tree cover for the full dataset 
 ```{r Residual maps, fig.height=14, fig.width=9}
 ## get information for plotting
-# get necessary raster data for background data on maps
-test_rastTemp <-  rast("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>%
-  terra::crop(ext(-2000000, 2600000, -1900000, 1500000))
-
 # aggregate to a grid of 8km x 8km cells
 test_rast <- test_rastTemp %>%
  terra::aggregate(fact = 8, fun = "mean")#%>% 

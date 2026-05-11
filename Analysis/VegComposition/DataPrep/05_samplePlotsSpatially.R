@@ -26,6 +26,7 @@ library(parallel)
 # get veg data
 dat_temp <- readRDS("./Data_processed/CoverData/DataForModels.RDS") 
 # dayMet extent 
+testTemp <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif")
 test <-  rast("./Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
   terra::project(crs(dat_temp))
 
@@ -103,7 +104,7 @@ test_big <- test %>%
 
 ## add the aggregated dayMet ID to each LF observation
 dat2_LFonly_cellID <- dat2_LFonly %>%
-  cbind(terra::extract(x = test_big$daymet_v4_prcp_monttl_na_1980_1, y = dat2_LFonly, cells = TRUE, ID = FALSE, xy = TRUE)[,2:4])
+  cbind(terra::qdf45tvegDat_newTest_withOGdata(x = test_big$daymet_v4_prcp_monttl_na_1980_1, y = dat2_LFonly, cells = TRUE, ID = FALSE, xy = TRUE)[,2:4])
 dat2_LFonly_cellID$uniqueRowID <- 1:nrow(dat2_LFonly_cellID)
 # combine year and cellID info into one column
 dat2_LFonly_cellID$cellID_year <- paste0(dat2_LFonly_cellID$cell, "_", dat2_LFonly_cellID$Year)
@@ -224,7 +225,7 @@ dat2 <- dat2 %>%
 
 # save data pre-spatial averaging
 saveRDS(dat2, "./Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds")
-
+#dat2 <- readRDS("./Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds")
 # Now do spatial averaging -- Get the 'name' of the daymet cell that each observation lies within --------
 crs(dat2) == crs(test)
 dat2_cellID <- dat2 %>% 
@@ -345,6 +346,7 @@ dat2_avgs <- dat2_avgs_parallel %>%
 # save data ---------------------------------------------------------------
 # spatially averaged data (across all data sources)
 saveRDS(dat2_avgs, "./Data_processed/CoverData/spatiallyAverageData_intermediate_test5_sampledLANDFIRE.rds")
+#dat2_avgs <- readRDS("./Data_processed/CoverData/spatiallyAverageData_intermediate_test5_sampledLANDFIRE.rds")
 # spatially averaged data (For Each data source)
 saveRDS(dat2_avgsBySource, "./Data_processed/CoverData/spatiallyAverageData_ByDataSource_intermediate_test5_sampledLANDFIRE.rds")
 

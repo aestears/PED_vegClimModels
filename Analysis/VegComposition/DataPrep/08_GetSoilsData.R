@@ -17,13 +17,15 @@ library(rSOILWAT2)
 vegDat_temp <- readRDS("./Data_processed/CoverData/DataForModels_withEcoregion_sampledLANDFIRE.rds")
 # should change the geometry to points (was small polygons for spatial joins) 
 
-vegDat <- vegDat_temp %>% 
+vegDat <- vegDat_temp %>%
   st_centroid()
 
-vegDat %>% 
-  ggplot() + 
-  facet_wrap(~Year) + 
-  geom_point(aes(x = Long, y = Lat))
+# vegDat_temp %>% 
+#   slice(1:10) %>% 
+#   ggplot() + 
+#   facet_wrap(~Year) + 
+#   geom_point(aes(x = Long, y = Lat)) + 
+#   geom_sf(col = "orange")
 
 
 # read in soils data ------------------------------------------------------
@@ -151,15 +153,29 @@ if (sum(list.files("./Data_processed/") == "SoilsRaster.rds") == 0) {
 
 # sample soils data for veg. points ---------------------------------------
 # sample raster to get values for the points in the cover dataset
+vegDat <- vegDat %>% 
+  rename(x_vegDat = x,
+         y_vegDat = y) %>%
+  mutate(x_vegDat_sf = sf::st_coordinates(.)[,1],
+         y_vegDat_sf = sf::st_coordinates(.)[,2])
+# 
+# plot(vegDat[1:10,]$geometry)
+# plot(soilRast$clayPerc_2cm, add = TRUE
+#      )
+# points(vegDat[1:10,]$geometry)
+# points(vegDat[1:10,]$x_vegDat_sf , vegDat[1:10,]$y_vegDat_sf, col = "yellow", pch = 2)
+# points(vegSoils_df[1:10,]$x, vegSoils_df[1:10,]$y, col = "red")
+# points(vegSoils_df[1:10,]$x_vegDat_sf, vegSoils_df[1:10,]$y_vegDat_sf, col = "green")
 
 vegSoils_df <- soilRast %>% 
   terra::extract(y = vegDat #%>% dplyr::select(-x,-y)
-                 , xy = TRUE, bind = TRUE) %>% 
+                 , #xy = TRUE, 
+                 bind = TRUE) %>% 
   as.data.frame()
 
 
 # calculate soils variables w/ cover data ---------------------------------
-names(vegSoils_df)[c(length(names(vegSoils_df))-1, length(names(vegSoils_df)))] <- c("x_UTM", "y_UTM")
+#names(vegSoils_df)[c(length(names(vegSoils_df))-1, length(names(vegSoils_df)))] <- c("x_UTM", "y_UTM")
 vegSoils_new <- 
   vegSoils_df %>% 
   dplyr::mutate(
@@ -413,15 +429,11 @@ temp <- vegSoils_new %>%
   # give coordinates
   test <- vegSoils_final %>% 
     #slice_sample(n = 1000) %>% 
-    st_as_sf(coords = c("Long", "Lat"), crs = st_crs(vegDat)) #%>% 
+    st_as_sf(coords = c("x_vegDat_sf", "y_vegDat_sf"), crs = st_crs(vegDat)) #%>% 
     #st_drop_geometry() %>% 
     #st_buffer(50) %>% 
      # sf::st_join(CAMcoverDat %>% select(CAMCover, Year.x, geometry) %>% st_buffer(100), by = c("Year" = "Year.x"))
   
-  #test <- test %>% 
-    #filter(Year == Year.x)
-  uniqueID_dups <- duplicated(test$uniqueID)
-  test <- test[!uniqueID_dups,]
   
   newFinalDat <- vegSoils_final #%>% 
     #dplyr::left_join(test %>% st_drop_geometry() %>% select(CAMCover, uniqueID), by = "uniqueID")
