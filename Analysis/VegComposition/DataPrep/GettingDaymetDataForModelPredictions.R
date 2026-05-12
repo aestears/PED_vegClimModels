@@ -15,7 +15,7 @@ library(parallel)
 library(USAboundaries)
 
 # is this a test run? 
-test <- FALSE
+test <- TRUE
 # do I need to download the data
 downloadRawData <- TRUE
 # set the size of the bins for the dayMet data
@@ -883,11 +883,11 @@ if (sum(list.files("./Data_processed/") == "SoilsRaster.rds") == 0) {
 # sample soils data for veg. points ---------------------------------------
 # sample raster to get values for the points in the cover dataset
 listOut_vect <- listOut %>% 
-  st_as_sf(coords = c("Long", "Lat"), crs = crs(temp_rast)) %>% 
+  st_as_sf(coords = c("Long", "Lat"), crs = crs(temp_rast), remove = FALSE) %>% 
   terra::vect()
 vegSoils_df <- soilRast %>% 
   terra::extract(y = listOut_vect #%>% dplyr::select(-x,-y)
-                 , xy = TRUE, bind = TRUE) %>% 
+                , xy = TRUE, bind = TRUE) %>% 
   as.data.frame()
 
 # calculate soils variables w/ cover data ---------------------------------
@@ -1136,10 +1136,22 @@ test <- vegSoils_final %>%
 uniqueID_dups <- duplicated(test$uniqueID)
 test <- test[!uniqueID_dups,]
 
+## add back data w/ appropriate Long and Lat info 
+#test <- readRDS("./Data_processed/WallToWallClimateData/DayMetData_allCONUS_2023ClimateValues_withSoils.rds")
+test2 <- test %>% 
+  left_join(vegSoils_df) %>% 
+  select(names(test), Long, Lat)
+   
+# change the geometry to correspond to the original Lat/Long values, not the soilRaster values
+test3 <- test2 %>% 
+  st_drop_geometry() %>% 
+  st_as_sf(coords = c("Long", "Lat"), crs = crs(test2))
+
+
+
 # save data
 # save for further analysis 
-test %>% 
+test3 %>% 
   #select(-precip_driestMonth_meanAnnAvg_3yrAnom, -precip_driestMonth_meanAnnAvg_2yrAnom) %>% 
   saveRDS("./Data_processed/WallToWallClimateData/DayMetData_allCONUS_2023ClimateValues_withSoils.rds")
-
 
