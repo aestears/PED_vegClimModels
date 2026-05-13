@@ -165,7 +165,7 @@ rename("tmin" = tmin_meanAnnAvg_CLIM,
     #   frostFreeDays_anom = durationFrostFreeDays_meanAnnAvg_3yrAnom #36
   )
 #rm(climDat_Temp) 
-gc()
+#gc()
 
 ## now, scale the contemporary climate data for use in cover models 
 # get the scaling factors 

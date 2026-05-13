@@ -583,7 +583,8 @@ decile_dotplot_filtered_pq <- function(df,
                                        xvars
 ) {
   
-  yvar <- response
+    yvar <- c(response)
+
   
   # # convert k to c
   # df[df$name == "MAT", ]$mean_value <- 
@@ -591,8 +592,8 @@ decile_dotplot_filtered_pq <- function(df,
   df2 <- df %>% 
     filter(name %in% xvars) %>% 
     dplyr::select(name, filter_var, percentile_category, decile, mean_value,
-           all_of(yvar), all_of(paste0(yvar, "_pred"))) %>% 
-    pivot_longer(cols = all_of(c(yvar, paste0(yvar, "_pred"))),
+           all_of(yvar), any_of(paste0(yvar, "_pred"))) %>% 
+    pivot_longer(cols = any_of(c(yvar, paste0(yvar, "_pred"))),
                  names_to = 'source',
                  values_to = 'CoverProportion') %>% 
     mutate(source = ifelse(str_detect(source, "_pred$"),

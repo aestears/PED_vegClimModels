@@ -20,7 +20,6 @@ path_notForest <- c("Data_processed/RAP_v3_fracNotForest_mask-lcmap90-fire90_201
 
 notForest <- rast(here::here(path_notForest))
 
-
 # area of each pixel in m² (accounts for projection distortion)
 pixel_area <- cellSize(notForest, unit = "m")
 
