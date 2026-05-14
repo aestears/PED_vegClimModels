@@ -379,15 +379,7 @@ dat_1 %>%
 ```
 
 ### AIM
-* Manuscript detailing the Landscape Data Commons: McCord, Sarah E., Nicholas P. Webb, Brandon T. Bestelmeyer, Kristopher Bonefont, Joseph R. Brehm, Joel Brown, Ericha M. Courtright, Chris Dietrich, Michael C. Duniway, Brandon Edwards, Christopher Fraser, Jeffrey E. Herrick, Anna C. Knight, Loretta Metz, Justin W. Van Zee, and Craig Tweedie. 2023. The Landscape Data Commons: A system for standardizing, accessing, and applying large environmental datasets for agroecosystem research and management. Agricultural & Environmental Letters. https://doi.org/10.1002/ael2.20120
-* Citation for the AIM dataset itself: Taylor, J.J., E.J. Kachergis, G.R. Toevs, J.W. Karl, M.R. Bobo, M. Karl, S. Miller, and C.S. Spurrier. 2014. AIM-Monitoring: A Component of the BLM Assessment, Inventory, and Monitoring Strategy. Technical Note 445. U.S. Department of the Interior, Bureau of Land Management, National Operations Center, Denver, CO. 
-* Information about the trex R package: https://github.com/Landscape-Data-Commons/trex
-
-* AIM Data were acquired via the Landscape Data Commons (LDC), which harmonizes and aggregates data from AIM and other sources. We used the 'trex' R package to access AIM data stored within the LDC.  
-    * We used AIM data from all plots in the LDC, which we accessed on 3/19/2024. 
-
 The BLM- AIM database provides information about vegetation cover from a standardized survey protocol. It includes information about **total tree cover**, **shrub cover**, **total herbaceous cover**, **needle-leaved tree cover**, **broad-leaved tree cover**, **C3 grass cover**, **C4 grass cover**, and **forb cover**, and **bare ground cover**. We use AIM data from **2000 to 2017**. 
-
 Below are maps of AIM data aggregated across all years:
 ```{r fig.width= 12, fig.height =67.5}
 ## make figure for LDC

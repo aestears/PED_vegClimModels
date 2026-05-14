@@ -11,10 +11,10 @@ output:
 params:
   run: FALSE      
   save_figs: TRUE
-  ecoregion: trees # trees or noTrees
-  response: TotalTreeCover
+  ecoregion: noTrees # trees or noTrees
+  response: TotalHerbaceousCover
   removeTexasLouisianaPlain: FALSE
-  removeAllAnoms: TRUE
+  removeAllAnoms: FALSE
   trimAnomalies: TRUE
   autoKfold: FALSE
   whichSecondBestMod: "auto"# 1se OR halfse OR auto (chose the model w/ fewest # of predictors)
@@ -47,6 +47,9 @@ run <- params$run
 autoKfold <- params$autoKfold
 removeAllAnoms <- params$removeAllAnoms
 whichSecondBestMod <- params$whichSecondBestMod
+
+## crs of veg data
+crs_veg <- "PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"
 ```
 
 Load packages and source functions
@@ -317,7 +320,7 @@ First, if there are observations in Louisiana, sub-sample them so they're not so
 ```{r}
 ## make data into spatial format
 modDat_1_sf <- modDat_1_s %>% 
-  st_as_sf(coords = c("x", "y"), crs = st_crs("EPSG:4326"))
+  st_as_sf(coords = c("x", "y"), crs = st_crs(crs_veg))
 
 
 # download map info for visualization
@@ -1349,7 +1352,7 @@ Observations across the temporal range of the dataset
 # get reference raster
 # use the gridMet raster 
 test_rast_dayMet <- rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>%
-  #terra::project(terra::crs("EPSG:4326")) %>%
+  #terra::project(terra::crs(crs_veg)) %>%
   terra::crop(ext(-2000000, 2600000, -1900000, 1500000))
 
 ## aggregate to a 4x4km^2 grid
@@ -1388,7 +1391,7 @@ cropped_states_2 <- cropped_states %>%
 
 # make a multi-layer raster w/ layers for each variable of interest
 pred_glm1_sf <- pred_glm1 %>% 
-  st_as_sf(coords = c("x", "y"), crs = crs("EPSG:4326")) %>% 
+  st_as_sf(coords = c("x", "y"), crs = crs(crs_veg)) %>% 
   st_transform(crs(test_rast)) %>% 
   terra::vect()
 
@@ -1539,7 +1542,7 @@ if ( name_secondBestMod == "Intercept_Only") {
 # rasterize data
 # make a multi-layer raster w/ layers for each variable of interest
 pred_glm1_1se_sf <- pred_glm1_1se %>% 
-  st_as_sf(coords = c("x", "y"), crs = crs("EPSG:4326")) %>% 
+  st_as_sf(coords = c("x", "y"), crs = crs(crs_veg)) %>% 
   st_transform(crs(test_rast)) %>% 
   terra::vect()
 
@@ -1583,12 +1586,12 @@ ggarrange(map_preds2, hist_preds2, heights = c(3,1), ncol = 1)
 badResids_high <- pred_glm1 %>% 
   filter(resid > .5)  %>% 
   terra::vect(geom = c("x", "y")) %>% 
-  terra::set.crs(crs("EPSG:4326")) %>% 
+  terra::set.crs(crs(crs_veg)) %>% 
   terra::project(crs(test_rast))
 badResids_low <- pred_glm1 %>% 
   filter(resid < -.5)  %>% 
   terra::vect(geom = c("x", "y")) %>% 
-  terra::set.crs(crs("EPSG:4326")) %>% 
+  terra::set.crs(crs(crs_veg)) %>% 
   terra::project(crs(test_rast))
 # make figures
 map <- ggplot() +
@@ -1626,12 +1629,12 @@ if ( name_secondBestMod == "Intercept_Only") {
 badResids_high <- pred_glm1_1se %>% 
   filter(resid > .5)  %>% 
   terra::vect(geom = c("x", "y")) %>% 
-  terra::set.crs(crs("EPSG:4326")) %>% 
+  terra::set.crs(crs(crs_veg)) %>% 
   terra::project(crs(test_rast))
 badResids_low <- pred_glm1_1se %>% 
   filter(resid < -.5)  %>% 
   terra::vect(geom = c("x", "y")) %>% 
-  terra::set.crs(crs("EPSG:4326")) %>% 
+  terra::set.crs(crs(crs_veg)) %>% 
   terra::project(crs(test_rast))
 # make figures
 map <- ggplot() +
@@ -2060,7 +2063,7 @@ names(testDat_DF) <- colnames(X)[2:ncol(X)]
   # null model and predictions
   # the "null" model in this case is the global model
   # predict on the test data for this iteration w/ the global model (back transformed)
-  ##AES
+
   null_pred <- predict.glm(fit_glm_bestLambda, newdata = testDat_DF, type = "response") 
 
 
@@ -2126,7 +2129,6 @@ for (i in 1:length(unique(modDat_1_s$NA_L2NAME))) {
   mutate(resid = .[["obs"]] - .[["pred_opt"]] ,
          resid_globMod = .[["obs"]]  - .[["pred_null"]])
 
-
 # rasterize
 # use 'test_rast' from earlier
 
@@ -2135,7 +2137,7 @@ plotObs <- predictionData %>%
          drop_na(paste(response)) %>%
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>%
-  terra::set.crs(crs("EPSG:4326")) %>%
+  terra::set.crs(crs(crs_veg)) %>%
   terra::project(crs(test_rast)) %>%
   terra::rasterize(y = test_rast,
                    field = "resid",
@@ -2155,12 +2157,12 @@ plotObs_2 <- plotObs %>%
 badResids_high <- predictionData %>%
   filter(resid > .5)  %>%
   terra::vect(geom = c("x", "y")) %>%
-  terra::set.crs(crs("EPSG:4326")) %>%
+  terra::set.crs(crs(crs_veg)) %>%
   terra::project(crs(test_rast))
 badResids_low <- predictionData %>%
   filter(resid < -.5)  %>%
   terra::vect(geom = c("x", "y")) %>%
-  terra::set.crs(crs("EPSG:4326")) %>%
+  terra::set.crs(crs(crs_veg)) %>%
   terra::project(crs(test_rast)) 
 
 # make figures
@@ -2351,7 +2353,7 @@ plotObs <- predictionData %>%
          drop_na(paste(response)) %>%
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>%
-  terra::set.crs(crs("EPSG:4326")) %>%
+  terra::set.crs(crs(crs_veg)) %>%
   terra::project(crs(test_rast)) %>% 
   terra::rasterize(y = test_rast,
                    field = "resid",
@@ -2370,12 +2372,12 @@ plotObs_2 <- plotObs %>%
 badResids_high <- predictionData %>%
   filter(resid > .5)  %>%
   terra::vect(geom = c("x", "y")) %>%
-  terra::set.crs(crs("EPSG:4326")) %>%
+  terra::set.crs(crs(crs_veg)) %>%
   terra::project(crs(test_rast)) 
 badResids_low <- predictionData %>%
   filter(resid < -.5)  %>%
   terra::vect(geom = c("x", "y")) %>% 
-  terra::set.crs(crs("EPSG:4326")) %>%
+  terra::set.crs(crs(crs_veg)) %>%
   terra::project(crs(test_rast)) 
 
 

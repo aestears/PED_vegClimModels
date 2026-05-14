@@ -1226,10 +1226,11 @@ roc_curve_secondBest <- roc(pred_glm1_1se_test$TotalTreeCover_binom, pred_glm1_1
 plot(roc_curve_secondBest, main =  paste0("ROC Curve for second-best lambda model \n","AUC: ",round(roc_curve_secondBest$auc,2)))
 
 ```
-## Calibration
+## Interpolation
 In addition to using the threshold we identified above to generate binary predictions, we also add a calibration step to ensure that this model estimates locations with no tree cover at a frequency that matches estimates of the area of CONUS that is tree-less. To do this, we classify all RAP cells in un-developed areas as either treeless (RAP fractional tree cover < 1%) or treed. We then determine the proportion of each 1km x 1km dayMet grid cell that is treeless based on the RAP cells contained within that daymet cell. We can then use this information estimate the proportion of the area within CONUS that is treeless. When we use our forest model to predict forest probability using dayMet data across CONUS, we want to predict an area that is treeless that corresponds to the estimate we made using RAP data. 
 
-The mean, area-weighted proportion of forest from the RAP data is 0.3133397
+Below are figures of the empirical cumulative distribution functions for model-predicted forest probability from the best and second-best lambda models *before* interpolation or calibration. The horizontal dashed line indicates the percentile of the data that corresponds to the desired proportion of data the is un-forested (which is 0.3133397, according to the RAP data). The vertical dashed line shows the model-predicted probability of forest that corresponds to this percentile.
+
 ```{r}
 ## make an empirical cumulative probability function plot of the model predictions on wall-to-wall data
 pred_glm1_w2w_cdf <- stats::ecdf(pred_glm1_w2w$TotalTreeCover_binom_pred)
@@ -1237,10 +1238,11 @@ pred_glm1_w2w_cdf <- stats::ecdf(pred_glm1_w2w$TotalTreeCover_binom_pred)
 zeroCutoff_bestLambda <- quantile(pred_glm1_w2w$TotalTreeCover_binom_pred %>% na.omit(), probs = 0.3133397) 
 # plot the ecdf
 plot(pred_glm1_w2w_cdf, xlab = c("P(Total Tree Cover)"), ylab = "Percentile",
-     main = "Empirical Cumulative Distribution Function for \nUn-transformed model predictions of P(Forest) from the best-lambda model")
-abline(h = 0.3133397, lty = 2)
+     main = "Empirical Cumulative Distribution Function for \nUn-transformed model predictions of \nP(Forest) from the best-lambda model")
+abline(h = 0.3133397, lty = 3)
 abline(v = zeroCutoff_bestLambda, lty = 3)
 ```
+
 For the best-lambda model: 
 If we want 31% of model predictions to be zero, then any model predictions ≤ 0.136147 should be set to zero. 
 
@@ -1251,15 +1253,19 @@ pred_glm1_1se_w2w_cdf <- stats::ecdf(pred_glm1_1se_w2w$TotalTreeCover_binom_pred
 zeroCutoff_1seLambda <- quantile(pred_glm1_1se_w2w$TotalTreeCover_binom_pred %>% na.omit(), probs = 0.3133397) 
 # plot the ecdf
 plot(pred_glm1_w2w_cdf, xlab = c("P(Total Tree Cover)"), ylab = "Percentile",
-     main = "Empirical Cumulative Distribution Function for \nUn-transformed model predictions of P(Forest) from the second best-lambda model")
+     main = "Empirical Cumulative Distribution Function for \nUn-transformed model predictions of \nP(Forest) from the second best-lambda model")
 abline(h = 0.3133397, lty = 2)
 abline(v = zeroCutoff_1seLambda, lty = 3)
 ```
+
 For the 1se-lambda model: 
 If we want 31% of model predictions to be zero, then any model predictions ≤ 0.1398974 should be set to zero. 
 
-## Use the identified thresholds and 0-calibration points identified above to calibrate continuous and binary model predictions of forest probability
-Interpolate the continuous predictions 
+## Interpolation
+
+ We use the identified thresholds and 0-calibration points identified above to calibrate continuous and binary model predictions of forest probability
+
+First, interpolate the continuous predictions
 ```{r}
 ## set up function for linear interpolation - best lambda model
 approxfun_bestLambda <- approxfun(x = c(zeroCutoff_bestLambda,  best_threshold_bestLambda, 1), # values we're interpolating *from*
@@ -1311,7 +1317,7 @@ pred_glm1_1se_w2w <- pred_glm1_1se_w2w %>%
 
 ```
 
-Make the continuous predictions binary
+Now, Make the continuous predictions binary
 ```{r}
 ## for test dataset
 # best lambda model
@@ -1357,6 +1363,24 @@ pred_glm1_1se_w2w <- pred_glm1_1se_w2w %>%
   mutate(TotalTreeCover_binom_pred_binary = TotalTreeCover_interp,
     TotalTreeCover_binom_pred_binary = replace(TotalTreeCover_binom_pred_binary, TotalTreeCover_binom_pred_binary > 0.1, 1),
          TotalTreeCover_binom_pred_binary = replace(TotalTreeCover_binom_pred_binary, TotalTreeCover_binom_pred_binary <= 0.1, 0)) 
+```
+
+Below, we show empirical cumulative distribution functions for model-predicted forest probability from the best and second-best lambda models *after* interpolation and calibration. 
+```{r}
+# best lambda model
+## make an empirical cumulative probability function plot of the model predictions on wall-to-wall data
+pred_glm1_w2w_cdf_postInterp <- stats::ecdf(pred_glm1_w2w$TotalTreeCover_interp)
+# plot the ecdf
+plot(pred_glm1_w2w_cdf_postInterp, xlab = c("P(Total Tree Cover)"), ylab = "Percentile",
+     main = "Empirical Cumulative Distribution Function for \nCalibrated and Interpolated model predictions of \nP(Forest) from the best-lambda model")
+```
+```{r}
+# best lambda model
+## make an empirical cumulative probability function plot of the model predictions on wall-to-wall data
+pred_glm1_1se_w2w_cdf_postInterp <- stats::ecdf(pred_glm1_1se_w2w$TotalTreeCover_interp)
+# plot the ecdf
+plot(pred_glm1_1se_w2w_cdf_postInterp, xlab = c("P(Total Tree Cover)"), ylab = "Percentile",
+     main = "Empirical Cumulative Distribution Function for \nCalibrated and Interpolated model predictions of \nP(Forest) from the second best-lambda model")
 ```
 
 ### Identify Misclassifications
@@ -2310,7 +2334,7 @@ ConfusionTableR::binary_visualiseR(
 ```
 
 ## Maps of wall-to-wall model predictions for locations that are *not* developed, agriculture, or water
-```{r , fig.height = 18, fig.width = 9}
+```{r , fig.height = 16, fig.width = 9}
 ### best lambda model
 ## rasterize 
  pred_glm1_w2w_sf <- pred_glm1_w2w %>% 
@@ -2494,14 +2518,61 @@ labs(title = paste0("Predictions from the second-best lambda model of Yes/No Tre
           strip.background = element_blank(),
           strip.text = element_blank()) 
      
- pred_glm1_1se_w2w_bin <-    pred_glm1_1se_w2w_bin +   annotation_custom(grob = ggplotGrob(inset_plot), ymin = -2155000, ymax=-1409000, xmin=-2280000, xmax=-180000 ) 
- 
+ pred_glm1_1se_w2w_bin <-   pred_glm1_1se_w2w_bin +   annotation_custom(grob = ggplotGrob(inset_plot), ymin = -2155000, ymax=-1409000, xmin=-2280000, xmax=-180000 ) 
  
 ggarrange(pred_glm1_w2w_cont, pred_glm1_w2w_bin, heights = c(1,1), ncol = 1)
-
-
 ggarrange(pred_glm1_1se_w2w_cont, pred_glm1_1se_w2w_bin, heights = c(1,1), ncol = 1)
+```
 
+### Are the locations that the model predicts to be un-forested (i.e. the continuous P(Forest) == 0) similar to the locations that are unforested based on Martin's data derived from RAP?
+```{r, fig.height = 16, fig.width = 9}
+## map of model-predicted zeros 
+pred_glm1_w2w_ZeroRast <- pred_glm1_w2w_RAST$TotalTreeCover_interp
+
+pred_glm1_w2w_ZeroRast[pred_glm1_w2w_ZeroRast != 0] <- NA
+
+pred_glm1_w2w_Zeros <- ggplot() +
+geom_spatraster(data = pred_glm1_w2w_ZeroRast, aes(fill = TotalTreeCover_interp), maxcell = 20000000) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
+labs(title = paste0("Predictions of No Forest from the best lambda model of Yes/No Trees \ncontinuous probabilities on the wall-to-wall dayMet data")) +
+  scale_fill_continuous(na.value = "white") +
+  # scale_fill_gradient2(low = "brown",
+  #                      mid = "wheat" ,
+  #                      high = "forestgreen" , 
+  #                      midpoint = 0,   na.value = "white") +
+  coord_sf(datum = st_crs(test_rastTemp)) +
+    theme(axis.text = element_blank(),
+                   strip.text = element_text(size = 15),
+                   title = element_text(size = 18),
+                   axis.ticks = element_blank()) +
+ xlim(-2150000, 2510000) +
+ ylim(-2005000, 1000000) 
+
+
+## map of zeros from Martin
+notForest_ZeroRast <- notForest2
+
+notForest_ZeroRast[notForest_ZeroRast <=0.5 ] <- NA
+
+notForest_ZeroRast_Zeros <- ggplot() +
+geom_spatraster(data = notForest_ZeroRast, aes(fill = fracNotForest), maxcell = 20000000) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
+labs(title = paste0("Locations where forested area from RAP indicates that \n >50% of a dayMet grid cell is unforested")) +
+  scale_fill_continuous(na.value = "white") +
+  # scale_fill_gradient2(low = "brown",
+  #                      mid = "wheat" ,
+  #                      high = "forestgreen" , 
+  #                      midpoint = 0,   na.value = "white") +
+  coord_sf(datum = st_crs(test_rastTemp)) +
+    theme(axis.text = element_blank(),
+                   strip.text = element_text(size = 15),
+                   title = element_text(size = 18),
+                   axis.ticks = element_blank()) +
+ xlim(-2150000, 2510000) +
+ ylim(-2005000, 1000000) 
+
+
+ggarrange(pred_glm1_w2w_Zeros, notForest_ZeroRast_Zeros, ncol = 1)
 ```
 
 
@@ -2607,196 +2678,197 @@ library(patchwork)
 }
 ```
 
-### Quantile plots - comparing "binary" observations across the full dataset to continuous, interpolated model-predicted probabilities
+<!-- ### Quantile plots - comparing "binary" observations across the full dataset to continuous, interpolated model-predicted probabilities -->
 
-Binning predictor variables into "Quantiles"and looking at the mean
-predicted probability for each quantile 
-```{r}
-response_vars <- c("TotalTreeCover_binom", "TotalTreeCover_interp")
-# get deciles for best lambda model 
-if (length(prednames_fig) == 0) {
-  print("The best lambda model only contains one predictor (an intercept), so decile plots aren't possible to generate")
-} else {
-  pred_glm1_deciles <- predvars2deciles(pred_glm1_full,
-                                      response_vars = response_vars,
-                                        pred_vars = prednames_fig, 
-                                       cut_points = seq(0, 1, 0.01))
-}
-# get deciles for 1 SE lambda model 
-if ( name_secondBestMod == "Intercept_Only") {
-  print("The next best lambda model only contains one predictor (an intercept)")} else {
-  pred_glm1_deciles_1se <- predvars2deciles(pred_glm1_1se_full,
-                                      response_vars = response_vars,
-                                        pred_vars = prednames_secondBestMod, 
-                                       cut_points = seq(0, 1, 0.01))
-  }
-```
+<!-- Binning predictor variables into "Quantiles"and looking at the mean -->
+<!-- predicted probability for each quantile  -->
+<!-- ```{r} -->
+<!-- response_vars <- c("TotalTreeCover_binom", "TotalTreeCover_interp") -->
+<!-- # get deciles for best lambda model  -->
+<!-- if (length(prednames_fig) == 0) { -->
+<!--   print("The best lambda model only contains one predictor (an intercept), so decile plots aren't possible to generate") -->
+<!-- } else { -->
+<!--   pred_glm1_deciles <- predvars2deciles(pred_glm1_full, -->
+<!--                                       response_vars = response_vars, -->
+<!--                                         pred_vars = prednames_fig,  -->
+<!--                                        cut_points = seq(0, 1, 0.01)) -->
+<!-- } -->
+<!-- # get deciles for 1 SE lambda model  -->
+<!-- if ( name_secondBestMod == "Intercept_Only") { -->
+<!--   print("The next best lambda model only contains one predictor (an intercept)")} else { -->
+<!--   pred_glm1_deciles_1se <- predvars2deciles(pred_glm1_1se_full, -->
+<!--                                       response_vars = response_vars, -->
+<!--                                         pred_vars = prednames_secondBestMod,  -->
+<!--                                        cut_points = seq(0, 1, 0.01)) -->
+<!--   } -->
+<!-- ``` -->
 
-Below are quantile plots for the *best lambda model* 
-(note that the predictor variables are scaled) 
-```{r Quantile best lambda, fig.height= 16, fig.width = 12, warning=FALSE, message=FALSE}
-if (length(prednames_fig) == 0) {
-  print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate")
-} else {
+<!-- Below are quantile plots for the *best lambda model*  -->
+<!-- (note that the predictor variables are scaled)  -->
+<!-- ```{r Quantile best lambda, fig.height= 16, fig.width = 12, warning=FALSE, message=FALSE} -->
+<!-- if (length(prednames_fig) == 0) { -->
+<!--   print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate") -->
+<!-- } else { -->
 
-# publication quality version
-g3 <- decile_dotplot_pq(df = pred_glm1_deciles, response = c("TotalTreeCover_binom", "TotalTreeCover_interp"), IQR = FALSE,
-                        CI = FALSE
-                        ) + ggtitle("Decile Plot")
+<!-- # publication quality version -->
+<!-- g3 <- decile_dotplot_pq(df = pred_glm1_deciles, response = c("TotalTreeCover_binom", "TotalTreeCover_interp"), IQR = FALSE, -->
+<!--                         CI = FALSE -->
+<!--                         ) + ggtitle("Decile Plot") -->
 
-g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles, response = c("TotalTreeCover_binom", "TotalTreeCover_interp"), dfRaw = pred_glm1_full, add_smooth = TRUE, deciles = FALSE)
-
-  
-if(save_figs) {
-  # png(paste0("../../../Figures/CoverDatFigures/ figures/quantile_plots/quantile_plot_", response,  "_",ecoregion,".png"), 
-  #    units = "in", res = 600, width = 5.5, height = 3.5 )
-  #   print(g4)
-  # dev.off()
-}
-
-g4
-}
-```
-
-Below are quantile plots from the second best lambda model (`r print(name_secondBestMod)`)
-```{r quantile_plot 1 SE lambda, fig.height= 16, fig.width = 12, warning=FALSE, message=FALSE}
-
-if ( name_secondBestMod == "Intercept_Only") {
-  print("The next best lambda model only contains one predictor (an intercept)")
-  } else {
-
-# publication quality version
-g3 <- decile_dotplot_pq(pred_glm1_deciles_1se, response = c("TotalTreeCover_binom", "TotalTreeCover_interp"), IQR = FALSE) + ggtitle("Decile Plot")
-
-g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles_1se, response = c("TotalTreeCover_binom", "TotalTreeCover_interp"), dfRaw = pred_glm1_1se_full, add_smooth = TRUE, deciles = FALSE)
-
-  
-if(save_figs) {
-  # png(paste0("figures/quantile_plots/quantile_plot_", response,  "_",ecoregion,".png"), 
-  #    units = "in", res = 600, width = 5.5, height = 3.5 )
-  #   print(g4)
-  # dev.off()
-}
-
-g4
-}
-
-```
-
-### Filtered Quantiles -  comparing "binary" observations in the testing dataset to continuous model-predicted probabilities
-#### For the best lambda model
-
-Filtered quantile plots of data. These plots show each vegetation variable,
-but only based on data that falls into the upper and lower 20th percentiles of
-each predictor variable. 
-
-```{r glm_deciles_filtered best lambda model, fig.height = 24, fig.width = 24, message = FALSE}
-if (length(prednames_fig) == 0) {
-  print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate")
-} else {
-pred_glm1_deciles_filt <- predvars2deciles( pred_glm1_full, 
-                         response_vars = c("TotalTreeCover_binom", "TotalTreeCover_interp"),
-                         pred_vars = prednames_fig,
-                         filter_var = TRUE,
-                         filter_vars = prednames_fig,
-                         cut_points = seq(0, 1, 0.01)) 
-g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt, response = "TotalTreeCover_binom", 
-                                xvars = prednames_fig)
-
-if(save_figs) {
-# jpeg(paste0("figures/quantile_plots/quantile_plot_filtered_mid_v1", , ".jpeg"),
-#      units = "in", res = 600, width = 5.5, height = 6 )
-#   g 
-# dev.off()
-}
-g
-}
-```
-
-Filtered quantile figure with middle 2 deciles also shown
-
-```{r filtered quantile plot for best lambda model with middle 2 deciles, fig.height = 24, fig.width = 24, eval = TRUE, message = FALSE}
-if ( name_secondBestMod == "Intercept_Only") {
-  print("The next best lambda model only contains one predictor (an intercept)")
-} else {
-pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1_full, 
-                         response_vars = c("TotalTreeCover_binom", "TotalTreeCover_interp"),
-                         pred_vars = prednames_fig,
-                         filter_vars = prednames_fig,
-                         filter_var = TRUE,
-                         add_mid = TRUE,
-                         cut_points = seq(0, 1, 0.01))
-
-g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt_mid, response = "TotalTreeCover_binom", 
-                                xvars = prednames_fig)
-
-if(save_figs) {
-# jpeg(paste0("figures/quantile_plots/quantile_plot_filtered_mid_v1", , ".jpeg"),
-#      units = "in", res = 600, width = 5.5, height = 6)
-#   g 
-# dev.off()
-}
-g
-}
-```
-
-#### For the second best lambda model (`r print(name_secondBestMod)`)
-
-Filtered 'Quantile' plots of data. These plots show each vegetation variable,
-but only based on data that falls into the upper and lower 20th percentiles of
-each predictor variable. 
-
-```{r glm_deciles_filtered second best lambda model, fig.height = 24, fig.width = 24, message = FALSE}
-if (length(prednames_secondBestMod) == 0) {
-  print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate")
-} else {
-  
-pred_glm1_deciles_filt <- predvars2deciles( pred_glm1_1se_full, 
-                         response_vars = c("TotalTreeCover_binom", "TotalTreeCover_interp"),
-                         pred_vars = prednames_secondBestMod,
-                         filter_var = TRUE,
-                         filter_vars = prednames_secondBestMod,
-                         cut_points = seq(0, 1, 0.01)) 
-g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt, response = "TotalTreeCover_binom", 
-                                xvars = prednames_fig)
-
-if(save_figs) {
-# jpeg(paste0("figures/quantile_plots/quantile_plot_filtered_mid_v1", , ".jpeg"),
-#      units = "in", res = 600, width = 5.5, height = 6 )
-#   g 
-# dev.off()
-}
-g
-}
-```
-
-Filtered quantile figure with middle 2 deciles also shown
-
-```{r filtered quantile plot for second best lambda model with middle 2 deciles, fig.height = 24, fig.width = 24, eval = TRUE, message = FALSE}
-if (length(prednames_secondBestMod) == 0) {
-  print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate")
-} else {
-pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1_1se_full, 
-                         response_vars = c("TotalTreeCover_binom", "TotalTreeCover_interp"),
-                         pred_vars = prednames_secondBestMod,
-                         filter_vars = prednames_secondBestMod,
-                         filter_var = TRUE,
-                         add_mid = TRUE,
-                         cut_points = seq(0, 1, 0.01))
-
-g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt_mid, response = "TotalTreeCover_binom", 
-                                xvars = prednames_fig)
+<!-- g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles, response = c("TotalTreeCover_binom", "TotalTreeCover_interp"), dfRaw = pred_glm1_full, add_smooth = TRUE, deciles = FALSE) -->
 
 
-if(save_figs) {
-# jpeg(paste0("figures/quantile_plots/quantile_plot_filtered_mid_v1", , ".jpeg"),
-#      units = "in", res = 600, width = 5.5, height = 6 )
-#   g 
-# dev.off()
-}
-g
-}
-```
+<!-- if(save_figs) { -->
+<!--   # png(paste0("../../../Figures/CoverDatFigures/ figures/quantile_plots/quantile_plot_", response,  "_",ecoregion,".png"),  -->
+<!--   #    units = "in", res = 600, width = 5.5, height = 3.5 ) -->
+<!--   #   print(g4) -->
+<!--   # dev.off() -->
+<!-- } -->
+
+<!-- g4 -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- Below are quantile plots from the second best lambda model (`r print(name_secondBestMod)`) -->
+<!-- ```{r quantile_plot 1 SE lambda, fig.height= 16, fig.width = 12, warning=FALSE, message=FALSE} -->
+
+<!-- if ( name_secondBestMod == "Intercept_Only") { -->
+<!--   print("The next best lambda model only contains one predictor (an intercept)") -->
+<!--   } else { -->
+
+<!-- # publication quality version -->
+<!-- g3 <- decile_dotplot_pq(pred_glm1_deciles_1se, response = c("TotalTreeCover_binom", "TotalTreeCover_interp"), IQR = FALSE) + ggtitle("Decile Plot") -->
+
+<!-- g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles_1se, response = c("TotalTreeCover_binom", "TotalTreeCover_interp"), dfRaw = pred_glm1_1se_full, add_smooth = TRUE, deciles = FALSE) -->
+
+
+<!-- if(save_figs) { -->
+<!--   # png(paste0("figures/quantile_plots/quantile_plot_", response,  "_",ecoregion,".png"),  -->
+<!--   #    units = "in", res = 600, width = 5.5, height = 3.5 ) -->
+<!--   #   print(g4) -->
+<!--   # dev.off() -->
+<!-- } -->
+
+<!-- g4 -->
+<!-- } -->
+
+<!-- ``` -->
+
+<!-- ### Filtered Quantiles -  comparing "binary" observations in the testing dataset to continuous model-predicted probabilities -->
+<!-- #### For the best lambda model -->
+
+<!-- Filtered quantile plots of data. These plots show each vegetation variable, -->
+<!-- but only based on data that falls into the upper and lower 20th percentiles of -->
+<!-- each predictor variable.  -->
+
+<!-- ```{r glm_deciles_filtered best lambda model, fig.height = 24, fig.width = 24, message = FALSE} -->
+<!-- if (length(prednames_fig) == 0) { -->
+<!--   print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate") -->
+<!-- } else { -->
+<!-- pred_glm1_deciles_filt <- predvars2deciles( pred_glm1_full,  -->
+<!--                          response_vars = c("TotalTreeCover_binom", "TotalTreeCover_interp"), -->
+<!--                          pred_vars = prednames_fig, -->
+<!--                          filter_var = TRUE, -->
+<!--                          filter_vars = prednames_fig, -->
+<!--                          cut_points = seq(0, 1, 0.01))  -->
+<!-- g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt, response = "TotalTreeCover_binom",  -->
+<!--                                 xvars = prednames_fig) -->
+
+<!-- if(save_figs) { -->
+<!-- # jpeg(paste0("figures/quantile_plots/quantile_plot_filtered_mid_v1", , ".jpeg"), -->
+<!-- #      units = "in", res = 600, width = 5.5, height = 6 ) -->
+<!-- #   g  -->
+<!-- # dev.off() -->
+<!-- } -->
+<!-- g -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- Filtered quantile figure with middle 2 deciles also shown -->
+
+<!-- ```{r filtered quantile plot for best lambda model with middle 2 deciles, fig.height = 24, fig.width = 24, eval = TRUE, message = FALSE} -->
+<!-- if ( name_secondBestMod == "Intercept_Only") { -->
+<!--   print("The next best lambda model only contains one predictor (an intercept)") -->
+<!-- } else { -->
+<!-- pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1_full,  -->
+<!--                          response_vars = c("TotalTreeCover_binom", "TotalTreeCover_interp"), -->
+<!--                          pred_vars = prednames_fig, -->
+<!--                          filter_vars = prednames_fig, -->
+<!--                          filter_var = TRUE, -->
+<!--                          add_mid = TRUE, -->
+<!--                          cut_points = seq(0, 1, 0.01)) -->
+
+<!-- g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt_mid, response = "TotalTreeCover_binom",  -->
+<!--                                 xvars = prednames_fig) -->
+
+<!-- if(save_figs) { -->
+<!-- # jpeg(paste0("figures/quantile_plots/quantile_plot_filtered_mid_v1", , ".jpeg"), -->
+<!-- #      units = "in", res = 600, width = 5.5, height = 6) -->
+<!-- #   g  -->
+<!-- # dev.off() -->
+<!-- } -->
+<!-- g -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- #### For the second best lambda model (`r print(name_secondBestMod)`) -->
+
+<!-- Filtered 'Quantile' plots of data. These plots show each vegetation variable, -->
+<!-- but only based on data that falls into the upper and lower 20th percentiles of -->
+<!-- each predictor variable.  -->
+
+<!-- ```{r glm_deciles_filtered second best lambda model, fig.height = 24, fig.width = 24, message = FALSE} -->
+<!-- if (length(prednames_secondBestMod) == 0) { -->
+<!--   print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate") -->
+<!-- } else { -->
+
+<!-- pred_glm1_deciles_filt <- predvars2deciles( pred_glm1_1se_full,  -->
+<!--                          response_vars = c("TotalTreeCover_binom", "TotalTreeCover_interp"), -->
+<!--                          pred_vars = prednames_secondBestMod, -->
+<!--                          filter_var = TRUE, -->
+<!--                          filter_vars = prednames_secondBestMod, -->
+<!--                          cut_points = seq(0, 1, 0.01))  -->
+<!-- g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt, response = "TotalTreeCover_binom",  -->
+<!--                                 xvars = prednames_fig) -->
+
+<!-- if(save_figs) { -->
+<!-- # jpeg(paste0("figures/quantile_plots/quantile_plot_filtered_mid_v1", , ".jpeg"), -->
+<!-- #      units = "in", res = 600, width = 5.5, height = 6 ) -->
+<!-- #   g  -->
+<!-- # dev.off() -->
+<!-- } -->
+<!-- g -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- Filtered quantile figure with middle 2 deciles also shown -->
+
+<!-- ```{r filtered quantile plot for second best lambda model with middle 2 deciles, fig.height = 24, fig.width = 24, eval = TRUE, message = FALSE} -->
+<!-- if (length(prednames_secondBestMod) == 0) { -->
+<!--   print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate") -->
+<!-- } else { -->
+<!-- pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1_1se_full,  -->
+<!--                          response_vars = c("TotalTreeCover_binom", "TotalTreeCover_interp"), -->
+<!--                          pred_vars = prednames_secondBestMod, -->
+<!--                          filter_vars = prednames_secondBestMod, -->
+<!--                          filter_var = TRUE, -->
+<!--                          add_mid = TRUE, -->
+<!--                          cut_points = seq(0, 1, 0.01)) -->
+
+<!-- g <- decile_dotplot_filtered_pq(df = pred_glm1_deciles_filt_mid, response = "TotalTreeCover_binom",  -->
+<!--                                 xvars = prednames_fig) -->
+
+
+<!-- if(save_figs) { -->
+<!-- # jpeg(paste0("figures/quantile_plots/quantile_plot_filtered_mid_v1", , ".jpeg"), -->
+<!-- #      units = "in", res = 600, width = 5.5, height = 6 ) -->
+<!-- #   g  -->
+<!-- # dev.off() -->
+<!-- } -->
+<!-- g -->
+<!-- } -->
+<!-- ``` -->
+
 
 
 ### Quantile plots - comparing "binary" testing data to "binary" model-predictions (i.e. converting the continuous model predictions to discrete values (1 or 0) based on the previously-identified optimal threshold)
