@@ -9,12 +9,13 @@ output:
     code_folding: hide
     dev: "jpeg"
 params:
-  run: FALSE      
+  run: TRUE     
   save_figs: TRUE
   ecoregion: noTrees # trees or noTrees
-  response: TotalHerbaceousCover
+  response: TotalTreeCover
+  allowAllTreeData: TRUE
   removeTexasLouisianaPlain: FALSE
-  removeAllAnoms: FALSE
+  removeAllAnoms: TRUE
   trimAnomalies: TRUE
   autoKfold: FALSE
   whichSecondBestMod: "auto"# 1se OR halfse OR auto (chose the model w/ fewest # of predictors)
@@ -47,7 +48,7 @@ run <- params$run
 autoKfold <- params$autoKfold
 removeAllAnoms <- params$removeAllAnoms
 whichSecondBestMod <- params$whichSecondBestMod
-
+allowAllTreeData <- params$allowAllTreeData # should the total tree cover data be curtailed to only include locations that also have NL and BL tree cover information? 
 ## crs of veg data
 crs_veg <- "PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"
 ```
@@ -179,12 +180,15 @@ modDat_1_s <- modDat_1 %>%
 saveRDS(modDat_1_s, file = "./models/scaledModelInputData.rds")
 ```
 
-## If predicting total tree cover, restrict the data only to the locations where we have observations for total tree cover and the proportion of that total tree cover that is either needle-leaved or broad-leaved
+## If predicting total tree cover and if desired, restrict the data only to the locations where we have observations for total tree cover and the proportion of that total tree cover that is either needle-leaved or broad-leaved
 ```{r}
-if(response == "TotalTreeCover") {
+if (allowAllTreeData == FALSE) {
+  if(response == "TotalTreeCover") {
   modDat_1_s <- modDat_1_s %>% 
     filter(!is.na(response) & !is.na(AngioTreeCover_prop) & !is.na(ConifTreeCover_prop))
 }
+}
+
 ```
 ### Subset the data to only include data for the ecoregion of interest based on classification from yes/no tree model (using bestLambda model)
 ```{r subset data to that ecoregion}
@@ -378,7 +382,26 @@ library(factoextra)
 if(ecoregion == "noTrees") {
    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("EVERGLADES", "SOUTHEASTERN USA PLAINS", "TEXAS-LOUISIANA COASTAL PLAIN", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "TAMAULIPAS-TEXAS SEMIARID PLAIN"), "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS AND EVERGLADES AND LOUISIANA PLAIN"
    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("EVERGLADES", "SOUTHEASTERN USA PLAINS", "TEXAS-LOUISIANA COASTAL PLAIN", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "TAMAULIPAS-TEXAS SEMIARID PLAIN"), "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS AND EVERGLADES AND LOUISIANA PLAIN"
-
+  #  
+  #  if(response == "TotalTreeCover") {
+  #    
+  #    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS", "MIXED WOOD SHIELD"), "NA_L2NAME"] <- "MIXED WOOD PLAINS AND SHIELD"
+  #  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS", "MIXED WOOD SHIELD"), "NA_L2NAME"] <- "MIXED WOOD PLAINS AND SHIELD"
+  # 
+  #  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "MARINE WEST COAST FOREST AND WESTERN CORDILLERA"
+  #  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MARINE WEST COAST FOREST", "WESTERN CORDILLERA"), "NA_L2NAME"] <- "MARINE WEST COAST FOREST AND WESTERN CORDILLERA"
+  #  
+  #  
+  #   modDat_1_s[modDat_1_s$NA_L2NAME %in% c("SOUTH CENTRAL SEMIARID PRAIRIES", "SOUTHEASTERN USA PLAINS AND EVERGLADES AND LOUISIANA PLAIN"), "NA_L2NAME"] <- "SOUTH CENTRAL SEMIARID PRAIRIES AND COASTAL PLAINS"
+  #  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("SOUTH CENTRAL SEMIARID PRAIRIES", "SOUTHEASTERN USA PLAINS AND EVERGLADES AND LOUISIANA PLAIN"), "NA_L2NAME"] <- "SOUTH CENTRAL SEMIARID PRAIRIES AND COASTAL PLAINS"
+  #  
+  #  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MARINE WEST COAST FOREST AND WESTERN CORDILLERA", "TEMPERATE PRAIRIES"), "NA_L2NAME"] <- "TEMPERATE PRAIRIES"
+  #  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MARINE WEST COAST FOREST AND WESTERN CORDILLERA", "TEMPERATE PRAIRIES"), "NA_L2NAME"] <- "TEMPERATE PRAIRIES"
+  #  
+  #  modDat_1_s[modDat_1_s$NA_L2NAME %in% c("MIXED WOOD PLAINS AND SHIELD", "TEMPERATE PRAIRIES"), "NA_L2NAME"] <- "MIXED WOOD AND TEMPERATE PRAIRIES"
+  #  modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS AND SHIELD", "TEMPERATE PRAIRIES"), "NA_L2NAME"] <- "MIXED WOOD AND TEMPERATE PRAIRIES"
+  # 
+  # }
 }
 
 # make a table of n for each region
@@ -657,6 +680,9 @@ if (run == TRUE) {
     # get the ecoregions for training lambda
   train_eco <- modDat_1_s$NA_L2NAME#[train]
   
+  # parameter for the 'relax' argument in the cv.glmnet function
+  relaxParam <- ifelse(response == "ShrubCover", yes = TRUE, no = 
+                         ifelse(c(response == "TotalTreeCover" & ecoregion == "noTrees"), yes = TRUE, no = FALSE))
   # Fit model -----------------------------------------------
   # specify leave-one-year-out cross-validation
   my_folds <- as.numeric(as.factor(train_eco))
@@ -673,13 +699,13 @@ if (run == TRUE) {
       keep = FALSE,
       alpha = 1,  # 0 == ridge regression, 1 == lasso, 0.5 ~~ elastic net
       #lambda = lambdas, 
-      relax = ifelse(response == "ShrubCover", yes = TRUE, no = FALSE),
+      relax = relaxParam,
       #nlambda = 100,
       type.measure="mse",
       #penalty.factor = pen_facts,
       foldid = my_folds,
       #thresh = thresh,
-      standardize = FALSE, ## scales variables prior to the model sequence... coefficients are always returned on the original scale
+      standardize = FALSE, ## scaled variables prior to the model sequence... coefficients are always returned on the original scale
       parallel = TRUE
     )
      base::saveRDS(fit, paste0("../ModelFitting/models/betaLASSO/", response, "_globalLASSOmod_betaLogitLink_",ecoregion,"_removeAnomalies", removeAllAnoms,".rds"))
