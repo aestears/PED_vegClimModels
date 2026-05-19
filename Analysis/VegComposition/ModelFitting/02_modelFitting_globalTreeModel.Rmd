@@ -9,7 +9,7 @@ output:
     code_folding: hide
     dev: "jpeg"
 params:
-  run: FALSE      
+  run: TRUE      
   save_figs: TRUE
   ecoregion: CONUS
   response: TotalTreeCover
@@ -3025,7 +3025,7 @@ tempNames <- paste0(
 )
 
 # print the unscaled model statement
-  unscaledModelName <- paste0(responseVar, "~ exp(", tempNames, ") - 2")
+  unscaledModelName <- paste0(responseVar, "~ 1/(1 + exp(-(", tempNames, ")))")
   
   # now add in the scale parameters
 tempNames <- str_replace_all(tempNames, pattern = "annWetDegDays_anom", 
