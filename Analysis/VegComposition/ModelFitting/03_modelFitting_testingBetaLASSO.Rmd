@@ -9,7 +9,7 @@ output:
     code_folding: hide
     dev: "jpeg"
 params:
-  run: TRUE     
+  run: FALSE     
   save_figs: TRUE
   ecoregion: noTrees # trees or noTrees
   response: TotalTreeCover
@@ -229,15 +229,6 @@ hist(modDat_1_s[,response], main = paste0("Histogram of ",response),
 ```
 
 
-For the model of total tree cover in non-forested regions, we transform the response variable because all observations, by definition, are between 0 and 0.1. We transform the response variable to be between 0 and 1 by multiplying it by 10, and then will back-transform the model predictions
-```{r}
-modDat_1_s <- modDat_1_s %>% 
-  mutate(TotalTreeCover = TotalTreeCover * 10)
-# because the beta glm does not allow values of 1, make the highest values very slightly less than 1
-modDat_1_s[modDat_1_s$TotalTreeCover == 1, "TotalTreeCover"] <- 0.9999
-```
-
-
 ```{r summary_table}
 create_summary <- function(df) {
   df %>% 
@@ -328,6 +319,19 @@ df_sample_plots <-  modDat_1_s  %>%
 
 # Model Fitting
 
+
+For the model of total tree cover in non-forested regions, we transform the response variable because all observations, by definition, are between 0 and 0.1. We transform the response variable to be between 0 and 1 by multiplying it by 10, and then will back-transform the model predictions
+```{r}
+if (response == "TotalTreeCover") {
+ modDat_1_s <- modDat_1_s %>% 
+  mutate(TotalTreeCover_transformed = TotalTreeCover * 10)
+# because the beta glm does not allow values of 1, make the highest values very slightly less than 1
+modDat_1_s[modDat_1_s$TotalTreeCover_transformed == 1, "TotalTreeCover_transformed"] <- 0.9999
+response <- "TotalTreeCover_transformed"
+}
+```
+
+
 ## Visualize the spatial blocks and how they differ across environmental space
 First, if there are observations in Louisiana, sub-sample them so they're not so over-represented in the dataset
 ```{r}
@@ -388,10 +392,10 @@ library(factoextra)
 (fviz_pca_ind(pca, habillage = modDat_1_s$NA_L2NAME, label = "none", addEllipses = TRUE, ellipse.level = .95, ggtheme = theme_minimal(), alpha.ind = .1))
 
 # for ecoregions that are very tiny/extremely different from the rest of the other recoregions climatically, aggregate them together
-if(ecoregion == "noTrees" & response != "TotalTreeCover") {
+if(ecoregion == "noTrees" & response != "TotalTreeCover_transformed") {
    modDat_1_s[modDat_1_s$NA_L2NAME %in% c("EVERGLADES", "SOUTHEASTERN USA PLAINS", "TEXAS-LOUISIANA COASTAL PLAIN", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "TAMAULIPAS-TEXAS SEMIARID PLAIN"), "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS AND EVERGLADES AND LOUISIANA PLAIN"
    modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("EVERGLADES", "SOUTHEASTERN USA PLAINS", "TEXAS-LOUISIANA COASTAL PLAIN", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "TAMAULIPAS-TEXAS SEMIARID PLAIN"), "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS AND EVERGLADES AND LOUISIANA PLAIN"
-} else if(ecoregion == "noTrees" & response == "TotalTreeCover") {
+} else if(ecoregion == "noTrees" & response == "TotalTreeCover_transformed") {
    # 
    # modDat_1_s[modDat_1_s$NA_L2NAME %in% c("EVERGLADES", "SOUTHEASTERN USA PLAINS", "TEXAS-LOUISIANA COASTAL PLAIN", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "TAMAULIPAS-TEXAS SEMIARID PLAIN"), "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS AND EVERGLADES AND LOUISIANA PLAIN"
    # modDat_1_sf[modDat_1_sf$NA_L2NAME %in% c("EVERGLADES", "SOUTHEASTERN USA PLAINS", "TEXAS-LOUISIANA COASTAL PLAIN", "MISSISSIPPI ALLUVIAL AND SOUTHEAST USA COASTAL PLAINS", "TAMAULIPAS-TEXAS SEMIARID PLAIN"), "NA_L2NAME"] <- "SOUTHEASTERN USA PLAINS AND EVERGLADES AND LOUISIANA PLAIN"
@@ -533,7 +537,7 @@ library(patchwork)
   1. main effects
   2. interactions between all soils variables
   3. interactions between climate and weather variables
-  4. transformed main effects (squared, log-transformed (add a uniform integer -- 20-- to all variables prior to log-transformation), square root-transformed (add a uniform integer -- 20-- to all variables prior to log-transformation))
+  4. transformed main effects (squared, log-transformed (add a uniform integer -- 30-- to all variables prior to log-transformation), square root-transformed (add a uniform integer -- 30-- to all variables prior to log-transformation))
 ```{r fit global model, echo = FALSE}
 if (removeAllAnoms) { ## if the model parameters indicate that we don't want any anomalies... 
     # make model matrix (which includes transformations and interactions)
@@ -701,7 +705,7 @@ if (run == TRUE) {
   
   # parameter for the 'relax' argument in the cv.glmnet function
   relaxParam <- ifelse(response == "ShrubCover", yes = TRUE, no = 
-                         ifelse(c(response == "TotalTreeCover" & ecoregion == "noTrees"), yes = TRUE, no = FALSE))
+                         ifelse(c(response == "TotalTreeCover_transformed" & ecoregion == "noTrees"), yes = TRUE, no = FALSE))
   # Fit model -----------------------------------------------
   # specify leave-one-year-out cross-validation
   my_folds <- as.numeric(as.factor(train_eco))
@@ -728,7 +732,6 @@ if (run == TRUE) {
       parallel = TRUE
     )
      base::saveRDS(fit, paste0("../ModelFitting/models/betaLASSO/", response, "_globalLASSOmod_betaLogitLink_",ecoregion,"_removeAnomalies", removeAllAnoms,"observeDatForestClassification.rds"))
-    
     
      best_lambda <- fit$lambda.min
   # save the lambda for the most regularized model w/ an MSE that is still 1SE w/in the best lambda model
@@ -1026,22 +1029,22 @@ mat_glmnet_best <- bestLambda_coef$VariableName
   save(f_glm_halfse, mat_glmnet_halfse, halfseLambda_coef,
               f_glm_1se, mat_glmnet_1se, seLambda_coef,
               f_glm_bestLambda, mat_glmnet_best, bestLambda_coef,
-              file = paste0("./models/interimModelFittingObjects_", response, "_", ecoregion, "_removeAnomalies", removeAllAnoms,"_betaReg.rds" ))
+              file = paste0("./models/interimModelFittingObjects_", response, "_", ecoregion, "_removeAnomalies", removeAllAnoms,"_betaReg_observeDatForestClassification.rds" ))
   } else {
     # read in LASSO object
-    fit <- readRDS(paste0("../ModelFitting/models/betaLASSO/", response, "_globalLASSOmod_betaLogitLink_",ecoregion,"_removeAnomalies", removeAllAnoms,".rds"))
+    fit <- readRDS(paste0("../ModelFitting/models/betaLASSO/", response, "_globalLASSOmod_betaLogitLink_",ecoregion,"_removeAnomalies", removeAllAnoms,"observeDatForestClassification.rds"))
     
     # read in R objects having to do w/ model fitting 
-    load(file = paste0("./models/interimModelFittingObjects_", response, "_", ecoregion, "_removeAnomalies", removeAllAnoms,"_betaReg.rds" ))
-      
+    load(file = paste0("./models/interimModelFittingObjects_", response, "_", ecoregion, "_removeAnomalies", removeAllAnoms,"_betaReg_observeDatForestClassification.rds" ))
+     
     if (trimAnom == TRUE) {
-    fit_glm_bestLambda <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_trimAnom_bestLambdaGLM.rds"))
-  fit_glm_halfse <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_trimAnom_halfSELambdaGLM.rds"))
- fit_glm_se <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_trimAnom_oneSELambdaGLM.rds"))
+    fit_glm_bestLambda <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_trimAnom_bestLambdaGLM_observeDatForestClassification.rds"))
+  fit_glm_halfse <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_trimAnom_halfSELambdaGLM_observeDatForestClassification.rds"))
+ fit_glm_se <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_trimAnom_oneSELambdaGLM_observeDatForestClassification.rds"))
   } else {
-    fit_glm_bestLambda <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_bestLambdaGLM.rds"))
-  fit_glm_halfse <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_halfSELambdaGLM.rds"))
-  fit_glm_se <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_oneSELambdaGLM.rds"))
+    fit_glm_bestLambda <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_bestLambdaGLM_observeDatForestClassification.rds"))
+  fit_glm_halfse <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_halfSELambdaGLM_observeDatForestClassification.rds"))
+  fit_glm_se <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_oneSELambdaGLM_observeDatForestClassification.rds"))
     
   }
     
@@ -1100,7 +1103,22 @@ optimal_pred <- predict.glm(fit_glm_bestLambda, newdata = newdata_DF, type = "re
   # #optimal_pred_halfse[optimal_pred_halfse>100] <- 100
   # optimal_pred_halfse[optimal_pred_halfse<0] <- 0
   # 
-  # save data
+  
+  if(response == "TotalTreeCover_transformed") {
+       # save data
+  fullModOut <- list(
+    "modelObject" = fit,
+    "nullModelObject" = null_fit,
+    "modelPredictions" = data.frame(#ecoRegion_holdout = rep(test_eco,length(y)),
+      obs=y/10,
+                    pred_opt=optimal_pred/10, 
+                    pred_opt_se = optimal_pred_1se/10,
+                    pred_opt_halfse = optimal_pred_halfse/10,
+                    pred_null=null_pred/10#,
+                    #pred_nopenalty=nopen_pred
+                    ))
+  } else {
+    # save data
   fullModOut <- list(
     "modelObject" = fit,
     "nullModelObject" = null_fit,
@@ -1112,6 +1130,8 @@ optimal_pred <- predict.glm(fit_glm_bestLambda, newdata = newdata_DF, type = "re
                     pred_null=null_pred#,
                     #pred_nopenalty=nopen_pred
                     ))
+  }
+  
 
 ggplot() + 
   geom_point(aes(X[,2], fullModOut$modelPredictions$obs), col = "black", alpha = .1) + 
@@ -1335,8 +1355,20 @@ if (alternativeModel2 == "X1.2.se.lambda.model") {
 ```{r predict with best lambda on data used for fitting}
   # create prediction for each each model
 # (i.e. for each fire proporation variable)
-
-predict_by_response <- function(mod, df) {
+if (response == "TotalTreeCover_transformed") {
+  predict_by_response <- function(mod, df) {
+  df_out <- df
+  response_name <- paste0(response, "_pred")
+  preds <- predict(mod, newdata = df_out, #s="lambda.min", 
+                                     type = "response")/10
+  #preds[preds<0] <- 0
+  #preds[preds>100] <- 100
+  df_out <- df_out %>% cbind(preds)
+   colnames(df_out)[ncol(df_out)] <- response_name
+  return(df_out)
+}
+} else {
+  predict_by_response <- function(mod, df) {
   df_out <- df
   response_name <- paste0(response, "_pred")
   preds <- predict(mod, newdata = df_out, #s="lambda.min", 
@@ -1347,11 +1379,10 @@ predict_by_response <- function(mod, df) {
    colnames(df_out)[ncol(df_out)] <- response_name
   return(df_out)
 }
+}
 
 pred_glm1 <- predict_by_response(fit_glm_bestLambda, newdata_DF#X[,2:ncol(X)]
                                  )
-
-## back-transform the 
 # add back in true y values
 pred_glm1 <- pred_glm1 %>% 
   cbind(data.frame(response = modDat_1_s[,c(response)])) 
@@ -1360,10 +1391,6 @@ names(pred_glm1)[names(pred_glm1) == "response"] <- response
 # add back in lat/long data 
 pred_glm1 <- pred_glm1 %>% 
   cbind(modDat_1_s[,c("x", "y", "Year")])
-
-pred_glm1$resid  <- pred_glm1[,response] - pred_glm1[,paste0(response, "_pred")]
-pred_glm1$extremeResid <- NA
-pred_glm1[pred_glm1$resid > 1 | pred_glm1$resid < 1,"extremeResid"] <- 1
 
 ```
 
@@ -1383,11 +1410,9 @@ names(pred_glm1_1se)[names(pred_glm1_1se) == "response"] <- response
 pred_glm1_1se <- pred_glm1_1se %>% 
   cbind(modDat_1_s[,c("x", "y", "Year")])
 
-pred_glm1_1se$resid <- pred_glm1_1se[,response] - pred_glm1_1se[,paste0(response, "_pred")]
-pred_glm1_1se$extremeResid <- NA
-pred_glm1_1se[pred_glm1_1se$resid > 1 | pred_glm1_1se$resid < -1,"extremeResid"] <- 1
 }
 ```
+
 
 ### Calibrate so that the model is predicting no trees in the appropriate locations (only run for total tree cover in unforested locations)
 ```{r}
@@ -1463,10 +1488,10 @@ climDatPred <- climDat %>%
 names(climDatPred)[3:30] <- str_remove(names(climDatPred)[3:30], pattern = "_s$")
 rm(climDat_Temp, climDat_noSF, climDatPred_extract, climDat_scaled, climDat_noSF, climDat)
 gc()
-```
 
-Classify locations as forested or not with our forest model, using the wall-to-wall climate data we acquired above
-```{r}
+# for ecoregion-level models, trim the climDat data frame just to the ecoregion of focus
+if (ecoregion != "CONUS") {
+  ##Classify locations as forested or not with our forest model, using the wall-to-wall climate data we acquired above
 # predict before scaling/interpolation
 climDatPred <- climDatPred %>% 
   mutate(ForestPred_raw =  as.numeric(1/ (1 + 
@@ -1482,152 +1507,171 @@ climDatPred <- climDatPred %>%
   mutate(ForestPred_binary = ForestPred_raw) %>% 
   mutate(ForestPred_binary = replace(ForestPred_binary, ForestPred_raw > best_threshold_bestLambda, 1), 
          ForestPred_binary = replace(ForestPred_binary, ForestPred_raw <= best_threshold_bestLambda, 0)) 
-```
 
-Now, get a raster of locations that the model classifies as unforested
-```{r}
-# filter to only get locations that are model-predicted to be unforested
-climDatPred_noForest <- climDatPred %>% 
+### Now, get a raster of locations that the model classifies as unforested
+
+if (ecoregion == "noTrees") {
+  # filter to only get locations that are model-predicted to be un-forested
+climDatPred_ecoregion <- climDatPred %>% 
   filter(ForestPred_binary == 0)
+} else {
+  # filter to only get locations that are model-predicted to be forested
+  climDatPred_ecoregion <- climDatPred %>% 
+  filter(ForestPred_binary == 1)
+}
+
+}
 
 # get dayMet raster
 test_rast_dayMet_TEMP <- rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") 
 
 # now, rasterize on the dayMet grid
-climDatPred_noForest_rast <- climDatPred_noForest %>%
+climDatPred_ecoregion_rast <- climDatPred_ecoregion %>%
   st_as_sf(coords = c("Lon", "Lat"), crs = crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]")) %>%
   terra::vect() %>%
   terra::rasterize(y = test_rast_dayMet_TEMP, field = "ForestPred_binary")
 
 cropped_states2 <- cropped_states %>% 
   sf::st_transform(crs(test_rast_dayMet_TEMP))
-# plot
-ggplot() +
-  # geom_sf(data=modDat_1_sf#[modDat_1_sf$NA_L2NAME %in% c("MIXED WOOD PLAINS"),]
-  #         ,
-  #         aes(fill=as.factor(NA_L2NAME)),linewidth=0.5,alpha=0.5, size = 1) +
-  geom_spatraster(data=climDatPred_noForest_rast_mask , maxcell = 50000000) + 
-  xlim(c(-1951750, 2229250)) +
-  geom_sf(data=cropped_states2,fill='NA')  +
-  scale_fill_viridis_c( na.value = "white") +
-  labs(title = "Model-predicted unforested locations, with same mask Martin used for RAP data")
-```
 
-Get data that shows un-forested locations, based on RAP. This dataset is created by first identifying RAP 30-m pixels that have 5% or less of tree cover. Then that information is aggregated up to the dayMet scale, and the value provided is the percentage of RAP pixels within a given dayMet grid cell that have <5% tree cover. 
-```{r}
-# get RAP unforested cover dataset from Martin
+### perform following steps only for total tree cover in unforested locations
+if (response == "TotalTreeCover_transformed" & ecoregion == "noTrees") {
+  
+
+###Get data that shows un-forested locations, based on RAP. This dataset is created by first identifying RAP 30-m pixels that have 5% or less of tree cover. Then that information is aggregated up to the dayMet scale, and the value provided is the percentage of RAP pixels within a given dayMet grid cell that have <5% tree cover. 
+## get RAP unforested cover dataset from Martin
+  #
+  #Data_processed/RAP_v3_fracNotForest_lt3_mask-lcmap50_2019-2023_1000m.tif
 nonForest_rast <- terra::rast("../../../Data_processed/RAP_v3_fracNotForest_lt5_mask-lcmap50_2019-2023_1000m.tif") %>% 
   # make sure the crs is the same
   terra::project(crs(test_rast_dayMet_TEMP))
 
-# mask this raster to the same extent as the unforested locations identified above
+## mask this raster to the same extent as the unforested locations identified above
 notForest_rast_mask <- nonForest_rast %>% 
-  terra::mask(mask = climDatPred_noForest_rast %>% crop(y = nonForest_rast))
+  terra::mask(mask = climDatPred_ecoregion_rast %>% crop(y = nonForest_rast))
 
-# then, mask the unforested raster above w/ the resulting RAP unforested raster, to make sure that the masks we're using to remove developed and burned areas are the same across rasters
-climDatPred_noForest_rast_mask <- climDatPred_noForest_rast %>% 
+## then, mask the unforested raster above w/ the resulting RAP unforested raster, to make sure that the masks we're using to remove developed and burned areas are the same across rasters
+climDatPred_ecoregion_rast_mask <- climDatPred_ecoregion_rast %>% 
   crop(y = nonForest_rast) %>% 
   terra::mask(mask = notForest_rast_mask)
 
-# with the above data, use the tree cover model to predict tree cover for these locations
-##AES
-# identify the area-weighted 
-```
+## now, turn the information about these locations back into points 
 
+# pointsToUse_Terra <- terra::as.points(climDatPred_ecoregion_rast_mask) %>% 
+#   st_as_sf()
 
+climDatPred_pointsUse <- climDatPred_ecoregion_rast_mask %>% 
+  terra::extract(y = climDatPred_ecoregion %>% terra::vect() , 
+                 bind = TRUE, 
+                 method = "simple",
+                 xy = TRUE)
 
+ climDatPred_pointsUse_2 <- climDatPred_pointsUse %>% 
+   filter(!is.na(last)) %>% 
+   select(-x, -y)
 
-Make sure that the locations we're using for the model-fitting are the same as the locations used to determine the proportion of CONUS that is un-forested (i.e. masks out the same locations due to fire and/or land use)
-```{r}
-# rasterize the model-fitting data on the dayMet grid 
-modDat_1_rast <- modDat_1 %>%
-  st_as_sf(coords = c("x", "y"), crs = crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]")) %>%
-  terra::vect() %>%
-  terra::rasterize(y = test_rastTemp, field = "TotalTreeCover")
+ #crs(climDatPred_ecoregion_rast_mask) == crs(climDatPred_pointsUse_2)
 
-## compare to the the RAP forest data from Martin (is the 'notForest' object)
-# reproject notForest to match data I'm using
-notForest2 <- notForest %>% 
-  terra::project(crs(climDatPred))
+climDatPred_pointsUse_2_noSF <- climDatPred_pointsUse_2 %>% 
+  as.data.frame()
 
-# notForestTrim <- notForest2 %>% 
-#   terra::crop(terra::ext(climDatPred[1:1000,]))
-# make sure crs matches
-crs(notForest2) == crs(climDatPred)
+## with the above data, use the tree cover model to predict tree cover for these locations
+# predict 
+climPred_totalTree <- predict_by_response(fit_glm_bestLambda, climDatPred_pointsUse_2_noSF#X[,2:ncol(X)]
+                                 )
+# now, back-transform the predictions (divide by 10)
+climPred_totalTree <- climPred_totalTree %>% 
+  mutate(TotalTreeCover_pred = TotalTreeCover_transformed_pred)
 
-climDatPred_vect <- climDatPred %>% 
-  terra::vect()
+ # ggplot(climPred_totalTree) + 
+ #   geom_point(aes(x = Lon, y = Lat, col = TotalTreeCover_pred))
+ #   
+ 
+## identify the area-weighted proportion of masked RAP forested data that is unforested
+# area of each pixel in m² (accounts for projection distortion)
+pixel_area <- cellSize(notForest_rast_mask, unit = "m")
 
-# crop climDatPred to match the extent of the notForest data
-climDatPred_extract <- notForest2 %>% 
-  terra::extract(y = climDatPred_vect) %>% 
-  cbind(climDatPred) %>% 
-  st_as_sf()
+# # total non-forest area (m² → km²)
+# area_not_forest_m2 <- global(notForest_rast_mask * pixel_area, fun = "sum", na.rm = TRUE)
+# area_not_forest_km2 <- area_not_forest_m2$sum / 1e6
+#cat("Total non-forest area:", round(area_not_forest_km2), "km^2", '(', mask_name, ")\n")
+# Total non-forest area: 1111716 km^2 ( mask-lcmap90-fire90 )
+# Total non-forest area: 1370498 km^2 ( mask-lcmap50-fire50 )
 
-## remove climate data from the locations that have been masked in Martin's tree data 
-climDatPred_new <- climDatPred_extract %>% 
-  filter(!is.na(fracNotForest))
-```
+# mean proportion non-forest (area-weighted)
+# mean_frac_nonForest_fromRAP <- global(notForest_rast_mask * pixel_area, fun = "sum", na.rm = TRUE)$sum /
+#   global(pixel_area * !is.na(notForest_rast_mask), fun = "sum", na.rm = TRUE)$sum
 
-## Predict on the test data, the complete dataset, and then the masked wall-to-wall data
+# classify the nonForest rast into 1/0 (anything >= .5 = 1 and < 0.5 = 0)
+notForest_rast_mask_round <- round(notForest_rast_mask)
+# version w/ rounded nonForest raster
+mean_frac_nonForest_fromRAP <- global(notForest_rast_mask_round * pixel_area, fun = "sum", na.rm = TRUE)$sum /
+  global(pixel_area * !is.na(notForest_rast_mask_round), fun = "sum", na.rm = TRUE)$sum
 
-```{r predict with best lambda on data used for fitting}
-  # create prediction for each each model
-# (i.e. for each fire proporation variable)
-predict_by_response <- function(mod, df, scale = FALSE) {
-  df_out <- df
-    if(scale == TRUE) {
-  df_out <- df_out %>% 
-  mutate(across(all_of(prednames), base::scale,scale = FALSE, center = FALSE)) 
-  }
-  response_name <- paste0("TotalTreeCover_binom", "_pred")
-  preds <- predict(mod, newdata = df_out, #s="lambda.min", 
-                                     type = "response")
-  #preds[preds<0] <- 0
-  #preds[preds>100] <- 100
-  df_out <- df_out %>% cbind(preds)
-   colnames(df_out)[ncol(df_out)] <- response_name
-  return(df_out)
+## identify a threshold for the predictions of total trees that gives us the amount of 0% tree locations that we want 
+# make an empirical cumulative probability function plot of the model predictions on wall-to-wall data
+  climPred_totalTree_cdf <- stats::ecdf(climPred_totalTree$TotalTreeCover_transformed_pred)
+# find the quantile of observations that corresponds to the desired proportion of unforested locations
+zeroCutoff <- quantile(climPred_totalTree$TotalTreeCover_transformed_pred %>% na.omit(), probs = mean_frac_nonForest_fromRAP) 
+# plot the ecdf
+plot(climPred_totalTree_cdf, xlab = c("% Total Tree Cover"), ylab = "Percentile",
+     main = "Empirical Cumulative Distribution Function for \n model predictions of Total Tree Cover in non-forested \nregions from the best-lambda model")
+abline(h = mean_frac_nonForest_fromRAP, lty = 3)
+abline(v = zeroCutoff, lty = 3)
+
+## now, interpolate the model predictions such that the predictions of total tree cover below the threshold are forced to 0
+approxfun <- approxfun(x = c(0,  zeroCutoff, 0.1), # values we're interpolating *from*
+          y =c(0, 0, 0.1), # what we're interpolation to (desired values at the end)
+          method = "linear")
+# interpolate the predictions
+climPred_totalTree <- climPred_totalTree %>% 
+  mutate(TotalTreeCover_interp = approxfun(TotalTreeCover_pred))
+# ggplot(climPred_totalTree) +
+#   geom_point(aes(Lon, Lat, col = TotalTreeCover_interp), size = 1) + 
+#   geom_point(data = climPred_totalTree[climPred_totalTree$TotalTreeCover_interp == 0,],
+#              aes(Lon, Lat), size = 1, col = "red")
+# rasterize the interpolated predictions
 }
-## predict on the test dataset
-pred_glm1_test <- predict_by_response(fit_glm_bestLambda, modDat_1_sTest)#X[,2:ncol(X)])
-pred_glm1_test$resid <- pred_glm1_test[,"TotalTreeCover_binom"] - pred_glm1_test[,paste0("TotalTreeCover_binom", "_pred")]
-pred_glm1_test$extremeResid <- NA
-pred_glm1_test[pred_glm1_test$resid > .5 | pred_glm1_test$resid < -.5,"extremeResid"] <- 1
+```
 
-## predict on entire dataset
-pred_glm1_full <- predict_by_response(fit_glm_bestLambda, rbind(modDat_1_sTest, modDat_1_s))#X[,2:ncol(X)])
-pred_glm1_full$resid <- pred_glm1_full[,"TotalTreeCover_binom"] - pred_glm1_full[,paste0("TotalTreeCover_binom", "_pred")]
-pred_glm1_full$extremeResid <- NA
-pred_glm1_full[pred_glm1_full$resid > .5 | pred_glm1_full$resid < -.5,"extremeResid"] <- 1
-
-## predict on the wall-to-wall dataset
-pred_glm1_w2w <- predict_by_response(fit_glm_bestLambda, climDatPred_new %>% st_drop_geometry(), scale = TRUE)
+Interpolate the model predictions and back-transform the observations, if necessary
+```{r}
+if(response == "TotalTreeCover_transformed") {
+  # interpolate best lambda model predictions
+  pred_glm1$TotalTreeCover_transformed_pred <- approxfun(pred_glm1$TotalTreeCover_transformed_pred)
+  
+  # interpolate second-best lambda predictions
+  pred_glm1_1se$TotalTreeCover_transformed_pred <- approxfun(pred_glm1_1se$TotalTreeCover_transformed_pred)
+  
+  
+  # interpolate best lambda model predictions
+  pred_glm1$TotalTreeCover_transformed <- pred_glm1$TotalTreeCover_transformed/10
+  
+  # interpolate second-best lambda predictions
+  pred_glm1_1se$TotalTreeCover_transformed <- pred_glm1$TotalTreeCover_transformed/10
+  
+  
+}
 
 ```
 
-```{r predict with second best lambda model on data used for model fitting}
+Calculate residuals
+```{r}
+# best lambda model
+pred_glm1$resid  <- pred_glm1[,response] - pred_glm1[,paste0(response, "_pred")]
+pred_glm1$extremeResid <- NA
+pred_glm1[pred_glm1$resid > 1 | pred_glm1$resid < 1,"extremeResid"] <- 1
+
+# second-best lambda model
 if ( name_secondBestMod == "Intercept_Only") {
   print("The next best lambda model only contains one predictor (an intercept)")
 } else {
 
-pred_glm1_1se_test <- predict_by_response(mod_secondBest, modDat_1_sTest)#X[,2:ncol(X)])
-pred_glm1_1se_test$resid <- pred_glm1_1se_test[,"TotalTreeCover_binom"] - pred_glm1_1se_test[,paste0("TotalTreeCover_binom", "_pred")]
-pred_glm1_1se_test$extremeResid <- NA
-pred_glm1_1se_test[pred_glm1_1se_test$resid > .5 | pred_glm1_1se_test$resid < -.5,"extremeResid"] <- 1
-
-## for full dataset
-pred_glm1_1se_full <- predict_by_response(mod_secondBest, rbind(modDat_1_sTest, modDat_1_s))#X[,2:ncol(X)])
-pred_glm1_1se_full$resid <- pred_glm1_1se_full[,"TotalTreeCover_binom"] - pred_glm1_1se_full[,paste0("TotalTreeCover_binom", "_pred")]
-pred_glm1_1se_full$extremeResid <- NA
-pred_glm1_1se_full[pred_glm1_1se_full$resid > .5 | pred_glm1_1se_full$resid < -.5,"extremeResid"] <- 1
-
-## predict on the wall-to-wall dataset
-pred_glm1_1se_w2w <- predict_by_response(mod_secondBest, climDatPred_new %>% st_drop_geometry(), scale = TRUE)
+pred_glm1_1se$resid <- pred_glm1_1se[,response] - pred_glm1_1se[,paste0(response, "_pred")]
+pred_glm1_1se$extremeResid <- NA
+pred_glm1_1se[pred_glm1_1se$resid > 1 | pred_glm1_1se$resid < -1,"extremeResid"] <- 1
 }
 ```
-
-##AES
 
 ### Maps of Observations, Predictions, and Residuals=
 
@@ -1651,23 +1695,6 @@ regions <- regions %>%
   st_transform(crs = st_crs(crs(test_rast))) %>% 
   st_make_valid() 
 
-# ecoregionLU <- data.frame("NA_L1NAME" = sort(unique(regions$NA_L1NAME)), 
-#                         "newRegion" = c(NA, "Forest", "dryShrubGrass", 
-#                                         "dryShrubGrass", "Forest", "dryShrubGrass",
-#                                        "dryShrubGrass", "Forest", "Forest", 
-#                                        "dryShrubGrass", "Forest", "Forest", 
-#                                        "Forest", "Forest", "dryShrubGrass", 
-#                                        NA
-#                                         ))
-# goodRegions <- regions %>% 
-#   left_join(ecoregionLU)
-# mapRegions <- goodRegions %>% 
-#   filter(!is.na(newRegion)) %>% 
-#   group_by(newRegion) %>% 
-#   summarise(geometry = sf::st_union(geometry)) %>% 
-#   ungroup() %>% 
-#   st_simplify(dTolerance = 1000) %>% 
-#   sf::st_crop(c("xmin" = -2000000, "xmax" = 2600000, "ymin" = -1900000, "ymax" = 1500000))
 # make shapefile of cropped state boundaries in appropriate crs
 cropped_states_2 <- cropped_states %>% 
   st_transform(crs = crs(test_rast)) %>% 
@@ -1692,12 +1719,13 @@ names(temp) <- x
 )
 pred_glm1_RAST <- c(testRast2[[1]], testRast2[[2]], testRast2[[3]])
 
-# ## compare
-# par(mfrow = c(2,1))
-# terra::plot(pred_glm1_RAST$TotalTreeCover,  maxcell = 30000000, main = "gridMet")
-# terra::plot(pred_glm1_RAST_dayMet$TotalTreeCover, maxcell = 30000000, main = "dayMet")
-# par(mfrow = c(1,1))
-##
+
+if(response == "TotalTreeCover_transformed") {
+  limits <- c(0,0.1)
+} else {
+  limits <- c(0,1)
+}
+
 # make figure of observations
 map_obs <- ggplot() +
 geom_spatraster(data = pred_glm1_RAST, aes(fill = .data[[response]]), maxcell = 50000000) + 
@@ -1708,12 +1736,13 @@ labs(title = paste0("Observations of ", response, " in the ",ecoregion, " ecoreg
   scale_fill_gradient2(low = "brown",
                        mid = "wheat" ,
                        high = "forestgreen" , 
-                       midpoint = 0,   na.value = "white") + 
+                       midpoint = 0,   na.value = "white", 
+                       limits = limits) + 
   coord_sf(datum = st_crs(pred_glm1_RAST)) +
    # xlim(-104, -100) + 
    # ylim(30, 33)
   xlim(-2000000, 2500000) + 
-  ylim(-1800000, 900000)
+  ylim(-1800000, 1200000)
 # histogram of observations
 hist_obs <- pred_glm1%>% 
   ggplot() + 
@@ -1722,77 +1751,6 @@ hist_obs <- pred_glm1%>%
 library(ggpubr)
 ggarrange( map_obs, hist_obs, heights = c(3, 1), ncol = 1)
 
-# 
-# 
-# hist(modDat_1_s[,response], main = paste0("Histogram of ",response),
-#      xlab = paste0(response), breaks = 50)
-# hist(pred_glm1[,response], breaks = 50,  col = "blue")
-
-# 
-# # rasterize
-# # get reference raster
-# test_rast <-  rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
-#   terra::aggregate(fact = 8, fun = "mean")
-# ## add ecoregion boundaries (for our ecoregion level model)
-# regions <- sf::st_read(dsn = "../../../Data_raw/Level2Ecoregions/", layer = "NA_CEC_Eco_Level2") 
-# regions <- regions %>% 
-#   st_transform(crs = st_crs(test_rast)) %>% 
-#   st_make_valid() 
-# 
-# ecoregionLU <- data.frame("NA_L1NAME" = sort(unique(regions$NA_L1NAME)), 
-#                         "newRegion" = c(NA, "Forest", "dryShrubGrass", 
-#                                         "dryShrubGrass", "Forest", "dryShrubGrass",
-#                                        "dryShrubGrass", "Forest", "Forest", 
-#                                        "dryShrubGrass", "Forest", "Forest", 
-#                                        "Forest", "Forest", "dryShrubGrass", 
-#                                        NA
-#                                         ))
-# goodRegions <- regions %>% 
-#   left_join(ecoregionLU)
-# mapRegions <- goodRegions %>% 
-#   filter(!is.na(newRegion)) %>% 
-#   group_by(newRegion) %>% 
-#   summarise(geometry = sf::st_union(geometry)) %>% 
-#   ungroup() %>% 
-#   st_simplify(dTolerance = 1000)
-# #mapview(mapRegions)
-# # rasterize data
-# plotObs <- pred_glm1 %>% 
-#          drop_na(paste(response)) %>% 
-#   #slice_sample(n = 5e4) %>%
-#   terra::vect(geom = c("Long", "Lat")) %>% 
-#   terra::set.crs(crs(test_rast)) %>% 
-#   terra::rasterize(y = test_rast, 
-#                    field = response, 
-#                    fun = mean) #%>% 
-#   #terra::aggregate(fact = 2, fun = mean, na.rm = TRUE) %>% 
-#   #terra::crop(ext(-1950000, 1000000, -1800000, 1000000))
-# 
-# # get the extent of this particular raster, and crop it accordingly
-# tempExt <- crds(plotObs, na.rm = TRUE)
-# 
-# plotObs_2 <- plotObs %>% 
-#   crop(ext(min(tempExt[,1]), max(tempExt[,1]),
-#            min(tempExt[,2]), max(tempExt[,2])) 
-#        )
-# # make figures
-# map_obs <- ggplot() +
-# geom_spatraster(data = plotObs_2) + 
-#   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
-#   geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-# labs(title = paste0("Observations of ", response, " in the ",ecoregion, " ecoregion")) +
-#   scale_fill_gradient2(low = "brown",
-#                        mid = "wheat" ,
-#                        high = "darkgreen" , 
-#                        midpoint = 0,   na.value = "grey20") + 
-#   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
-#   ylim(st_bbox(plotObs_2)[c(2,4)])
-# 
-# hist_obs <- ggplot(pred_glm1) + 
-#   geom_histogram(aes(.data[[response]]), fill = "lightgrey", col = "darkgrey")
-# 
-# library(ggpubr)
-# ggarrange(map_obs, hist_obs, heights = c(3,1), ncol = 1)
 ```
 
 Predictions across the temporal range of the dataset
@@ -1804,17 +1762,25 @@ geom_spatraster(data = pred_glm1_RAST, aes(fill = .data[[paste0(response,"_pred"
 geom_sf(data=cropped_states_2 ,fill=NA ) +
   labs(title = paste0("Predictions from the 'best lambda' fitted model of ", response, " in the ",ecoregion, " ecoregion"),
      subtitle =  "bestLambda model")  +
-  scale_fill_gradient2(low = "wheat",
-                       mid = "darkgreen",
-                       high = "red" , 
-                       midpoint = 1,   na.value = "white",
-                       limits = c(0,1)) + 
+  # scale_fill_gradient2(low = "brown",
+  #                      mid = "wheat" ,
+  #                      high = "forestgreen" , 
+  #                      midpoint = 0,   na.value = "white", 
+  #                      limits = limits) + 
+  scale_fill_gradientn(
+    colors = c("purple", "wheat", "forestgreen"),
+     values = c(0, 1e-10, 1), 
+    limits = limits,
+    na.value = "white"
+  ) +
   xlim(-2000000, 2500000) + 
-  ylim(-1800000, 900000)
+     ylim(-1800000, 1200000)
+
+
 
 hist_preds1 <- ggplot(pred_glm1) + 
-  geom_histogram(aes(.data[[paste0(response, "_pred")]]), fill = "lightgrey", col = "darkgrey")+ 
-  xlim(c(0,1))
+  geom_histogram(aes(.data[[paste0(response, "_pred")]]), fill = "lightgrey", col = "darkgrey")#+ 
+  #xlim(limits[1]-, limits[2])
 
 ggarrange(map_preds1, hist_preds1, heights = c(3,1), ncol = 1)
 ```
@@ -1849,51 +1815,46 @@ geom_spatraster(data = pred_glm1_RAST, aes(fill = .data[[paste0(response,"_pred"
  geom_sf(data=cropped_states_2 ,fill=NA ) +
 labs(title = paste0("Predictions from the ", name_secondBestMod, "fitted model of ", response, " in the ",ecoregion, " ecoregion"),
      subtitle =  name_secondBestMod)  +
-  scale_fill_gradient2(low = "wheat",
-                       mid = "darkgreen",
-                       high = "red" , 
-                       midpoint = 1,   na.value = "white",
-                       limits = c(0, 1)) +
+  # scale_fill_gradient2(low = "wheat",
+  #                      mid = "darkgreen",
+  #                      high = "red" , 
+  #                      midpoint = 1,   na.value = "white",
+  #                      limits = c(0, 1)) +
+  scale_fill_gradientn(
+    colors = c("purple", "wheat", "forestgreen"),
+     values = c(0, 1e-10, 1), 
+    limits = limits,
+    na.value = "white"
+  ) +
   xlim(-2000000, 2500000) + 
-  ylim(-1800000, 900000)
+     ylim(-1800000, 1200000)
 
 
 hist_preds2 <- ggplot(pred_glm1_1se) + 
-  geom_histogram(aes(.data[[paste0(response, "_pred")]]), fill = "lightgrey", col = "darkgrey")+ 
-  xlim(c(0,1))
+  geom_histogram(aes(.data[[paste0(response, "_pred")]]), fill = "lightgrey", col = "darkgrey")#+ 
+  #xlim(c(0,1))
 
 ggarrange(map_preds2, hist_preds2, heights = c(3,1), ncol = 1)
 }
-
 ```
-```{r Residual map from best lambda model, fig.height = 12, fig.width = 9, warning = FALSE }
-# identify locations where residuals are >100 or < -100
-badResids_high <- pred_glm1 %>% 
-  filter(resid > .5)  %>% 
-  terra::vect(geom = c("x", "y")) %>% 
-  terra::set.crs(crs(crs_veg)) %>% 
-  terra::project(crs(test_rast))
-badResids_low <- pred_glm1 %>% 
-  filter(resid < -.5)  %>% 
-  terra::vect(geom = c("x", "y")) %>% 
-  terra::set.crs(crs(crs_veg)) %>% 
-  terra::project(crs(test_rast))
+```{r Absolute Residual map from best lambda model, fig.height = 12, fig.width = 9, warning = FALSE }
+limitsResids <- c(-0.1, 0.1)
 # make figures
 map <- ggplot() +
 geom_spatraster(data = pred_glm1_RAST, aes(fill = resid), maxcell = 50000000) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
-  geom_sf(data = badResids_high, col = "blue") +
-  geom_sf(data = badResids_low, col = "red") +
-labs(title = paste0("Resids. (obs. - pred.) from the ", ecoregion," ecoregion-wide model of ", response),
-     subtitle = "bestLambda model \n red points indicate locations that have residuals below -0.5 \n blue points indicate locations that have residuals above 0.5") +
+  #geom_sf(data = badResids_high, col = "blue") +
+  #geom_sf(data = badResids_low, col = "red") +
+labs(title = paste0("Absolute Resids. (obs. - pred.) from the ", ecoregion," ecoregion-wide model of ", response),
+     subtitle = "bestLambda model") +
   scale_fill_gradient2(low = "red",
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey30",
-                       limits = c(-1,1)
+                       limits = limitsResids
                        ) +
   xlim(-2000000, 2500000) + 
-  ylim(-1800000, 900000)
+     ylim(-1800000, 1200000)
 
 hist <- ggplot(pred_glm1) + 
   geom_histogram(aes(resid), fill = "lightgrey", col = "darkgrey") + 
@@ -1904,50 +1865,186 @@ hist <- ggplot(pred_glm1) +
 ggarrange(map, hist, heights = c(3,1), ncol = 1)
 
 ```
+```{r Relative Residual map from best lambda model, fig.height = 12, fig.width = 9, warning = FALSE }
+# calculate actual residuals
+relativeResid <- (pred_glm1_RAST$TotalTreeCover_transformed -  pred_glm1_RAST$TotalTreeCover_transformed_pred)/pred_glm1_RAST$TotalTreeCover_transformed
+# calculate relative residuals
 
-```{r Residual map from 1 SE lambda model, fig.height = 12, fig.width = 9, warning = FALSE }
+# make figures
+map <- ggplot() +
+geom_spatraster(data = relativeResid, aes(fill = TotalTreeCover_transformed), maxcell = 50000000) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
+  #geom_sf(data = badResids_high, col = "blue") +
+  #geom_sf(data = badResids_low, col = "red") +
+labs(title = paste0("Relative Resids. (obs. - pred.)/(obs.) from the ", ecoregion," ecoregion-wide model of ", response),
+     subtitle = "bestLambda model") +
+  scale_fill_gradient2(low = "red",
+                       mid = "white" ,
+                       high = "blue" , 
+                       midpoint = 0,   na.value = "grey30"#,
+                       #limits = limitsResids
+                       ) +
+  xlim(-2000000, 2500000) + 
+     ylim(-1800000, 1200000)
+
+hist <- ggplot(data.frame(values(relativeResid))) + 
+  geom_histogram(aes(TotalTreeCover_transformed), fill = "lightgrey", col = "darkgrey") + 
+  geom_text(aes(x = min(TotalTreeCover_transformed)*.9, y = 1500, label = paste0("min = ", round(min(TotalTreeCover_transformed),2)))) +
+  geom_text(aes(x = max(TotalTreeCover_transformed)*.9, y = 1500, label = paste0("max = ", round(max(TotalTreeCover_transformed),2)))) + 
+  geom_vline(aes(xintercept = mean(TotalTreeCover_transformed)))
+
+ggarrange(map, hist, heights = c(3,1), ncol = 1)
+
+```
+
+```{r Absolute Residual map from 1 SE lambda model, fig.height = 12, fig.width = 9, warning = FALSE }
 if ( name_secondBestMod == "Intercept_Only") {
   print("The next best lambda model only contains one predictor (an intercept)")
 } else {
 
-# identify locations where residuals are >100 or < -100
-badResids_high <- pred_glm1_1se %>% 
-  filter(resid > .5)  %>% 
-  terra::vect(geom = c("x", "y")) %>% 
-  terra::set.crs(crs(crs_veg)) %>% 
-  terra::project(crs(test_rast))
-badResids_low <- pred_glm1_1se %>% 
-  filter(resid < -.5)  %>% 
-  terra::vect(geom = c("x", "y")) %>% 
-  terra::set.crs(crs(crs_veg)) %>% 
-  terra::project(crs(test_rast))
 # make figures
 map <- ggplot() +
 geom_spatraster(data = pred_glm1_1se_RAST, aes(fill = resid), maxcell = 50000000) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
-  geom_sf(data = badResids_high, col = "blue") +
-  geom_sf(data = badResids_low, col = "red") +
 labs(title = paste0("Resids. (obs. - pred.) from the ", ecoregion," ecoregion-wide model of ", response),
-     subtitle = "second-bestLambda model \n red points indicate locations that have residuals below -0.5 \n blue points indicate locations that have residuals above 0.5") +
+     subtitle = "second-bestLambda model") +
   scale_fill_gradient2(low = "red",
                        mid = "white" ,
                        high = "blue" , 
                        midpoint = 0,   na.value = "grey30",
-                       limits = c(-1,1)
+                       limits = limitsResids
                        ) +
   xlim(-2000000, 2500000) + 
-  ylim(-1800000, 900000)
+     ylim(-1800000, 1200000)
 
 hist <- ggplot(pred_glm1_1se) + 
   geom_histogram(aes(resid), fill = "lightgrey", col = "darkgrey") + 
   geom_text(aes(x = min(resid)*.9, y = 1500, label = paste0("min = ", round(min(resid),2)))) +
   geom_text(aes(x = max(resid)*.9, y = 1500, label = paste0("max = ", round(max(resid),2)))) + 
-  geom_vline(aes(xintercept = mean(resid)))
+  geom_vline(aes(xintercept = mean(resid, na.rm = TRUE)))
 
 ggarrange(map, hist, heights = c(3,1), ncol = 1)
 
 }
 ```
+
+```{r Relative Residual map from second-best lambda model, fig.height = 12, fig.width = 9, warning = FALSE }
+# calculate actual residuals
+relativeResid <- (pred_glm1_1se_RAST$TotalTreeCover_transformed -  pred_glm1_1se_RAST$TotalTreeCover_transformed_pred)/pred_glm1_1se_RAST$TotalTreeCover_transformed
+# calculate relative residuals
+
+# make figures
+map <- ggplot() +
+geom_spatraster(data = relativeResid, aes(fill = TotalTreeCover_transformed), maxcell = 50000000) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
+  #geom_sf(data = badResids_high, col = "blue") +
+  #geom_sf(data = badResids_low, col = "red") +
+labs(title = paste0("Relative Resids. (obs. - pred.)/(obs.) from the ", ecoregion," ecoregion-wide model of ", response),
+     subtitle = "second-bestLambda model") +
+  scale_fill_gradient2(low = "red",
+                       mid = "white" ,
+                       high = "blue" , 
+                       midpoint = 0,   na.value = "grey30"#,
+                       #limits = limitsResids
+                       ) +
+  xlim(-2000000, 2500000) + 
+     ylim(-1800000, 1200000)
+
+hist <- ggplot(data.frame(values(relativeResid))) + 
+  geom_histogram(aes(TotalTreeCover_transformed), fill = "lightgrey", col = "darkgrey") + 
+  geom_text(aes(x = min(TotalTreeCover_transformed)*.9, y = 1500, label = paste0("min = ", round(min(TotalTreeCover_transformed),2)))) +
+  geom_text(aes(x = max(TotalTreeCover_transformed)*.9, y = 1500, label = paste0("max = ", round(max(TotalTreeCover_transformed),2)))) + 
+  geom_vline(aes(xintercept = mean(TotalTreeCover_transformed, na.rm = TRUE)))
+
+ggarrange(map, hist, heights = c(3,1), ncol = 1)
+
+```
+
+### Now we show model predictions using data on the dayMet scale (1km-1km grid) across the focal ecoregion
+```{r w2w preds with the bestLambda model}
+# the data.frame to use for these predictions is "climDatPred_ecoregion"
+climDatPred_ecoregion_glm1 <- predict_by_response(mod = fit_glm_bestLambda, df = climDatPred_ecoregion %>% st_drop_geometry())
+
+## now, do interpolation step 
+
+climDatPred_ecoregion_glm1 <- climDatPred_ecoregion_glm1 %>% 
+  mutate(TotalTreeCover_transformed_pred = approxfun(TotalTreeCover_transformed_pred))
+
+# now, rasterize the predictions
+climDatPred_ecoregion_glm1_rast <- climDatPred_ecoregion_glm1 %>%
+  st_as_sf(coords = c("Lon", "Lat"), crs = crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]")) %>%
+  terra::vect() %>%
+  terra::rasterize(y = test_rast_dayMet_TEMP, field = paste0(response, "_pred"))
+
+# make a map
+map_obs <- ggplot() +
+geom_spatraster(data = climDatPred_ecoregion_glm1_rast, aes(fill = last), maxcell = 50000000) + 
+ #geom_sf(data = pred_glm1_RAST, aes(col = TotalTreeCover)) + 
+  # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
+labs(title = paste0("Model-predictions of ", response, " in the ",ecoregion, " ecoregion, on the dayMet scale"),
+     subtitle = "Best-lambda model") +
+  scale_fill_gradientn(
+    colors = c("purple", "wheat", "forestgreen"),
+     values = c(0, 1e-10, 1), 
+    limits = limits,
+    na.value = "white"
+  ) +
+   # xlim(-104, -100) + 
+   # ylim(30, 33)
+  xlim(-2000000, 2500000) + 
+  ylim(-1800000, 1200000)
+
+# histogram of observations
+hist_obs <- climDatPred_ecoregion_glm1%>% 
+  ggplot() + 
+  geom_histogram(aes(.data[[ paste0(response, "_pred")]]), fill = "lightgrey", col = "darkgrey", bins = 50)
+
+ggarrange( map_obs, hist_obs, heights = c(3, 1), ncol = 1)
+```
+
+```{r w2w preds with the second-bestLambda model}
+# the data.frame to use for these predictions is "climDatPred_ecoregion"
+climDatPred_ecoregion_glm1_1se <- predict_by_response(mod = mod_secondBest, df = climDatPred_ecoregion %>% st_drop_geometry())
+
+## now, do interpolation step 
+
+climDatPred_ecoregion_glm1_1se <- climDatPred_ecoregion_glm1_1se %>% 
+  mutate(TotalTreeCover_transformed_pred = approxfun(TotalTreeCover_transformed_pred))
+
+# now, rasterize the predictions
+climDatPred_ecoregion_glm1_1se_rast <- climDatPred_ecoregion_glm1_1se %>%
+  st_as_sf(coords = c("Lon", "Lat"), crs = crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]")) %>%
+  terra::vect() %>%
+  terra::rasterize(y = test_rast_dayMet_TEMP, field = paste0(response, "_pred"))
+
+# make a map
+map_obs <- ggplot() +
+geom_spatraster(data = climDatPred_ecoregion_glm1_1se_rast, aes(fill = last), maxcell = 50000000) + 
+ #geom_sf(data = pred_glm1_RAST, aes(col = TotalTreeCover)) + 
+  # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
+labs(title = paste0("Model-predictions of ", response, " in the ",ecoregion, " ecoregion, on the dayMet scale"),
+     subtitle = "Best-lambda model") +
+  scale_fill_gradientn(
+    colors = c("purple", "wheat", "forestgreen"),
+     values = c(0, 1e-10, 1), 
+    limits = limits,
+    na.value = "white"
+  ) +
+   # xlim(-104, -100) + 
+   # ylim(30, 33)
+  xlim(-2000000, 2500000) + 
+  ylim(-1800000, 1200000)
+
+# histogram of observations
+hist_obs <- climDatPred_ecoregion_glm1_1se%>% 
+  ggplot() + 
+  geom_histogram(aes(.data[[ paste0(response, "_pred")]]), fill = "lightgrey", col = "darkgrey", bins = 50)
+
+ggarrange( map_obs, hist_obs, heights = c(3, 1), ncol = 1)
+```
+
 
 ### Are there biases of the model predictions across year/lat/long? 
 ```{r bias figures best lambda model, fig.align=8, fig.height=10}
