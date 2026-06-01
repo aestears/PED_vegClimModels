@@ -90,7 +90,8 @@ soilRastTemp <- readRDS("../../../Data_processed/SoilsRaster.rds") %>%
 terra::unwrap()
 
 # get dayMet raster for map-making and scale it to an 8x8km grid 
-test_rast <-  rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>% 
+test_rastTemp <-  rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") 
+test_rast <- test_rastTemp %>% 
   terra::aggregate(fact = 8, fun = "mean", na.rm = TRUE)
 
 # get state boundaries for plotting
@@ -330,7 +331,10 @@ forecastClimSoilsDat_2 <- readRDS("../../../Data_processed/CoverData/Intermediat
 These maps show predictions of forest classification using contemporary and modeled future climate data, where the predicted value is the forest classification. We arrive at these classification values by translating the continuous probability of forest that was predicted by a binomial generalized linear model to binary values using a cutoff of 0.382 (values greater than 0.382 are forest, while values less than or equal to 0.382 are not forest). This threshold is derived from the average prevalence of forest in the data used to fit the binomial model. 
 Note that while the climate data used in model predictions is either contemporary or from GCMs, the soils data used is static across time. 
 ```{r}
+# read in model
 forestMod <- fit_glm_bestLambda <- readRDS("./models/yesOrNoTrees_bestLambdaGLM_10.rds")
+# get threshold for making predictions binary
+best_threshold_bestLambda <- readRDS( "./models/ForestModelPrevalence.rds")
 
 ## print out model statement
 coefficientTable <- data.frame(coefficients(forestMod))
@@ -362,7 +366,6 @@ tempNames <- paste0(
 # get climate data from dayMet (d.f. is "climDatPred_unscaled")
 climDatPred_unscaled <- climDat
 
-#rm(climDat) 
 #gc()
 preds_byHand <- climDatPred_unscaled %>% 
   mutate(pred =  as.numeric(1/ (1 + exp(
@@ -374,13 +377,13 @@ preds_byHand <- climDatPred_unscaled %>%
 # Interpolate the continuous predictions and make binary using the identified threshold
 ## interpolation function
 ## set up function for linear interpolation - best lambda model
-approxfun_forest <- approxfun(x = c(0.136147,  0.4522613, 1), # values we're interpolating *from*
+approxfun_forest <- stats::approxfun(x = c(0,  best_threshold_bestLambda, 1), # values we're interpolating *from*
           y =c(0, 0.1, 1), # what we're interpolation to (desired values at the end)
           method = "linear")
 
 preds_byHand <- preds_byHand %>% 
   mutate(pred_interp = approxfun_forest(pred)) %>% 
-  mutate(pred_interp = replace(pred_interp, list = pred < 0.136147, 0)) %>% 
+ # mutate(pred_interp = replace(pred_interp, list = pred < 0.136147, 0)) %>% 
    mutate(pred_binary = pred_interp,
     pred_binary = replace(pred_binary, pred_binary > 0.1, 1), # now, make the interpolated continuous model predictions binary
          pred_binary = replace(pred_binary, pred_binary <= 0.1, 0)) 
@@ -390,7 +393,7 @@ preds_future1_byHand <- forecastClimSoilsDat_1 %>%
   mutate(pred =  as.numeric(1/ (1 + exp(-(3.38565522 + -0.79822221*((tmean - 10.6678425) / 5.14823079) +  4.74536062*((prcp - 767.94900623) / 506.45362111) + -0.49798680*((prcpTempCorr - -0.02007952) / 0.40677333) +  0.22745494*((isothermality - 36.51862827) / 5.41402375) + -0.39051271*((clay - 17.45502795) / 8.23327615) +  0.53857137*((coarse - 11.18397843) / 11.24234211) + -0.40059849*((AWHC - 14.91029339) / 5.4856826) + -0.83406990*I(((prcp - 767.94900623) / 506.45362111)^2) + -0.94850342*I(((prcpTempCorr - -0.02007952) / 0.40677333)^2) +  0.19450621*I(((isothermality - 36.51862827) / 5.41402375)^2) + -0.04772718*I(((clay - 17.45502795) / 8.23327615)^2) + -0.26519959*I(((coarse - 11.18397843) / 11.24234211)^2) +  0.07438930*I(((AWHC - 14.91029339) / 5.4856826)^2) + -0.29049829*((prcp - 767.94900623) / 506.45362111)*((isothermality - 36.51862827) / 5.41402375) + -0.16800569*((tmean - 10.6678425) / 5.14823079)*((isothermality - 36.51862827) / 5.41402375) +  0.07625545*((tmean - 10.6678425) / 5.14823079)*((prcp - 767.94900623) / 506.45362111) + -0.55536190*((tmean - 10.6678425) / 5.14823079)*((prcpTempCorr - -0.02007952) / 0.40677333) + -0.37720980*((clay - 17.45502795) / 8.23327615)*((AWHC - 14.91029339) / 5.4856826))))))
 preds_future1_byHand <- preds_future1_byHand %>% 
   mutate(pred_interp = approxfun_forest(pred)) %>% 
-  mutate(pred_interp = replace(pred_interp, list = pred < 0.136147, 0)) %>% 
+ # mutate(pred_interp = replace(pred_interp, list = pred < 0.136147, 0)) %>% 
    mutate(pred_binary = pred_interp,
     pred_binary = replace(pred_binary, pred_binary > 0.1, 1), # now, make the interpolated continuous model predictions binary
          pred_binary = replace(pred_binary, pred_binary <= 0.1, 0)) 
@@ -399,7 +402,7 @@ preds_future2_byHand <- forecastClimSoilsDat_2 %>%
   mutate(pred =  as.numeric(1/ (1 + exp(-(3.38565522 + -0.79822221*((tmean - 10.6678425) / 5.14823079) +  4.74536062*((prcp - 767.94900623) / 506.45362111) + -0.49798680*((prcpTempCorr - -0.02007952) / 0.40677333) +  0.22745494*((isothermality - 36.51862827) / 5.41402375) + -0.39051271*((clay - 17.45502795) / 8.23327615) +  0.53857137*((coarse - 11.18397843) / 11.24234211) + -0.40059849*((AWHC - 14.91029339) / 5.4856826) + -0.83406990*I(((prcp - 767.94900623) / 506.45362111)^2) + -0.94850342*I(((prcpTempCorr - -0.02007952) / 0.40677333)^2) +  0.19450621*I(((isothermality - 36.51862827) / 5.41402375)^2) + -0.04772718*I(((clay - 17.45502795) / 8.23327615)^2) + -0.26519959*I(((coarse - 11.18397843) / 11.24234211)^2) +  0.07438930*I(((AWHC - 14.91029339) / 5.4856826)^2) + -0.29049829*((prcp - 767.94900623) / 506.45362111)*((isothermality - 36.51862827) / 5.41402375) + -0.16800569*((tmean - 10.6678425) / 5.14823079)*((isothermality - 36.51862827) / 5.41402375) +  0.07625545*((tmean - 10.6678425) / 5.14823079)*((prcp - 767.94900623) / 506.45362111) + -0.55536190*((tmean - 10.6678425) / 5.14823079)*((prcpTempCorr - -0.02007952) / 0.40677333) + -0.37720980*((clay - 17.45502795) / 8.23327615)*((AWHC - 14.91029339) / 5.4856826))))))
 preds_future2_byHand <- preds_future2_byHand %>% 
   mutate(pred_interp = approxfun_forest(pred)) %>% 
-  mutate(pred_interp = replace(pred_interp, list = pred < 0.136147, 0)) %>% 
+  #mutate(pred_interp = replace(pred_interp, list = pred < 0.136147, 0)) %>% 
    mutate(pred_binary = pred_interp,
     pred_binary = replace(pred_binary, pred_binary > 0.1, 1), # now, make the interpolated continuous model predictions binary
          pred_binary = replace(pred_binary, pred_binary <= 0.1, 0)) 
@@ -411,8 +414,8 @@ plotObs <- preds_byHand %>%
   #slice_sample(n = 5e4) %>%
   terra::vect(#geom = c("Lon", "Lat")
     ) %>% 
-  terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
+  terra::set.crs(crs(test_rastTemp)) %>% 
+  terra::rasterize(y = test_rastTemp, 
                    field = "pred_binary", 
                    fun = mean, na.rm = TRUE) 
 
@@ -425,19 +428,23 @@ plotObs_2 <- plotObs %>%
        )
 
 map_ecoRegion_current <- ggplot() +
-  geom_spatraster(data = plotObs_2, maxcell = 50000000) + 
-  #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
+  geom_raster(data = plotObs_2, aes(x = x, 
+                   y = y, 
+                   fill = as.character(mean)), maxcell = 50000000 ) + 
   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
-labs(title = c("Forest classification model predictions using 
-                    contemporary dayMet data (from 2016)"),
-     subtitle = c("Values are the average binary predictions within each 8km x 8 km grid cell")) +
-  scale_fill_gradient2(low = "brown",
-                       mid = "wheat" ,
-                       high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey",
-                       labels = c("grassShrub", "", "", "", "forest")) + 
+labs(title = c("Forest classification model predictions \nusing contemporary dayMet data \n(from 2023)"),
+     subtitle = c("Values are the average binary predictions \nwithin each 1 km x 1 km grid cell"), x = "", y = ""
+     ) +
+  scale_fill_manual(name = "", 
+                     values = c("wheat", "darkgreen"), 
+                     labels = c("Non-Forest", "Forest"),
+                    na.translate = FALSE) +
   xlim(st_bbox(plotObs_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_2)[c(2,4)])
+  ylim(st_bbox(plotObs_2)[c(2,4)]) +
+  theme(axis.text = element_blank(),
+                   strip.text = element_text(size = 15),
+                   title = element_text(size = 18),
+                   axis.ticks = element_blank())
 
 # for future v1
 plotObs_future1 <- preds_future1_byHand %>% 
@@ -445,7 +452,7 @@ plotObs_future1 <- preds_future1_byHand %>%
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
   terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
+  terra::rasterize(y = test_rastTemp, 
                    field = "pred_binary", 
                    fun = mean, na.rm = TRUE)  
     
@@ -457,19 +464,23 @@ plotObs_future1_2 <- plotObs_future1 %>%
        )
 
 map_ecoRegion_future1 <- ggplot() +
-  geom_spatraster(data = plotObs_future1_2, maxcell = 50000000) + 
-  #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_future1_2)),fill=NA ) +
-labs(title = paste0("Forest classification predictions using future 
-climate data from the BNU-ESM model"),
-     subtitle = c("Values are the average binary predictions within each 8km x 8 km grid cell")) +
-  scale_fill_gradient2(low = "brown",
-                       mid = "wheat" ,
-                       high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey",
-                       labels = c("grassShrub", "", "", "", "forest")) + 
-  xlim(st_bbox(plotObs_future1_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_future1_2)[c(2,4)])
+  geom_raster(data = plotObs_future1_2, aes(x = x, 
+                   y = y, 
+                   fill = as.character(mean)), maxcell = 50000000 ) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = c("Forest classification predictions \nusing future climate data from the \nBNU-ESM model"),
+     subtitle = c("Values are the average binary predictions \nwithin each 1 km x 1 km grid cell"), x = "", y = ""
+     ) +
+  scale_fill_manual(name = "", 
+                     values = c("wheat", "darkgreen"), 
+                     labels = c("Non-Forest", "Forest"),
+                    na.translate = FALSE) +
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)]) +
+  theme(axis.text = element_blank(),
+                   strip.text = element_text(size = 15),
+                   title = element_text(size = 18),
+                   axis.ticks = element_blank())
 
 # for future v2
 plotObs_future2 <- preds_future2_byHand %>% 
@@ -477,7 +488,7 @@ plotObs_future2 <- preds_future2_byHand %>%
   #slice_sample(n = 5e4) %>%
   terra::vect(geom = c("x", "y")) %>% 
   terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
+  terra::rasterize(y = test_rastTemp, 
                    field = "pred_binary", 
                    fun = mean, na.rm = TRUE)
 
@@ -488,205 +499,211 @@ plotObs_future2_2 <- plotObs_future2 %>%
        )
 
 map_ecoRegion_future2 <- ggplot() +
-  geom_spatraster(data = plotObs_future2_2, maxcell = 50000000) + 
- # geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_future2_2)),fill=NA ) +
-labs(title = paste0("Forest classification predictions using future 
-climate data from the IPSL-CM5A-MR model")) +
-  scale_fill_gradient2(low = "brown",
-                       mid = "wheat" ,
-                       high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey",
-                       labels = c("grassShrub", "0.25", "0.50", "0.75", "forest")) + 
-  xlim(st_bbox(plotObs_future2_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_future2_2)[c(2,4)])
+  geom_raster(data = plotObs_future2_2, aes(x = x, 
+                   y = y, 
+                   fill = as.character(mean)), maxcell = 50000000 ) + 
+  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
+labs(title = c("Forest classification predictions \nusing future climate data from the \nIPSL-CM5A-MR model"),
+     subtitle = c("Values are the average binary predictions \nwithin each 1 km x 1 km grid cell"), x = "", y = ""
+     ) +
+  scale_fill_manual(name = "", 
+                     values = c("wheat", "darkgreen"), 
+                     labels = c("Non-Forest", "Forest"),
+                    na.translate = FALSE) +
+  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
+  ylim(st_bbox(plotObs_2)[c(2,4)]) +
+  theme(axis.text = element_blank(),
+                   strip.text = element_text(size = 15),
+                   title = element_text(size = 18),
+                   axis.ticks = element_blank())
 
 ## Plot the maps together
-  ggarrange(map_ecoRegion_current, map_ecoRegion_future1, map_ecoRegion_future2, nrow = 1) %>% 
-  annotate_figure(fig.lab = "Model Predictions of Forest Classification with Contemporary and Forecasted Climate Data", fig.lab.size = 20, 
-                  bottom = text_grob("Note: Pink lines show the boundaries of contemporary grass/shrub and forest ecoregions, based on aggregated, EPA level 1 ecoregions"))
+  ggarrange(map_ecoRegion_current, map_ecoRegion_future1, map_ecoRegion_future2, nrow = 1) #%>% 
+  #annotate_figure(fig.lab = "Model Predictions of Forest Classification with Contemporary and Forecasted Climate Data", fig.lab.size = 20, 
+                 # )
 ```
  
-We used the binary predictions of forest occurrence shown above to identify the data we used to fit the 'ecoregion-level' cover models, but we also want to use the continuous predictions of forest probability to scale the cover model predictions to make them CONUS-wide. Because we use a "custom" threshold to convert the continuous probability predictions from the binomial model to binary classifications, we also need to scale the continuous predictions according to this custom threshold. We do this by performing linear interpolation of the continuous probability values above and below the threshold value, the results of which are shown below using both contemporary and forecasted climate data. We also incorporated a calibration step so that the model predicts locations that are completely unforested (P(forest) = 0) at the same rate as we observe unforested locations based on RAP data.
-```{r fig.width = 16, fig.height = 4, message = FALSE}
-## interpolation happened above 
-## Plot predictions with contemporary data
-# make into a raster
-plotObs <- preds_byHand %>% 
-         #drop_na(paste(response)) %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect() %>% 
-  terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "pred_interp", 
-                   fun = mean, na.rm = TRUE) 
+<!-- We used the binary predictions of forest occurrence shown above to identify the data we used to fit the 'ecoregion-level' cover models, but we also want to use the continuous predictions of forest probability to scale the cover model predictions to make them CONUS-wide. Because we use a "custom" threshold to convert the continuous probability predictions from the binomial model to binary classifications, we also need to scale the continuous predictions according to this custom threshold. We do this by performing linear interpolation of the continuous probability values above and below the threshold value, the results of which are shown below using both contemporary and forecasted climate data. We also incorporated a calibration step so that the model predicts locations that are completely unforested (P(forest) = 0) at the same rate as we observe unforested locations based on RAP data. -->
+<!-- ```{r fig.width = 16, fig.height = 4, message = FALSE} -->
+<!-- ## interpolation happened above  -->
+<!-- ## Plot predictions with contemporary data -->
+<!-- # make into a raster -->
+<!-- plotObs <- preds_byHand %>%  -->
+<!--          #drop_na(paste(response)) %>%  -->
+<!--   #slice_sample(n = 5e4) %>% -->
+<!--   terra::vect() %>%  -->
+<!--   terra::set.crs(crs(test_rast)) %>%  -->
+<!--   terra::rasterize(y = test_rast,  -->
+<!--                    field = "pred_interp",  -->
+<!--                    fun = mean, na.rm = TRUE)  -->
 
-# get the extent of this particular raster, and crop it accordingly
-tempExt <- crds(plotObs, na.rm = TRUE)
+<!-- # get the extent of this particular raster, and crop it accordingly -->
+<!-- tempExt <- crds(plotObs, na.rm = TRUE) -->
 
-plotObs_2 <- plotObs %>% 
-  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
-           min(tempExt[,2]), max(tempExt[,2])) 
-       )
+<!-- plotObs_2 <- plotObs %>%  -->
+<!--   crop(ext(min(tempExt[,1]), max(tempExt[,1]), -->
+<!--            min(tempExt[,2]), max(tempExt[,2]))  -->
+<!--        ) -->
 
-map_ecoRegion_current <- ggplot() +
-  geom_spatraster(data = plotObs_2, maxcell = 50000000) + 
-  #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
-labs(title = c("Forest probability predictions (interpolated) using 
-                    contemporary dayMet data (from 2023)"),
-     subtitle = c("Values are the continuous predictions within each 8kmx8km grid cell")) +
-  scale_fill_gradient2(low = "brown",
-                       mid = "wheat" ,
-                       high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey",
-                       labels = c("grassShrub", "", "", "", "forest")) + 
-  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_2)[c(2,4)])
-
-
-# for future v1
-plotObs_future1 <- preds_future1_byHand %>% 
-         #drop_na(paste(response)) %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("x", "y")) %>% 
-  terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "pred_interp", 
-                   fun = mean, na.rm = TRUE)  
-    
-  
-# get the extent of this particular raster, and crop it accordingly
-
-plotObs_future1_2 <- plotObs_future1 %>% 
-  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
-           min(tempExt[,2]), max(tempExt[,2])) 
-       )
-
-map_ecoRegion_future1 <- ggplot() +
-  geom_spatraster(data = plotObs_future1_2, maxcell = 50000000) + 
-  #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_future1_2)),fill=NA ) +
-labs(title = paste0("Forest probability predictions (interpolated) using future 
-climate data from the BNU-ESM model"),
-     subtitle = c("Values are the continuous predictions within each 8kmx8km grid cell")) +
-  scale_fill_gradient2(low = "brown",
-                       mid = "wheat" ,
-                       high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey",
-                       labels = c("grassShrub", "", "", "", "forest")) + 
-  xlim(st_bbox(plotObs_future1_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_future1_2)[c(2,4)])
-
-# for future v2
-plotObs_future2 <- preds_future2_byHand %>% 
-         #drop_na(paste(response)) %>% 
-  #slice_sample(n = 5e4) %>%
-  terra::vect(geom = c("x", "y")) %>% 
-  terra::set.crs(crs(test_rast)) %>% 
-  terra::rasterize(y = test_rast, 
-                   field = "pred_interp", 
-                   fun = mean, na.rm = TRUE)  
-    
-# get the extent of this particular raster, and crop it accordingly
-plotObs_future2_2 <- plotObs_future2 %>% 
-  crop(ext(min(tempExt[,1]), max(tempExt[,1]),
-           min(tempExt[,2]), max(tempExt[,2])) 
-       )
-
-map_ecoRegion_future2 <- ggplot() +
-  geom_spatraster(data = plotObs_future2_2, maxcell = 50000000) + 
-  #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_future2_2)),fill=NA ) +
-labs(title = paste0("Forest probability predictions (interpolated) using future 
-climate data from the IPSL-CM5A-MR model"),
-     subtitle = c("Values are the continuous predictions within each 8kmx8km grid cell")) +
-  scale_fill_gradient2(low = "brown",
-                       mid = "wheat" ,
-                       high = "darkgreen" , 
-                       midpoint = 0, limits = c(0,1),  na.value = "lightgrey",
-                       labels = c("grassShrub", "0.25", "0.50", "0.75", "forest")) + 
-  xlim(st_bbox(plotObs_future2_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_future2_2)[c(2,4)])
-
-## Plot the maps together
-  ggarrange(map_ecoRegion_current, map_ecoRegion_future1, map_ecoRegion_future2, nrow = 1) %>% 
-  annotate_figure(fig.lab = "Model Predictions of Continuous Forest Probability - interpolated- with Contemporary and Forecasted Climate Data", fig.lab.size = 20, 
-                  bottom = text_grob("Note: Pink lines show the boundaries of contemporary grass/shrub and forest ecoregions, based on aggregated, EPA level 1 ecoregions"))
-```
-
-Below is a map of locations that the model predicts to have a continuous probability of forest that is equal to zero: 
-```{r fig.width = 16, fig.height = 4, message = FALSE}
-## interpolation happened above 
-## Plot predictions with contemporary data
-plotObs_2_zero <- plotObs_2
-plotObs_2_zero[plotObs_2_zero$mean != 0] <- NA
-
-map_ecoRegion_current_zero <- ggplot() +
-  geom_spatraster(data = plotObs_2_zero, maxcell = 50000000) + 
-  #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) +
-labs(title = c("Locations where the forest probability predictions (interpolated) 
-using 
-contemporary dayMet data (from 2023) are 0")) +
-  scale_fill_gradient2(low = "purple",
-                       mid = "purple" ,
-                       high = "purple" , limits = c(0,0),  na.value = "lightgrey") + 
-  xlim(st_bbox(plotObs_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_2)[c(2,4)])
+<!-- map_ecoRegion_current <- ggplot() + -->
+<!--   geom_spatraster(data = plotObs_2, maxcell = 50000000) +  -->
+<!--   #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) + -->
+<!--   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) + -->
+<!-- labs(title = c("Forest probability predictions (interpolated) using  -->
+<!--                     contemporary dayMet data (from 2023)"), -->
+<!--      subtitle = c("Values are the continuous predictions within each 8kmx8km grid cell")) + -->
+<!--   scale_fill_gradient2(low = "brown", -->
+<!--                        mid = "wheat" , -->
+<!--                        high = "darkgreen" ,  -->
+<!--                        midpoint = 0, limits = c(0,1),  na.value = "lightgrey", -->
+<!--                        labels = c("grassShrub", "", "", "", "forest")) +  -->
+<!--   xlim(st_bbox(plotObs_2)[c(1,3)]) +  -->
+<!--   ylim(st_bbox(plotObs_2)[c(2,4)]) -->
 
 
-# for future v1
+<!-- # for future v1 -->
+<!-- plotObs_future1 <- preds_future1_byHand %>%  -->
+<!--          #drop_na(paste(response)) %>%  -->
+<!--   #slice_sample(n = 5e4) %>% -->
+<!--   terra::vect(geom = c("x", "y")) %>%  -->
+<!--   terra::set.crs(crs(test_rast)) %>%  -->
+<!--   terra::rasterize(y = test_rast,  -->
+<!--                    field = "pred_interp",  -->
+<!--                    fun = mean, na.rm = TRUE)   -->
 
-plotObs_future1_2_zero <- plotObs_future1_2
-plotObs_future1_2_zero[plotObs_future1_2_zero$mean != 0] <- NA
 
-map_ecoRegion_future1_zero <- ggplot() +
-  geom_spatraster(data = plotObs_future1_2_zero, maxcell = 50000000) + 
-  #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_future1_2)),fill=NA ) +
-  labs(title = c("Locations where the forest probability predictions (interpolated) 
-using 
-future climate data from the BNU-ESM model are 0")) +
-  scale_fill_gradient2(low = "purple",
-                       mid = "purple" ,
-                       high = "purple" , limits = c(0,0),  na.value = "lightgrey") + 
-  xlim(st_bbox(plotObs_future1_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_future1_2)[c(2,4)])
+<!-- # get the extent of this particular raster, and crop it accordingly -->
 
-# for future v2
+<!-- plotObs_future1_2 <- plotObs_future1 %>%  -->
+<!--   crop(ext(min(tempExt[,1]), max(tempExt[,1]), -->
+<!--            min(tempExt[,2]), max(tempExt[,2]))  -->
+<!--        ) -->
 
-plotObs_future2_2_zero <- plotObs_future2_2
-plotObs_future2_2_zero[plotObs_future2_2_zero$mean != 0] <- NA
+<!-- map_ecoRegion_future1 <- ggplot() + -->
+<!--   geom_spatraster(data = plotObs_future1_2, maxcell = 50000000) +  -->
+<!--   #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) + -->
+<!--   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_future1_2)),fill=NA ) + -->
+<!-- labs(title = paste0("Forest probability predictions (interpolated) using future  -->
+<!-- climate data from the BNU-ESM model"), -->
+<!--      subtitle = c("Values are the continuous predictions within each 8kmx8km grid cell")) + -->
+<!--   scale_fill_gradient2(low = "brown", -->
+<!--                        mid = "wheat" , -->
+<!--                        high = "darkgreen" ,  -->
+<!--                        midpoint = 0, limits = c(0,1),  na.value = "lightgrey", -->
+<!--                        labels = c("grassShrub", "", "", "", "forest")) +  -->
+<!--   xlim(st_bbox(plotObs_future1_2)[c(1,3)]) +  -->
+<!--   ylim(st_bbox(plotObs_future1_2)[c(2,4)]) -->
 
-map_ecoRegion_future2_zero <- ggplot() +
-  geom_spatraster(data = plotObs_future2_2_zero, maxcell = 50000000) + 
-  #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) +
-  geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_future2_2)),fill=NA ) +
-labs(title = paste0("Forest probability predictions (interpolated) using future 
-climate data from the IPSL-CM5A-MR model")) +
-  labs(title = c("Locations where the forest probability predictions (interpolated) 
-future 
-climate data from the IPSL-CM5A-MR model are 0")) +
-  scale_fill_gradient2(low = "purple",
-                       mid = "purple" ,
-                       high = "purple" , limits = c(0,0),  na.value = "lightgrey") + 
-  xlim(st_bbox(plotObs_future2_2)[c(1,3)]) + 
-  ylim(st_bbox(plotObs_future2_2)[c(2,4)])
+<!-- # for future v2 -->
+<!-- plotObs_future2 <- preds_future2_byHand %>%  -->
+<!--          #drop_na(paste(response)) %>%  -->
+<!--   #slice_sample(n = 5e4) %>% -->
+<!--   terra::vect(geom = c("x", "y")) %>%  -->
+<!--   terra::set.crs(crs(test_rast)) %>%  -->
+<!--   terra::rasterize(y = test_rast,  -->
+<!--                    field = "pred_interp",  -->
+<!--                    fun = mean, na.rm = TRUE)   -->
 
-## Plot the maps together
-  ggarrange(map_ecoRegion_current_zero, map_ecoRegion_future1_zero, map_ecoRegion_future2_zero, nrow = 1) %>% 
-  annotate_figure(fig.lab = "Model Predictions of Continuous P(Forest) == 0 - interpolated- with Contemporary and Forecasted Climate Data", fig.lab.size = 20, 
-                  bottom = text_grob("Note: Pink lines show the boundaries of contemporary grass/shrub and forest ecoregions, based on aggregated, EPA level 1 ecoregions"))
-```
+<!-- # get the extent of this particular raster, and crop it accordingly -->
+<!-- plotObs_future2_2 <- plotObs_future2 %>%  -->
+<!--   crop(ext(min(tempExt[,1]), max(tempExt[,1]), -->
+<!--            min(tempExt[,2]), max(tempExt[,2]))  -->
+<!--        ) -->
 
- 
+<!-- map_ecoRegion_future2 <- ggplot() + -->
+<!--   geom_spatraster(data = plotObs_future2_2, maxcell = 50000000) +  -->
+<!--   #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) + -->
+<!--   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_future2_2)),fill=NA ) + -->
+<!-- labs(title = paste0("Forest probability predictions (interpolated) using future  -->
+<!-- climate data from the IPSL-CM5A-MR model"), -->
+<!--      subtitle = c("Values are the continuous predictions within each 8kmx8km grid cell")) + -->
+<!--   scale_fill_gradient2(low = "brown", -->
+<!--                        mid = "wheat" , -->
+<!--                        high = "darkgreen" ,  -->
+<!--                        midpoint = 0, limits = c(0,1),  na.value = "lightgrey", -->
+<!--                        labels = c("grassShrub", "0.25", "0.50", "0.75", "forest")) +  -->
+<!--   xlim(st_bbox(plotObs_future2_2)[c(1,3)]) +  -->
+<!--   ylim(st_bbox(plotObs_future2_2)[c(2,4)]) -->
+
+<!-- ## Plot the maps together -->
+<!--   ggarrange(map_ecoRegion_current, map_ecoRegion_future1, map_ecoRegion_future2, nrow = 1) %>%  -->
+<!--   annotate_figure(fig.lab = "Model Predictions of Continuous Forest Probability - interpolated- with Contemporary and Forecasted Climate Data", fig.lab.size = 20,  -->
+<!--                   bottom = text_grob("Note: Pink lines show the boundaries of contemporary grass/shrub and forest ecoregions, based on aggregated, EPA level 1 ecoregions")) -->
+<!-- ``` -->
+
+<!-- Below is a map of locations that the model predicts to have a continuous probability of forest that is equal to zero:  -->
+<!-- ```{r fig.width = 16, fig.height = 4, message = FALSE} -->
+<!-- ## interpolation happened above  -->
+<!-- ## Plot predictions with contemporary data -->
+<!-- plotObs_2_zero <- plotObs_2 -->
+<!-- plotObs_2_zero[plotObs_2_zero$mean != 0] <- NA -->
+
+<!-- map_ecoRegion_current_zero <- ggplot() + -->
+<!--   geom_spatraster(data = plotObs_2_zero, maxcell = 50000000) +  -->
+<!--   #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) + -->
+<!--   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_2)),fill=NA ) + -->
+<!-- labs(title = c("Locations where the forest probability predictions (interpolated)  -->
+<!-- using  -->
+<!-- contemporary dayMet data (from 2023) are 0")) + -->
+<!--   scale_fill_gradient2(low = "purple", -->
+<!--                        mid = "purple" , -->
+<!--                        high = "purple" , limits = c(0,0),  na.value = "lightgrey") +  -->
+<!--   xlim(st_bbox(plotObs_2)[c(1,3)]) +  -->
+<!--   ylim(st_bbox(plotObs_2)[c(2,4)]) -->
+
+
+<!-- # for future v1 -->
+
+<!-- plotObs_future1_2_zero <- plotObs_future1_2 -->
+<!-- plotObs_future1_2_zero[plotObs_future1_2_zero$mean != 0] <- NA -->
+
+<!-- map_ecoRegion_future1_zero <- ggplot() + -->
+<!--   geom_spatraster(data = plotObs_future1_2_zero, maxcell = 50000000) +  -->
+<!--   #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) + -->
+<!--   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_future1_2)),fill=NA ) + -->
+<!--   labs(title = c("Locations where the forest probability predictions (interpolated)  -->
+<!-- using  -->
+<!-- future climate data from the BNU-ESM model are 0")) + -->
+<!--   scale_fill_gradient2(low = "purple", -->
+<!--                        mid = "purple" , -->
+<!--                        high = "purple" , limits = c(0,0),  na.value = "lightgrey") +  -->
+<!--   xlim(st_bbox(plotObs_future1_2)[c(1,3)]) +  -->
+<!--   ylim(st_bbox(plotObs_future1_2)[c(2,4)]) -->
+
+<!-- # for future v2 -->
+
+<!-- plotObs_future2_2_zero <- plotObs_future2_2 -->
+<!-- plotObs_future2_2_zero[plotObs_future2_2_zero$mean != 0] <- NA -->
+
+<!-- map_ecoRegion_future2_zero <- ggplot() + -->
+<!--   geom_spatraster(data = plotObs_future2_2_zero, maxcell = 50000000) +  -->
+<!--   #geom_sf(data = mapRegions, fill = NA, col = "orchid", lwd = .5) + -->
+<!--   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% st_crop(st_bbox(plotObs_future2_2)),fill=NA ) + -->
+<!-- labs(title = paste0("Forest probability predictions (interpolated) using future  -->
+<!-- climate data from the IPSL-CM5A-MR model")) + -->
+<!--   labs(title = c("Locations where the forest probability predictions (interpolated)  -->
+<!-- future  -->
+<!-- climate data from the IPSL-CM5A-MR model are 0")) + -->
+<!--   scale_fill_gradient2(low = "purple", -->
+<!--                        mid = "purple" , -->
+<!--                        high = "purple" , limits = c(0,0),  na.value = "lightgrey") +  -->
+<!--   xlim(st_bbox(plotObs_future2_2)[c(1,3)]) +  -->
+<!--   ylim(st_bbox(plotObs_future2_2)[c(2,4)]) -->
+
+<!-- ## Plot the maps together -->
+<!--   ggarrange(map_ecoRegion_current_zero, map_ecoRegion_future1_zero, map_ecoRegion_future2_zero, nrow = 1) %>%  -->
+<!--   annotate_figure(fig.lab = "Model Predictions of Continuous P(Forest) == 0 - interpolated- with Contemporary and Forecasted Climate Data", fig.lab.size = 20,  -->
+<!--                   bottom = text_grob("Note: Pink lines show the boundaries of contemporary grass/shrub and forest ecoregions, based on aggregated, EPA level 1 ecoregions")) -->
+<!-- ``` -->
+
+
  # Now, we generate CONUS-wide model predictions of *absolute* cover
 
 First, we use our models to predict absolute cover at the ecoregion or CONUS scale, depending on the functional type, using both contemporary climate and weather data, and then with future climate and weather data downscaled from the two GCMs. For some functional types we were able to fit a model that worked well across all of CONUS, while for other types, models performed better when we fit them to a single ecoregion at a time. Below is a list of the models we use: 
 
 * total herbaceous cover in CONUS
-* total tree cover in the forest ecoregion
+* total tree cover in forested locations
+* total tree cover in the un-forested locations
 * total shrub cover in CONUS
 * total bare ground cover in CONUS
 * The proportion of total tree cover that is needle-leaved in CONUS
@@ -695,7 +712,7 @@ First, we use our models to predict absolute cover at the ecoregion or CONUS sca
 * The proportion of total herbaceous cover that is C3 grass in CONUS
 * The proportion of total herbaceous cover that is C4 grass in CONUS
 
-*Note: These model predictinos do not incorporate input values for weather anomalies, so if a model includes a coefficient for a weather anomaly, that term is zeroed out in the predictions that are shown. This is for two reasons: First, we are interested in the overall predictions of the models, rather than in their variability from year to year (although we explore this in a subsequent section of this document). Second, we do not have weather anomaly data for all of CONUS on the dayMet scale due to computational constraints. 
+*Note: These model predictions do not incorporate input values for weather anomalies, so if a model includes a coefficient for a weather anomaly, that term is zeroed out in the predictions that are shown. This is for two reasons: First, we are interested in the overall predictions of the models, rather than in their variability from year to year (although we explore this in a subsequent section of this document). Second, we do not have weather anomaly data for all of CONUS on the dayMet scale due to computational constraints. 
 *Note 2: Complete equations for each model used here can be found in the document "03_CompareModels.html"
 ```{r}
 # Total herbaceous cover: 
@@ -707,12 +724,12 @@ totalHerb_CONUS <-  readRDS("./models/betaLASSO/TotalHerbaceousCover_CONUS_noTLP
 
 # Total tree cover: 
 # Grass/shrub: best lambda model 
-# totalTree_GS <- # include anomalies option
-#   #readRDS("./models/betaLASSO/TotalTreeCover_shrubGrass_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
+totalTree_GS <- # include anomalies option
+  readRDS("./models/betaLASSO/TotalTreeCover_transformed_noTrees_noTLP_FALSE_removeAnomaliesTRUE_trimAnom_bestLambdaGLM_observeDatForestClassification.rds")
 #   #remove anomalies option #
 #   readRDS("./models/betaLASSO/TotalTreeCover_trees_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
 # Forest: best lambda model 
-totalTree_F <- readRDS("./models/betaLASSO/TotalTreeCover_trees_noTLP_FALSE_removeAnomaliesTRUE_trimAnom_oneSELambdaGLM.rds")
+totalTree_F <- readRDS("./models/betaLASSO/TotalTreeCover_trees_noTLP_FALSE_removeAnomaliesTRUE_trimAnom_oneSELambdaGLM_observeDatForestClassification.rds")
   
 # Bare ground: 
 # CONUS - 1SE lambda model
@@ -759,11 +776,16 @@ totalHerb_CONUS_predsContemp <- makePredictions(predictionDF = climDatPred,
 totalTree_F_predsContemp<- makePredictions(predictionDF = climDatPred,
                                             modelObject = totalTree_F , scale = FALSE) %>% 
   rename(absTotalTree_F = "modelPreds")
-totalTree_GS_predsContemp <- climDatPred %>% 
-  mutate(absTotalTree_GS = 0)
-  # makePredictions(predictionDF = climDatPred,
-  #                                           modelObject = totalTree_GS) %>% 
-  # rename(absTotalTree_GS = "modelPreds")
+
+totalTree_GS_predsContemp <- makePredictions(predictionDF = climDatPred,
+                                             modelObject = totalTree_GS, scale = FALSE) %>% 
+   rename(absTotalTree_GS = "modelPreds")
+# back-transform the total tree in GS predictions to be between 0 and 0.1, and make all values below the cutoff 0
+# read in zero cutoff
+zeroCutoff <- readRDS("./models/TotalTreeCoverInNonForest_zeroCutoff.rds")
+totalTree_GS_predsContemp <- totalTree_GS_predsContemp %>% 
+  mutate(absTotalTree_GS = absTotalTree_GS/10) %>% 
+  mutate(absTotalTree_GS = replace(absTotalTree_GS, absTotalTree_GS <=zeroCutoff, 0 ))
 
 bareGround_CONUS_predsContemp<- makePredictions(predictionDF = climDatPred,
                                             modelObject = bareGround_CONUS, scale = FALSE) %>% 
@@ -836,11 +858,14 @@ totalHerb_CONUS_predsFuture1 <- makePredictions(predictionDF = forecastClimSoils
 totalTree_F_predsFuture1<- makePredictions(predictionDF = forecastClimSoilsDatPred_1,
                                             modelObject = totalTree_F, scale = FALSE) %>% 
   rename(absTotalTree_F = "modelPreds")
-totalTree_GS_predsFuture1 <- forecastClimSoilsDatPred_1 %>% 
-  mutate(absTotalTree_GS = 0)
-  # makePredictions(predictionDF = forecastClimSoilsDatPred_1,
-  #                                           modelObject = totalTree_GS) %>% 
-  # rename(absTotalTree_GS = "modelPreds")
+
+totalTree_GS_predsFuture1 <- makePredictions(predictionDF = forecastClimSoilsDatPred_1,
+                                             modelObject = totalTree_GS, scale = FALSE) %>% 
+   rename(absTotalTree_GS = "modelPreds")
+# back-transform the total tree in GS predictions to be between 0 and 0.1, and make all values below the cutoff 0
+totalTree_GS_predsFuture1 <- totalTree_GS_predsFuture1 %>% 
+  mutate(absTotalTree_GS = absTotalTree_GS/10) %>% 
+  mutate(absTotalTree_GS = replace(absTotalTree_GS, absTotalTree_GS <=zeroCutoff, 0 ))
 
 bareGround_CONUS_predsFuture1<- makePredictions(predictionDF = forecastClimSoilsDatPred_1,
                                             modelObject = bareGround_CONUS, scale = FALSE) %>% 
@@ -910,11 +935,14 @@ totalHerb_CONUS_predsFuture2 <- makePredictions(predictionDF = forecastClimSoils
 totalTree_F_predsFuture2<- makePredictions(predictionDF = forecastClimSoilsDatPred_2,
                                             modelObject = totalTree_F, scale = FALSE) %>% 
   rename(absTotalTree_F = "modelPreds")
-totalTree_GS_predsFuture2 <- forecastClimSoilsDatPred_2 %>% 
-  mutate(absTotalTree_GS = 0)
-  # makePredictions(predictionDF = forecastClimSoilsDatPred_2,
-  #                                           modelObject = totalTree_GS) %>% 
-  # rename(absTotalTree_GS = "modelPreds")
+
+totalTree_GS_predsFuture2 <- makePredictions(predictionDF = forecastClimSoilsDatPred_2,
+                                             modelObject = totalTree_GS, scale = FALSE) %>% 
+   rename(absTotalTree_GS = "modelPreds")
+# back-transform the total tree in GS predictions to be between 0 and 0.1, and make all values below the cutoff 0
+totalTree_GS_predsFuture2 <- totalTree_GS_predsFuture2 %>% 
+  mutate(absTotalTree_GS = absTotalTree_GS/10) %>% 
+  mutate(absTotalTree_GS = replace(absTotalTree_GS, absTotalTree_GS <=zeroCutoff, 0 ))
 
 bareGround_CONUS_predsFuture2<- makePredictions(predictionDF = forecastClimSoilsDatPred_2,
                                             modelObject = bareGround_CONUS, scale = FALSE) %>% 
@@ -978,187 +1006,59 @@ Once we generate predictions using each of these models, we transform the ecoreg
 We retain the ecoregion-level predictions for later use in calculating CONUS-wide predictions of 'level 2' functional types 
 
 e.g. absolute total tree cover in CONUS = (absolute total tree cover in grass/shrub * P(grass/shrub)) + (absolute total tree cover in forest * P(forest))
-```{r}
-## for contemporary data
-# calculate GS and F forest cover by region, since we're using continuous probability of grassland * tree mod for non-forest, then binary probability * tree model for forest
-contempPreds <- contempPreds %>% 
-  mutate(absTotalTree_GS_scaled = prob_Forest_c * absTotalTree_F,
-         absTotalTree_F_scaled = prob_Forest_b * absTotalTree_F) %>% 
-  mutate(absTotalTree_GS_scaled = replace(absTotalTree_GS_scaled, prob_Forest_b == 1, 0),
-         absTotalTree_F_scaled = replace(absTotalTree_F_scaled, prob_Forest_b == 0, 0))
-
-contempPreds <- contempPreds %>% 
-  mutate(#absTotalHerb_CONUS = (prob_grassShrub_c * absTotalHerb_GS) + (prob_Forest_c * absTotalHerb_F),
-         absTotalTree_CONUS = absTotalTree_GS_scaled + absTotalTree_F_scaled#(prob_grassShrub_c * absTotalTree_GS) + (prob_Forest_b * absTotalTree_F)
-         )
-
-## for first climate model
-predsFuture1 <-  predsFuture1 %>% 
-  mutate(absTotalTree_GS_scaled = prob_Forest_c * absTotalTree_F,
-         absTotalTree_F_scaled = prob_Forest_b * absTotalTree_F) %>% 
-  mutate(absTotalTree_GS_scaled = replace(absTotalTree_GS_scaled, prob_Forest_b == 1, 0),
-         absTotalTree_F_scaled = replace(absTotalTree_F_scaled, prob_Forest_b == 0, 0))
-predsFuture1 <- predsFuture1 %>% 
-  mutate(#absTotalHerb_CONUS = (prob_grassShrub_c * absTotalHerb_GS) + (prob_Forest_c * absTotalHerb_F),
-         absTotalTree_CONUS = absTotalTree_GS_scaled + absTotalTree_F_scaled#(prob_grassShrub_c * absTotalTree_GS) + (prob_Forest_b * absTotalTree_F)
-         )
-
-## for second climate model 
-predsFuture2 <- predsFuture2 %>% 
-  mutate(absTotalTree_GS_scaled = prob_Forest_c * absTotalTree_F,
-         absTotalTree_F_scaled = prob_Forest_b * absTotalTree_F) %>% 
-  mutate(absTotalTree_GS_scaled = replace(absTotalTree_GS_scaled, prob_Forest_b == 1, 0),
-         absTotalTree_F_scaled = replace(absTotalTree_F_scaled, prob_Forest_b == 0, 0))
-predsFuture2 <- predsFuture2 %>% 
-  mutate(#absTotalHerb_CONUS = (prob_grassShrub_c * absTotalHerb_GS) + (prob_Forest_c * absTotalHerb_F),
-         absTotalTree_CONUS = absTotalTree_GS_scaled + absTotalTree_F_scaled#(prob_grassShrub_c * absTotalTree_GS) + (prob_Forest_b * absTotalTree_F)
-         )
-```
 
 Then, for those models that are predicting proportions, we scale all of the relevant predictions so they sum to one. If models are ecoregion-level, we do this process at the ecoregion scale. 
 (e.g. Model predictions of the proportion of total herbaceous cover that is forbs, the proportion of total herbaceous cover that is C3 grass, and the proportion of total herbaceous cover that is C4 grass should sum to 1, so: scaled proportion of total herbaceous cover that is forbs = proportion of total herbaceous cover that is forbs/(proportion of total herbaceous cover that is forbs + proportion of total herbaceous cover that is C3 grass + proportion of total herbaceous cover that is C4 grass))
+
+Then, we convert these predicted proportions into predictions of absolute cover. For the functional types that are predicted at the ecoregion level, we do this process for each ecoregion. 
+(e.g.  absolute cover of needle-leaved trees in grass/shrub = scaled proportion of total tree cover that is needle-leaved in grass/shrub * absolute cover of total treesin grass/shrub)
+
+Finally, for those functional types that are predicted at the ecoregion level, we scale them to be CONUS-wide.
+
 ```{r}
-##AES
-contempPreds <- contempPreds %>% 
-    mutate(#percBLTree_scaled_GS = NA, #percBLTree_GS/(percBLTree_GS + percNLTree_GS),
-         #percNLTree_scaled_GS = NA, #percNLTree_GS/(percBLTree_GS + percNLTree_GS),
-         #percBLTree_scaled_F = percBLTree_F/(percBLTree_F + percNLTree_F),
-         #percNLTree_scaled_F = percNLTree_F/(percBLTree_F + percNLTree_F),
-        percBLTree_scaled_CONUS = percBLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
+#### write a function for scaling the predictions
+makePredsCONUSwide <- function(dat) {
+  # Step 1: calculate GS and F forest cover by region 
+  dat2 <- dat %>% 
+      mutate(prob_NonForest_b = as.integer(!as.logical(as.integer(prob_Forest_b)))) %>% 
+  mutate(absTotalTree_GS_scaled = prob_NonForest_b * absTotalTree_GS,
+         absTotalTree_F_scaled = prob_Forest_b * absTotalTree_F) %>% 
+    mutate(absTotalTree_CONUS = absTotalTree_GS_scaled + absTotalTree_F_scaled)
+  # Step 2 
+dat2 <- dat2 %>% 
+  mutate(percBLTree_scaled_CONUS = percBLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
           percNLTree_scaled_CONUS = percNLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
       percC3grass_scaled_CONUS = percC3grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
          percC4grass_scaled_CONUS = percC4grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
          percForb_scaled_CONUS = percForb_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS))
 
-predsFuture1 <- predsFuture1  %>% 
-    mutate(#percBLTree_scaled_GS = NA,#percBLTree_GS/(percBLTree_GS + percNLTree_GS),
-         #ercNLTree_scaled_GS = NA,#percNLTree_GS/(percBLTree_GS + percNLTree_GS),
-        percBLTree_scaled_CONUS = percBLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
-          percNLTree_scaled_CONUS = percNLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
-         percC3grass_scaled_CONUS = percC3grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
-         percC4grass_scaled_CONUS = percC4grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
-         percForb_scaled_CONUS = percForb_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS))
-
-predsFuture2 <- predsFuture2  %>% 
-    mutate(#percBLTree_scaled_GS = NA,#percBLTree_GS/(percBLTree_GS + percNLTree_GS),
-         #percNLTree_scaled_GS = NA,#percNLTree_GS/(percBLTree_GS + percNLTree_GS),
-        percBLTree_scaled_CONUS = percBLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
-          percNLTree_scaled_CONUS = percNLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
-         percC3grass_scaled_CONUS = percC3grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
-         percC4grass_scaled_CONUS = percC4grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
-         percForb_scaled_CONUS = percForb_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS))
-```
-
-Then, we convert these predicted proportions into predictions of absolute cover. For the functional types that are predicted at the ecoregion level, we do this process for each ecoregion. 
-(e.g.  absolute cover of needle-leaved trees in grass/shrub = scaled proportion of total tree cover that is needle-leaved in grass/shrub * absolute cover of total treesin grass/shrub)
-```{r}
-## for contemporary data
-contempPreds <- contempPreds %>% 
-    mutate(#absNLTree_GS = NA,#(percNLTree_scaled_GS * absTotalTree_GS), 
-         # absBLTree_GS = NA,#(percBLTree_scaled_GS * absTotalTree_GS), 
-         # absNLTree_F = (percNLTree_scaled_F * absTotalTree_F), 
-         # absBLTree_F = (percBLTree_scaled_F * absTotalTree_F), 
-         absNLTree_CONUS = (percNLTree_scaled_CONUS * absTotalTree_CONUS), 
+# Step 3 
+dat2 <- dat2 %>% 
+    mutate(absNLTree_CONUS = (percNLTree_scaled_CONUS * absTotalTree_CONUS), 
          absBLTree_CONUS = (percBLTree_scaled_CONUS * absTotalTree_CONUS), 
          absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C3 grass isn't ecoregion-level
          absC4grass_CONUS = (percC4grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C4 grass isn't ecoregion-level
          absForb_CONUS = (percForb_scaled_CONUS * absTotalHerb_CONUS) # can use CONUS-wide total herbaceous since forb grass isn't ecoregion-level
   )
 
-## for first climate model
-predsFuture1 <- predsFuture1 %>% 
-    mutate(#absNLTree_GS = NA,#(percNLTree_scaled_GS * absTotalTree_GS), 
-         # absBLTree_GS = NA,#(percBLTree_scaled_GS * absTotalTree_GS), 
-         # absNLTree_F = (percNLTree_scaled_F * absTotalTree_F), 
-         # absBLTree_F = (percBLTree_scaled_F * absTotalTree_F), 
-         absNLTree_CONUS = (percNLTree_scaled_CONUS * absTotalTree_CONUS), 
-         absBLTree_CONUS = (percBLTree_scaled_CONUS * absTotalTree_CONUS), 
-         absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C3 grass isn't ecoregion-level
-         absC4grass_CONUS = (percC4grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C4 grass isn't ecoregion-level
-         absForb_CONUS = (percForb_scaled_CONUS * absTotalHerb_CONUS) # can use CONUS-wide total herbaceous since forb grass isn't ecoregion-level
-  )
+# Step 4 
+dat2 <- dat2 %>% 
+  mutate(absBLTree_CONUS_scaled = absBLTree_CONUS,
+         absNLTree_CONUS_scaled = absNLTree_CONUS) 
 
-## for second climate model 
-predsFuture2 <- predsFuture2 %>% 
-    mutate(#absNLTree_GS = NA,#(percNLTree_scaled_GS * absTotalTree_GS), 
-         # absBLTree_GS = NA,#(percBLTree_scaled_GS * absTotalTree_GS), 
-         # absNLTree_F = (percNLTree_scaled_F * absTotalTree_F), 
-         # absBLTree_F = (percBLTree_scaled_F * absTotalTree_F), 
-         absNLTree_CONUS = (percNLTree_scaled_CONUS * absTotalTree_CONUS), 
-         absBLTree_CONUS = (percBLTree_scaled_CONUS * absTotalTree_CONUS), 
-         absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C3 grass isn't ecoregion-level
-         absC4grass_CONUS = (percC4grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C4 grass isn't ecoregion-level
-         absForb_CONUS = (percForb_scaled_CONUS * absTotalHerb_CONUS) # can use CONUS-wide total herbaceous since forb grass isn't ecoregion-level
-  )
+  return(dat2) 
+}
 
+## for contemporary data 
+contempPreds <- makePredsCONUSwide(contempPreds)
+
+## for future data model 1
+predsFuture1 <- makePredsCONUSwide(predsFuture1)
+
+## for future data model 2
+predsFuture2 <- makePredsCONUSwide(predsFuture2)
 ```
 
-Finally, for those functional types that are predicted at the ecoregion level, we scale them to be CONUS-wide.
-```{r}
-contempPreds <- contempPreds %>% 
-  mutate(absBLTree_CONUS_scaled = absBLTree_CONUS,#prob_Forest_c * absBLTree_F,
-         #absBLTree_F_scaled = prob_Forest_b * absBLTree_F,
-         absNLTree_CONUS_scaled = absNLTree_CONUS#prob_Forest_c * absNLTree_F,
-         #absNLTree_F_scaled = prob_Forest_b * absNLTree_F
-         ) #%>% 
-  # mutate(absBLTree_GS_scaled = replace(absBLTree_GS_scaled, prob_Forest_b == 1, 0),
-  #        absNLTree_GS_scaled = replace(absNLTree_GS_scaled, prob_Forest_b == 1, 0),
-  #        absBLTree_F_scaled = replace(absBLTree_F_scaled, prob_Forest_b == 0, 0),
-  #        absNLTree_F_scaled = replace(absNLTree_F_scaled, prob_Forest_b == 0, 0))
-# contempPreds <- contempPreds %>% 
-#   mutate(absBLTree_CONUS = absBLTree_GS_scaled + absBLTree_F_scaled,
-#          absNLTree_CONUS = absNLTree_GS_scaled + absNLTree_F_scaled#(prob_grassShrub_c * absTotalTree_GS) + (prob_Forest_b * absTotalTree_F)
-#          )
-
-#   mutate(absBLTree_CONUS = (prob_grassShrub * absBLTree_GS) + 
-#            (prob_Forest * 
-#              absBLTree_F),
-#          absNLTree_CONUS = (prob_grassShrub * absNLTree_GS) + 
-#            (prob_Forest * 
-#              absNLTree_F)
-#   )
-
-# ggplot(contempPreds) +
-#  geom_point(aes(x, y, col = absNLTree_F_scaled))
-# ggplot(contempPreds) +
-#  geom_point(aes(x, y, col = absNLTree_GS_scaled))
-# ggplot(contempPreds) +
-#  geom_point(aes(x, y, col = absNLTree_CONUS))
-# ggplot(contempPreds) +
-#  geom_point(aes(x, y, col = absTotalTree_CONUS - (absNLTree_CONUS + absBLTree_CONUS)))
-
-
-predsFuture1 <- predsFuture1 %>% 
-  mutate(absBLTree_CONUS_scaled = absBLTree_CONUS,#prob_Forest_c * absBLTree_F,
-         #absBLTree_F_scaled = prob_Forest_b * absBLTree_F,
-         absNLTree_CONUS_scaled = absNLTree_CONUS#prob_Forest_c * absNLTree_F,
-         #absNLTree_F_scaled = prob_Forest_b * absNLTree_F
-         ) #%>% 
-  # mutate(absBLTree_GS_scaled = replace(absBLTree_GS_scaled, prob_Forest_b == 1, 0),
-  #        absNLTree_GS_scaled = replace(absNLTree_GS_scaled, prob_Forest_b == 1, 0),
-  #        absBLTree_F_scaled = replace(absBLTree_F_scaled, prob_Forest_b == 0, 0),
-  #        absNLTree_F_scaled = replace(absNLTree_F_scaled, prob_Forest_b == 0, 0))
-# predsFuture1 <- predsFuture1 %>% 
-#   mutate(absBLTree_CONUS = absBLTree_GS_scaled + absBLTree_F_scaled,
-#          absNLTree_CONUS = absNLTree_GS_scaled + absNLTree_F_scaled#(prob_grassShrub_c * absTotalTree_GS) + (prob_Forest_b * absTotalTree_F)
-#          )
-
-predsFuture2 <-  predsFuture2 %>% 
-  mutate(absBLTree_CONUS_scaled = absBLTree_CONUS,#prob_Forest_c * absBLTree_F,
-         #absBLTree_F_scaled = prob_Forest_b * absBLTree_F,
-         absNLTree_CONUS_scaled = absNLTree_CONUS#prob_Forest_c * absNLTree_F,
-         #absNLTree_F_scaled = prob_Forest_b * absNLTree_F
-         ) #%>% 
-#   mutate(absBLTree_GS_scaled = replace(absBLTree_GS_scaled, prob_Forest_b == 1, 0),
-#          absNLTree_GS_scaled = replace(absNLTree_GS_scaled, prob_Forest_b == 1, 0),
-#          absBLTree_F_scaled = replace(absBLTree_F_scaled, prob_Forest_b == 0, 0),
-#          absNLTree_F_scaled = replace(absNLTree_F_scaled, prob_Forest_b == 0, 0))
-# predsFuture2 <- predsFuture2 %>% 
-#   mutate(absBLTree_CONUS = absBLTree_GS_scaled + absBLTree_F_scaled,
-#          absNLTree_CONUS = absNLTree_GS_scaled + absNLTree_F_scaled#(prob_grassShrub_c * absTotalTree_GS) + (prob_Forest_b * absTotalTree_F)
-#          )
-
-```
 
 Below are maps of predicted absolute cover for each functional group we modeled, after predictions have been scaled using the process outlined above. 
 These maps show model-predicted cover using contemporary climate and weather data, residuals when comparing these contemporary predictions to observations, and changes in model predictions of cover when predictions are made using simulated future climate and weather data from two GCMs. 
@@ -1186,8 +1086,8 @@ absoluteCoverMaps_contemp <- lapply(responseNames,
                                         # rasterize response 
                                         resp_rast <- contempPreds %>%  
                                           terra::vect() %>% 
-                                          terra::set.crs(crs(test_rast)) %>% 
-                                          terra::rasterize(y = test_rast, 
+                                          terra::set.crs(crs(test_rastTemp)) %>% 
+                                          terra::rasterize(y = test_rastTemp, 
                                                            field = x, 
                                                            fun = mean, na.rm = TRUE)   
                                         # get the extent of this particular raster, and crop it accordingly
@@ -1198,14 +1098,19 @@ absoluteCoverMaps_contemp <- lapply(responseNames,
                                         # make a map
                                         resp_map <- ggplot() +
                                           geom_spatraster(data = resp_rast_2) +
-                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>%
+                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rastTemp)) %>%
                                                     st_crop(st_bbox(plotObs_2)),fill=NA ) +
-                                                    labs(title = paste0("Predictions of absolute cover of ",x,", 
-                                                    \n after scaling according to ecoregion prediction")) +
-                                          scale_fill_gradient2(low = "brown",
-                                                               mid = "wheat" ,
-                                                               high = "darkgreen" , 
-                                                               midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
+                                                    labs(title = paste0("Predictions of absolute cover of \n",x)) +
+                                          # scale_fill_gradient2(low = "brown",
+                                          #                      mid = "wheat" ,
+                                          #                      high = "darkgreen" , 
+                                          #                      midpoint = 0, limits = c(0,1),  na.value = "lightgrey") + 
+                                           scale_fill_gradientn(
+                                             colors = c("purple", "wheat", "forestgreen"),
+                                             values = c(0, 1e-10, 1), 
+                                             limits = c(0,1),
+                                             na.value = "lightgrey"
+                                             ) + 
                                           xlim(st_bbox(plotObs_2)[c(1,3)]) + 
                                           ylim(st_bbox(plotObs_2)[c(2,4)]) + 
                                           theme_classic()
@@ -1222,8 +1127,8 @@ absoluteCoverMaps_contemp <- lapply(responseNames,
                                         plotObservations <- obsDat %>% 
                                           terra::vect(geom = c("x", "y")) %>% 
                                           terra::set.crs(crs(crs_veg)) %>% 
-                                          terra::project(crs(test_rast)) %>% 
-                                          terra::rasterize(y = test_rast, 
+                                          terra::project(crs(test_rastTemp)) %>% 
+                                          terra::rasterize(y = test_rastTemp, 
                                                            field = x, 
                                                            fun = mean, na.rm = TRUE) 
                                          plotObservations <- plotObservations %>%  
@@ -1234,12 +1139,12 @@ absoluteCoverMaps_contemp <- lapply(responseNames,
                                         resids_rast <- plotObservations - resp_rast_2
                                         ## aggregate the residuals raster to make it easier to see 
                                         resids_rastCoarse <- resids_rast %>% 
-                                          aggregate(fact = 2, fun = "mean", na.rm = TRUE)
+                                          aggregate(fact = 8, fun = "mean", na.rm = TRUE)
                                         # map the residuals
                                         
                                         mapResids <- ggplot() +
                                           geom_spatraster(data = resids_rastCoarse) + 
-                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% 
+                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rastTemp)) %>% 
                                                     st_crop(st_bbox(resids_rast)),fill=NA ) +
                                           labs(title = paste0("Residuals (observations - predicted absolute cover) for ",x)) +
                                           scale_fill_gradient2(low = "red",
@@ -1264,8 +1169,8 @@ absoluteCoverMaps_contemp <- lapply(responseNames,
                                         # rasterize response 
                                         resp_rast_future1 <- predsFuture1 %>% 
                                           terra::vect(geom = c("x", "y")) %>% 
-                                          terra::set.crs(crs(test_rast)) %>% 
-                                          terra::rasterize(y = test_rast, 
+                                          terra::set.crs(crs(test_rastTemp)) %>% 
+                                          terra::rasterize(y = test_rastTemp, 
                                                            field = x, 
                                                            fun = mean, na.rm = TRUE)   
                                         # get the extent of this particular raster, and crop it accordingly
@@ -1275,10 +1180,14 @@ absoluteCoverMaps_contemp <- lapply(responseNames,
                                                )
                                         # calculate differences between contemporary preds and future 1 preds (deltas)
                                         rast_deltas_future1 <- resp_rast_future1_2 - resp_rast_2
+                                        # temporarily aggregate to coarser raster for visualization purposes
+                                        rast_deltas_future1 <- rast_deltas_future1 %>% 
+                                          aggregate(fact = 8, fun = "mean", na.rm = TRUE)
+                                        
                                         # make a map
                                         resp_map_future1 <- ggplot() +
                                           geom_spatraster(data = rast_deltas_future1) +
-                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>%
+                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rastTemp)) %>%
                                                     st_crop(st_bbox(plotObs_2)),fill=NA ) +
                                                     labs(title = paste0("Future predictions of absolute cover of ",x,", \n compared to contemporary predictions (future - contemprary)  \n - climate model: BNU-ESM")) +
                                           scale_fill_gradient2(low = "orange",
@@ -1300,8 +1209,8 @@ absoluteCoverMaps_contemp <- lapply(responseNames,
                                         # rasterize response 
                                         resp_rast_future2 <- predsFuture2 %>% 
                                           terra::vect(geom = c("x", "y")) %>% 
-                                          terra::set.crs(crs(test_rast)) %>% 
-                                          terra::rasterize(y = test_rast, 
+                                          terra::set.crs(crs(test_rastTemp)) %>% 
+                                          terra::rasterize(y = test_rastTemp, 
                                                            field = x, 
                                                            fun = mean, na.rm = TRUE)   
                                         # get the extent of this particular raster, and crop it accordingly
@@ -1311,10 +1220,14 @@ absoluteCoverMaps_contemp <- lapply(responseNames,
                                                )
                                         # calculate differences between contemporary preds and future 1 preds (deltas)
                                         rast_deltas_future2 <- resp_rast_future2_2 - resp_rast_2
+                                        # temporarily aggregate to coarser raster for visualization purposes
+                                        rast_deltas_future2 <- rast_deltas_future2 %>% 
+                                          aggregate(fact = 8, fun = "mean", na.rm = TRUE)
+                                        
                                         # make a map
                                         resp_map_future2 <- ggplot() +
                                           geom_spatraster(data = rast_deltas_future2) +
-                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>%
+                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rastTemp)) %>%
                                                     st_crop(st_bbox(plotObs_2)),fill=NA ) +
                                                     labs(title = paste0("Future predictions of absolute cover of ",x,", \n compared to contemporary predictions (future - contemprary) \n- climate model: IPSL-CM5A-MR (France)")) +
                                           scale_fill_gradient2(low = "orange",
@@ -1465,10 +1378,6 @@ ggarrange(absoluteCoverMaps_contemp$absForb_CONUS$map,
 ncol = 1
 )
 ```
-```{r}
-# plot(density(na.omit(contempPreds$absNLTree_CONUS + contempPreds$absBLTree_CONUS)), main = "absNLTree_CONUS + absBLTree_CONUS")
-# plot(density(na.omit(contempPreds$absTotalTree_CONUS)), col = "green", main = "absTotalTree_CONUS")
-```
 
 Now, we show quantile plots for  model predictions of absolute cover made with contemporary data. These plots compare final, scaled predictions of absolute cover to observed absolute cover. However, instead of showing raw data, which can be uninformative with large datasets such as ours, we show the average model predicted value or observed value within a given quantile of a given predictor variable. In this case, we are showing values within each percentile. We also show the inter-quantile range (IQR) of model-predicted and response values in each percentile, which appear as bands behind the points showing the mean values. Note that the predictor variables included in each quantile plot are the predictors that appear in all of the models used to generate a given absolute cover prediction (e.g. the predictors variables included in the quantile plot for absolute needle-leaved tree cover are the predictors that are included in any o fthe following models: total tree cover-grass/shrub, total tree cover-forest, prop. needle-leaved tree cover-grass/shrub, and prop. needle-leaved cover-forest). Note also that the predictor variables in these figures are scaled. 
 ```{r}
@@ -1486,7 +1395,7 @@ preds_byHand_quantile <- modDat_ecoregionFitQuantile %>%
 
 preds_byHand_quantile <- preds_byHand_quantile %>% 
   mutate(pred_interp = approxfun_forest(pred)) %>% 
-  mutate(pred_interp = replace(pred_interp, list = pred < 0.136147, 0)) %>% 
+  #mutate(pred_interp = replace(pred_interp, list = pred < 0.136147, 0)) %>% 
    mutate(pred_binary = pred_interp,
     pred_binary = replace(pred_binary, pred_binary > 0.1, 1), # now, make the interpolated continuous model predictions binary
          pred_binary = replace(pred_binary, pred_binary <= 0.1, 0)) 
@@ -1523,10 +1432,14 @@ totalHerb_CONUS_predsQuantile <- makePredictions(predictionDF = modDat_quantile,
 totalTree_F_predsQuantile<- makePredictions(predictionDF = modDat_quantile,
                                             modelObject = totalTree_F, scale = FALSE) %>% 
   rename(absTotalTree_F = "modelPreds")
-totalTree_GS_predsQuantile <- modDat_quantile %>% 
-  mutate(absTotalTree_GS = 0)#makePredictions(predictionDF = modDat_quantile,
-                                            #modelObject = totalTree_GS, scale = FALSE) %>% 
-  #rename(absTotalTree_GS = "modelPreds")
+
+totalTree_GS_predsQuantile <- makePredictions(predictionDF = modDat_quantile,
+                                             modelObject = totalTree_GS, scale = FALSE) %>% 
+   rename(absTotalTree_GS = "modelPreds")
+# back-transform the total tree in GS predictions to be between 0 and 0.1, and make all values below the cutoff 0
+totalTree_GS_predsQuantile <- totalTree_GS_predsQuantile %>% 
+  mutate(absTotalTree_GS = absTotalTree_GS/10) %>% 
+  mutate(absTotalTree_GS = replace(absTotalTree_GS, absTotalTree_GS <=zeroCutoff, 0 ))
 
 bareGround_CONUS_predsQuantile<- makePredictions(predictionDF = modDat_quantile,
                                             modelObject = bareGround_CONUS, scale = FALSE) %>% 
@@ -1584,81 +1497,21 @@ preds_quantile <- totalHerb_CONUS_predsQuantile  %>%
   mutate(prob_grassShrub_b = 1 - prob_Forest_b,
          prob_grassShrub_c = 1 - prob_Forest_c)
 
-# for total herbaceous and total tree, scale according to ecoregion
-preds_quantile <- preds_quantile %>% 
-  mutate(absTotalTree_GS_scaled = prob_Forest_c * absTotalTree_F,
-         absTotalTree_F_scaled = prob_Forest_b * absTotalTree_F) %>% 
-  mutate(absTotalTree_GS_scaled = replace(absTotalTree_GS_scaled, prob_Forest_b == 1, 0),
-         absTotalTree_F_scaled = replace(absTotalTree_F_scaled, prob_Forest_b == 0, 0))
-preds_quantile <- preds_quantile %>% 
-  mutate(#absTotalHerb_CONUS = (prob_grassShrub_c * absTotalHerb_GS) + (prob_Forest_c * absTotalHerb_F),
-         absTotalTree_CONUS = absTotalTree_GS_scaled + absTotalTree_F_scaled#(prob_grassShrub_c * absTotalTree_GS) + (prob_Forest_b * absTotalTree_F)
-         )
+# now, scale and relativize
+preds_quantile  <- makePredsCONUSwide(dat = preds_quantile)
 
-## For percentages (NL/BL tree and C4/C3/Forb), scale so that they sum to one (for C4/C3/Forb, already have CONUS-wide models) (for NL/BL tree, have versions for both grass/shrub and forest)
+# for observed data, scale proportions to absolute cover. 
 preds_quantile <- preds_quantile %>% 
-  mutate(#percBLTree_scaled_GS = NA,#percBLTree_GS/(percBLTree_GS + percNLTree_GS),
-         #percNLTree_scaled_GS = NA,#percNLTree_GS/(percBLTree_GS + percNLTree_GS),
-         percBLTree_scaled_CONUS = percBLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
-         percNLTree_scaled_CONUS = percNLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
-         percC3grass_scaled_CONUS = percC3grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
-         percC4grass_scaled_CONUS = percC4grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
-         percForb_scaled_CONUS = percForb_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS))
 
-## Convert percentages for level 2 cover into absolute cover values
-preds_quantile <- preds_quantile %>% 
-  mutate(#absNLTree_GS = NA, # (percNLTree_scaled_GS * absTotalTree_GS), 
-         #absBLTree_GS = NA, #(percBLTree_scaled_GS * absTotalTree_GS), 
-         absNLTree_CONUS = (percNLTree_scaled_CONUS * absTotalTree_CONUS), 
-         absBLTree_CONUS = (percBLTree_scaled_CONUS * absTotalTree_CONUS), 
-         absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C3 grass isn't ecoregion-level
-         absC4grass_CONUS = (percC4grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C4 grass isn't ecoregion-level
-         absForb_CONUS = (percForb_scaled_CONUS * absTotalHerb_CONUS) # can use CONUS-wide total herbaceous since forb grass isn't ecoregion-level
-  )
-
-## For tree level 2 cover, scale by ecoregion probability prediction to be CONUS_wide
-preds_quantile <- preds_quantile %>%
-    mutate(#absBLTree_GS_scaled = prob_Forest_c * absBLTree_F,
-         absBLTree_CONUS_scaled = absBLTree_CONUS,
-         #absNLTree_GS_scaled = prob_Forest_c * absNLTree_F,
-         absNLTree_CONUS_scaled =  absNLTree_CONUS
-         ) #%>% 
-#   mutate(absBLTree_GS_scaled = replace(absBLTree_GS_scaled, prob_Forest_b == 1, 0),
-#          absNLTree_GS_scaled = replace(absNLTree_GS_scaled, prob_Forest_b == 1, 0),
-#          absBLTree_F_scaled = replace(absBLTree_F_scaled, prob_Forest_b == 0, 0),
-#          absNLTree_F_scaled = replace(absNLTree_F_scaled, prob_Forest_b == 0, 0))
-# preds_quantile <- preds_quantile %>% 
-#   mutate(absBLTree_CONUS = absBLTree_GS_scaled + absBLTree_F_scaled,
-#          absNLTree_CONUS = absNLTree_GS_scaled + absNLTree_F_scaled#(prob_grassShrub_c * absTotalTree_GS) + (prob_Forest_b * absTotalTree_F)
-  #       )
-  # mutate(absBLTree_CONUS = (prob_grassShrub * absBLTree_GS) + 
-  #          (prob_Forest * 
-  #            absBLTree_F),
-  #        absNLTree_CONUS = (prob_grassShrub * absNLTree_GS) + 
-  #          (prob_Forest * 
-  #            absNLTree_F))
-
-## with the observed data, convert proportions to absolute cover
-preds_quantile <- preds_quantile %>% 
   mutate(C3GramCover_abs = C3GramCover_prop * TotalHerbaceousCover, 
          C4GramCover_abs = C4GramCover_prop * TotalHerbaceousCover, 
          ForbCover_abs = ForbCover_prop * TotalHerbaceousCover, 
          NLTreeCover_abs = ConifTreeCover_prop * TotalTreeCover, 
-         BLTreeCover_abs = AngioTreeCover_prop * TotalTreeCover)
-
-# plot(density(na.omit(preds_quantile$absNLTree_CONUS + preds_quantile$absBLTree_CONUS)), main = "absNLTree_CONUS + absBLTree_CONUS")
-# plot(density(na.omit(preds_quantile$absTotalTree_CONUS)), col = "green", main = "absTotalTree_CONUS")
-# 
-# 
-# 
-# # plot(density(na.omit(preds_quantile$ConifTreeCover_prop + preds_quantile$AngioTreeCover_prop)), main = "absNLTree_CONUS + absBLTree_CONUS")
-# plot(density(na.omit(preds_quantile$NLTreeCover_abs + preds_quantile$BLTreeCover_abs)), main = "absNLTree_CONUS + absBLTree_CONUS")
-# plot(density(na.omit(preds_quantile[!is.na(preds_quantile$NLTreeCover_abs),"TotalTreeCover"])), col = "green", main = "absTotalTree_CONUS")
+         BLTreeCover_abs = AngioTreeCover_prop * TotalTreeCover) 
 ```
 
 
 ```{r diagnostic plots for NL/BL issue, eval = FALSE}
-
 ## locations where we have observations for total tree cover vs. locations where we have observations for all tree types 
 preds_quantile$totalTreeDataAvail <- NA
 preds_quantile$completeTreeDataAvail <- NA
@@ -3414,11 +3267,12 @@ totalHerb_CONUS_predsOverTime <- makePredictions(predictionDF = climDat_time_Pre
 totalTree_F_predsOverTime<- makePredictions(predictionDF = climDat_time_Pred,
                                             modelObject = totalTree_F, scale = FALSE) %>% 
   rename(absTotalTree_F = "modelPreds")
-# totalTree_GS_predsOverTime<- climDat_time_Pred %>% 
-#   mutate(absTotalTree_GS = 0)
-  # makePredictions(predictionDF = climDat_time_Pred,
-  #                                           modelObject = totalTree_GS) %>% 
-  # rename(absTotalTree_GS = "modelPreds")
+
+totalTree_GS_predsOverTime<- makePredictions(predictionDF = climDat_time_Pred, modelObject = totalTree_GS, scale = FALSE) %>%
+  rename(absTotalTree_GS = "modelPreds") %>% 
+  mutate(absTotalTree_GS = absTotalTree_GS/10) %>% 
+  mutate(absTotalTree_GS = replace(absTotalTree_GS, absTotalTree_GS <=zeroCutoff, 0 ))
+  
 
 bareGround_CONUS_predsOverTime<- makePredictions(predictionDF = climDat_time_Pred,
                                             modelObject = bareGround_CONUS, scale = FALSE) %>% 
@@ -3461,7 +3315,7 @@ forb_CONUS_predsOverTime<- makePredictions(predictionDF = climDat_time_Pred,
 predsOverTime <- totalHerb_CONUS_predsOverTime  %>% 
   #cbind(totalHerb_GS_predsOverTime %>% select(absTotalHerb_GS)) %>% 
   cbind(totalTree_F_predsOverTime %>% select(absTotalTree_F)) %>% 
-  #cbind(totalTree_GS_predsOverTime %>% select(absTotalTree_GS)) %>% 
+  cbind(totalTree_GS_predsOverTime %>% select(absTotalTree_GS)) %>% 
   cbind(bareGround_CONUS_predsOverTime %>% select(absBareGround_CONUS)) %>% 
   cbind(shrub_CONUS_predsOverTime %>% select(absShrub_CONUS)) %>% 
   cbind(BLtree_CONUS_predsOverTime %>% select(percBLTree_CONUS)) %>% 
@@ -3478,77 +3332,8 @@ predsOverTime <- totalHerb_CONUS_predsOverTime  %>%
          prob_grassShrub_c = 1 - prob_Forest_c)
 
 # for total herbaceous and total tree, scale according to ecoregion
-predsOverTime <- predsOverTime %>% 
-  mutate(absTotalTree_GS_scaled = prob_Forest_c * absTotalTree_F,
-         absTotalTree_F_scaled = prob_Forest_b * absTotalTree_F) %>% 
-  mutate(absTotalTree_GS_scaled = replace(absTotalTree_GS_scaled, prob_Forest_b == 1, 0),
-         absTotalTree_F_scaled = replace(absTotalTree_F_scaled, prob_Forest_b == 0, 0))
-predsOverTime <- predsOverTime %>% 
-  mutate(#absTotalHerb_CONUS = (prob_grassShrub_c * absTotalHerb_GS) + (prob_Forest_c * absTotalHerb_F),
-         absTotalTree_CONUS = absTotalTree_GS_scaled + absTotalTree_F_scaled#(prob_grassShrub_c * absTotalTree_GS) + (prob_Forest_b * absTotalTree_F)
-         )
+predsOverTime <- makePredsCONUSwide(predsOverTime)
 
-## For percentages (NL/BL tree and C4/C3/Forb), scale so that they sum to one (for C4/C3/Forb, already have CONUS-wide models) (for NL/BL tree, have versions for both grass/shrub and forest)
-predsOverTime <- predsOverTime %>% 
-  mutate(#percBLTree_scaled_GS = NA,#percBLTree_GS/(percBLTree_GS + percNLTree_GS),
-         #percNLTree_scaled_GS = NA,#percNLTree_GS/(percBLTree_GS + percNLTree_GS),
-         percBLTree_scaled_CONUS = percBLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
-         percNLTree_scaled_CONUS = percNLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
-         percC3grass_scaled_CONUS = percC3grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
-         percC4grass_scaled_CONUS = percC4grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
-         percForb_scaled_CONUS = percForb_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS))
-
-## Convert percentages for level 2 cover into absolute cover values
-predsOverTime <- predsOverTime %>% 
-  mutate(#absNLTree_GS = NA, # (percNLTree_scaled_GS * absTotalTree_GS), 
-         #absBLTree_GS = NA, #(percBLTree_scaled_GS * absTotalTree_GS), 
-         absNLTree_CONUS = (percNLTree_scaled_CONUS * absTotalTree_CONUS), 
-         absBLTree_CONUS = (percBLTree_scaled_CONUS * absTotalTree_CONUS), 
-         absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C3 grass isn't ecoregion-level
-         absC4grass_CONUS = (percC4grass_scaled_CONUS * absTotalHerb_CONUS), # can use CONUS-wide total herbaceous since C4 grass isn't ecoregion-level
-         absForb_CONUS = (percForb_scaled_CONUS * absTotalHerb_CONUS) # can use CONUS-wide total herbaceous since forb grass isn't ecoregion-level
-  )
-
-## For tree level 2 cover, scale by ecoregion probability prediction to be CONUS_wide
-predsOverTime <- predsOverTime %>%
-    mutate(#absBLTree_GS_scaled = prob_Forest_c * absBLTree_F,
-         absBLTree_CONUS_scaled = absBLTree_CONUS,#prob_Forest_b * absBLTree_F,
-         #absNLTree_GS_scaled = prob_Forest_c * absNLTree_F,
-         absNLTree_CONUS_scaled = absNLTree_CONUS#prob_Forest_b * absNLTree_F
-         ) #%>% 
-  # mutate(absBLTree_GS_scaled = replace(absBLTree_GS_scaled, prob_Forest_b == 1, 0),
-  #        absNLTree_GS_scaled = replace(absNLTree_GS_scaled, prob_Forest_b == 1, 0),
-  #        absBLTree_F_scaled = replace(absBLTree_F_scaled, prob_Forest_b == 0, 0),
-  #        absNLTree_F_scaled = replace(absNLTree_F_scaled, prob_Forest_b == 0, 0))
-predsOverTime <- predsOverTime %>% 
-  mutate(absBLTree_CONUS = absBLTree_CONUS_scaled, #+ absBLTree_F_scaled,
-         absNLTree_CONUS = absNLTree_CONUS_scaled #+ absNLTree_F_scaled#(prob_grassShrub_c * absTotalTree_GS) + (prob_Forest_b * absTotalTree_F)
-         )
-
-# ## now, scale predictions according to ecoregion percentage
-# predsOverTime <- predsOverTime %>% 
-#   mutate(absTotalHerb_CONUS = (prob_grassShrub * absTotalHerb_GS) + (prob_Forest * absTotalHerb_F),
-#          absTotalTree_CONUS = (prob_grassShrub * absTotalTree_GS) + 
-#            (prob_Forest * 
-#              absTotalTree_F)
-#          )
-# 
-# ## then, scale the percentages so they sum to 1
-# predsOverTime <- predsOverTime %>% 
-#   mutate(percBLTree_scaled_CONUS = percBLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
-#          percNLTree_scaled_CONUS = percNLTree_CONUS/(percBLTree_CONUS + percNLTree_CONUS),
-#          percC3grass_scaled_CONUS = percC3grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
-#          percC4grass_scaled_CONUS = percC4grass_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS),
-#          percForb_scaled_CONUS = percForb_CONUS/(percC3grass_CONUS + percC4grass_CONUS + percForb_CONUS))
-# 
-# ## convert percentages into absolute cover for level 2 cover classes
-# predsOverTime <- predsOverTime %>% 
-#     mutate(absNLTree_CONUS = (percNLTree_scaled_CONUS * absTotalTree_CONUS), 
-#          absBLTree_CONUS = (percBLTree_scaled_CONUS * absTotalTree_CONUS), 
-#          absC3grass_CONUS = (percC3grass_scaled_CONUS * absTotalHerb_CONUS),
-#          absC4grass_CONUS = (percC4grass_scaled_CONUS * absTotalHerb_CONUS),
-#          absForb_CONUS = (percForb_scaled_CONUS * absTotalHerb_CONUS)
-#   )
 ```
 
 ```{r fig.width=9, fig.height = 10.5}
@@ -3558,6 +3343,16 @@ spatID_lu <- data.frame("spatialID" = unique(predsOverTime$spatialID),
 predsOverTime <- predsOverTime %>% 
   left_join(spatID_lu)
 
+## for locations that are unforested (and therefore have values of 0 always for each tree type), change those values to 0.00001 so the values aren't NAN
+predsOverTime <- predsOverTime %>% 
+  mutate(absTotalTree_CONUS = replace(absTotalTree_CONUS, absTotalTree_CONUS == 0, 0.00001),
+         percBLTree_scaled_CONUS = replace(percBLTree_scaled_CONUS, percBLTree_scaled_CONUS == 0, 0.00001),
+         percNLTree_scaled_CONUS = replace(percNLTree_scaled_CONUS, percNLTree_scaled_CONUS == 0, 0.00001),
+         absNLTree_CONUS = replace(absNLTree_CONUS, absNLTree_CONUS == 0, 0.00001),
+         absBLTree_CONUS = replace(absBLTree_CONUS, absBLTree_CONUS == 0, 0.00001),
+         absBLTree_CONUS_scaled = replace(absBLTree_CONUS_scaled, absBLTree_CONUS_scaled == 0, 0.00001),
+         absNLTree_CONUS_scaled = replace(absNLTree_CONUS_scaled, absNLTree_CONUS_scaled == 0, 0.00001),
+         )
 # make into a long format
 predsOverTime_long <- predsOverTime %>% 
   select(year,x, y, spatialID, uniqueID, absShrub_CONUS, absBareGround_CONUS, absTotalHerb_CONUS, absTotalTree_CONUS, absNLTree_CONUS:absForb_CONUS) %>% 
@@ -3716,8 +3511,8 @@ relCover_B_Maps_contemp <- lapply(responseNames,
                                         # rasterize response 
                                         resp_rast <- contempPreds %>% 
                                           terra::vect() %>% 
-                                          terra::set.crs(crs(test_rast)) %>% 
-                                          terra::rasterize(y = test_rast, 
+                                          terra::set.crs(crs(test_rastTemp)) %>% 
+                                          terra::rasterize(y = test_rastTemp, 
                                                            field = x, 
                                                            fun = mean, na.rm = TRUE)   
                                         # get the extent of this particular raster, and crop it accordingly
@@ -3730,8 +3525,8 @@ relCover_B_Maps_contemp <- lapply(responseNames,
                                          plotObservations <- obsDat %>% 
                                           terra::vect(geom = c("x", "y")) %>% 
                                           terra::set.crs(crs(crs_veg)) %>% 
-                                          terra::project(crs(test_rast)) %>% 
-                                          terra::rasterize(y = test_rast, 
+                                          terra::project(crs(test_rastTemp)) %>% 
+                                          terra::rasterize(y = test_rastTemp, 
                                                            field = x, 
                                                            fun = mean, na.rm = TRUE) 
                                          plotObservations <- plotObservations %>%  
@@ -3742,12 +3537,12 @@ relCover_B_Maps_contemp <- lapply(responseNames,
                                         resids_rast <- plotObservations - resp_rast_2
                                         ## aggregate the residuals raster to make it easier to see 
                                         resids_rastCoarse <- resids_rast %>% 
-                                          aggregate(fact = 2, fun = "mean", na.rm = TRUE)
+                                          aggregate(fact = 8, fun = "mean", na.rm = TRUE)
                                         # map the residuals
                                         
                                         mapResids <- ggplot() +
                                           geom_spatraster(data = resids_rastCoarse) + 
-                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>% 
+                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rastTemp)) %>% 
                                                     st_crop(st_bbox(resids_rast)),fill=NA ) +
                                           labs(title = paste0("Residuals (observations - predicted relative cover) for ",x)) +
                                           scale_fill_gradient2(low = "red",
@@ -3772,8 +3567,8 @@ relCover_B_Maps_contemp <- lapply(responseNames,
                                         # rasterize response 
                                         resp_rast_future1 <- predsFuture1 %>% 
                                           terra::vect(geom = c("x", "y")) %>% 
-                                          terra::set.crs(crs(test_rast)) %>% 
-                                          terra::rasterize(y = test_rast, 
+                                          terra::set.crs(crs(test_rastTemp)) %>% 
+                                          terra::rasterize(y = test_rastTemp, 
                                                            field = x, 
                                                            fun = mean, na.rm = TRUE)   
                                         # get the extent of this particular raster, and crop it accordingly
@@ -3783,14 +3578,16 @@ relCover_B_Maps_contemp <- lapply(responseNames,
                                                )
                                         # calculate differences between contemporary preds and future 1 preds (deltas)
                                         rast_deltas_future1 <- resp_rast_future1_2 - resp_rast_2
-                                        
+                                        # for now, aggregate x8 for visualization purposes
+                                        rast_deltas_future1 <- rast_deltas_future1 %>% 
+                                          aggregate(fact = 8, fun = "mean", na.rm = TRUE)
                                         
                                         ## future model 2 relative cover
                                         # rasterize response 
                                         resp_rast_future2 <- predsFuture2 %>% 
                                           terra::vect(geom = c("x", "y")) %>% 
-                                          terra::set.crs(crs(test_rast)) %>% 
-                                          terra::rasterize(y = test_rast, 
+                                          terra::set.crs(crs(test_rastTemp)) %>% 
+                                          terra::rasterize(y = test_rastTemp, 
                                                            field = x, 
                                                            fun = mean, na.rm = TRUE)   
                                         # get the extent of this particular raster, and crop it accordingly
@@ -3800,13 +3597,15 @@ relCover_B_Maps_contemp <- lapply(responseNames,
                                                )
                                         # calculate differences between contemporary preds and future 1 preds (deltas)
                                         rast_deltas_future2 <- resp_rast_future2_2 - resp_rast_2
-                                        
+                                        # for now, aggregate x8 for visualization purposes
+                                        rast_deltas_future2 <- rast_deltas_future2 %>% 
+                                          aggregate(fact = 8, fun = "mean", na.rm = TRUE)
                                         
                                         if (x == "total_NonTree_AbsCover_CONUS") {
                                           # make a map of predictions w/ current data 
                                         resp_map <- ggplot() +
                                           geom_spatraster(data = resp_rast_2) +
-                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>%
+                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rastTemp)) %>%
                                                     st_crop(st_bbox(plotObs_2)),fill=NA ) +
                                                     labs(title = paste0("Predictions of Total Relative Cover (non-tree) with contemporary data")) +
                                           scale_fill_gradient2(low = "lightblue",
@@ -3829,7 +3628,7 @@ relCover_B_Maps_contemp <- lapply(responseNames,
                                          
                                         resp_map_future1 <- ggplot() +
                                           geom_spatraster(data = rast_deltas_future1) +
-                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>%
+                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rastTemp)) %>%
                                                     st_crop(st_bbox(plotObs_2)),fill=NA ) +
                                                     labs(title = paste0("Future predictions of Total Relative Cover (non-tree) \n compared to contemporary predictions (future - contemprary)  \n - climate model: BNU-ESM")) +
                                           scale_fill_gradient2(low = "orange",
@@ -3850,7 +3649,7 @@ relCover_B_Maps_contemp <- lapply(responseNames,
                                         # make a map of future preds w/ model 2
                                         resp_map_future2 <- ggplot() +
                                           geom_spatraster(data = rast_deltas_future2) +
-                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>%
+                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rastTemp)) %>%
                                                     st_crop(st_bbox(plotObs_2)),fill=NA ) +
                                                     labs(title = paste0("Future predictions of Cover (non-tree), \n compared to contemporary predictions (future - contemprary) \n- climate model: IPSL-CM5A-MR (France)")) +
                                           scale_fill_gradient2(low = "orange",
@@ -3872,7 +3671,7 @@ relCover_B_Maps_contemp <- lapply(responseNames,
                                           # make a map of predictions w/ current data 
                                         resp_map <- ggplot() +
                                           geom_spatraster(data = resp_rast_2) +
-                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>%
+                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rastTemp)) %>%
                                                     st_crop(st_bbox(plotObs_2)),fill=NA ) +
                                                     labs(title = paste0("Predictions of relative cover of ",x,
                                                                         ", \n when all functional groups except trees sum to 1")) +
@@ -3895,7 +3694,7 @@ relCover_B_Maps_contemp <- lapply(responseNames,
                                          
                                         resp_map_future1 <- ggplot() +
                                           geom_spatraster(data = rast_deltas_future1) +
-                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>%
+                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rastTemp)) %>%
                                                     st_crop(st_bbox(plotObs_2)),fill=NA ) +
                                                     labs(title = paste0("Future predictions of relative cover of ",x,", \n compared to contemporary predictions (future - contemprary)  \n - climate model: BNU-ESM")) +
                                           scale_fill_gradient2(low = "orange",
@@ -3916,7 +3715,7 @@ relCover_B_Maps_contemp <- lapply(responseNames,
                                         # make a map of future preds w/ model 2
                                         resp_map_future2 <- ggplot() +
                                           geom_spatraster(data = rast_deltas_future2) +
-                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rast)) %>%
+                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rastTemp)) %>%
                                                     st_crop(st_bbox(plotObs_2)),fill=NA ) +
                                                     labs(title = paste0("Future predictions of relative cover of ",
                                                                         x,
@@ -3963,18 +3762,6 @@ names(relCover_B_Maps_contemp) <- c(#"relCoverB_totalTree",
 
 ```{r rendering maps of relative cover, fig.height=60, fig.width=18}
 ggarrange(
-# ggarrange(relCover_B_Maps_contemp$relCoverB_totalTree$map, 
-#           relCover_B_Maps_contemp$relCoverB_totalTree$map_resids, 
-#           relCover_B_Maps_contemp$relCoverB_totalTree$map_future1,
-#           relCover_B_Maps_contemp$relCoverB_totalTree$map_future2,
-#           relCover_B_Maps_contemp$relCoverB_totalTree$hist,
-#           relCover_B_Maps_contemp$relCoverB_totalTree$hist_resids,
-#            relCover_B_Maps_contemp$relCoverB_totalTree$hist_future1, 
-#           relCover_B_Maps_contemp$relCoverB_totalTree$hist_future2,
-#           ncol = 4,
-#           nrow = 2,
-#           heights = c(1,.35)
-#           ),
 ggarrange(relCover_B_Maps_contemp$relCoverB_totalHerb$map, 
           relCover_B_Maps_contemp$relCoverB_totalHerb$map_resids, 
           relCover_B_Maps_contemp$relCoverB_totalHerb$map_future1,
@@ -4011,30 +3798,6 @@ ggarrange(relCover_B_Maps_contemp$relCoverB_bareGround$map,
           nrow = 2,
           heights = c(1,.35)
           ),
-# ggarrange(relCover_B_Maps_contemp$relCoverB_NLTree$map, 
-#           relCover_B_Maps_contemp$relCoverB_NLTree$map_resids,
-#           relCover_B_Maps_contemp$relCoverB_NLTree$map_future1,
-#           relCover_B_Maps_contemp$relCoverB_NLTree$map_future2,
-#           relCover_B_Maps_contemp$relCoverB_NLTree$hist,
-#           relCover_B_Maps_contemp$relCoverB_NLTree$hist_resids,
-#           relCover_B_Maps_contemp$relCoverB_NLTree$hist_future1, 
-#           relCover_B_Maps_contemp$relCoverB_NLTree$hist_future2,
-#           ncol = 4,
-#           nrow = 2,
-#           heights = c(1,.35)
-#           ),
-# ggarrange(relCover_B_Maps_contemp$relCoverB_BLTree$map, 
-#           relCover_B_Maps_contemp$relCoverB_BLTree$map_resids,
-#           relCover_B_Maps_contemp$relCoverB_BLTree$map_future1,
-#           relCover_B_Maps_contemp$relCoverB_BLTree$map_future2,
-#           relCover_B_Maps_contemp$relCoverB_BLTree$hist,
-#           relCover_B_Maps_contemp$relCoverB_BLTree$hist_resids,
-#           relCover_B_Maps_contemp$relCoverB_BLTree$hist_future1, 
-#           relCover_B_Maps_contemp$relCoverB_BLTree$hist_future2,
-#           ncol = 4,
-#           nrow = 2,
-#           heights = c(1,.35)
-#           ),
 ggarrange(relCover_B_Maps_contemp$relCoverB_C3Grass$map, 
           relCover_B_Maps_contemp$relCoverB_C3Grass$map_resids,
           relCover_B_Maps_contemp$relCoverB_C3Grass$map_future1,

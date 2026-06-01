@@ -322,7 +322,7 @@ df_sample_plots <-  modDat_1_s  %>%
 
 For the model of total tree cover in non-forested regions, we transform the response variable because all observations, by definition, are between 0 and 0.1. We transform the response variable to be between 0 and 1 by multiplying it by 10, and then will back-transform the model predictions
 ```{r}
-if (response == "TotalTreeCover") {
+if (response == "TotalTreeCover" & ecoregion == "noTrees") {
  modDat_1_s <- modDat_1_s %>% 
   mutate(TotalTreeCover_transformed = TotalTreeCover * 10)
 # because the beta glm does not allow values of 1, make the highest values very slightly less than 1
@@ -1540,9 +1540,9 @@ if (response == "TotalTreeCover_transformed" & ecoregion == "noTrees") {
 
 ###Get data that shows un-forested locations, based on RAP. This dataset is created by first identifying RAP 30-m pixels that have 5% or less of tree cover. Then that information is aggregated up to the dayMet scale, and the value provided is the percentage of RAP pixels within a given dayMet grid cell that have <5% tree cover. 
 ## get RAP unforested cover dataset from Martin
+  #RAP_v3_fracNotForest_lt5_mask-lcmap50_2019-2023_1000m.tif
   #
-  #Data_processed/RAP_v3_fracNotForest_lt3_mask-lcmap50_2019-2023_1000m.tif
-nonForest_rast <- terra::rast("../../../Data_processed/RAP_v3_fracNotForest_lt5_mask-lcmap50_2019-2023_1000m.tif") %>% 
+nonForest_rast <- terra::rast("../../../Data_processed/RAP_v3_fracNotForest_lt3_mask-lcmap50_2019-2023_1000m.tif") %>% 
   # make sure the crs is the same
   terra::project(crs(test_rast_dayMet_TEMP))
 
@@ -1613,19 +1613,25 @@ mean_frac_nonForest_fromRAP <- global(notForest_rast_mask_round * pixel_area, fu
   climPred_totalTree_cdf <- stats::ecdf(climPred_totalTree$TotalTreeCover_transformed_pred)
 # find the quantile of observations that corresponds to the desired proportion of unforested locations
 zeroCutoff <- quantile(climPred_totalTree$TotalTreeCover_transformed_pred %>% na.omit(), probs = mean_frac_nonForest_fromRAP) 
+# save zeroCutoff
+saveRDS(zeroCutoff, "./models/TotalTreeCoverInNonForest_zeroCutoff.rds")
 # plot the ecdf
 plot(climPred_totalTree_cdf, xlab = c("% Total Tree Cover"), ylab = "Percentile",
      main = "Empirical Cumulative Distribution Function for \n model predictions of Total Tree Cover in non-forested \nregions from the best-lambda model")
 abline(h = mean_frac_nonForest_fromRAP, lty = 3)
 abline(v = zeroCutoff, lty = 3)
 
-## now, interpolate the model predictions such that the predictions of total tree cover below the threshold are forced to 0
-approxfun <- approxfun(x = c(0,  zeroCutoff, 0.1), # values we're interpolating *from*
-          y =c(0, 0, 0.1), # what we're interpolation to (desired values at the end)
-          method = "linear")
+# ## now, interpolate the model predictions such that the predictions of total tree cover below the threshold are forced to 0
+# approxfun <- approxfun(x = c(0,  zeroCutoff, 0.1), # values we're interpolating *from*
+#           y =c(0, 0, 0.1), # what we're interpolation to (desired values at the end)
+#           method = "linear")
+
+## force all values below the cutoff to be zero, but leave all values above the cutoff as is
 # interpolate the predictions
 climPred_totalTree <- climPred_totalTree %>% 
-  mutate(TotalTreeCover_interp = approxfun(TotalTreeCover_pred))
+  mutate(#TotalTreeCover_interp = approxfun(TotalTreeCover_pred)
+    TotalTreeCover_interp = TotalTreeCover_pred, 
+    TotalTreeCover_interp = replace(TotalTreeCover_interp, TotalTreeCover_interp<=zeroCutoff, 0))
 # ggplot(climPred_totalTree) +
 #   geom_point(aes(Lon, Lat, col = TotalTreeCover_interp), size = 1) + 
 #   geom_point(data = climPred_totalTree[climPred_totalTree$TotalTreeCover_interp == 0,],
@@ -1637,20 +1643,24 @@ climPred_totalTree <- climPred_totalTree %>%
 Interpolate the model predictions and back-transform the observations, if necessary
 ```{r}
 if(response == "TotalTreeCover_transformed") {
-  # interpolate best lambda model predictions
-  pred_glm1$TotalTreeCover_transformed_pred <- approxfun(pred_glm1$TotalTreeCover_transformed_pred)
+  # apply the zero cutoff
+pred_glm1 <- pred_glm1 %>% 
+  mutate(
+    TotalTreeCover_transformed_pred = replace(TotalTreeCover_transformed_pred, TotalTreeCover_transformed_pred<=zeroCutoff, 0))
+
+#  pred_glm1$TotalTreeCover_transformed_pred <-  approxfun(pred_glm1$TotalTreeCover_transformed_pred)
   
-  # interpolate second-best lambda predictions
-  pred_glm1_1se$TotalTreeCover_transformed_pred <- approxfun(pred_glm1_1se$TotalTreeCover_transformed_pred)
-  
-  
-  # interpolate best lambda model predictions
+   # apply the zero cutoff
+  #pred_glm1_1se$TotalTreeCover_transformed_pred <- approxfun(pred_glm1_1se$TotalTreeCover_transformed_pred)
+  pred_glm1_1se <- pred_glm1_1se %>% 
+  mutate(
+    TotalTreeCover_transformed_pred = replace(TotalTreeCover_transformed_pred, TotalTreeCover_transformed_pred<=zeroCutoff, 0))
+
+  # back-transform the response variable
   pred_glm1$TotalTreeCover_transformed <- pred_glm1$TotalTreeCover_transformed/10
   
-  # interpolate second-best lambda predictions
-  pred_glm1_1se$TotalTreeCover_transformed <- pred_glm1$TotalTreeCover_transformed/10
-  
-  
+   # back-transform the response variable
+  pred_glm1_1se$TotalTreeCover_transformed <- pred_glm1_1se$TotalTreeCover_transformed/10
 }
 
 ```
@@ -1838,7 +1848,13 @@ ggarrange(map_preds2, hist_preds2, heights = c(3,1), ncol = 1)
 }
 ```
 ```{r Absolute Residual map from best lambda model, fig.height = 12, fig.width = 9, warning = FALSE }
+if (response == "TotalTreeCover_transformed") {
+  
 limitsResids <- c(-0.1, 0.1)
+} else {
+  
+limitsResids <- c(-1,1)
+}
 # make figures
 map <- ggplot() +
 geom_spatraster(data = pred_glm1_RAST, aes(fill = resid), maxcell = 50000000) + 
@@ -1867,12 +1883,12 @@ ggarrange(map, hist, heights = c(3,1), ncol = 1)
 ```
 ```{r Relative Residual map from best lambda model, fig.height = 12, fig.width = 9, warning = FALSE }
 # calculate actual residuals
-relativeResid <- (pred_glm1_RAST$TotalTreeCover_transformed -  pred_glm1_RAST$TotalTreeCover_transformed_pred)/pred_glm1_RAST$TotalTreeCover_transformed
+relativeResid <- (pred_glm1_RAST[[response]] -  pred_glm1_RAST[[paste0(response, "_pred")]])/pred_glm1_RAST[[paste0(response, "_pred")]]
 # calculate relative residuals
-
+names(relativeResid) <- "relResid"
 # make figures
 map <- ggplot() +
-geom_spatraster(data = relativeResid, aes(fill = TotalTreeCover_transformed), maxcell = 50000000) + 
+geom_spatraster(data = relativeResid, aes(fill = relResid), maxcell = 50000000) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
   #geom_sf(data = badResids_high, col = "blue") +
   #geom_sf(data = badResids_low, col = "red") +
@@ -1888,10 +1904,10 @@ labs(title = paste0("Relative Resids. (obs. - pred.)/(obs.) from the ", ecoregio
      ylim(-1800000, 1200000)
 
 hist <- ggplot(data.frame(values(relativeResid))) + 
-  geom_histogram(aes(TotalTreeCover_transformed), fill = "lightgrey", col = "darkgrey") + 
-  geom_text(aes(x = min(TotalTreeCover_transformed)*.9, y = 1500, label = paste0("min = ", round(min(TotalTreeCover_transformed),2)))) +
-  geom_text(aes(x = max(TotalTreeCover_transformed)*.9, y = 1500, label = paste0("max = ", round(max(TotalTreeCover_transformed),2)))) + 
-  geom_vline(aes(xintercept = mean(TotalTreeCover_transformed)))
+  geom_histogram(aes(relResid), fill = "lightgrey", col = "darkgrey") + 
+  geom_text(aes(x = min(relResid)*.9, y = 1500, label = paste0("min = ", round(min(relResid),2)))) +
+  geom_text(aes(x = max(relResid)*.9, y = 1500, label = paste0("max = ", round(max(relResid),2)))) + 
+  geom_vline(aes(xintercept = mean(relResid)))
 
 ggarrange(map, hist, heights = c(3,1), ncol = 1)
 
@@ -1930,12 +1946,13 @@ ggarrange(map, hist, heights = c(3,1), ncol = 1)
 
 ```{r Relative Residual map from second-best lambda model, fig.height = 12, fig.width = 9, warning = FALSE }
 # calculate actual residuals
-relativeResid <- (pred_glm1_1se_RAST$TotalTreeCover_transformed -  pred_glm1_1se_RAST$TotalTreeCover_transformed_pred)/pred_glm1_1se_RAST$TotalTreeCover_transformed
+relativeResid <- (pred_glm1_1se_RAST[[response]] -  pred_glm1_1se_RAST[[paste0(response, "_pred")]])/pred_glm1_1se_RAST[[paste0(response, "_pred")]]
+names(relativeResid) <- "relResid"
 # calculate relative residuals
 
 # make figures
 map <- ggplot() +
-geom_spatraster(data = relativeResid, aes(fill = TotalTreeCover_transformed), maxcell = 50000000) + 
+geom_spatraster(data = relativeResid, aes(fill = relResid), maxcell = 50000000) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
   #geom_sf(data = badResids_high, col = "blue") +
   #geom_sf(data = badResids_low, col = "red") +
@@ -1951,13 +1968,12 @@ labs(title = paste0("Relative Resids. (obs. - pred.)/(obs.) from the ", ecoregio
      ylim(-1800000, 1200000)
 
 hist <- ggplot(data.frame(values(relativeResid))) + 
-  geom_histogram(aes(TotalTreeCover_transformed), fill = "lightgrey", col = "darkgrey") + 
-  geom_text(aes(x = min(TotalTreeCover_transformed)*.9, y = 1500, label = paste0("min = ", round(min(TotalTreeCover_transformed),2)))) +
-  geom_text(aes(x = max(TotalTreeCover_transformed)*.9, y = 1500, label = paste0("max = ", round(max(TotalTreeCover_transformed),2)))) + 
-  geom_vline(aes(xintercept = mean(TotalTreeCover_transformed, na.rm = TRUE)))
+  geom_histogram(aes(relResid), fill = "lightgrey", col = "darkgrey") + 
+  geom_text(aes(x = min(relResid)*.9, y = 1500, label = paste0("min = ", round(min(relResid),2)))) +
+  geom_text(aes(x = max(relResid)*.9, y = 1500, label = paste0("max = ", round(max(relResid),2)))) + 
+  geom_vline(aes(xintercept = mean(relResid)))
 
 ggarrange(map, hist, heights = c(3,1), ncol = 1)
-
 ```
 
 ### Now we show model predictions using data on the dayMet scale (1km-1km grid) across the focal ecoregion
@@ -1965,12 +1981,15 @@ ggarrange(map, hist, heights = c(3,1), ncol = 1)
 # the data.frame to use for these predictions is "climDatPred_ecoregion"
 climDatPred_ecoregion_glm1 <- predict_by_response(mod = fit_glm_bestLambda, df = climDatPred_ecoregion %>% st_drop_geometry())
 
-## now, do interpolation step 
 
+if (ecoregion == "noTrees" & response == "TotalTreeCover_transformed") {
+  ## now, apply cutoff for zeros
 climDatPred_ecoregion_glm1 <- climDatPred_ecoregion_glm1 %>% 
-  mutate(TotalTreeCover_transformed_pred = approxfun(TotalTreeCover_transformed_pred))
+  mutate(TotalTreeCover_transformed_pred = replace(TotalTreeCover_transformed_pred, TotalTreeCover_transformed_pred<=zeroCutoff, 0))
 
-# now, rasterize the predictions
+# now, rasterize the pr
+}
+
 climDatPred_ecoregion_glm1_rast <- climDatPred_ecoregion_glm1 %>%
   st_as_sf(coords = c("Lon", "Lat"), crs = crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]")) %>%
   terra::vect() %>%
@@ -2007,10 +2026,11 @@ ggarrange( map_obs, hist_obs, heights = c(3, 1), ncol = 1)
 # the data.frame to use for these predictions is "climDatPred_ecoregion"
 climDatPred_ecoregion_glm1_1se <- predict_by_response(mod = mod_secondBest, df = climDatPred_ecoregion %>% st_drop_geometry())
 
+if (ecoregion == "noTrees" & response == "TotalTreeCover_transformed") {
 ## now, do interpolation step 
-
 climDatPred_ecoregion_glm1_1se <- climDatPred_ecoregion_glm1_1se %>% 
-  mutate(TotalTreeCover_transformed_pred = approxfun(TotalTreeCover_transformed_pred))
+ mutate(TotalTreeCover_transformed_pred = replace(TotalTreeCover_transformed_pred, TotalTreeCover_transformed_pred<=zeroCutoff, 0)) 
+}
 
 # now, rasterize the predictions
 climDatPred_ecoregion_glm1_1se_rast <- climDatPred_ecoregion_glm1_1se %>%
