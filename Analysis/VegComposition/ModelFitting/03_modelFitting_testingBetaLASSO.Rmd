@@ -11,9 +11,9 @@ output:
 params:
   run: FALSE     
   save_figs: TRUE
-  ecoregion: noTrees # trees or noTrees
+  ecoregion: trees # trees or noTrees
   response: TotalTreeCover
-  allowAllTreeData: TRUE
+  allowAllTreeData: FALSE
   removeTexasLouisianaPlain: FALSE
   removeAllAnoms: TRUE
   trimAnomalies: TRUE
