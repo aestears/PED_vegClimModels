@@ -11,11 +11,11 @@ output:
 params:
   run: FALSE     
   save_figs: TRUE
-  ecoregion: trees # trees or noTrees
-  response: TotalTreeCover
+  ecoregion: CONUS # trees or noTrees
+  response: TotalHerbaceousCover
   allowAllTreeData: FALSE
   removeTexasLouisianaPlain: FALSE
-  removeAllAnoms: TRUE
+  removeAllAnoms: FALSE
   trimAnomalies: TRUE
   autoKfold: FALSE
   whichSecondBestMod: "auto"# 1se OR halfse OR auto (chose the model w/ fewest # of predictors)
@@ -1031,13 +1031,14 @@ mat_glmnet_best <- bestLambda_coef$VariableName
               f_glm_bestLambda, mat_glmnet_best, bestLambda_coef,
               file = paste0("./models/interimModelFittingObjects_", response, "_", ecoregion, "_removeAnomalies", removeAllAnoms,"_betaReg_observeDatForestClassification.rds" ))
   } else {
-    # read in LASSO object
+    if (response == "TotalTreeCover" & ecoregion == "NoTrees") {
+      # read in LASSO object
     fit <- readRDS(paste0("../ModelFitting/models/betaLASSO/", response, "_globalLASSOmod_betaLogitLink_",ecoregion,"_removeAnomalies", removeAllAnoms,"observeDatForestClassification.rds"))
     
     # read in R objects having to do w/ model fitting 
     load(file = paste0("./models/interimModelFittingObjects_", response, "_", ecoregion, "_removeAnomalies", removeAllAnoms,"_betaReg_observeDatForestClassification.rds" ))
-     
-    if (trimAnom == TRUE) {
+    
+     if (trimAnom == TRUE) {
     fit_glm_bestLambda <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_trimAnom_bestLambdaGLM_observeDatForestClassification.rds"))
   fit_glm_halfse <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_trimAnom_halfSELambdaGLM_observeDatForestClassification.rds"))
  fit_glm_se <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_trimAnom_oneSELambdaGLM_observeDatForestClassification.rds"))
@@ -1048,6 +1049,26 @@ mat_glmnet_best <- bestLambda_coef$VariableName
     
   }
     
+    } else {
+      # read in LASSO object
+    fit <- readRDS(paste0("../ModelFitting/models/betaLASSO/", response, "_globalLASSOmod_betaLogitLink_",ecoregion,"_removeAnomalies", removeAllAnoms, ".rds"))
+    
+    # read in R objects having to do w/ model fitting 
+    load(file = paste0("./models/interimModelFittingObjects_", response, "_", ecoregion, "_removeAnomalies", removeAllAnoms,"_betaReg.rds" ))
+    
+      
+    if (trimAnom == TRUE) {
+    fit_glm_bestLambda <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_trimAnom_bestLambdaGLM.rds"))
+  fit_glm_halfse <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_trimAnom_halfSELambdaGLM.rds"))
+ fit_glm_se <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_trimAnom_oneSELambdaGLM.rds"))
+  } else {
+    fit_glm_bestLambda <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_bestLambdaGLM.rds"))
+  fit_glm_halfse <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_halfSELambdaGLM.rds"))
+  fit_glm_se <- readRDS( paste0("./models/betaLASSO/",response,"_",ecoregion, "_noTLP_",removeTLP,"_removeAnomalies", removeAllAnoms,"_oneSELambdaGLM.rds"))
+    
+  }
+    
+    }
   }
 
 
@@ -1145,46 +1166,6 @@ ggplot() +
   #ylim(c(0,200))
  
 ```
-
-```{r model evaluation figures, eval=FALSE}
- 
-# # lasso model predictions with the optimal lambda
-# x <- quasibeta_family()
-# 
-#   pred_rawLASSO <- x[["linkinv"]](glmnet::predict.glmnet(object = fit$glmnet.fit, newx = X[,2:ncol(X)], s = best_lambda)  )
-#   pred_rawLASSO_link <- glmnet::predict.glmnet(object = fit$glmnet.fit, newx = X[,2:ncol(X)], s = best_lambda, type = "link")
-#   # predictions by hand 
-#   predVector <- fit$glmnet.fit$beta[,fit$index["min",]]
-#   pred_rawLASSO_byHand_link <- c(fit$glmnet.fit$a0[fit$index["min",]] + 
-#                                    predVector[1] * X[,names(predVector[1])] + predVector[2] * X[,names(predVector[2])] + predVector[3] * X[,names(predVector[3])] + predVector[4] * X[,names(predVector[4])] + predVector[5] * X[,names(predVector[5])] + predVector[6] * X[,names(predVector[6])] + predVector[7] * X[,names(predVector[7])] + predVector[8] * X[,names(predVector[8])] + predVector[9] * X[,names(predVector[9])] + predVector[10] * X[,names(predVector[10])] + predVector[11] * X[,names(predVector[11])] + predVector[12] * X[,names(predVector[12])] + predVector[13] * X[,names(predVector[13])] + predVector[14] * X[,names(predVector[14])] + predVector[15] * X[,names(predVector[15])] + predVector[16] * X[,names(predVector[16])] + predVector[17] * X[,names(predVector[17])] + predVector[18] * X[,names(predVector[18])] + predVector[19] * X[,names(predVector[19])] + predVector[20] * X[,names(predVector[20])] + predVector[21] * X[,names(predVector[21])] + predVector[22] * X[,names(predVector[22])] + predVector[23] * X[,names(predVector[23])] + predVector[24] * X[,names(predVector[24])] + predVector[25] * X[,names(predVector[25])] + predVector[26] * X[,names(predVector[26])] + predVector[27] * X[,names(predVector[27])] + predVector[28] * X[,names(predVector[28])] + predVector[29] * X[,names(predVector[29])] + predVector[30] * X[,names(predVector[30])] +  predVector[31] * X[,names(predVector[31])] + predVector[32] * X[,names(predVector[32])] + predVector[33] * X[,names(predVector[33])] + predVector[34] * X[,names(predVector[34])] + predVector[35] * X[,names(predVector[35])] + predVector[36] * X[,names(predVector[36])] + predVector[37] * X[,names(predVector[37])] + predVector[38] * X[,names(predVector[38])] + predVector[39] * X[,names(predVector[39])] +predVector[40] * X[,names(predVector[40])] + predVector[41] * X[,names(predVector[41])] + predVector[42] * X[,names(predVector[42])] + predVector[43] * X[,names(predVector[43])] + predVector[44] * X[,names(predVector[44])] + predVector[45] * X[,names(predVector[45])] + predVector[46] * X[,names(predVector[46])] + predVector[47] * X[,names(predVector[47])] + predVector[48] * X[,names(predVector[48])] + predVector[49] * X[,names(predVector[49])] +predVector[50] * X[,names(predVector[50])] + predVector[51] * X[,names(predVector[51])] + predVector[52] * X[,names(predVector[52])] + predVector[53] * X[,names(predVector[53])] + predVector[54] * X[,names(predVector[54])] + predVector[55] * X[,names(predVector[55])] + predVector[56] * X[,names(predVector[56])] + predVector[57] * X[,names(predVector[57])] + predVector[58] * X[,names(predVector[58])] + predVector[59] * X[,names(predVector[59])] +predVector[60] * X[,names(predVector[60])] + predVector[61] * X[,names(predVector[61])] + predVector[62] * X[,names(predVector[62])] + predVector[63] * X[,names(predVector[63])] + predVector[64] * X[,names(predVector[64])] + predVector[65] * X[,names(predVector[65])] + predVector[66] * X[,names(predVector[66])] + predVector[67] * X[,names(predVector[67])] + predVector[68] * X[,names(predVector[68])] + predVector[69] * X[,names(predVector[69])] +predVector[70] * X[,names(predVector[70])] + predVector[71] * X[,names(predVector[71])] + predVector[72] * X[,names(predVector[72])] + predVector[73] * X[,names(predVector[73])] + predVector[74] * X[,names(predVector[74])] + predVector[75] * X[,names(predVector[75])] + predVector[76] * X[,names(predVector[76])] + predVector[77] * X[,names(predVector[77])] + predVector[78] * X[,names(predVector[78])] + predVector[79] * X[,names(predVector[79])] +predVector[80] * X[,names(predVector[80])] + predVector[81] * X[,names(predVector[81])] + predVector[82] * X[,names(predVector[82])] + predVector[83] * X[,names(predVector[83])] + predVector[84] * X[,names(predVector[84])] + predVector[85] * X[,names(predVector[85])] + predVector[86] * X[,names(predVector[86])] + predVector[87] * X[,names(predVector[87])] + predVector[88] * X[,names(predVector[88])] + predVector[89] * X[,names(predVector[89])] +predVector[90] * X[,names(predVector[90])] + predVector[91] * X[,names(predVector[91])] + predVector[92] * X[,names(predVector[92])] + predVector[93] * X[,names(predVector[93])] + predVector[94] * X[,names(predVector[94])] + 
-#                                    predVector[95] * X[,names(predVector[95])] + predVector[96] * X[,names(predVector[96])] + predVector[97] * X[,names(predVector[97])] + predVector[98] * X[,names(predVector[98])] + predVector[99] * X[,names(predVector[99])] +predVector[100] * X[,names(predVector[100])] + predVector[101] * X[,names(predVector[101])] + predVector[102] * X[,names(predVector[102])] + predVector[103] * X[,names(predVector[103])] + predVector[104] * X[,names(predVector[104])] + predVector[105] * X[,names(predVector[105])] + predVector[106] * X[,names(predVector[106])] + predVector[107] * X[,names(predVector[107])] + predVector[108] * X[,names(predVector[108])] + predVector[109] * X[,names(predVector[109])] +predVector[110] * X[,names(predVector[110])] + predVector[111] * X[,names(predVector[111])] + predVector[112] * X[,names(predVector[112])] + predVector[113] * X[,names(predVector[113])] + predVector[114] * X[,names(predVector[114])] + predVector[115] * X[,names(predVector[115])] + predVector[116] * X[,names(predVector[116])] + predVector[117] * X[,names(predVector[117])] + predVector[118] * X[,names(predVector[118])] + predVector[119] * X[,names(predVector[119])] +predVector[120] * X[,names(predVector[120])] + predVector[121] * X[,names(predVector[121])] + predVector[122] * X[,names(predVector[122])] + predVector[123] * X[,names(predVector[123])] + predVector[124] * X[,names(predVector[124])] + predVector[125] * X[,names(predVector[125])] + predVector[126] * X[,names(predVector[126])] + predVector[127] * X[,names(predVector[127])] + predVector[128] * X[,names(predVector[128])] + predVector[129] * X[,names(predVector[129])] +predVector[130] * X[,names(predVector[130])] + predVector[131] * X[,names(predVector[131])] + predVector[132] * X[,names(predVector[132])] + predVector[133] * X[,names(predVector[133])] + predVector[134] * X[,names(predVector[134])] + predVector[135] * X[,names(predVector[135])] + predVector[136] * X[,names(predVector[136])] + predVector[137] * X[,names(predVector[137])] + predVector[138] * X[,names(predVector[138])] + predVector[139] * X[,names(predVector[139])] +predVector[140] * X[,names(predVector[140])] + predVector[141] * X[,names(predVector[141])] + predVector[142] * X[,names(predVector[142])] + predVector[143] * X[,names(predVector[143])] + predVector[144] * X[,names(predVector[144])] + predVector[145] * X[,names(predVector[145])] + predVector[146] * X[,names(predVector[146])] + predVector[147] * X[,names(predVector[147])] + predVector[148] * X[,names(predVector[148])] + predVector[149] * X[,names(predVector[149])] 
-#   )
-#   
-#   # transform to the scale of the response by hand 
-#   pred_rawLASSO_byHand <- exp(pred_rawLASSO_byHand_link)/(1 + exp(pred_rawLASSO_byHand_link))
-#   
-#   
-#   plot(density(pred_rawLASSO), col = "red", xlim = c(-2, 2), 
-#        main = "predictions from LASSO model (prior to stability selection, trim anoms, etc.) \ngreen = preds. on the logit-link scale, \nred = preds. on the response scale; black = observations", 
-#        )
-#   lines(density(pred_rawLASSO_link), col = "green")
-#   lines(density(y), col = "black")
-#   lines(density( pred_rawLASSO_byHand_link), col = "darkgreen")
-#   lines(density( pred_rawLASSO_byHand), col = "brown")
-#   #lines(density(y), col = "black")
-#   
-# plot(density(fullModOut$modelPredictions$obs), 
-#      ylim = c(0,4), 
-#      main = c("black = observed values \n red = predictions from 'best lambda' model with quasi-beta \n blue = predictions from 'best lambda' model with betareg()")) #\n orange = predictions for '1/2se' lambda model \n green = predictions from '1se' lambda model "))
-# lines(density(fullModOut$modelPredictions$pred_opt), col = "red")
-# #lines(density(optimal_pred_betareg), col = "blue")
-# 
-# #lines(density(optimal_pred_ByHand), col = "red", lty = 2)
-# lines(density(fullModOut$modelPredictions$pred_opt_halfse), col = "orange")
-# lines(density(fullModOut$modelPredictions$pred_opt_se), col = "green")
-# #lines(density(fullModOut$modelPredictions$pred_null), col = "blue")
-```
-
 
 The internal cross-validation process to fit the global LASSO model identified an optimal lambda value (regularization parameter) of `r{print(best_lambda)}`. The lambda value such that the cross validation error is within 1 standard error of the minimum ("1se lambda") was `r{print(fit$lambda.1se)}`` . The following coefficients were kept in each model: 
 ```{r coefficients in the global model}
@@ -1453,6 +1434,31 @@ rename("tmin" = tmin_meanAnnAvg_CLIM,
      "coarse" = avgCoarsePerc_acrossDepth, #9
      "carbon" = avgOrganicCarbonPerc_0_3cm, #10
      "AWHC" = totalAvailableWaterHoldingCapacity,
+  ) %>% 
+  # since the dayMet wall-to-wall data doesn't have anomalies, add 0s for each anomaly (so predictions are more temporaly stable)
+  mutate(
+    "tmean_anom" = 0,                           
+ "tmin_anom"   = 0            ,
+ "tmax_anom"   = 0            , 
+ "prcp_anom"   = 0       ,                   
+ "t_warm_anom"     = 0        ,
+ "t_cold_anom"     = 0        , 
+ "prcp_wet_anom"   = 0   ,                   
+ "precp_dry_anom"  = 0        ,
+ "prcp_seasonality_anom"  = 0 , 
+ "prcpTempCorr_anom" = 0 ,                   
+ "aboveFreezingMonth_anom" = 0,
+ "isothermality_anom" = 0     , 
+ "annWatDef_anom"  = 0   ,                   
+ "annWetDegDays_anom" = 0     ,
+ "VPD_mean_anom"      = 0     , 
+ "VPD_min_anom"       = 0,                   
+ "VPD_max_anom"       = 0     ,
+ "VPD_max_95_anom"    = 0     , 
+ "annWatDef_95_anom"  = 0,                   
+ "annWetDegDays_5_anom"  = 0  ,
+ "frostFreeDays_5_anom"  = 0  , 
+ "frostFreeDays_anom" = 0,
   )
 
 ## read in scaled data (w/ all predictirs) 
@@ -1467,7 +1473,7 @@ scaleParams <- modDat_1_s_temp %>%
 # apply the scaling factors to the contemporary climate data 
 namesToScale <- climDat %>% 
   st_drop_geometry() %>% 
-  dplyr::select(tmin:frostFreeDays, soilDepth:carbon, AWHC) %>% 
+  dplyr::select(tmin:frostFreeDays, soilDepth:carbon, AWHC, tmean_anom:frostFreeDays_anom) %>% 
   names()
 climDat_noSF <- climDat %>% 
   st_drop_geometry()
@@ -1485,13 +1491,11 @@ climDatPred <- climDat %>%
   #st_drop_geometry() %>% 
   dplyr::select(Lon, Lat) %>% 
   cbind(climDat_scaled)
-names(climDatPred)[3:30] <- str_remove(names(climDatPred)[3:30], pattern = "_s$")
+names(climDatPred)[3:52] <- str_remove(names(climDatPred)[3:52], pattern = "_s$")
 rm(climDat_Temp, climDat_noSF, climDatPred_extract, climDat_scaled, climDat_noSF, climDat)
 gc()
 
 # for ecoregion-level models, trim the climDat data frame just to the ecoregion of focus
-if (ecoregion != "CONUS") {
-  ##Classify locations as forested or not with our forest model, using the wall-to-wall climate data we acquired above
 # predict before scaling/interpolation
 climDatPred <- climDatPred %>% 
   mutate(ForestPred_raw =  as.numeric(1/ (1 + 
@@ -1508,6 +1512,9 @@ climDatPred <- climDatPred %>%
   mutate(ForestPred_binary = replace(ForestPred_binary, ForestPred_raw > best_threshold_bestLambda, 1), 
          ForestPred_binary = replace(ForestPred_binary, ForestPred_raw <= best_threshold_bestLambda, 0)) 
 
+if (ecoregion != "CONUS") {
+  ##Classify locations as forested or not with our forest model, using the wall-to-wall climate data we acquired above
+
 ### Now, get a raster of locations that the model classifies as unforested
 
 if (ecoregion == "noTrees") {
@@ -1520,6 +1527,9 @@ climDatPred_ecoregion <- climDatPred %>%
   filter(ForestPred_binary == 1)
 }
 
+} else {
+climDatPred_ecoregion <- climDatPred
+  
 }
 
 # get dayMet raster
@@ -1538,7 +1548,7 @@ cropped_states2 <- cropped_states %>%
 if (response == "TotalTreeCover_transformed" & ecoregion == "noTrees") {
   
 
-###Get data that shows un-forested locations, based on RAP. This dataset is created by first identifying RAP 30-m pixels that have 5% or less of tree cover. Then that information is aggregated up to the dayMet scale, and the value provided is the percentage of RAP pixels within a given dayMet grid cell that have <5% tree cover. 
+###Get data that shows un-forested locations, based on RAP. This dataset is created by first identifying RAP 30-m pixels that have 3% or less of tree cover. Then that information is aggregated up to the dayMet scale, and the value provided is the percentage of RAP pixels within a given dayMet grid cell that have <5% tree cover. 
 ## get RAP unforested cover dataset from Martin
   #RAP_v3_fracNotForest_lt5_mask-lcmap50_2019-2023_1000m.tif
   #
@@ -2148,6 +2158,146 @@ library(patchwork)
 }
 ```
 
+### Partial Dependence Plots
+For best lambda plot
+```{r}
+for (i in 1:length(prednames_fig)) {
+  pd_bestLambda_i <- pdp::partial(object = fit_glm_bestLambda, pred.var = prednames_fig[i], train = pred_glm1, type = "regression")
+  names(pd_bestLambda_i)[1] <- "predictorVariable_value"
+  pd_bestLambda_i$predictorVariable_Name <- prednames_fig[i]
+  if(i == 1) {
+    pd_bestLambda <- pd_bestLambda_i
+  } else {
+    pd_bestLambda <- rbind(pd_bestLambda, pd_bestLambda_i)
+  }
+}
+ 
+## update predictor names to be more interpretable
+lookup_md <- c(
+    "AWHC" = "Available Soil \nWater Holding Capacity",
+    "VPD_mean_anom" = "VPD mean \n- 3 yr. anomaly", 
+    "VPD_max" = "VPD max - 30yr. avg.",
+    "VPD_max_95_anom" = "VPD max 95th percentile \n- 30yr. avg.",
+    "VPD_min_anom" = "VPD min - 3 yr. anomaly",
+    "aboveFreezingMonth_anom" = "First Above Freezing Month \n- 3 yr. anomaly",
+    "annWatDef" = "Ann. Water Deficit \n- 30yr. avg.", 
+    "annWatDef_anom" = "Ann. Water Deficit \n- 3 yr. anomaly", 
+    "annWetDegDays_anom" = "Annual Wet Degree Days \n- 3 yr. anomaly", 
+    "annWetDegDays" = "Annual Wet Degree Days \n- 30yr. avg.",
+    "coarse" = "% coarse", 
+    "clay" = "% clay", 
+    "frostFreeDays_5_anom" = "No. Frost-Free Days 5th \nPercentile - 3 yr. anomaly",
+    "isothermality" = "Isothermality - 30yr. avg.",
+    "isothermality_anom" = "Isothermality - 3 yr. anomaly", 
+    "prcp" = "MAP - 30yr. avg.",
+    "prcp_dry" = "Precip. of Driest Month \n- 30yr. avg.",
+    "prcpTempCorr" = "Precip. Temp. Correlation \n- 30yr. avg.",
+    "prcpTempCorr_anom" = "Precip. Temp. Correlation \n- 3 yr. anomaly",
+    "prcp_seasonality" = "Precip. Seasonality \n- 30yr. avg.", 
+    "prcp_seasonality_anom" = "Precip. Seasonality\n - 3 yr. anomaly",
+    "prcp_wet_anom" = "Precip. of Wettest Month \n- 3 yr. anomaly", 
+    "precp_dry_anom" = "Precip. of Driest Month \n- 3 yr. anomaly", 
+    "prcp_anom" = "MAP - 3 yr. anomaly",
+    "sand" = "% sand", 
+    "carbon" = "% carbon in soil surface", 
+    "t_cold_anom" = "Temp. of Coldest Month \n- 3 yr. anomaly",
+    "t_warm_anom" = "Temp. of Warmest Month \n- 3 yr. anomaly",
+    "tmax_anom" = "Ann. Maximum Temp. \n- 3 yr. anomaly", 
+    "tmean" = "MAT - 30yr. avg.",
+    "tmin_anom" = "Ann. Minimum Temp. \n- 3 yr. anomaly",
+    "prcp_wet" = "Precip. of Wettest Month \n- 30yr. avg.",
+    "t_warm" = "Temp. of Warmest Month \n- 30yr. avg.",
+    "soilDepth" = "Soil Depth", 
+    "t_cold" = "Temp. of Coldest Month \n- 30yr. avg.",
+    "annWatDef_95" = "Ann. Water Deficit 95th \nPercentile - 30yr. avg."
+  ) %>% 
+  data.frame()
+names(lookup_md) <- c("longName")
+lookup_md$predName <- rownames(lookup_md)
+
+pd_bestLambda <- pd_bestLambda %>% 
+  left_join(lookup_md, by = c("predictorVariable_Name" = "predName"))
+
+ggplot(pd_bestLambda) + 
+  facet_wrap(~longName,scales = "free_x") + 
+  geom_line(aes(x = predictorVariable_value, y = yhat)) + 
+  labs(title = "Partial Dependence Plot - predictions from best lambda model",
+          x = "Predictor Variable Value", 
+          y = paste0("P(", response,")"))
+```
+
+For Second-best lambda plot
+```{r}
+if ( name_secondBestMod == "Intercept_Only") {
+  print("The next best lambda model only contains one predictor (an intercept), so partial dependence plots are impractical")
+  } else {
+for (i in 1:length(prednames_secondBestMod)) {
+  pd_secondBestLambda_i <- pdp::partial(object = mod_secondBest, pred.var = prednames_secondBestMod[i], train = pred_glm1_1se, type = "regression")
+  names(pd_secondBestLambda_i)[1] <- "predictorVariable_value"
+  pd_secondBestLambda_i$predictorVariable_Name <- prednames_secondBestMod[i]
+  if(i == 1) {
+    pd_secondBestLambda <- pd_secondBestLambda_i
+  } else {
+    pd_secondBestLambda <- rbind(pd_secondBestLambda, pd_secondBestLambda_i)
+  }
+}
+ 
+## update predictor names to be more interpretable
+lookup_md <- c(
+    "AWHC" = "Available Soil \nWater Holding Capacity",
+    "VPD_mean_anom" = "VPD mean \n- 3 yr. anomaly", 
+    "VPD_max" = "VPD max - 30yr. avg.",
+    "VPD_max_95_anom" = "VPD max 95th percentile \n- 30yr. avg.",
+    "VPD_min_anom" = "VPD min - 3 yr. anomaly",
+    "aboveFreezingMonth_anom" = "First Above Freezing Month \n- 3 yr. anomaly",
+    "annWatDef" = "Ann. Water Deficit \n- 30yr. avg.", 
+    "annWatDef_anom" = "Ann. Water Deficit \n- 3 yr. anomaly", 
+    "annWetDegDays_anom" = "Annual Wet Degree Days \n- 3 yr. anomaly", 
+    "annWetDegDays" = "Annual Wet Degree Days \n- 30yr. avg.",
+    "coarse" = "% coarse", 
+    "clay" = "% clay", 
+    "frostFreeDays_5_anom" = "No. Frost-Free Days 5th \nPercentile - 3 yr. anomaly",
+    "isothermality" = "Isothermality - 30yr. avg.",
+    "isothermality_anom" = "Isothermality - 3 yr. anomaly", 
+    "prcp" = "MAP - 30yr. avg.",
+    "prcp_dry" = "Precip. of Driest Month \n- 30yr. avg.",
+    "prcpTempCorr" = "Precip. Temp. Correlation \n- 30yr. avg.",
+    "prcpTempCorr_anom" = "Precip. Temp. Correlation \n- 3 yr. anomaly",
+    "prcp_seasonality" = "Precip. Seasonality \n- 30yr. avg.", 
+    "prcp_seasonality_anom" = "Precip. Seasonality\n - 3 yr. anomaly",
+    "prcp_wet_anom" = "Precip. of Wettest Month \n- 3 yr. anomaly", 
+    "precp_dry_anom" = "Precip. of Driest Month \n- 3 yr. anomaly", 
+    "prcp_anom" = "MAP - 3 yr. anomaly",
+    "sand" = "% sand", 
+    "carbon" = "% carbon in soil surface", 
+    "t_cold_anom" = "Temp. of Coldest Month \n- 3 yr. anomaly",
+    "t_warm_anom" = "Temp. of Warmest Month \n- 3 yr. anomaly",
+    "tmax_anom" = "Ann. Maximum Temp. \n- 3 yr. anomaly", 
+    "tmean" = "MAT - 30yr. avg.",
+    "tmin_anom" = "Ann. Minimum Temp. \n- 3 yr. anomaly",
+    "prcp_wet" = "Precip. of Wettest Month \n- 30yr. avg.",
+    "t_warm" = "Temp. of Warmest Month \n- 30yr. avg.",
+    "soilDepth" = "Soil Depth", 
+    "t_cold" = "Temp. of Coldest Month \n- 30yr. avg.",
+    "annWatDef_95" = "Ann. Water Deficit 95th \nPercentile - 30yr. avg."
+  ) %>% 
+  data.frame()
+names(lookup_md) <- c("longName")
+lookup_md$predName <- rownames(lookup_md)
+
+pd_secondBestLambda <- pd_secondBestLambda %>% 
+  left_join(lookup_md, by = c("predictorVariable_Name" = "predName"))
+
+ggplot(pd_secondBestLambda) + 
+  facet_wrap(~longName,scales = "free_x") + 
+  geom_line(aes(x = predictorVariable_value, y = yhat)) + 
+  labs(title = paste0("Partial Dependence Plot - predictions from", name_secondBestMod),
+          x = "Predictor Variable Value", 
+          y = paste0("P(", response,")"))
+}
+```
+
+
 ### Quantile plots
 
 Binning predictor variables into "Quantiles"  and looking at the mean
@@ -2182,7 +2332,7 @@ if (length(prednames_fig) == 0) {
 # publication quality version
 g3 <- decile_dotplot_pq(df = pred_glm1_deciles, response = c(response, paste0(response, "_pred")), IQR = FALSE,
                         CI = TRUE
-                        ) + ggtitle("Decile Plot")
+                        ) + ggtitle("Quantile Plot")
 
 g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles, response = c(response, paste0(response, "_pred")), dfRaw = pred_glm1, add_smooth = TRUE, deciles = FALSE)
 
@@ -2221,7 +2371,7 @@ if ( name_secondBestMod == "Intercept_Only") {
   } else {
 
 # publication quality version
-g3 <- decile_dotplot_pq(pred_glm1_deciles_1se, response = c(response, paste0(response, "_pred")), IQR = TRUE) + ggtitle("Decile Plot")
+g3 <- decile_dotplot_pq(pred_glm1_deciles_1se, response = c(response, paste0(response, "_pred")), IQR = TRUE) + ggtitle("Quantile Plot")
 
 g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles_1se, response = c(response, paste0(response, "_pred")), dfRaw = pred_glm1_1se, add_smooth = TRUE, deciles = FALSE)
 
@@ -2253,7 +2403,7 @@ each predictor variable.
 
 ```{r glm_deciles_filtered best lambda model, fig.height = 24, fig.width = 24, message = FALSE}
 if (length(prednames_fig) == 0) {
-  print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate")
+  print("The model only contains one predictor (an intercept), so quantile plots aren't possible to generate")
 } else {
 pred_glm1_deciles_filt <- predvars2deciles( pred_glm1, 
                          response_vars = c(response, paste0(response, "_pred")),
@@ -2309,7 +2459,7 @@ each predictor variable.
 
 ```{r glm_deciles_filtered second best lambda model, fig.height = 24, fig.width = 24, message = FALSE}
 if (length(prednames_secondBestMod) == 0) {
-  print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate")
+  print("The model only contains one predictor (an intercept), so quantile plots aren't possible to generate")
 } else {
   
 pred_glm1_deciles_filt <- predvars2deciles( pred_glm1_1se, 
@@ -2335,7 +2485,7 @@ Filtered quantile figure with middle 2 deciles also shown
 
 ```{r filtered quantile plot for second best lambda modle with middle 2 deciles, fig.height = 24, fig.width = 24, eval = TRUE, message = FALSE}
 if (length(prednames_secondBestMod) == 0) {
-  print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate")
+  print("The model only contains one predictor (an intercept), so quantile plots aren't possible to generate")
 } else {
 pred_glm1_deciles_filt_mid <- predvars2deciles(pred_glm1, 
                          response_vars = c(response, paste0(response, "_pred")),
@@ -2363,7 +2513,7 @@ g
 ```{r}
 # get deciles for best lambda model 
 if (length(prednames_fig) == 0) {
-  print("The best lambda model only contains one predictor (an intercept), so decile plots aren't possible to generate")
+  print("The best lambda model only contains one predictor (an intercept), so quantile plots aren't possible to generate")
 } else {
   pred_glm1_deciles %>% 
     ggplot(aes(x = mean_value, y = RMSE)) +
@@ -2375,7 +2525,7 @@ if (length(prednames_fig) == 0) {
 }
 # get deciles for 1 SE lambda model 
 if (length(prednames_secondBestMod) == 0) {
-  print("The 1SE (or 1/2 SE) lambda model only contains one predictor (an intercept), so decile plots aren't possible to generate")
+  print("The 1SE (or 1/2 SE) lambda model only contains one predictor (an intercept), so quantile plots aren't possible to generate")
 } else {
   pred_glm1_deciles_1se %>% 
     ggplot(aes(x = mean_value, y = RMSE)) +

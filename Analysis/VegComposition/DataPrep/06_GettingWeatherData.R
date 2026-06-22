@@ -473,7 +473,7 @@ if(runClimateCalcs == TRUE) {
       #                                    tmean_Sept, tmean_Oct, tmean_Nov, tmean_Dec)/12
       #                        return(temp)
       #                      }),
-      # annual water deficit (mm of water over degrees celsius)(sum across all months?)
+      # annual water deficit (mm of water over degrees celsius)(sum across all months that are greater than 0)
       annWaterDeficit = pmap_dbl(.[c("awd_Jan", "awd_Feb", "awd_March", "awd_April", "awd_May", "awd_June", "awd_July", "awd_Aug", "awd_Sept", "awd_Oct" ,"awd_Nov", "awd_Dec")],
                                  .f = function(awd_Jan, awd_Feb, awd_March, awd_April, awd_May, awd_June, awd_July, awd_Aug, awd_Sept, awd_Oct ,awd_Nov, awd_Dec, ...){
                                    temp <- c(awd_Jan, awd_Feb, awd_March, awd_April, awd_May, awd_June, awd_July, awd_Aug, awd_Sept, awd_Oct ,awd_Nov, awd_Dec)

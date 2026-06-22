@@ -604,7 +604,7 @@ if (run == TRUE) {
       standardize = FALSE, ## scales variables prior to the model sequence... coefficients are always returned on the original scale
       parallel = TRUE
     )
-    base::saveRDS(fit, paste0("../ModelFitting/models/yesOrNoTrees_globalLASSOmod_binomial_treeCutoff_",treeThreshold,".rds"))
+    base::saveRDS(fit, paste0("../ModelFitting/models/ForestMod_globalLASSOmod_binomial_treeCutoff_",treeThreshold,".rds"))
     
   
      best_lambda <- fit$lambda.min
@@ -758,25 +758,25 @@ halfseLambda_coef <- selection_prob_halfseL_df[selection_prob_halfseL_df$Selecti
   fit_glm_halfse <- glm(formula = f_glm_halfse, data = modDat_1_s, family = binomial )
   
   ## save models 
-  saveRDS(fit_glm_bestLambda, paste0("./models/yesOrNoTrees_bestLambdaGLM_",treeThreshold,".rds"))
-  saveRDS(fit_glm_halfse, paste0("./models/yesOrNoTrees_halfSELambdaGLM_",treeThreshold,".rds"))
-  saveRDS(fit_glm_se, paste0("./models/yesOrNoTrees_oneSELambdaGLM_",treeThreshold,".rds"))
+  saveRDS(fit_glm_bestLambda, paste0("./models/ForestMod_bestLambdaGLM_",treeThreshold,".rds"))
+  saveRDS(fit_glm_halfse, paste0("./models/ForestMod_halfSELambdaGLM_",treeThreshold,".rds"))
+  saveRDS(fit_glm_se, paste0("./models/ForestMod_oneSELambdaGLM_",treeThreshold,".rds"))
     
   ## save the R environment after running the models 
   save(f_glm_halfse, mat_glmnet_halfse, halfseLambda_coef,
               f_glm_1se, mat_glmnet_1se, seLambda_coef,
               f_glm_bestLambda, mat_glmnet_best, bestLambda_coef,
-              file = paste0("./models/interimModelFittingObjects_yesOrNoTrees_binomial_",treeThreshold,".rds"))
+              file = paste0("./models/interimModelFittingObjects_ForestMod_binomial_",treeThreshold,".rds"))
   } else {
     # read in LASSO object
-    fit <- readRDS(paste0("../ModelFitting/models/yesOrNoTrees_globalLASSOmod_binomial_treeCutoff_",treeThreshold,".rds"))
+    fit <- readRDS(paste0("../ModelFitting/models/ForestMod_globalLASSOmod_binomial_treeCutoff_",treeThreshold,".rds"))
     
     # read in R objects having to do w/ model fitting 
-    load(file = paste0("./models/interimModelFittingObjects_yesOrNoTrees_binomial_",treeThreshold,".rds"))
+    load(file = paste0("./models/interimModelFittingObjects_ForestMod_binomial_",treeThreshold,".rds"))
       
-  fit_glm_bestLambda <- readRDS(paste0("./models/yesOrNoTrees_bestLambdaGLM_",treeThreshold,".rds"))
-  fit_glm_halfse <- readRDS(paste0("./models/yesOrNoTrees_halfSELambdaGLM_",treeThreshold,".rds"))
-  fit_glm_se <- readRDS(paste0("./models/yesOrNoTrees_oneSELambdaGLM_",treeThreshold,".rds"))
+  fit_glm_bestLambda <- readRDS(paste0("./models/ForestMod_bestLambdaGLM_",treeThreshold,".rds"))
+  fit_glm_halfse <- readRDS(paste0("./models/ForestMod_halfSELambdaGLM_",treeThreshold,".rds"))
+  fit_glm_se <- readRDS(paste0("./models/ForestMod_oneSELambdaGLM_",treeThreshold,".rds"))
   }
 
 
@@ -1089,36 +1089,36 @@ rm(climDat_Temp, climDat_noSF, climDatPred_extract, climDat_scaled, climDat_noSF
 gc()
 ```
 
-Make sure that the locations we're using for the model-fitting are the same as the locations used to determine the proportion of CONUS that is un-forested (i.e. masks out the same locations due to fire and/or land use)
+<!-- Make sure that the locations we're using for the model-fitting are the same as the locations used to determine the proportion of CONUS that is un-forested (i.e. masks out the same locations due to fire and/or land use) -->
 ```{r}
 
-# rasterize the model-fitting data on the dayMet grid 
-# modDat_1_rast <- modDat_1 %>%  
-#   st_as_sf(coords = c("x", "y"), crs = crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]")) %>% 
-#   terra::vect() %>% 
+# rasterize the model-fitting data on the dayMet grid
+# modDat_1_rast <- modDat_1 %>%
+#   st_as_sf(coords = c("x", "y"), crs = crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]")) %>%
+#   terra::vect() %>%
 #   terra::rasterize(y = test_rastTemp, field = "TotalTreeCover")
 
 ## compare to the the RAP forest data from Martin (is the 'notForest' object)
 # reproject notForest to match data I'm using
-notForest2 <- notForest %>% 
+notForest2 <- notForest %>%
   terra::project(crs(climDatPred))
 
-# notForestTrim <- notForest2 %>% 
+# notForestTrim <- notForest2 %>%
 #   terra::crop(terra::ext(climDatPred[1:1000,]))
 # make sure crs matches
-crs(notForest2) == crs(climDatPred)
+#crs(notForest2) == crs(climDatPred)
 
-climDatPred_vect <- climDatPred %>% 
+climDatPred_vect <- climDatPred %>%
   terra::vect()
 
 # crop climDatPred to match the extent of the notForest data
-climDatPred_extract <- notForest2 %>% 
-  terra::extract(y = climDatPred_vect) %>% 
-  cbind(climDatPred) %>% 
+climDatPred_extract <- notForest2 %>%
+  terra::extract(y = climDatPred_vect) %>%
+  cbind(climDatPred) %>%
   st_as_sf()
 
-## remove climate data from the locations that have been masked in Martin's tree data 
-climDatPred_new <- climDatPred_extract %>% 
+## remove climate data from the locations that have been masked in Martin's tree data
+climDatPred_new <- climDatPred_extract %>%
   filter(!is.na(fracNotForest))
 ```
 
@@ -1227,20 +1227,36 @@ plot(roc_curve_secondBest, main =  paste0("ROC Curve for second-best lambda mode
 
 ```
 ## Interpolation
-In addition to using the threshold we identified above to generate binary predictions, we also add a calibration step to ensure that this model estimates locations with no tree cover at a frequency that matches estimates of the area of CONUS that is tree-less. To do this, we classify all RAP cells in un-developed areas as either treeless (RAP fractional tree cover < 1%) or treed. We then determine the proportion of each 1km x 1km dayMet grid cell that is treeless based on the RAP cells contained within that daymet cell. We can then use this information estimate the proportion of the area within CONUS that is treeless. When we use our forest model to predict forest probability using dayMet data across CONUS, we want to predict an area that is treeless that corresponds to the estimate we made using RAP data. 
+We use the threshold identified above to generate binary predictions.
 
-Below are figures of the empirical cumulative distribution functions for model-predicted forest probability from the best and second-best lambda models *before* interpolation or calibration. The horizontal dashed line indicates the percentile of the data that corresponds to the desired proportion of data the is un-forested (which is 0.3133397, according to the RAP data). The vertical dashed line shows the model-predicted probability of forest that corresponds to this percentile.
+<!-- , we also add a calibration step to ensure that this model estimates locations with no tree cover at a frequency that matches estimates of the area of CONUS that is tree-less. To do this, we classify all RAP cells in un-developed areas as either treeless (RAP fractional tree cover < 1%) or treed. We then determine the proportion of each 1km x 1km dayMet grid cell that is treeless based on the RAP cells contained within that daymet cell. We can then use this information estimate the proportion of the area within CONUS that is treeless. When we use our forest model to predict forest probability using dayMet data across CONUS, we want to predict an area that is treeless that corresponds to the estimate we made using RAP data.  -->
+
+Below are figures of the empirical cumulative distribution functions for model-predicted forest probability from the best and second-best lambda models *before* this interpolation step. The vertical dashed line shows the threshold identified above to make the predicted values binary. The  dotted lines on each side show the values of P(forest) within which we will use the predicted probabilities to "blend" the subsequent total tree cover model predictions together. We identified these boundaries such that there was an equal percentage (0.05%) of values on each side of the cutoff.  
 
 ```{r}
 ## make an empirical cumulative probability function plot of the model predictions on wall-to-wall data
 pred_glm1_w2w_cdf <- stats::ecdf(pred_glm1_w2w$TotalTreeCover_binom_pred)
-## find the quantile of observations that corresponds to the desired proportion of unforested locations
-zeroCutoff_bestLambda <- quantile(pred_glm1_w2w$TotalTreeCover_binom_pred %>% na.omit(), probs = 0.3133397) 
+# ## find the quantile of observations that corresponds to the desired proportion of unforested locations
+thresholdPercentile_bestLambda <- pred_glm1_w2w_cdf(best_threshold_bestLambda)
+  #quantile(pred_glm1_w2w$TotalTreeCover_binom_pred %>% na.omit(), probs = best_threshold_bestLambda) 
+# get P(forest) for percentiles +/- 0.05 from the percentile of the optimal threshold
+lowBuffProb <- quantile(pred_glm1_w2w$TotalTreeCover_binom_pred %>% na.omit(), probs = thresholdPercentile_bestLambda - 0.05) 
+
+highBuffProb <- quantile(pred_glm1_w2w$TotalTreeCover_binom_pred %>% na.omit(), probs = thresholdPercentile_bestLambda +  0.05) 
+
 # plot the ecdf
-plot(pred_glm1_w2w_cdf, xlab = c("P(Total Tree Cover)"), ylab = "Percentile",
+plot(pred_glm1_w2w_cdf, xlab = c("P(Forest)"), ylab = "Percentile",
      main = "Empirical Cumulative Distribution Function for \nUn-transformed model predictions of \nP(Forest) from the best-lambda model")
-abline(h = 0.3133397, lty = 3)
-abline(v = zeroCutoff_bestLambda, lty = 3)
+# lines for optimal threshold
+abline(v = best_threshold_bestLambda, lty = 2)
+abline(h = thresholdPercentile_bestLambda, lty = 2)
+abline(v = lowBuffProb, lty = 3)
+abline(h = thresholdPercentile_bestLambda - 0.05, lty = 3)
+abline(v = highBuffProb, lty = 3)
+abline(h = thresholdPercentile_bestLambda + 0.05, lty = 3)
+text(x = best_threshold_bestLambda + 0.05, y = 0.1, labels = round(best_threshold_bestLambda, 4))
+text(x = lowBuffProb +.05, y = 0.05, labels = round(lowBuffProb, 4))
+text(x = highBuffProb +.05, y = 0.15, labels = round(highBuffProb, 4))
 ```
 
 For the best-lambda model: 
@@ -1250,12 +1266,16 @@ If we want 31% of model predictions to be zero, then any model predictions ≤ 0
 ## make an empirical cumulative probability function plot of the model predictions on wall-to-wall data
 pred_glm1_1se_w2w_cdf <- stats::ecdf(pred_glm1_1se_w2w$TotalTreeCover_binom_pred)
 ## find the quantile of observations that corresponds to the desired proportion of unforested locations
-zeroCutoff_1seLambda <- quantile(pred_glm1_1se_w2w$TotalTreeCover_binom_pred %>% na.omit(), probs = 0.3133397) 
+#0 <- quantile(pred_glm1_1se_w2w$TotalTreeCover_binom_pred %>% na.omit(), probs = 0.3133397) 
 # plot the ecdf
 plot(pred_glm1_w2w_cdf, xlab = c("P(Total Tree Cover)"), ylab = "Percentile",
      main = "Empirical Cumulative Distribution Function for \nUn-transformed model predictions of \nP(Forest) from the second best-lambda model")
-abline(h = 0.3133397, lty = 2)
-abline(v = zeroCutoff_1seLambda, lty = 3)
+abline(v = best_threshold_secondBest, lty = 2)
+text(x = best_threshold_secondBest+.05, y = 0.65, labels = round(best_threshold_secondBest, 4))
+abline(v = best_threshold_secondBest - 0.1, lty = 3)
+text(x = best_threshold_secondBest - 0.1 +.05, y = 0.55, labels = round(best_threshold_secondBest - 0.1, 4))
+abline(v = best_threshold_secondBest + 0.1, lty = 3)
+text(x = best_threshold_secondBest + 0.1 +.05, y = 0.75, labels = round(best_threshold_secondBest + 0.1, 4))
 ```
 
 For the 1se-lambda model: 
@@ -1268,12 +1288,12 @@ If we want 31% of model predictions to be zero, then any model predictions ≤ 0
 First, interpolate the continuous predictions
 ```{r}
 ## set up function for linear interpolation - best lambda model
-approxfun_bestLambda <- approxfun(x = c(zeroCutoff_bestLambda,  best_threshold_bestLambda, 1), # values we're interpolating *from*
+approxfun_bestLambda <- approxfun(x = c(0,  best_threshold_bestLambda, 1), # values we're interpolating *from*
           y =c(0, 0.1, 1), # what we're interpolation to (desired values at the end)
           method = "linear")
 
 ## set up function for linear interpolation - second-best lambda model
-approxfun_secondBestLambda <- approxfun(x = c(zeroCutoff_1seLambda,  best_threshold_secondBest, 1), # values we're interpolating *from*
+approxfun_secondBestLambda <- approxfun(x = c(0,  best_threshold_secondBest, 1), # values we're interpolating *from*
           y =c(0, 0.1, 1), # what we're interpolation to (desired values at the end)
           method = "linear") 
 
@@ -1282,38 +1302,38 @@ approxfun_secondBestLambda <- approxfun(x = c(zeroCutoff_1seLambda,  best_thresh
 # "binomialize" the continuous predictions
 pred_glm1_test <- pred_glm1_test %>% 
   mutate(TotalTreeCover_interp = approxfun_bestLambda(TotalTreeCover_binom_pred)) %>% 
-  mutate(TotalTreeCover_interp = replace(TotalTreeCover_interp, list = TotalTreeCover_binom_pred < zeroCutoff_bestLambda, 0))
+  mutate(TotalTreeCover_interp = replace(TotalTreeCover_interp, list = TotalTreeCover_binom_pred < 0, 0))
 
 # second-best lambda model
 # "binomialize" the continuouse predictions
 pred_glm1_1se_test <- pred_glm1_1se_test %>% 
   mutate(TotalTreeCover_interp = approxfun_secondBestLambda(TotalTreeCover_binom_pred))  %>% 
-  mutate(TotalTreeCover_interp = replace(TotalTreeCover_interp, list = TotalTreeCover_binom_pred < zeroCutoff_1seLambda, 0))
+  mutate(TotalTreeCover_interp = replace(TotalTreeCover_interp, list = TotalTreeCover_binom_pred < 0, 0))
 
 ## for full dataset
 # best lambda model
 # "binomialize" the continuous predictions
 pred_glm1_full <- pred_glm1_full %>% 
   mutate(TotalTreeCover_interp = approxfun_bestLambda(TotalTreeCover_binom_pred)) %>% 
-  mutate(TotalTreeCover_interp = replace(TotalTreeCover_interp, list = TotalTreeCover_binom_pred < zeroCutoff_bestLambda, 0))
+  mutate(TotalTreeCover_interp = replace(TotalTreeCover_interp, list = TotalTreeCover_binom_pred < 0, 0))
 # second-best lambda model
 # "binomialize" the continuouse predictions
 pred_glm1_1se_full <- pred_glm1_1se_full %>% 
   mutate(TotalTreeCover_interp = approxfun_secondBestLambda(TotalTreeCover_binom_pred))  %>% 
-  mutate(TotalTreeCover_interp = replace(TotalTreeCover_interp, list = TotalTreeCover_binom_pred < zeroCutoff_1seLambda, 0))
+  mutate(TotalTreeCover_interp = replace(TotalTreeCover_interp, list = TotalTreeCover_binom_pred < 0, 0))
 
 ## for wall-to-wall data
 # best lambda model
 # "binomialize" the continuous predictions
 pred_glm1_w2w <- pred_glm1_w2w %>% 
   mutate(TotalTreeCover_interp = approxfun_bestLambda(TotalTreeCover_binom_pred)) %>% 
-  mutate(TotalTreeCover_interp = replace(TotalTreeCover_interp, list = TotalTreeCover_binom_pred < zeroCutoff_bestLambda, 0))
+  mutate(TotalTreeCover_interp = replace(TotalTreeCover_interp, list = TotalTreeCover_binom_pred < 0, 0))
 
 # second-best lambda model
 # "binomialize" the continuouse predictions
 pred_glm1_1se_w2w <- pred_glm1_1se_w2w %>% 
   mutate(TotalTreeCover_interp = approxfun_secondBestLambda(TotalTreeCover_binom_pred))  %>% 
-  mutate(TotalTreeCover_interp = replace(TotalTreeCover_interp, list = TotalTreeCover_binom_pred < zeroCutoff_1seLambda, 0))
+  mutate(TotalTreeCover_interp = replace(TotalTreeCover_interp, list = TotalTreeCover_binom_pred < 0, 0))
 
 ```
 
@@ -3269,7 +3289,7 @@ predData$treeProb_secondBestLambda <- predict.glm(object = mod_secondBest, newda
 # make continuous predictions binary according to the identified best threshold for each model 
 predData <- predData %>% 
   mutate(treeProb_bestLambda_continuous = approxfun_bestLambda(treeProb_bestLambda)) %>% # use interpolation to shift the continuous values
-  mutate(treeProb_bestLambda_continuous = replace(treeProb_bestLambda_continuous, list = treeProb_bestLambda < zeroCutoff_bestLambda, 0)) %>% # replace NAs at the 'bottom' of the interpolation scale with 0s
+  mutate(treeProb_bestLambda_continuous = replace(treeProb_bestLambda_continuous, list = treeProb_bestLambda < 0, 0)) %>% # replace NAs at the 'bottom' of the interpolation scale with 0s
   mutate(treeProb_bestLambda_binary = treeProb_bestLambda_continuous,
     treeProb_bestLambda_binary = replace(treeProb_bestLambda_binary, treeProb_bestLambda_binary > 0.1, 1), # now, make the interpolated continuous model predictions binary
          treeProb_bestLambda_binary = replace(treeProb_bestLambda_binary, treeProb_bestLambda_binary <= 0.1, 0)) 
@@ -3693,8 +3713,8 @@ saveRDS(modDat_treePreds,"../../../Data_processed/CoverData/CoverModelData_withT
 <!-- ```{r save_output} -->
 <!-- ## save the coefficients for the models (best lambda, 1/2se lambda, 1se lambda) -->
 
-<!-- saveRDS(coefs, file = paste0("./models/yesOrNoTrees_modelCoefficients.rds")) -->
-<!-- saveRDS(uniqueCoeffs, file = paste0("./models/yesOrNoTrees_modelMetrics_trimAnom.rds")) -->
+<!-- saveRDS(coefs, file = paste0("./models/ForestMod_modelCoefficients.rds")) -->
+<!-- saveRDS(uniqueCoeffs, file = paste0("./models/ForestMod_modelMetrics_trimAnom.rds")) -->
 
 <!-- # make a table -->
 
