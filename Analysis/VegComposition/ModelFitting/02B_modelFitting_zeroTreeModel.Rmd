@@ -24,8 +24,8 @@ The training data consists of classificaiton of treed or un-treed based on RAP,
 as well as climate variables from DayMet, which have been aggregated into mean interannual conditions accross multiple temporal windows. 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning=FALSE,
-                      message = FALSE, dpi = 72)
+# knitr::opts_chunk$set(echo = TRUE, warning=FALSE,
+#                       message = FALSE, dpi = 144)
 ```
 
 # Dependencies 
@@ -138,7 +138,7 @@ modDat_1_s <- readRDS("./models/scaledModelInputData.rds")
 
 # Prep data
 
-We will fit a binomial model that predicts whether or not there are trees at a location. 
+We will fit a beta glm that predicts the continuous probability that a location is un-forested 
 ```{r}
 ## get cover data, which we will use to get climate and soils data
 modDat <- modDat %>% 
@@ -158,17 +158,31 @@ test_rast_dayMet_TEMP <- rast("../../../Data_raw/dayMet/rawMonthlyData/orders/70
 nonForest_rast <- terra::rast("../../../Data_processed/RAP_v3_fracNotForest_lt3_mask-lcmap50_2019-2023_1000m.tif") %>% 
   # make sure the crs is the same
   terra::project(crs(test_rast_dayMet_TEMP))
+# ## make true zeros 0.000001 and 1 0.999999 (so the beta regression will run)
+# nonForest_rast_FULL <- nonForest_rastTemp
+# nonForest_rast_FULL[nonForest_rast_FULL$fracNotForest==0] <- 0.000001
+# nonForest_rast_FULL[nonForest_rast_FULL$fracNotForest==1] <- 0.99999
+# 
+# ## get RAP forest cover data. We trim the nonForest_rast layer to locations with 50% or lower tree cover, so that the model has less data than CONUS-wide to fit the non-forest model, but also has enough variation in tree/no-tree to fit the model
+# RAP_50PercentForestCover <- terra::rast("../../../Data_processed/RAP_v3_cover_2019-2023_1000m.tif")
+# RAP_50PercentForestCover <- RAP_50PercentForestCover$totalTreeCov
+# # filter to only show data from locations w/ 50% or less of tree cover
+# RAP_50PercentForestCover[RAP_50PercentForestCover>50] <- NA
+# # apply the mask from the nonForest_rast raster to the RAP_50PercentForestCover raster
+# RAP_50PercentForestCover <- RAP_50PercentForestCover %>% mask(nonForest_rast_FULL, maskvalue = NA)
+# 
+# ## now, trim the nonForest data such that we are only training the model on data from locations where RAP total tree cover is <=50%
+# nonForest_rast <- nonForest_rast_FULL %>% mask(RAP_50PercentForestCover, maskvalue = NA)
 ```
 
-This tree/un-treed data gives the proportion of 30-m RAP pixels within a 1km dayMet grid cell that have no trees (which we define as <3% tree cover). The resulting raster has pixels with values on a continuous range between 0 and 1 (1 is completely un-treed, 0 is completely treed). We want this model to reliably predict locations that are completely un-treed, so we convert this dataset into "binary" values, such that dayMet grid cells with no trees (50% or fewer of the RAP cells in the dayMet grid cell have <3% tree cover)(value = 1) receive a value of 0, and dayMet grid cells with trees (value <0.5) receive a value of 0. 
+This tree/un-treed data gives the proportion of 30-m RAP pixels within a 1km dayMet grid cell that have no trees (which we define as <3% tree cover). The resulting raster has pixels with values on a continuous range between 0 and 1 (0 is completely un-treed, 1 is completely treed). We want this model to reliably predict locations that are completely un-treed, so we convert this dataset into "binary" values, such that dayMet grid cells with no trees (50% or fewer of the RAP cells in the dayMet grid cell have <3% tree cover)(value = 1) receive a value of 0, and dayMet grid cells with trees (value <0.5) receive a value of 0. 
 
-```{r}
+```{r, warning=FALSE}
 ## reclassify the raster according to our purposes 
-# cells with trees (>=0 and < 1)
-nonForest_rast[nonForest_rast>=0.5 ] <- -1
-nonForest_rast[nonForest_rast <.5 & nonForest_rast >= 0,] <- 1  # cells with trees, reclassify to 1
-nonForest_rast[nonForest_rast==-1 ] <- 0
-
+nonForest_rast <- 1 - nonForest_rast
+##  make values binary
+nonForest_rast[nonForest_rast>.5] <- 1
+nonForest_rast[nonForest_rast<=.5] <- 0
 ## download wall-to-wall climate data, which we'll use to fit the model
 ## contemporary climate data (wall-to-wall, no anomalies)
 climDat_Temp <- readRDS("../../../Data_processed/WallToWallClimateData/DayMetData_allCONUS_2023ClimateValues_withSoils.rds")
@@ -214,6 +228,7 @@ rename("tmin" = tmin_meanAnnAvg_CLIM,
 ## now, scale the contemporary climate data for use in cover models 
 # get the scaling factors 
 scaleParams <- modDat_1_s %>% 
+  sf::st_drop_geometry() %>% 
   #filter(Year == 2016) %>% 
   dplyr::select(tmin_s:AWHC_s) %>% 
   reframe(across(all_of(names(.)), attributes)) 
@@ -319,12 +334,22 @@ modDat_1_s <- modDat_1_s %>%
 ```
 
 
+Because the dataset is so large (on the dayMet grid), subset to 300,000 observations to make model fitting viable
+```{r}
+## subset data set for testing purposes
+# save full version
+modDat_1_s_FULL <- modDat_1_s
+# now subset
+modDat_1_s <- modDat_1_s_FULL %>% 
+  slice_sample(n = 500000)
+```
+
 #### Visualize the response variable 
 ```{r visualize response variable , fig.height=4, fig.width=5}
 ggplot(modDat_1_s) + 
   geom_histogram(aes(.data[[response]]), fill = "forestgreen", col = "forestgreen", alpha = .5) + 
-  xlab("P(Non-forest)") + 
-  ggtitle("P(Non-Forest) in the training data")
+  xlab("P(Non-tree)") + 
+  ggtitle("P(Non-tree) in the training data")
 
 
 ```
@@ -358,8 +383,9 @@ df_sample_plots <-  modDat_1_s  %>%
   slice_sample(n = 5e4) %>% 
    rename(response = all_of(response)) %>% 
   mutate(response = case_when(
-    response == 0 ~ "0", 
-    response > 0  ~ "1", 
+    response < 0.33 ~ "low", 
+    response >= 0.33  & response < 0.66 ~ "med", 
+    response >= 0.66   ~ "high", 
   )) %>% 
   dplyr::select(c(response, prednames)) %>% 
   tidyr::pivot_longer(cols = unname(prednames), 
@@ -580,7 +606,6 @@ if (length(corrNames_i)>1) {
 X <- X[,!(colnames(X) %in% badNames)]
 
 rm(X_df)
-g
 ```
 
 #### Run the global LASSO model
@@ -589,7 +614,7 @@ if (run == TRUE) {
   # set up custom folds
     # get the ecoregions for training lambda
   train_eco <- modDat_1_s$NA_L2NAME#[train]
-  
+ 
   # Fit model -----------------------------------------------
   # specify leave-one-year-out cross-validation
   my_folds <- as.numeric(as.factor(train_eco))
@@ -601,7 +626,7 @@ if (run == TRUE) {
     fit <- cv.glmnet(
       x = X[,2:ncol(X)], 
       y = y, 
-      family = "binomial",
+      family = "binomial", #quasibeta_family(),
       keep = FALSE,
       alpha = 1,  # 0 == ridge regression, 1 == lasso, 0.5 ~~ elastic net
       lambda = lambdas,
@@ -739,8 +764,8 @@ halfseLambda_coef <- selection_prob_halfseL_df[selection_prob_halfseL_df$Selecti
   f_glm_bestLambda <- as.formula(paste0(response, " ~ ", paste0(mat_glmnet_best, collapse = " + ")))
   }
   
-## fit using betareg
-  fit_glm_bestLambda <- fit_glm_bestLambda_binomial <- glm(formula = f_glm_bestLambda, data = modDat_1_s, family = binomial)
+## fit
+  fit_glm_bestLambda <- fit_glm_bestLambda_binomial <- glm(formula = f_glm_bestLambda, data = modDat_1_s, family = "binomial")
     
    ## fit w/ the identified coefficients from the '1se' lambda, but using the glm function
   mat_glmnet_1se <- seLambda_coef$VariableName
@@ -752,7 +777,7 @@ halfseLambda_coef <- selection_prob_halfseL_df[selection_prob_halfseL_df$Selecti
   }
 
 
-  fit_glm_se <- glm(formula = f_glm_1se, data = modDat_1_s, family = binomial)
+  fit_glm_se <- glm(formula = f_glm_1se, data = modDat_1_s, family = "binomial")
   # glm(data = modDat_1_s, formula = f_glm_1se,
   #                   family =  stats::Gamma(link = "log"))
   
@@ -765,7 +790,7 @@ halfseLambda_coef <- selection_prob_halfseL_df[selection_prob_halfseL_df$Selecti
   f_glm_halfse <- as.formula(paste0(response, " ~ ", paste0(mat_glmnet_halfse, collapse = " + ")))
   }
 
-  fit_glm_halfse <- glm(formula = f_glm_halfse, data = modDat_1_s, family = binomial )
+  fit_glm_halfse <- glm(formula = f_glm_halfse, data = modDat_1_s, family = "binomial")
   
   ## save models 
   saveRDS(fit_glm_bestLambda, paste0("./models/yesOrNoTrees_bestLambdaGLM_",treeThreshold,".rds"))
@@ -1036,10 +1061,6 @@ climDatPred <- readRDS("../../../Data_processed/WallToWallClimateData/DayMetData
 <!-- Make sure that the locations we're using for the model-fitting are the same as the locations used to determine the proportion of CONUS that is un-forested (i.e. masks out the same locations due to fire and/or land use) -->
 ```{r}
 # rasterize the model-fitting data on the dayMet grid
-# modDat_1_rast <- modDat_1 %>%
-#   st_as_sf(coords = c("x", "y"), crs = crs("PROJCRS[\"unnamed\",\n    BASEGEOGCRS[\"unknown\",\n        DATUM[\"unknown\",\n            ELLIPSOID[\"Spheroid\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1,\n                    ID[\"EPSG\",9001]]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433,\n                ID[\"EPSG\",9122]]]],\n    CONVERSION[\"Lambert Conic Conformal (2SP)\",\n        METHOD[\"Lambert Conic Conformal (2SP)\",\n            ID[\"EPSG\",9802]],\n        PARAMETER[\"Latitude of false origin\",42.5,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8821]],\n        PARAMETER[\"Longitude of false origin\",-100,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8822]],\n        PARAMETER[\"Latitude of 1st standard parallel\",25,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8823]],\n        PARAMETER[\"Latitude of 2nd standard parallel\",60,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8824]],\n        PARAMETER[\"Easting at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8826]],\n        PARAMETER[\"Northing at false origin\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8827]]],\n    CS[Cartesian,2],\n        AXIS[\"easting\",east,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"northing\",north,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]")) %>%
-#   terra::vect() %>%
-#   terra::rasterize(y = test_rastTemp, field = "TotalTreeCover")
 
 ## compare to the the RAP forest data from Martin (is the 'notForest' object)
 # reproject notForest to match data I'm using
@@ -1086,7 +1107,7 @@ predict_by_response <- function(mod, df, scale = FALSE) {
   return(df_out)
 }
 ## predict on entire dataset
-pred_glm1_full <- predict_by_response(fit_glm_bestLambda, modDat_1_s)#X[,2:ncol(X)])
+pred_glm1_full <- predict_by_response(fit_glm_bestLambda, modDat_1_s_FULL)#X[,2:ncol(X)])
 pred_glm1_full$resid <- pred_glm1_full[,response] - pred_glm1_full[,paste0(response, "_pred")]
 pred_glm1_full$extremeResid <- NA
 pred_glm1_full[pred_glm1_full$resid > .5 | pred_glm1_full$resid < -.5,"extremeResid"] <- 1
@@ -1102,7 +1123,7 @@ if ( name_secondBestMod == "Intercept_Only") {
 } else {
 
 ## for full dataset
-pred_glm1_1se_full <- predict_by_response(mod_secondBest, modDat_1_s)#X[,2:ncol(X)])
+pred_glm1_1se_full <- predict_by_response(mod_secondBest, modDat_1_s_FULL)#X[,2:ncol(X)])
 pred_glm1_1se_full$resid <- pred_glm1_1se_full[,response] - pred_glm1_1se_full[,paste0(response, "_pred")]
 pred_glm1_1se_full$extremeResid <- NA
 pred_glm1_1se_full[pred_glm1_1se_full$resid > .5 | pred_glm1_1se_full$resid < -.5,"extremeResid"] <- 1
@@ -1113,58 +1134,71 @@ pred_glm1_1se_w2w <- predict_by_response(mod_secondBest, climDatPred %>% st_drop
 ```
 
 
-## Inital Model Diagnostics 
+
+## Making predictions binary
 Identifying the optimal threshold to make the continuous predictions binomial based on the prevalence in the training data. 
-ROC Curves are based on classification accuracy of the model when used on the testing set (held-out years 2003, 2012 and 2019)
 
 For the bestLambda model: 
-```{r ROC for best lambda model, warning=FALSE}
+```{r threshold for best lambda model, warning=FALSE}
 library(PresenceAbsence)
 DATA <- fullModOut$modelPredictions[,c("obs", "pred_opt")] # only training data (full dataset)
 DATA$ID <- 1:nrow(DATA)
-#pred.prev <- predicted.prevalence(DATA = DATA[,c("ID", "obs", "pred_opt")], threshold = 20)
-#accu <- presence.absence.accuracy(DATA[,c("ID", "TotalTreeCover_binom", "TotalTreeCover_binom_pred")], threshold = 20)
-optimalThresholds <- optimal.thresholds(DATA = DATA[,c("ID", "obs", "pred_opt")], 
-                                        threshold = 200, obs.prev = mean(DATA[,"obs"])) # tests 100 thresholds)
+## make the 'observations' binary (i.e. locations > 50% are 'treed' and locations < 50% are 'un-treed')
+# in model-prediction data
+DATA$obs_binary <- DATA$obs
+DATA[DATA$obs_binary <= .5, "obs_binary"] <- 0
+DATA[DATA$obs_binary > .5, "obs_binary"] <- 1
+# in full training data
+modDat_1_s_FULL$fracNotForest_binary <- modDat_1_s_FULL$fracNotForest
+modDat_1_s_FULL[modDat_1_s_FULL$fracNotForest_binary <= .5, "fracNotForest_binary"] <- 0
+modDat_1_s_FULL[modDat_1_s_FULL$fracNotForest_binary > .5, "fracNotForest_binary"] <- 1
+
+## calculate the observed prevalence from the FULL dataset (not the training subset) (the average of the observed )
+obs.prev_MINE <- mean(modDat_1_s_FULL$fracNotForest)
+
+## now, identify the optimal threshold
+optimalThresholds <- optimal.thresholds(DATA = DATA[,c("ID", "obs_binary", "pred_opt")],
+threshold = 200, obs.prev = obs.prev_MINE#mean(DATA[,"obs"])
+) # tests 100 thresholds)
+
+## find the cutoff for making the predictions binary such that the prevalence of treed locations is the same in the model predictions as in the prediction area 
 rm(DATA)
 best_threshold_bestLambda <- optimalThresholds[optimalThresholds$Method == thresholdMethod, 2]
 cat(paste0("Optimal threshold for best lambda model based on ROC curve, based on the ",thresholdMethod, " method: ", best_threshold_bestLambda, "\n"))
 
-# Now make an ROC curve based on the test set
-roc_curve <- roc(pred_glm1_full[,response], pred_glm1_full[,paste0(response, "_pred")])
-# Plot ROC curve
-plot(roc_curve, main =  paste0("ROC Curve for best lambda model \n","AUC: ",round(roc_curve$auc,2)))
-
 ## save this prevalence for later 
-saveRDS(best_threshold_bestLambda, "./models/ForestModelPrevalence.rds")
+saveRDS(best_threshold_bestLambda, "./models/YesNoTreeModelPrevalence.rds")
+
 ```
 
 For the second-bestLambda model: 
-```{r ROC for next best lambda model}
+```{r threshold for next best lambda model}
 # best_threshold_secondBest <- coords$threshold
 DATA <- fullModOut$modelPredictions[,c("obs", trainDatPredName)]
 DATA$ID <- 1:nrow(DATA)
-#pred.prev <- predicted.prevalence(DATA = DATA[,c("ID", "TotalTreeCover_binom", "TotalTreeCover_binom_pred")], threshold = 20)
-#accu <- presence.absence.accuracy(DATA[,c("ID", "TotalTreeCover_binom", "TotalTreeCover_binom_pred")], threshold = 20)
-optimalThresholds <- optimal.thresholds(DATA = DATA[,c("ID", "obs", trainDatPredName)], 
-                                        threshold = 200, obs.prev = mean(DATA[,"obs"])) # tests 100 thresholds)
+
+## make the 'observations' binary (i.e. locations > 50% are 'treed' and locations < 50% are 'un-treed')
+# in model-prediction data
+DATA$obs_binary <- DATA$obs
+DATA[DATA$obs_binary <= .5, "obs_binary"] <- 0
+DATA[DATA$obs_binary > .5, "obs_binary"] <- 1
+
+optimalThresholds <- optimal.thresholds(DATA = DATA[,c("ID", "obs_binary", trainDatPredName)], 
+                                        threshold = 200, obs.prev = obs.prev_MINE) # tests 100 thresholds)
+
 rm(DATA)
 best_threshold_secondBest <- optimalThresholds[optimalThresholds$Method == thresholdMethod, 2]
 cat(paste0("Optimal threshold for second-best lambda model based on ROC curve, based on the ",thresholdMethod, " method: ", best_threshold_secondBest, "\n"))
 
-# Now make an ROC curve based on the test set
-roc_curve_secondBest <- roc(pred_glm1_1se_full[,response], pred_glm1_1se_full[,paste0(response, "_pred")])
-# Plot ROC curve
-plot(roc_curve_secondBest, main =  paste0("ROC Curve for second-best lambda model \n","AUC: ",round(roc_curve_secondBest$auc,2)))
+
+## save this prevalence for later 
+saveRDS(best_threshold_secondBest, "./models/YesNoTreeModelPrevalence_secondBest.rds")
+
 ```
 
-## Making predictions binary
-We use the threshold identified above to generate binary predictions.
+Below are figures of the empirical cumulative distribution functions for model-predicted probability of no trees from the best and second-best lambda models *before* we make the values binary. The vertical dashed line shows the threshold identified above to make the predicted values binary. 
 
-<!-- , we also add a calibration step to ensure that this model estimates locations with no tree cover at a frequency that matches estimates of the area of CONUS that is tree-less. To do this, we classify all RAP cells in un-developed areas as either treeless (RAP fractional tree cover < 1%) or treed. We then determine the proportion of each 1km x 1km dayMet grid cell that is treeless based on the RAP cells contained within that daymet cell. We can then use this information estimate the proportion of the area within CONUS that is treeless. When we use our forest model to predict forest probability using dayMet data across CONUS, we want to predict an area that is treeless that corresponds to the estimate we made using RAP data.  -->
-
-Below are figures of the empirical cumulative distribution functions for model-predicted probability of no trees from the best and second-best lambda models *before* this interpolation step. The vertical dashed line shows the threshold identified above to make the predicted values binary. The  dotted lines on each side show the values of P(forest) within which we will use the predicted probabilities to "blend" the subsequent total tree cover model predictions together. We identified these boundaries such that there was an equal percentage (0.05%) of values on each side of the cutoff.  
-
+For best lambda model
 ```{r}
 ## make an empirical cumulative probability function plot of the model predictions on wall-to-wall data
 pred_glm1_w2w_cdf <- stats::ecdf(pred_glm1_w2w[,"fracNotForest_pred"])
@@ -1174,15 +1208,33 @@ thresholdPercentile_bestLambda <- pred_glm1_w2w_cdf(best_threshold_bestLambda)
 # get P(forest) for percentiles +/- 0.05 from the percentile of the optimal threshold
 
 # plot the ecdf
-plot(pred_glm1_w2w_cdf, xlab = c("P(Forest)"), ylab = "Percentile",
-     main = "Empirical Cumulative Distribution Function for \nUn-transformed model predictions of \nP(Forest) from the best-lambda model")
+plot(pred_glm1_w2w_cdf, xlab = c("Proportion of RAP cells in a dayMet \n cell that have <3% tree cover- continuous"), ylab = "Percentile",
+     main = "Empirical Cumulative Distribution Function for \nUn-transformed model predictions of \nproportion of treed cells from the best lambda model")
 
 # lines for optimal threshold
 abline(v = best_threshold_bestLambda, lty = 2)
 abline(h = thresholdPercentile_bestLambda, lty = 2)
 ```
 
-We use the thresholds identified above to make continuous predictions of P(no trees) binary
+For second-best lambda model
+```{r}
+## make an empirical cumulative probability function plot of the model predictions on wall-to-wall data
+pred_glm1_1se_w2w_cdf <- stats::ecdf(pred_glm1_1se_w2w[,"fracNotForest_pred"])
+# ## find the quantile of observations that corresponds to the desired proportion of unforested locations
+thresholdPercentile_secondBestLambda <- pred_glm1_1se_w2w_cdf(best_threshold_secondBest)
+  #quantile(pred_glm1_w2w$TotalTreeCover_binom_pred %>% na.omit(), probs = best_threshold_bestLambda) 
+# get P(forest) for percentiles +/- 0.05 from the percentile of the optimal threshold
+
+# plot the ecdf
+plot(pred_glm1_1se_w2w_cdf, xlab = c("Proportion of RAP cells in a dayMet \n cell that have <3% tree cover- continuous"), ylab = "Percentile",
+     main = "Empirical Cumulative Distribution Function for \nUn-transformed model predictions of \nproportion of treed cells from the second-best lambda model")
+
+# lines for optimal threshold
+abline(v = best_threshold_secondBest, lty = 2)
+abline(h = thresholdPercentile_secondBestLambda, lty = 2)
+```
+
+We use the thresholds identified above to make continuous predictions of proportion of trees binary
 ```{r}
 ## for full dataset
 # best lambda model
@@ -1218,6 +1270,17 @@ pred_glm1_1se_w2w <- pred_glm1_1se_w2w %>%
 
 ### Identify Misclassifications
 ```{r}
+
+## first, need to bin prediction data 
+# best lambda model
+pred_glm1_full$fracNotForest_binary <- pred_glm1_full$fracNotForest
+pred_glm1_full[pred_glm1_full$fracNotForest_binary <= .5, "fracNotForest_binary"] <- 0
+pred_glm1_full[pred_glm1_full$fracNotForest_binary > .5, "fracNotForest_binary"] <- 1
+# second-best lambda model
+pred_glm1_1se_full$fracNotForest_binary <- pred_glm1_1se_full$fracNotForest
+pred_glm1_1se_full[pred_glm1_1se_full$fracNotForest_binary <= .5, "fracNotForest_binary"] <- 0
+pred_glm1_1se_full[pred_glm1_1se_full$fracNotForest_binary > .5, "fracNotForest_binary"] <- 1
+
 # true positive = tree (1)
 # false positive = model says tree, data says no-tree (2) 
 # true negative = no tree (3) 
@@ -1225,31 +1288,30 @@ pred_glm1_1se_w2w <- pred_glm1_1se_w2w %>%
 
 # best-lambda model -- full dataset
 pred_glm1_full$missClass <- NA
-pred_glm1_full[pred_glm1_full$fracNotForest == 1 & 
+pred_glm1_full[pred_glm1_full$fracNotForest_binary == 1 & 
                  pred_glm1_full$fracNotForest_pred_binary == 1, "missClass"] <- 1
-pred_glm1_full[pred_glm1_full$fracNotForest == 0 & 
+pred_glm1_full[pred_glm1_full$fracNotForest_binary == 0 & 
                  pred_glm1_full$fracNotForest_pred_binary == 0, "missClass"] <- 3
-pred_glm1_full[pred_glm1_full$fracNotForest == 0 & 
+pred_glm1_full[pred_glm1_full$fracNotForest_binary == 0 & 
                  pred_glm1_full$fracNotForest_pred_binary == 1, "missClass"] <- 2
-pred_glm1_full[pred_glm1_full$fracNotForest == 1 & 
+pred_glm1_full[pred_glm1_full$fracNotForest_binary == 1 & 
                  pred_glm1_full$fracNotForest_pred_binary == 0, "missClass"] <- 4
 
 # second-best lambda model - full dataset
 pred_glm1_1se_full$missClass <- NA
-pred_glm1_1se_full[pred_glm1_1se_full$fracNotForest == 1 & 
+pred_glm1_1se_full[pred_glm1_1se_full$fracNotForest_binary == 1 & 
                  pred_glm1_1se_full$fracNotForest_pred_binary == 1, "missClass"] <- 1
-pred_glm1_1se_full[pred_glm1_1se_full$fracNotForest == 0 & 
+pred_glm1_1se_full[pred_glm1_1se_full$fracNotForest_binary == 0 & 
                  pred_glm1_1se_full$fracNotForest_pred_binary == 0, "missClass"] <- 3
-pred_glm1_1se_full[pred_glm1_1se_full$fracNotForest == 0 & 
+pred_glm1_1se_full[pred_glm1_1se_full$fracNotForest_binary == 0 & 
                  pred_glm1_1se_full$fracNotForest_pred_binary == 1, "missClass"] <- 2
-pred_glm1_1se_full[pred_glm1_1se_full$fracNotForest == 1 & 
+pred_glm1_1se_full[pred_glm1_1se_full$fracNotForest_binary == 1 & 
                  pred_glm1_1se_full$fracNotForest_pred_binary == 0, "missClass"] <- 4
 
 ```
 
-Identify Misclassifications, only in non-forest locations
 ```{r}
-# read in .tif w/ predictions of forest classification on dayMet grid
+# read in .tif w/ predictions of forest classification from the forest model, which we'll use later oneon dayMet grid
 forestPreds_dmGrid <- terra::rast(x= "../../../Data_processed/CoverData/finalCoverData/predictionsOfForestProbOnDaymetScale.tif")
 
 ```
@@ -1257,7 +1319,12 @@ forestPreds_dmGrid <- terra::rast(x= "../../../Data_processed/CoverData/finalCov
 
 ## Maps of Observations, Predictions, and Residuals
 ### Observations - continuous and binary total tree cover for the full dataset 
-```{r Residual maps, fig.height=9, fig.width=9}
+```{r Residual maps, fig.height = 6.5, fig.width = 9, warning = FALSE}
+
+## clean up the environment
+rm(modDat_1_s, modDat_1, nonForest_rast, notForest, notForest2, test_rast_dayMet_TEMP, X_i, X_sub, climDat, climDat_noSF, climDat_scaled, climDat_Temp, climDatPred, climDatPred_extract, climDatPred_new)
+gc()
+
 ## get information for plotting
 # aggregate to a grid of 8km x 8km cells
 test_rast <- test_rastTemp #%>%
@@ -1276,9 +1343,9 @@ pred_glm1_full_sf <- pred_glm1_full %>%
   st_as_sf(coords = c("x", "y"), crs = crs(crs_veg)) %>% 
   st_transform(crs(test_rast)) %>% 
   terra::vect()
-testRast2 <- lapply(c("fracNotForest", "fracNotForest_pred_binary", "resid", "missClass"), FUN = function(x) {
+testRast2 <- lapply(c("fracNotForest_binary", "fracNotForest_pred", "fracNotForest_pred_binary", "resid", "missClass"), FUN = function(x) {
   # S4 method for class 'data.frame'
-  if (x %in% c("fracNotForest", "fracNotForest_pred_binary", "resid")) {
+  if (x %in% c("fracNotForest_binary", "fracNotForest_pred", "fracNotForest_pred_binary", "resid")) {
     temp <- terra::rasterize(x = pred_glm1_full_sf, y = test_rast, 
                          field = x, fun = mean, na.rm = TRUE)
     names(temp) <- x
@@ -1299,25 +1366,27 @@ testRast2 <- lapply(c("fracNotForest", "fracNotForest_pred_binary", "resid", "mi
  return(temp)
   }
 )
-pred_glm1_full_RAST <- c(testRast2[[1]], testRast2[[2]], testRast2[[3]], testRast2[[4]])
+
+pred_glm1_full_RAST <- c(testRast2[[1]], testRast2[[2]], testRast2[[3]], testRast2[[4]], testRast2[[5]])
 
 # reproject state boundaries
 cropped_states_2 <- cropped_states  %>%
   sf::st_transform(sf::st_crs(test_rast))
-# make figure of raw tree cover
-map_obs_cont <- ggplot() +
+
+# make figure of treed/un-treed - binary
+map_obs_bin <- ggplot() +
 #geom_spatraster(data = pred_glm1_full_RAST, aes(fill = fracNotForest), maxcell = 50000000) + 
   geom_sf(data=cropped_states_2 ,fill=NA ) +
   geom_raster(data = pred_glm1_full_RAST, aes(x = x, 
                    y = y, 
-                   fill = as.character(fracNotForest)), maxcell = 5e+10) + 
+                   fill = as.character(fracNotForest_binary)), maxcell = 5e+10) + 
  xlim(-2150000, 2510000) +
  ylim(-2005000, 1000000) +
   coord_sf(datum = st_crs(test_rastTemp)) +
              scale_fill_viridis_c(na.value = "white", "magma", direction = -1, limits = c(0,212)) +
  #geom_sf(data = pred_glm1_full_RAST, aes(col = TotalTreeCover)) + 
   # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
-labs(title = paste0("Observations of tree presence"), x = "", y = ""
+labs(title = paste0("Observations of tree presence - binary"), x = "", y = ""
      ) +
    scale_fill_manual(name = "", 
                      values = c("wheat", "darkgreen"), 
@@ -1331,34 +1400,63 @@ labs(title = paste0("Observations of tree presence"), x = "", y = ""
                    strip.text = element_text(size = 15),
                    title = element_text(size = 18),
                    axis.ticks = element_blank()) 
-# add inset
-          #  inset_plot <-  ggplot(pred_glm1_full) + 
-          #    geom_density(aes(fracNotForest)) +
-          #       theme_bw(base_size=9) +  ## makes everything smaller
-          #       theme(panel.background = element_rect(fill="transparent"),  ## white plot background
-          #             panel.border = element_blank(),
-          # axis.title.y = element_blank(),
-          # axis.title.x = element_blank(),
-          # axis.text.x = element_text(size=rel(2)), ## tiny axis text
-          # axis.text.y = element_text(size=rel(2)), ## tiny axis text
-          # axis.line.x = element_line(size = .5),
-          # axis.line.y = element_line(size = .5),
-          # panel.grid.major = element_blank(),
-          # panel.grid.minor = element_blank(),
-          # plot.background = element_blank(),
-          # strip.background = element_blank(),
-          # strip.text = element_blank()) 
-     
-#f map_obs_cont <-    map_obs_cont# +   #annotation_custom(grob = ggplotGrob(inset_plot), ymin = -2028000, ymax=-1205000, xmin=-2280000, xmax=-180000 ) 
 
-library(ggpubr)
-map_obs_cont
+# # make figure of treed/un-treed - continuous
+# map_obs_cont <- ggplot() +
+# geom_spatraster(data = pred_glm1_full_RAST, aes(fill = fracNotForest), maxcell = 50000000) + 
+#   geom_sf(data=cropped_states_2 ,fill=NA ) +
+#   #geom_raster(data = pred_glm1_full_RAST, aes(x = x, 
+#    #                y = y, 
+#     #               fill = as.character(fracNotForest)), maxcell = 5e+10) + 
+#  xlim(-2150000, 2510000) +
+#  ylim(-2005000, 1000000) +
+#   coord_sf(datum = st_crs(test_rastTemp)) +
+#              scale_fill_viridis_c(na.value = "white", "magma", direction = -1, limits = c(0,212)) +
+#  #geom_sf(data = pred_glm1_full_RAST, aes(col = TotalTreeCover)) + 
+#   # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
+# labs(title = paste0("Observations of tree presence - continuous"), x = "", y = ""
+#      ) +
+#    # scale_fill_manual(name = "", 
+#    #                   values = c("wheat", "darkgreen"), 
+#    #                   labels = c("No trees", "Trees"),
+#    #                  na.translate = FALSE) +
+#   scale_fill_gradient2(low = "brown",
+#                        mid = "wheat" ,
+#                        high = "forestgreen" ,
+#                        midpoint = 0,   na.value = "white") +
+#   theme(axis.text = element_blank(),
+#                    strip.text = element_text(size = 15),
+#                    title = element_text(size = 18),
+#                    axis.ticks = element_blank()) 
+# 
+# #add inset
+#  inset_plot <-  ggplot(pred_glm1_full) +
+#    geom_density(aes(fracNotForest)) +
+#       theme_bw(base_size=9) +  ## makes everything smaller
+#       theme(panel.background = element_rect(fill="transparent"),  ## white plot background
+#             panel.border = element_blank(),
+# axis.title.y = element_blank(),
+# axis.title.x = element_blank(),
+# axis.text.x = element_text(size=rel(2)), ## tiny axis text
+# axis.text.y = element_text(size=rel(2)), ## tiny axis text
+# axis.line.x = element_line(size = .5),
+# axis.line.y = element_line(size = .5),
+# panel.grid.major = element_blank(),
+# panel.grid.minor = element_blank(),
+# plot.background = element_blank(),
+# strip.background = element_blank(),
+# strip.text = element_blank())
+#      
+#  map_obs_cont <-    map_obs_cont +   annotation_custom(grob = ggplotGrob(inset_plot), ymin = -2028000, ymax=-1205000, xmin=-2280000, xmax=-180000 ) 
+
+(map_obs_bin)
+ # (map_obs_cont)
 ```
 
 ### Predictions on the full dataset using the *best lambda* model
-```{r predicted values map best lambda model, fig.height = 9, fig.width = 9 }
+```{r predicted values map best lambda model, fig.height = 6.5, fig.width = 9, warning=FALSE, message=FALSE}
 
-# make figure of binomialized tree cover
+# make figure of binomialized tree/no-tree
 map_preds1 <- ggplot() +
    geom_raster(data = pred_glm1_full_RAST, aes(x = x, 
                    y = y, 
@@ -1378,12 +1476,62 @@ labs(title = paste0("Predictions from the bestaLambda model of tree presence \nb
  xlim(-2150000, 2510000) +
  ylim(-2005000, 1000000) 
 
-map_preds1
+#  make figure of continuous tree/no-tree
+map_preds1_cont <- ggplot() +
+geom_spatraster(data = pred_glm1_full_RAST, aes(fill = fracNotForest_pred), maxcell = 50000000) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
+  #geom_raster(data = pred_glm1_full_RAST, aes(x = x, 
+   #                y = y, 
+    #               fill = as.character(fracNotForest)), maxcell = 5e+10) + 
+ xlim(-2150000, 2510000) +
+ ylim(-2005000, 1000000) +
+  coord_sf(datum = st_crs(test_rastTemp)) +
+             scale_fill_viridis_c(na.value = "white", "magma", direction = -1, limits = c(0,212)) +
+ #geom_sf(data = pred_glm1_full_RAST, aes(col = TotalTreeCover)) + 
+  # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
+labs(title = paste0("Predictions from the bestaLambda model of tree presence \ncontinous predictions"), x = "", y = ""
+     ) +
+   # scale_fill_manual(name = "", 
+   #                   values = c("wheat", "darkgreen"), 
+   #                   labels = c("No trees", "Trees"),
+   #                  na.translate = FALSE) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "forestgreen" ,
+                       midpoint = 0,   na.value = "white") +
+  theme(axis.text = element_blank(),
+                   strip.text = element_text(size = 15),
+                   title = element_text(size = 18),
+                   axis.ticks = element_blank()) 
+
+#add inset
+ inset_plot <-  ggplot(pred_glm1_full) +
+   geom_density(aes(fracNotForest_pred)) +
+      theme_bw(base_size=9) +  ## makes everything smaller
+      theme(panel.background = element_rect(fill="transparent"),  ## white plot background
+            panel.border = element_blank(),
+axis.title.y = element_blank(),
+axis.title.x = element_blank(),
+axis.text.x = element_text(size=rel(2)), ## tiny axis text
+axis.text.y = element_text(size=rel(2)), ## tiny axis text
+axis.line.x = element_line(size = .5),
+axis.line.y = element_line(size = .5),
+panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(),
+plot.background = element_blank(),
+strip.background = element_blank(),
+strip.text = element_blank())
+     
+ map_preds1_cont <-    map_preds1_cont +   annotation_custom(grob = ggplotGrob(inset_plot), ymin = -2028000, ymax=-1205000, xmin=-2280000, xmax=-180000 ) 
+ 
+
+(map_preds1)
+(map_preds1_cont)
 
 ```
 
 ### Predictions on the full dataset using the *second best lambda* model
-```{r predicted values map 1se lambda model, fig.height = 10, fig.width = 9, }
+```{r predicted values map 1se lambda model, fig.height = 6.5, fig.width = 9, warning=FALSE, message=FALSE}
 if ( name_secondBestMod == "Intercept_Only") {
   print("The next best lambda model only contains one predictor (an intercept)")
 } else {
@@ -1393,9 +1541,9 @@ if ( name_secondBestMod == "Intercept_Only") {
   terra::vect()
   # make a raster of the full dataset
 # make a multi-layer raster w/ layers for each variable of interest
-testRast3 <- lapply(c("fracNotForest", "fracNotForest_pred_binary", "resid", "missClass"), FUN = function(x) {
+testRast3 <- lapply(c( "fracNotForest_binary", "fracNotForest_pred", "fracNotForest_pred_binary", "resid", "missClass"), FUN = function(x) {
   # S4 method for class 'data.frame'
- if (x %in% c("fracNotForest", "fracNotForest_pred_binary", "resid")) {
+ if (x %in% c("fracNotForest_binary", "fracNotForest_pred", "fracNotForest_pred_binary", "resid")) {
     temp <- terra::rasterize(x = pred_glm1_1se_full_sf, y = test_rast, 
                          field = x, fun = mean, na.rm = TRUE)
     names(temp) <- x
@@ -1416,10 +1564,10 @@ testRast3 <- lapply(c("fracNotForest", "fracNotForest_pred_binary", "resid", "mi
  return(temp)
   }
 )
-pred_glm1_1se_full_RAST <- c(testRast3[[1]], testRast3[[2]], testRast3[[3]], testRast3[[4]])
+pred_glm1_1se_full_RAST <- c(testRast3[[1]], testRast3[[2]], testRast3[[3]], testRast3[[4]], testRast3[[5]])
 
 # make figures of predictions w/ the full dataset
-map_preds2_cont <- ggplot() +
+map_preds2_binary <- ggplot() +
    geom_raster(data = pred_glm1_1se_full_RAST, aes(x = x, 
                    y = y, 
                    fill = as.character(fracNotForest_pred_binary)), maxcell = 5e+10) + 
@@ -1438,12 +1586,64 @@ labs(title = paste0("Predictions from the ", name_secondBestMod, " of tree prese
  xlim(-2150000, 2510000) +
  ylim(-2005000, 1000000) 
 
-map_preds2_cont
+
+#  make figure of continuous tree/no-tree
+map_preds2_cont <- ggplot() +
+geom_spatraster(data = pred_glm1_1se_full_RAST, aes(fill = fracNotForest_pred), maxcell = 50000000) + 
+  geom_sf(data=cropped_states_2 ,fill=NA ) +
+  #geom_raster(data = pred_glm1_full_RAST, aes(x = x, 
+   #                y = y, 
+    #               fill = as.character(fracNotForest)), maxcell = 5e+10) + 
+ xlim(-2150000, 2510000) +
+ ylim(-2005000, 1000000) +
+  coord_sf(datum = st_crs(test_rastTemp)) +
+             scale_fill_viridis_c(na.value = "white", "magma", direction = -1, limits = c(0,212)) +
+ #geom_sf(data = pred_glm1_full_RAST, aes(col = TotalTreeCover)) + 
+  # stat_summary_2d(data = plotObs, aes(x = x, y = y, z = TotalTreeCover), fun = mean, binwidth = .05) + 
+labs(title = paste0("Predictions from the ", name_secondBestMod, " of tree presence \ncontinuous probabilities"), x = "", y = ""
+     ) +
+   # scale_fill_manual(name = "", 
+   #                   values = c("wheat", "darkgreen"), 
+   #                   labels = c("No trees", "Trees"),
+   #                  na.translate = FALSE) +
+  scale_fill_gradient2(low = "brown",
+                       mid = "wheat" ,
+                       high = "forestgreen" ,
+                       midpoint = 0,   na.value = "white") +
+  theme(axis.text = element_blank(),
+                   strip.text = element_text(size = 15),
+                   title = element_text(size = 18),
+                   axis.ticks = element_blank()) 
+
+#add inset
+ inset_plot <-  ggplot(pred_glm1_1se_full) +
+   geom_density(aes(fracNotForest_pred)) +
+      theme_bw(base_size=9) +  ## makes everything smaller
+      theme(panel.background = element_rect(fill="transparent"),  ## white plot background
+            panel.border = element_blank(),
+axis.title.y = element_blank(),
+axis.title.x = element_blank(),
+axis.text.x = element_text(size=rel(2)), ## tiny axis text
+axis.text.y = element_text(size=rel(2)), ## tiny axis text
+axis.line.x = element_line(size = .5),
+axis.line.y = element_line(size = .5),
+panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(),
+plot.background = element_blank(),
+strip.background = element_blank(),
+strip.text = element_blank())
+     
+ map_preds2_cont <-    map_preds2_cont +   annotation_custom(grob = ggplotGrob(inset_plot), ymin = -2028000, ymax=-1205000, xmin=-2280000, xmax=-180000 ) 
+ 
+
+(map_preds2_binary)
+(map_preds2_cont)
+ 
 }
 ```
 
 ### A map of classification error of predictions on the full dataset made using the *best lambda model*
-```{r classification error map for best lambda model, fig.height = 10, fig.width = 9, warning = FALSE }
+```{r classification error map for best lambda model, fig.height = 6.5, fig.width = 9, warning = FALSE }
 # true positive = tree (1) (forest green)
 # true negative = no tree (3) (wheat) 
 # false positive = model says tree, data says no-tree (2) (red)
@@ -1451,7 +1651,7 @@ map_preds2_cont
 # make figures
 map_missClass <- ggplot() +
 geom_spatraster(data =pred_glm1_full_RAST
-                , aes(fill= missClass), maxcell = 20000000) + 
+                , aes(fill= missClass), maxcell = 2000000000000) + 
   geom_sf(data=cropped_states_2,fill=NA )  + 
 labs(title = paste0("Misclassification and correct classifications \nfrom the bestLambda model of Tree Presence")#,
      #subtitle = "bestLambda model \nvalues show are the most common classification in each 8km x 8km grid cell"
@@ -1476,7 +1676,7 @@ map_missClass
 # prepare data
 matData <- pred_glm1_full %>% 
   mutate(predClass = fracNotForest_pred_binary, 
-         obsClass = fracNotForest) %>% 
+         obsClass = fracNotForest_binary) %>% 
   mutate(predClass = replace(predClass, predClass == 0, "no trees"),
          predClass = replace(predClass, predClass == 1, "trees"),
          obsClass = replace(obsClass, obsClass == 0, "no trees"),
@@ -1498,15 +1698,15 @@ ConfusionTableR::binary_visualiseR(
 )
 ```
 
-### A map of classification error of predictions on the full and test datasets made using the *second best lambda model*
-```{r classification error map for second best lambda model, fig.height = 10, fig.width = 9, warning = FALSE }
+### A map of classification error of predictions on the full datasets made using the *second best lambda model*
+```{r classification error map for second best lambda model, fig.height = 6.5, fig.width = 9, warning = FALSE }
 ### full dataset
 # make figures
 map_missClass <- ggplot() +
-geom_spatraster(data =pred_glm1_1se_full_RAST, aes(fill= missClass), maxcell = 20000000) + 
+geom_spatraster(data =pred_glm1_1se_full_RAST, aes(fill= missClass), maxcell = 200000000000) + 
   geom_sf(data=cropped_states_2,fill=NA )  + 
 labs(title = paste0("Misclassification and correct classifications \nfrom the second-best lambda model of Yes/No Trees \nfull dataset"),
-     subtitle = "second-best lambda model \nvalues show are the most common classification in each 8km x 8km grid cell") + 
+     subtitle = "second-best lambda model \nvalues shown are the most common classification in each 1km x 1km grid cell") + 
   scale_fill_discrete(palette = 
                         c("forestgreen", "red", "wheat", "blue"),
                         na.value = "white",
@@ -1527,7 +1727,7 @@ map_missClass
 # prepare data
 matData <- pred_glm1_1se_full %>% 
   mutate(predClass = fracNotForest_pred_binary, 
-         obsClass = fracNotForest) %>% 
+         obsClass = fracNotForest_binary) %>% 
   mutate(predClass = replace(predClass, predClass == 0, "no trees"),
          predClass = replace(predClass, predClass == 1, "trees"),
          obsClass = replace(obsClass, obsClass == 0, "no trees"),
@@ -1550,20 +1750,139 @@ ConfusionTableR::binary_visualiseR(
 
 ```
 
+## Map of classification using best lambda model, *only in locations that the forest model predicts to be un-forested*
+```{r classification error map for best lambda model Only in Unforested Locations, fig.height = 6.5, fig.width = 9, warning = FALSE }
+## mask data based on forest classification
+missClassRast_bestLambda_forestOnly <- pred_glm1_full_RAST$missClass %>% 
+  terra::crop(ext(forestPreds_dmGrid)) %>% 
+  terra::mask(mask = forestPreds_dmGrid, maskvalues = 1)
+# make figures
+map_missClass_nonForestOnly <- ggplot() +
+geom_spatraster(data =missClassRast_bestLambda_forestOnly, aes(fill= missClass), maxcell = 2000000000) + 
+  geom_sf(data=cropped_states_2,fill=NA )  + 
+labs(title = paste0("Misclassification and correct classifications \nfrom the best lambda model of Yes/No Trees \nOnly in model-predicted unforested locations"),
+     subtitle = "best lambda model") + 
+  scale_fill_discrete(palette = 
+                        c("forestgreen", "red", "wheat", "blue"),
+                        na.value = "white",
+                       labels = c("trees", "Data = no trees; Model = trees", "no trees", "Data = trees; Model = no trees", ""))  +
+  coord_sf(datum = st_crs(test_rastTemp)) +
+    theme(axis.text = element_blank(),
+                   strip.text = element_text(size = 15),
+                   title = element_text(size = 18),
+                   axis.ticks = element_blank()) +
+ xlim(-2150000, 2510000) +
+ ylim(-2005000, 1000000) 
+  
+map_missClass_nonForestOnly
+```
+
+```{r fig.width = 7, fig.height=6.5}  
+# make a confusion matrix 
+# prepare data
+matData <- terra::values(missClassRast_bestLambda_forestOnly$missClass) %>% 
+  as.data.frame() %>% 
+  drop_na()
+matData$observation <- NA
+matData$prediction <- NA
+matData[matData$missClass == 1, c("observation", "prediction")] <- "trees"
+
+matData[matData$missClass == 2, c("observation")] <- "no trees"
+matData[matData$missClass == 2, c("prediction")] <- "trees"
+
+matData[matData$missClass == 3, c("observation", "prediction")] <- "no trees"
+
+matData[matData$missClass == 4, c("observation")] <- "trees"
+matData[matData$missClass == 4, c("prediction")] <- "no trees"
+
+# make matrix as a data.frame
+# confMat <-  confusionMatrix(data = matData$predClass,
+#                  reference = matData$obsClass)
+ConfusionTableR::binary_visualiseR(
+  train_labels = as.factor(matData$prediction),
+  truth_labels = as.factor(matData$observation),
+   class_label1 = "No trees",
+   class_label2 = "Trees",
+   quadrant_col1 = "wheat",
+   quadrant_col2 = "forestgreen",
+  text_col = "white", custom_title = "Confusion Matrix: classification of full dataset \nwith the best lambda model--only in NonForest"
+)
+
+```
+
+## Map of classification using second-best lambda model, *only in locations that the forest model predicts to be un-forested*
+```{r classification error map for second-best lambda model Only in Unforested Locations, fig.height = 6.5, fig.width = 9, warning = FALSE }
+## mask data based on forest classification
+missClassRast_1SE_Lambda_forestOnly <- pred_glm1_1se_full_RAST$missClass %>% 
+  terra::crop(ext(forestPreds_dmGrid)) %>% 
+  terra::mask(mask = forestPreds_dmGrid, maskvalues = 1)
+# make figures
+map_missClass_nonForestOnly_secondBestLambda <- ggplot() +
+geom_spatraster(data =missClassRast_1SE_Lambda_forestOnly, aes(fill= missClass), maxcell = 20000000) + 
+  geom_sf(data=cropped_states_2,fill=NA )  + 
+labs(title = paste0("Misclassification and correct classifications \nfrom the second-best lambda model of Yes/No Trees \nOnly in model-predicted unforested locations"),
+     subtitle = "second-best lambda model") + 
+  scale_fill_discrete(palette = 
+                        c("forestgreen", "red", "wheat", "blue"),
+                        na.value = "white",
+                       labels = c("trees", "Data = no trees; Model = trees", "no trees", "Data = trees; Model = no trees", ""))  +
+  coord_sf(datum = st_crs(test_rastTemp)) +
+    theme(axis.text = element_blank(),
+                   strip.text = element_text(size = 15),
+                   title = element_text(size = 18),
+                   axis.ticks = element_blank()) +
+ xlim(-2150000, 2510000) +
+ ylim(-2005000, 1000000) 
+  
+map_missClass_nonForestOnly_secondBestLambda
+```
+
+```{r fig.width = 7, fig.height=6.5}  
+# make a confusion matrix 
+# prepare data
+matData <- terra::values(missClassRast_1SE_Lambda_forestOnly$missClass) %>% 
+  as.data.frame() %>% 
+  drop_na()
+matData$observation <- NA
+matData$prediction <- NA
+matData[matData$missClass == 1, c("observation", "prediction")] <- "trees"
+
+matData[matData$missClass == 2, c("observation")] <- "no trees"
+matData[matData$missClass == 2, c("prediction")] <- "trees"
+
+matData[matData$missClass == 3, c("observation", "prediction")] <- "no trees"
+
+matData[matData$missClass == 4, c("observation")] <- "trees"
+matData[matData$missClass == 4, c("prediction")] <- "no trees"
+
+# make matrix as a data.frame
+# confMat <-  confusionMatrix(data = matData$predClass,
+#                  reference = matData$obsClass)
+ConfusionTableR::binary_visualiseR(
+  train_labels = as.factor(matData$prediction),
+  truth_labels = as.factor(matData$observation),
+   class_label1 = "No trees",
+   class_label2 = "Trees",
+   quadrant_col1 = "wheat",
+   quadrant_col2 = "forestgreen",
+  text_col = "white", custom_title = "Confusion Matrix: classification of full dataset \nwith the second-best lambda model--only in NonForest"
+)
+
+```
 
 ## Maps of wall-to-wall model predictions, *including* all locations that are developed, agriculture, or water, or have been burned
-```{r , fig.height = 16, fig.width = 9}
+```{r , fig.height = 6.5, fig.width = 9, warning=FALSE}
 ### best lambda model
-## rasterize 
- pred_glm1_w2w_sf <- pred_glm1_w2w %>% 
-  st_as_sf(coords = c("Lon", "Lat"), crs = crs(crs_veg)) %>% 
-  st_transform(crs(test_rast)) %>% 
+## rasterize
+ pred_glm1_w2w_sf <- pred_glm1_w2w %>%
+  st_as_sf(coords = c("Lon", "Lat"), crs = crs(crs_veg)) %>%
+  st_transform(crs(test_rast)) %>%
   terra::vect()
   # make a raster of the full dataset
 # make a multi-layer raster w/ layers for each variable of interest
-testRast6 <- lapply(c( "fracNotForest_pred_binary"), FUN = function(x) {
+testRast6 <- lapply(c("fracNotForest_pred_binary"), FUN = function(x) {
   # S4 method for class 'data.frame'
-    temp <- terra::rasterize(x = pred_glm1_w2w_sf, y = test_rast, 
+    temp <- terra::rasterize(x = pred_glm1_w2w_sf, y = test_rast,
                          field = x, fun = mean, na.rm = TRUE)
     names(temp) <- x
  return(temp)
@@ -1571,13 +1890,14 @@ testRast6 <- lapply(c( "fracNotForest_pred_binary"), FUN = function(x) {
 )
 pred_glm1_w2w_RAST <- c(testRast6[[1]])
 
-## map of continuous predictions
-pred_glm1_w2w_cont<- ggplot() +
-geom_raster(data = pred_glm1_w2w_RAST, aes(x = x, y = y, fill = fracNotForest_pred_binary), maxcell = 20000000) + 
+## map of binary predictions
+pred_glm1_w2w_bin <- ggplot() +
+geom_raster(data =  pred_glm1_w2w_RAST #%>% terra::crop(ext(-90000, 10000, -1000, 90000))#pred_glm1_w2w_RAST
+                , aes(x =x, y = y,fill = as.character(fracNotForest_pred_binary)), maxcell = 20000000000) +
   geom_sf(data=cropped_states_2 ,fill=NA ) +
-labs(title = paste0("Predictions from the best lambda model of Tree Presence \nbinary probabilities on the wall-to-wall dayMet data")) +
-  scale_fill_manual(name = "", 
-                     values = c("wheat", "darkgreen"), 
+labs(title = paste0("Predictions from the best lambda model of Tree Presence \nbinary predictions on the wall-to-wall dayMet data"), x = "", y = "") + 
+  scale_fill_manual(name = "",
+                     values = c("wheat", "darkgreen"),
                      labels = c("No trees", "Trees"),
                     na.translate = FALSE) +
   coord_sf(datum = st_crs(test_rastTemp)) +
@@ -1586,19 +1906,20 @@ labs(title = paste0("Predictions from the best lambda model of Tree Presence \nb
                    title = element_text(size = 18),
                    axis.ticks = element_blank()) +
  xlim(-2150000, 2510000) +
- ylim(-2005000, 1000000) 
+ ylim(-2005000, 1000000)
 
+   
 ### second best lambda model
-## rasterize 
- pred_glm1_1se_w2w_sf <- pred_glm1_1se_w2w %>% 
-  st_as_sf(coords = c("Lon", "Lat"), crs = crs(crs_veg)) %>% 
-  st_transform(crs(test_rast)) %>% 
+## rasterize
+ pred_glm1_1se_w2w_sf <- pred_glm1_1se_w2w %>%
+  st_as_sf(coords = c("Lon", "Lat"), crs = crs(crs_veg)) %>%
+  st_transform(crs(test_rast)) %>%
   terra::vect()
   # make a raster of the full dataset
 # make a multi-layer raster w/ layers for each variable of interest
 testRast7 <- lapply(c( "fracNotForest_pred_binary"), FUN = function(x) {
   # S4 method for class 'data.frame'
-    temp <- terra::rasterize(x = pred_glm1_1se_w2w_sf, y = test_rast, 
+    temp <- terra::rasterize(x = pred_glm1_1se_w2w_sf, y = test_rast,
                          field = x, fun = mean, na.rm = TRUE)
     names(temp) <- x
  return(temp)
@@ -1606,26 +1927,25 @@ testRast7 <- lapply(c( "fracNotForest_pred_binary"), FUN = function(x) {
 )
 pred_glm1_1se_w2w_RAST <- c(testRast7[[1]])
 
-## map of continuous predictions
-pred_glm1_1se_w2w_cont<- ggplot() +
-geom_raster(data = pred_glm1_1se_w2w_RAST, aes(x = x, y = y, fill = fracNotForest_pred_binary), maxcell = 20000000) + 
+## map of binary predictions
+pred_glm1_1se_w2w_bin <- ggplot() +
+geom_raster(data = pred_glm1_1se_w2w_RAST, aes(x = x, y = y, fill = as.character(fracNotForest_pred_binary)), maxcell = 20000000) +
   geom_sf(data=cropped_states_2 ,fill=NA ) +
-labs(title = paste0("Predictions from the second-best lambda model of Tree Presence \nbinary probabilities on the wall-to-wall dayMet data")) +
-  scale_fill_manual(name = "", 
-                     values = c("wheat", "darkgreen"), 
+labs(title = paste0("Predictions from the second-best lambda model of Tree Presence \nbinary probabilities on the wall-to-wall dayMet data"), x = "", y = "") +
+  scale_fill_manual(name = "",
+                     values = c("wheat", "darkgreen"),
                      labels = c("No trees", "Trees"),
                     na.translate = FALSE) +
-  coord_sf(datum = st_crs(test_rastTemp)) +
   coord_sf(datum = st_crs(test_rastTemp)) +
     theme(axis.text = element_blank(),
                    strip.text = element_text(size = 15),
                    title = element_text(size = 18),
                    axis.ticks = element_blank()) +
  xlim(-2150000, 2510000) +
- ylim(-2005000, 1000000) 
+ ylim(-2005000, 1000000)
 
-pred_glm1_w2w_cont
-pred_glm1_1se_w2w_cont
+pred_glm1_w2w_bin
+pred_glm1_1se_w2w_bin
 ```
 
 <!-- ### Are there biases of the model predictions across year/lat/long? (for the full dataset) -->
@@ -1728,10 +2048,10 @@ library(patchwork)
 ```
 
 
-### Quantile plots - comparing "binary" testing data to "binary" model-predictions (i.e. converting the continuous model predictions to discrete values (1 or 0) based on the previously-identified optimal threshold)
+### Quantile plots - comparing "binary" training data to "binary" model-predictions (i.e. converting the continuous model predictions to discrete values (1 or 0) based on the previously-identified optimal threshold)
 
 ```{r}
-response_vars <- c("fracNotForest", "fracNotForest_pred_binary")
+response_vars <- c("fracNotForest_binary", "fracNotForest_pred_binary")
 # get deciles for best lambda model 
 if (length(prednames_fig) == 0) {
   print("The best lambda model only contains one predictor (an intercept), so decile plots aren't possible to generate")
@@ -1757,27 +2077,15 @@ Below are quantile plots for the *best lambda model*
 if (length(prednames_fig) == 0) {
   print("The model only contains one predictor (an intercept), so decile plots aren't possible to generate")
 } else {
-# ####  code to generate plots analagous to "decile plots" by hand, do double check that they're suitable for use w/ binary predictions 
-#   pred_glm1 %>% 
-#     #slice_sample(n = 10000) %>% 
-#     pivot_longer(cols = all_of(prednames_fig)) %>% 
-#     select(Year, x, y, fracNotForest_binary, fracNotForest_binary_pred_binary, name, value) %>% 
-#     ggplot() + 
-#     facet_wrap(~name, scales = "free") + 
-#     geom_point(aes(x = value, y = jitter(fracNotForest_binary)), alpha = .5) + 
-#     geom_point(aes(x = value, y = jitter(fracNotForest_binary_pred_binary)), col = "blue", alpha = .5) + 
-#     geom_smooth(aes(x = value, y = fracNotForest_binary), col = "black") + 
-#     geom_smooth(aes(x = value, y = fracNotForest_binary_pred_binary), col = "blue") 
-#                  
-  
-  
+
   #####
 # publication quality version
-g3 <- decile_dotplot_pq(df = pred_glm1_deciles, response = c("fracNotForest", paste0("fracNotForest", "_pred_binary")), IQR = FALSE,
+g3 <- decile_dotplot_pq(df = pred_glm1_deciles, response = c("fracNotForest_binary", paste0("fracNotForest", "_pred_binary")), IQR = FALSE,
                         CI = FALSE
-                        ) + ggtitle("Quantile Plot")
+                        ) + ggtitle("Quantile Plot") + 
+  ggplot2::labs(y = "Treed (1) or Un-treed (0) - binary")
 
-g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles, response = c("fracNotForest", paste0("fracNotForest", "_pred_binary")), dfRaw = pred_glm1_full, add_smooth = TRUE, deciles = FALSE)
+g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles, response = c("fracNotForest_binary", paste0("fracNotForest", "_pred_binary")), dfRaw = pred_glm1_full, add_smooth = TRUE, deciles = FALSE)
 
   
 if(save_figs) {
@@ -1787,7 +2095,16 @@ if(save_figs) {
   # dev.off()
 }
 
-g4
+# make a density plot 
+ g4 <- ggarrange(g4, ggplot(pred_glm1_full) + 
+  geom_density(aes(.data[["fracNotForest_binary"]])) + 
+  geom_density(aes(.data[["fracNotForest_pred_binary"]]), col = "lightblue") + 
+    ggtitle("Density of observed values (black) and predicted values (blue)"),
+  ncol = 1, heights = c(.75, .25)
+ )
+ 
+ g4
+ 
 }
 ```
 
@@ -1799,9 +2116,10 @@ if ( name_secondBestMod == "Intercept_Only") {
   } else {
 
 # publication quality version
-g3 <- decile_dotplot_pq(pred_glm1_deciles_1se, response = c("fracNotForest", paste0("fracNotForest", "_pred_binary")), IQR = FALSE) + ggtitle("Quantile Plot")
+g3 <- decile_dotplot_pq(pred_glm1_deciles_1se, response = c("fracNotForest_binary", paste0("fracNotForest", "_pred_binary")), IQR = FALSE) + ggtitle("Quantile Plot") + 
+  ggplot2::labs(y = "Treed (1) or Un-treed (0) - binary")
 
-g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles_1se, response = c("fracNotForest", paste0("fracNotForest", "_pred_binary")), dfRaw = pred_glm1_1se_full, add_smooth = TRUE, deciles = FALSE)
+g4 <- add_dotplot_inset(g3, df = pred_glm1_deciles_1se, response = c("fracNotForest_binary", paste0("fracNotForest", "_pred_binary")), dfRaw = pred_glm1_1se_full, add_smooth = TRUE, deciles = FALSE)
 
   
 if(save_figs) {
@@ -1811,12 +2129,20 @@ if(save_figs) {
   # dev.off()
 }
 
-g4
+ g4 <- ggarrange(g4, ggplot(pred_glm1_1se_full) + 
+  geom_density(aes(.data[["fracNotForest_binary"]])) + 
+  geom_density(aes(.data[["fracNotForest_pred_binary"]]), col = "lightblue") + 
+    ggtitle("Density of observed values (black) and predicted values (blue)"),
+  ncol = 1, heights = c(.75, .25)
+ )
+ 
+ g4
+
 }
 
 ```
 
-### Show model RMSE w/in each quantile
+### Show model RMSE w/in each quantile (RMSE calculated by comparing binary predictions to binary observations)
 ```{r}
 # get deciles for best lambda model 
 if (length(prednames_fig) == 0) {
@@ -1843,3 +2169,191 @@ if (length(prednames_secondBestMod) == 0) {
     ggtitle(paste0("RMSE by decile for ", name_secondBestMod, "model"))
 }
 ```
+
+
+### Partial dependence plots (continuous model predictions)
+For best lambda 
+```{r, fig.width = 10, fig.height = 8}
+# get names of coefficients in models
+predNames_pdp_bestLambda <- names(coefficients(fit_glm_bestLambda)[-1])
+
+## make a 'model.matrix' for the full dataset
+X_pdp_bestLambda <- model.matrix(fit_glm_bestLambda$formula, modDat_1_s_FULL) %>% 
+  as.data.frame()
+X_pdp_bestLambda <- X_pdp_bestLambda %>% 
+  left_join(modDat_1_s_FULL[prednames_fig])
+
+for (i in 1:length(predNames_pdp_bestLambda)) {
+  pd_bestLambda_i <- pdp::partial(object = fit_glm_bestLambda, pred.var = predNames_pdp_bestLambda[i], train = X_pdp_bestLambda, type = "regression", )
+  names(pd_bestLambda_i)[1] <- "predictorVariable_value"
+  pd_bestLambda_i$predictorVariable_Name <- predNames_pdp_bestLambda[i]
+  if(i == 1) {
+    pd_bestLambda <- pd_bestLambda_i
+  } else {
+    pd_bestLambda <- rbind(pd_bestLambda, pd_bestLambda_i)
+  }
+}
+ 
+## update predictor names to be more interpretable
+lookup_md <- c(
+    "AWHC" = "Available Soil \nWater Holding Capacity",
+    "VPD_mean_anom" = "VPD mean \n- 3 yr. anomaly", 
+    "VPD_max" = "VPD max - 30yr. avg.",
+    "VPD_max_95_anom" = "VPD max 95th percentile \n- 30yr. avg.",
+    "VPD_min_anom" = "VPD min - 3 yr. anomaly",
+    "aboveFreezingMonth_anom" = "First Above Freezing Month \n- 3 yr. anomaly",
+    "annWatDef" = "Ann. Water Deficit \n- 30yr. avg.", 
+    "annWatDef_anom" = "Ann. Water Deficit \n- 3 yr. anomaly", 
+    "annWetDegDays_anom" = "Annual Wet Degree Days \n- 3 yr. anomaly", 
+    "annWetDegDays" = "Annual Wet Degree Days \n- 30yr. avg.",
+    "coarse" = "% coarse", 
+    "clay" = "% clay", 
+    "frostFreeDays_5_anom" = "No. Frost-Free Days 5th \nPercentile - 3 yr. anomaly",
+    "isothermality" = "Isothermality - 30yr. avg.",
+    "isothermality_anom" = "Isothermality - 3 yr. anomaly", 
+    "prcp" = "MAP - 30yr. avg.",
+    "prcp_dry" = "Precip. of Driest Month \n- 30yr. avg.",
+    "prcpTempCorr" = "Precip. Temp. Correlation \n- 30yr. avg.",
+    "prcpTempCorr_anom" = "Precip. Temp. Correlation \n- 3 yr. anomaly",
+    "prcp_seasonality" = "Precip. Seasonality \n- 30yr. avg.", 
+    "prcp_seasonality_anom" = "Precip. Seasonality\n - 3 yr. anomaly",
+    "prcp_wet_anom" = "Precip. of Wettest Month \n- 3 yr. anomaly", 
+    "precp_dry_anom" = "Precip. of Driest Month \n- 3 yr. anomaly", 
+    "prcp_anom" = "MAP - 3 yr. anomaly",
+    "sand" = "% sand", 
+    "carbon" = "% carbon in soil surface", 
+    "t_cold_anom" = "Temp. of Coldest Month \n- 3 yr. anomaly",
+    "t_warm_anom" = "Temp. of Warmest Month \n- 3 yr. anomaly",
+    "tmax_anom" = "Ann. Maximum Temp. \n- 3 yr. anomaly", 
+    "tmean" = "MAT - 30yr. avg.",
+    "tmin_anom" = "Ann. Minimum Temp. \n- 3 yr. anomaly",
+    "prcp_wet" = "Precip. of Wettest Month \n- 30yr. avg.",
+    "t_warm" = "Temp. of Warmest Month \n- 30yr. avg.",
+    "soilDepth" = "Soil Depth", 
+    "t_cold" = "Temp. of Coldest Month \n- 30yr. avg.",
+    "annWatDef_95" = "Ann. Water Deficit 95th \nPercentile - 30yr. avg.",
+    # squared terms
+    "I(prcp^2)" = "(MAP - 30yr. avg.)^2", 
+    "I(prcpTempCorr^2)" = "(Precip. Temp. Correlation \n- 30yr. avg.)^2", 
+    "I(isothermality^2)" = "(Isothermality - 30yr. avg.)^2",
+    "I(clay^2)" = "(% clay)^2",                 
+    "I(AWHC^2)" = "(Available Soil \nWater Holding Capacity)^2",
+    # interactions
+    "prcp:annWetDegDays" = "(MAP - 30yr. avg.) * \nAnnual Wet Degree Days \n- 30yr. avg.",
+    "prcp:isothermality" = "(MAP - 30yr. avg.) * \nIsothermality - 30yr. avg.",
+    "prcpTempCorr:isothermality" = "Precip. Temp. Correlation \n- 30yr. avg. * \nIsothermality - 30yr. avg.",
+    "isothermality:tmean" = " Isothermality - 30yr. avg. * \nMAT - 30yr. avg.",
+    "prcpTempCorr:tmean" = "Precip. Temp. Correlation \n- 30yr. avg. * \nMAT - 30yr. avg.",
+    "AWHC:clay" = "Available Soil \nWater Holding Capacity * \n% clay",
+    "coarse:AWHC" = "% coarse * \nAvailable Soil \nWater Holding Capacity",
+    "coarse:clay" =  "% coarse * \nAvailable Soil \n% clay"
+  ) %>% 
+  data.frame()
+names(lookup_md) <- c("longName")
+lookup_md$predName <- rownames(lookup_md)
+
+pd_bestLambda <- pd_bestLambda %>% 
+  left_join(lookup_md, by = c("predictorVariable_Name" = "predName"))
+
+ggplot(pd_bestLambda) + 
+  facet_wrap(~longName,scales = "free_x") + 
+  geom_line(aes(x = predictorVariable_value, y = yhat)) + 
+  labs(title = "Partial Dependence Plot - predictions from best lambda model",
+          x = "Predictor Variable Value", 
+          y = paste0("Marginal effect of predictor on tree/no-tree"))
+```
+
+For Second-best lambda plot
+```{r, fig.width = 10, fig.height = 8}
+if ( name_secondBestMod == "Intercept_Only") {
+  print("The next best lambda model only contains one predictor (an intercept), so partial dependence plots are impractical")
+  } else {# get names of coefficients in models
+predNames_pdp_secondBestLambda <- names(coefficients(mod_secondBest)[-1])
+
+## make a 'model.matrix' for the full dataset
+X_pdp_secondBestLambda <- model.matrix(mod_secondBest$formula, modDat_1_s_FULL) %>% 
+  as.data.frame()
+X_pdp_secondBestLambda <- X_pdp_secondBestLambda %>% 
+  left_join(modDat_1_s_FULL[prednames_secondBestMod])
+
+for (i in 1:length(predNames_pdp_secondBestLambda)) {
+  pd_secondBestLambda_i <- pdp::partial(object = mod_secondBest, pred.var = predNames_pdp_secondBestLambda[i], train = X_pdp_secondBestLambda, type = "regression", )
+  names(pd_secondBestLambda_i)[1] <- "predictorVariable_value"
+  pd_secondBestLambda_i$predictorVariable_Name <- predNames_pdp_secondBestLambda[i]
+  if(i == 1) {
+    pd_secondBestLambda <- pd_secondBestLambda_i
+  } else {
+    pd_secondBestLambda <- rbind(pd_secondBestLambda, pd_secondBestLambda_i)
+  }
+}
+ 
+## update predictor names to be more interpretable
+lookup_md <- c(
+    "AWHC" = "Available Soil \nWater Holding Capacity",
+    "VPD_mean_anom" = "VPD mean \n- 3 yr. anomaly", 
+    "VPD_max" = "VPD max - 30yr. avg.",
+    "VPD_max_95_anom" = "VPD max 95th percentile \n- 30yr. avg.",
+    "VPD_min_anom" = "VPD min - 3 yr. anomaly",
+    "aboveFreezingMonth_anom" = "First Above Freezing Month \n- 3 yr. anomaly",
+    "annWatDef" = "Ann. Water Deficit \n- 30yr. avg.", 
+    "annWatDef_anom" = "Ann. Water Deficit \n- 3 yr. anomaly", 
+    "annWetDegDays_anom" = "Annual Wet Degree Days \n- 3 yr. anomaly", 
+    "annWetDegDays" = "Annual Wet Degree Days \n- 30yr. avg.",
+    "coarse" = "% coarse", 
+    "clay" = "% clay", 
+    "frostFreeDays_5_anom" = "No. Frost-Free Days 5th \nPercentile - 3 yr. anomaly",
+    "isothermality" = "Isothermality - 30yr. avg.",
+    "isothermality_anom" = "Isothermality - 3 yr. anomaly", 
+    "prcp" = "MAP - 30yr. avg.",
+    "prcp_dry" = "Precip. of Driest Month \n- 30yr. avg.",
+    "prcpTempCorr" = "Precip. Temp. Correlation \n- 30yr. avg.",
+    "prcpTempCorr_anom" = "Precip. Temp. Correlation \n- 3 yr. anomaly",
+    "prcp_seasonality" = "Precip. Seasonality \n- 30yr. avg.", 
+    "prcp_seasonality_anom" = "Precip. Seasonality\n - 3 yr. anomaly",
+    "prcp_wet_anom" = "Precip. of Wettest Month \n- 3 yr. anomaly", 
+    "precp_dry_anom" = "Precip. of Driest Month \n- 3 yr. anomaly", 
+    "prcp_anom" = "MAP - 3 yr. anomaly",
+    "sand" = "% sand", 
+    "carbon" = "% carbon in soil surface", 
+    "t_cold_anom" = "Temp. of Coldest Month \n- 3 yr. anomaly",
+    "t_warm_anom" = "Temp. of Warmest Month \n- 3 yr. anomaly",
+    "tmax_anom" = "Ann. Maximum Temp. \n- 3 yr. anomaly", 
+    "tmean" = "MAT - 30yr. avg.",
+    "tmin_anom" = "Ann. Minimum Temp. \n- 3 yr. anomaly",
+    "prcp_wet" = "Precip. of Wettest Month \n- 30yr. avg.",
+    "t_warm" = "Temp. of Warmest Month \n- 30yr. avg.",
+    "soilDepth" = "Soil Depth", 
+    "t_cold" = "Temp. of Coldest Month \n- 30yr. avg.",
+    "annWatDef_95" = "Ann. Water Deficit 95th \nPercentile - 30yr. avg.",
+    # squared terms
+    "I(prcp^2)" = "(MAP - 30yr. avg.)^2", 
+    "I(prcpTempCorr^2)" = "(Precip. Temp. Correlation \n- 30yr. avg.)^2", 
+    "I(isothermality^2)" = "(Isothermality - 30yr. avg.)^2",
+    "I(clay^2)" = "(% clay)^2",                 
+    "I(AWHC^2)" = "(Available Soil \nWater Holding Capacity)^2",
+    # interactions
+    "prcp:annWetDegDays" = "(MAP - 30yr. avg.) * \nAnnual Wet Degree Days \n- 30yr. avg.",
+    "prcp:isothermality" = "(MAP - 30yr. avg.) * \nIsothermality - 30yr. avg.",
+    "prcpTempCorr:isothermality" = "Precip. Temp. Correlation \n- 30yr. avg. * \nIsothermality - 30yr. avg.",
+    "isothermality:tmean" = " Isothermality - 30yr. avg. * \nMAT - 30yr. avg.",
+    "prcpTempCorr:tmean" = "Precip. Temp. Correlation \n- 30yr. avg. * \nMAT - 30yr. avg.",
+    "AWHC:clay" = "Available Soil \nWater Holding Capacity * \n% clay",
+    "coarse:AWHC" = "% coarse * \nAvailable Soil \nWater Holding Capacity",
+    "coarse:clay" =  "% coarse * \nAvailable Soil \n% clay"
+  ) %>% 
+  data.frame()
+names(lookup_md) <- c("longName")
+lookup_md$predName <- rownames(lookup_md)
+
+pd_secondBestLambda <- pd_secondBestLambda %>% 
+  left_join(lookup_md, by = c("predictorVariable_Name" = "predName"))
+
+ggplot(pd_secondBestLambda) + 
+  facet_wrap(~longName,scales = "free_x") + 
+  geom_line(aes(x = predictorVariable_value, y = yhat)) + 
+  labs(title = "Partial Dependence Plot - predictions from best lambda model",
+          x = "Predictor Variable Value", 
+          y = paste0("Marginal effect of predictor on tree/no-tree"))
+}
+```
+

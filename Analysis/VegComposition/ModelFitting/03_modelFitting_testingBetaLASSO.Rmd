@@ -2161,8 +2161,8 @@ library(patchwork)
 ### Partial Dependence Plots
 For best lambda plot
 ```{r}
-for (i in 1:length(prednames_fig)) {
-  pd_bestLambda_i <- pdp::partial(object = fit_glm_bestLambda, pred.var = prednames_fig[i], train = pred_glm1, type = "regression")
+for (i in 1:length(names(coefficients(fit_glm_bestLambda)[-1]))) {
+  pd_bestLambda_i <- pdp::partial(object = fit_glm_bestLambda, pred.var = names(coefficients(fit_glm_bestLambda)[-1])[i], train = pred_glm1, type = "regression")
   names(pd_bestLambda_i)[1] <- "predictorVariable_value"
   pd_bestLambda_i$predictorVariable_Name <- prednames_fig[i]
   if(i == 1) {
@@ -2223,7 +2223,7 @@ ggplot(pd_bestLambda) +
   geom_line(aes(x = predictorVariable_value, y = yhat)) + 
   labs(title = "Partial Dependence Plot - predictions from best lambda model",
           x = "Predictor Variable Value", 
-          y = paste0("P(", response,")"))
+          y = paste0("Marginal effect of predictor on ", response,""))
 ```
 
 For Second-best lambda plot
