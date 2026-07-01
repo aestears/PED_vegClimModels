@@ -130,9 +130,9 @@ source("../DataPrep/09_non-forest_area.R")
 Data compiled in the `prepDataForModels.R` script
 
 ```{r}
-here::i_am("Analysis/VegComposition/ModelFitting/02_ModelFitting_globalTreeModel.Rmd")
+here::i_am("Analysis/VegComposition/ModelFitting/02B_modelFitting_zeroTreeModel.Rmd")
 modDat <- readRDS( here("Data_processed", "CoverData", "DataForModels_spatiallyAveraged_withSoils_noSf_sampledLANDFIRE.rds")) %>% st_drop_geometry()
-# get scaled datad
+# get scaled data
 modDat_1_s <- readRDS("./models/scaledModelInputData.rds")
 ```
 

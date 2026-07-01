@@ -5,7 +5,7 @@ date: "2-23-2026"
 classoption: landscape
 ---
 
-## Acquiring CONUS-wide predicitions of absolute cover of needle-leaved trees: New version 
+## Acquiring CONUS-wide predictions of absolute cover of needle-leaved trees: New version 
 ##### Step 1: Get model predictions
 <!-- $$ percNLTree_{GS} \sim climate + weather + soils $$ -->
 $$ percNLTree_{F}  \sim climate + weather + soils  $$ 

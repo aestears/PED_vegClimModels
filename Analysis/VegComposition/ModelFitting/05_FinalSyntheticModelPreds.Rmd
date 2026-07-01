@@ -44,7 +44,7 @@ print(params)
 readParams <- params$readParams
 runClimate <- params$runClimate
 testFig <- params$testFig
-## function to maek predictionss f
+## function to maek predictions
 makePredictions <- function(predictionDF, modelObject, scale  = TRUE) {
   ##
   # predictionDF <- climDatPred
@@ -1675,54 +1675,54 @@ absoluteCoverMaps_contemp <- lapply(responseNames,
 
          mapResids <- mapResids + inset_plots
                                         
-                                        # make maps of % CHANGE residuals between absolute cover predictions and observations
-                                        # rasterize observations
-                                        # calculate residuals (observed - predicted)/obs
-                                        resids_rast_CHANGE <- (plotObservations - resp_rast_2)/plotObservations
-                                        ## aggregate the residuals raster to make it easier to see
-                                        resids_rast_CHANGE_Coarse <- resids_rast_CHANGE %>%
-                                          aggregate(fact = 8, fun = "mean", na.rm = TRUE)
-                                        # map the residuals
-                                        mapResids_CHANGE <- ggplot() +
-                                          geom_spatraster(data = resids_rast_CHANGE_Coarse, maxcell = 50000000 ) +
-                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rastTemp)) %>%
-                                                    st_crop(st_bbox(resids_rast_CHANGE_Coarse)) ,fill=NA ) +
-                                                    labs(title = paste0("Relative Residuals \n(observations - predicted absolute cover)/observations \nfor ",x),
-                                                         subtitle = c("Values shown are the predictions \nwithin each 1 km x 1 km grid cell"), x = "", y = "" ) +
-                                          xlim(-2150000, 2510000) +
-                                          ylim(-2005000, 1000000) +
-                                          coord_sf(datum = st_crs(test_rastTemp)) +
-                                           scale_fill_gradient2(low = "red",
-                                                               mid = "white" ,
-                                                               high = "blue" ,
-                                                               midpoint = 0,   na.value = "lightgrey")+
-                                                                 theme(axis.text = element_blank(),
-                                                                       strip.text = element_text(size = 15),
-                                                                       title = element_text(size = 18),
-                                                                       axis.ticks = element_blank()
-                                                                       )
-                                        # add an inset showing a density plot
-           # get data
-           data_inset <- #terra::values(dat_1_RAST$RAP[[y]][[1:4]]) %>%
-            data.frame("resids" = terra::values(resids_rast_CHANGE$mean, na.rm = TRUE, mat = FALSE)) %>%
-             select(resids) %>%
-            pivot_longer(c(resids), names_to = "lyr", values_to = "Cover")
-
-           # make insets
-           inset_plots <- data_inset %>%
-             split(f = .$lyr) %>%
-             purrr::map(~annotation_custom2(
-    grob = ggplotGrob(get_inset(.) #+
-                        #scale_y_continuous(limits=c(0,105), breaks = c(0, 50, 100))
-                      ),
-    data = data.frame(lyr=unique(.$lyr
-      )),
-    ymin = -2025000, ymax=-1205000, xmin=-2280000, xmax=-180000)
-  )
-
-         mapResids_CHANGE <- mapResids_CHANGE + inset_plots
-
-  
+  #                                       # make maps of % CHANGE residuals between absolute cover predictions and observations
+  #                                       # rasterize observations
+  #                                       # calculate residuals (observed - predicted)/obs
+  #                                       resids_rast_CHANGE <- (plotObservations - resp_rast_2)/plotObservations
+  #                                       ## aggregate the residuals raster to make it easier to see
+  #                                       resids_rast_CHANGE_Coarse <- resids_rast_CHANGE %>%
+  #                                         aggregate(fact = 8, fun = "mean", na.rm = TRUE)
+  #                                       # map the residuals
+  #                                       mapResids_CHANGE <- ggplot() +
+  #                                         geom_spatraster(data = resids_rast_CHANGE_Coarse, maxcell = 50000000 ) +
+  #                                         geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rastTemp)) %>%
+  #                                                   st_crop(st_bbox(resids_rast_CHANGE_Coarse)) ,fill=NA ) +
+  #                                                   labs(title = paste0("Relative Residuals \n(observations - predicted absolute cover)/observations \nfor ",x),
+  #                                                        subtitle = c("Values shown are the predictions \nwithin each 1 km x 1 km grid cell"), x = "", y = "" ) +
+  #                                         xlim(-2150000, 2510000) +
+  #                                         ylim(-2005000, 1000000) +
+  #                                         coord_sf(datum = st_crs(test_rastTemp)) +
+  #                                          scale_fill_gradient2(low = "red",
+  #                                                              mid = "white" ,
+  #                                                              high = "blue" ,
+  #                                                              midpoint = 0,   na.value = "lightgrey")+
+  #                                                                theme(axis.text = element_blank(),
+  #                                                                      strip.text = element_text(size = 15),
+  #                                                                      title = element_text(size = 18),
+  #                                                                      axis.ticks = element_blank()
+  #                                                                      )
+  #                                       # add an inset showing a density plot
+  #          # get data
+  #          data_inset <- #terra::values(dat_1_RAST$RAP[[y]][[1:4]]) %>%
+  #           data.frame("resids" = terra::values(resids_rast_CHANGE$mean, na.rm = TRUE, mat = FALSE)) %>%
+  #            select(resids) %>%
+  #           pivot_longer(c(resids), names_to = "lyr", values_to = "Cover")
+  # 
+  #          # make insets
+  #          inset_plots <- data_inset %>%
+  #            split(f = .$lyr) %>%
+  #            purrr::map(~annotation_custom2(
+  #   grob = ggplotGrob(get_inset(.) #+
+  #                       #scale_y_continuous(limits=c(0,105), breaks = c(0, 50, 100))
+  #                     ),
+  #   data = data.frame(lyr=unique(.$lyr
+  #     )),
+  #   ymin = -2025000, ymax=-1205000, xmin=-2280000, xmax=-180000)
+  # )
+  # 
+  #        mapResids_CHANGE <- mapResids_CHANGE + inset_plots
+  # 
+  # 
 
                                          ## future model 1 absolute cover
                                         # rasterize response
@@ -1833,48 +1833,48 @@ absoluteCoverMaps_contemp <- lapply(responseNames,
 
                                         resp_delta_map_future1 <- resp_delta_map_future1 + inset_plots
                                         
-                                        ## RELATIVE deltas for model 1
-                                        # make a map of the deltas of predicted values for modeled climate 1
-                                        resp_delta_map_future1_REL <- ggplot() +
-                                          geom_spatraster(data = rast_deltas_future1_REL_coarse, maxcell = 50000000 ) +
-                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rastTemp)) %>%
-                                                    st_crop(st_bbox(rast_deltas_future1_REL_coarse)) ,fill=NA ) +
-                                                    labs(title = paste0("Future predictions of absolute cover of ",x,", \n compared to contemporary predictions (future - contemprary)  \n - climate model: BNU-ESM"),
-                                                         subtitle = c("Values shown are the predictions \nwithin each 1 km x 1 km grid cell"), x = "", y = "" ) +
-                                          xlim(-2150000, 2510000) +
-                                          ylim(-2005000, 1000000) +
-                                          coord_sf(datum = st_crs(test_rastTemp)) +
-                                          # scale_fill_gradientn(colors = c("#f89540",  "white", "#0d0887"),
-                                          #                       #breaks = c(-1, -.5, 0, 0.5, 1), 
-                                          #                      #limits = c(-1,1),
-                                          #                       na.value = "lightgrey") + 
-                                          scale_fill_gradient2(low = "#f89540",
-                                                               mid = "white" ,
-                                                               high = "#0d0887" ,
-                                                               midpoint = 0, #limits = c(-1,1),  
-                                                               na.value = "lightgrey")  +
-                                          theme(axis.text = element_blank(),
-                                                                       strip.text = element_text(size = 15),
-                                                                       title = element_text(size = 18),
-                                                                       axis.ticks = element_blank()
-                                                                       )
-
-                                        # add an inset showing a density plot
-                                        # get data
-                                        data_inset <- data.frame("deltas" = terra::values(rast_deltas_future1_REL$mean, na.rm = TRUE, mat = FALSE)) %>%
-                                          pivot_longer(c(deltas), names_to = "lyr", values_to = "Cover")
-                                        # make insets
-                                        inset_plots <- data_inset %>%
-                                          split(f = .$lyr) %>%
-                                          purrr::map(~annotation_custom2(
-                                            grob = ggplotGrob(get_inset(.)
-                                                              ),
-                                            data = data.frame(lyr=unique(.$lyr
-                                                                         )),
-                                            ymin = -2025000, ymax=-1205000, xmin=-2280000, xmax=-180000)
-                                            )
-
-                                        resp_delta_map_future1_REL <- resp_delta_map_future1_REL + inset_plots
+                                        # ## RELATIVE deltas for model 1
+                                        # # make a map of the deltas of predicted values for modeled climate 1
+                                        # resp_delta_map_future1_REL <- ggplot() +
+                                        #   geom_spatraster(data = rast_deltas_future1_REL_coarse, maxcell = 50000000 ) +
+                                        #   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rastTemp)) %>%
+                                        #             st_crop(st_bbox(rast_deltas_future1_REL_coarse)) ,fill=NA ) +
+                                        #             labs(title = paste0("Future predictions of absolute cover of ",x,", \n compared to contemporary predictions (future - contemprary)  \n - climate model: BNU-ESM"),
+                                        #                  subtitle = c("Values shown are the predictions \nwithin each 1 km x 1 km grid cell"), x = "", y = "" ) +
+                                        #   xlim(-2150000, 2510000) +
+                                        #   ylim(-2005000, 1000000) +
+                                        #   coord_sf(datum = st_crs(test_rastTemp)) +
+                                        #   # scale_fill_gradientn(colors = c("#f89540",  "white", "#0d0887"),
+                                        #   #                       #breaks = c(-1, -.5, 0, 0.5, 1), 
+                                        #   #                      #limits = c(-1,1),
+                                        #   #                       na.value = "lightgrey") + 
+                                        #   scale_fill_gradient2(low = "#f89540",
+                                        #                        mid = "white" ,
+                                        #                        high = "#0d0887" ,
+                                        #                        midpoint = 0, #limits = c(-1,1),  
+                                        #                        na.value = "lightgrey")  +
+                                        #   theme(axis.text = element_blank(),
+                                        #                                strip.text = element_text(size = 15),
+                                        #                                title = element_text(size = 18),
+                                        #                                axis.ticks = element_blank()
+                                        #                                )
+                                        # 
+                                        # # add an inset showing a density plot
+                                        # # get data
+                                        # data_inset <- data.frame("deltas" = terra::values(rast_deltas_future1_REL$mean, na.rm = TRUE, mat = FALSE)) %>%
+                                        #   pivot_longer(c(deltas), names_to = "lyr", values_to = "Cover")
+                                        # # make insets
+                                        # inset_plots <- data_inset %>%
+                                        #   split(f = .$lyr) %>%
+                                        #   purrr::map(~annotation_custom2(
+                                        #     grob = ggplotGrob(get_inset(.)
+                                        #                       ),
+                                        #     data = data.frame(lyr=unique(.$lyr
+                                        #                                  )),
+                                        #     ymin = -2025000, ymax=-1205000, xmin=-2280000, xmax=-180000)
+                                        #     )
+                                        # 
+                                        # resp_delta_map_future1_REL <- resp_delta_map_future1_REL + inset_plots
                                         
                                         ## future model 2 absolute cover
                                         # rasterize response
@@ -1982,47 +1982,47 @@ absoluteCoverMaps_contemp <- lapply(responseNames,
                                         resp_delta_map_future2 <- resp_delta_map_future2 + inset_plots
 
  ## RELATIVE deltas for model 1
-                                        # make a map of the deltas of predicted values for modeled climate 1
-                                        resp_delta_map_future2_REL <- ggplot() +
-                                          geom_spatraster(data = rast_deltas_future2_REL_coarse, maxcell = 50000000 ) +
-                                          geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rastTemp)) %>%
-                                                    st_crop(st_bbox(rast_deltas_future2_REL_coarse)) ,fill=NA ) +
-                                                    labs(title = paste0("Future predictions of absolute cover of ",x,", \n compared to contemporary predictions (future - contemprary)  \n - climate model: BNU-ESM"),
-                                                         subtitle = c("Values shown are the predictions \nwithin each 1 km x 1 km grid cell"), x = "", y = "" ) +
-                                          xlim(-2150000, 2510000) +
-                                          ylim(-2005000, 1000000) +
-                                          coord_sf(datum = st_crs(test_rastTemp)) +
-                                          # scale_fill_gradientn(colors = c("#f89540",  "white", "#0d0887"),
-                                          #                       #breaks = c(-1, -.5, 0, 0.5, 1), 
-                                          #                      #limits = c(-1,1),
-                                          #                       na.value = "lightgrey") + 
-                                          scale_fill_gradient2(low = "#f89540",
-                                                               mid = "white" ,
-                                                               high = "#0d0887" ,
-                                                               midpoint = 0, #limits = c(-1,1),  
-                                                               na.value = "lightgrey")  +
-                                          theme(axis.text = element_blank(),
-                                                                       strip.text = element_text(size = 15),
-                                                                       title = element_text(size = 18),
-                                                                       axis.ticks = element_blank()
-                                                                       )
-
-                                        # add an inset showing a density plot
-                                        # get data
-                                        data_inset <- data.frame("deltas" = terra::values(rast_deltas_future2_REL$mean, na.rm = TRUE, mat = FALSE)) %>%
-                                          pivot_longer(c(deltas), names_to = "lyr", values_to = "Cover")
-                                        # make insets
-                                        inset_plots <- data_inset %>%
-                                          split(f = .$lyr) %>%
-                                          purrr::map(~annotation_custom2(
-                                            grob = ggplotGrob(get_inset(.)
-                                                              ),
-                                            data = data.frame(lyr=unique(.$lyr
-                                                                         )),
-                                            ymin = -2025000, ymax=-1205000, xmin=-2280000, xmax=-180000)
-                                            )
-
-                                        resp_delta_map_future2_REL <- resp_delta_map_future2_REL + inset_plots
+                                        # # make a map of the deltas of predicted values for modeled climate 1
+                                        # resp_delta_map_future2_REL <- ggplot() +
+                                        #   geom_spatraster(data = rast_deltas_future2_REL_coarse, maxcell = 50000000 ) +
+                                        #   geom_sf(data=cropped_states %>% st_transform(crs = st_crs(test_rastTemp)) %>%
+                                        #             st_crop(st_bbox(rast_deltas_future2_REL_coarse)) ,fill=NA ) +
+                                        #             labs(title = paste0("Future predictions of absolute cover of ",x,", \n compared to contemporary predictions (future - contemprary)  \n - climate model: BNU-ESM"),
+                                        #                  subtitle = c("Values shown are the predictions \nwithin each 1 km x 1 km grid cell"), x = "", y = "" ) +
+                                        #   xlim(-2150000, 2510000) +
+                                        #   ylim(-2005000, 1000000) +
+                                        #   coord_sf(datum = st_crs(test_rastTemp)) +
+                                        #   # scale_fill_gradientn(colors = c("#f89540",  "white", "#0d0887"),
+                                        #   #                       #breaks = c(-1, -.5, 0, 0.5, 1), 
+                                        #   #                      #limits = c(-1,1),
+                                        #   #                       na.value = "lightgrey") + 
+                                        #   scale_fill_gradient2(low = "#f89540",
+                                        #                        mid = "white" ,
+                                        #                        high = "#0d0887" ,
+                                        #                        midpoint = 0, #limits = c(-1,1),  
+                                        #                        na.value = "lightgrey")  +
+                                        #   theme(axis.text = element_blank(),
+                                        #                                strip.text = element_text(size = 15),
+                                        #                                title = element_text(size = 18),
+                                        #                                axis.ticks = element_blank()
+                                        #                                )
+                                        # 
+                                        # # add an inset showing a density plot
+                                        # # get data
+                                        # data_inset <- data.frame("deltas" = terra::values(rast_deltas_future2_REL$mean, na.rm = TRUE, mat = FALSE)) %>%
+                                        #   pivot_longer(c(deltas), names_to = "lyr", values_to = "Cover")
+                                        # # make insets
+                                        # inset_plots <- data_inset %>%
+                                        #   split(f = .$lyr) %>%
+                                        #   purrr::map(~annotation_custom2(
+                                        #     grob = ggplotGrob(get_inset(.)
+                                        #                       ),
+                                        #     data = data.frame(lyr=unique(.$lyr
+                                        #                                  )),
+                                        #     ymin = -2025000, ymax=-1205000, xmin=-2280000, xmax=-180000)
+                                        #     )
+                                        # 
+                                        # resp_delta_map_future2_REL <- resp_delta_map_future2_REL + inset_plots
                                         
                                         return(list("rast" = resp_rast_2,
                                                     "map" = resp_map,
@@ -2030,18 +2030,19 @@ absoluteCoverMaps_contemp <- lapply(responseNames,
                                                     "rast_resids" = resids_rast,
                                                     "map_resids" = mapResids,
                                                     
-                                                    "rast_resids_relative" = resids_rast_CHANGE,
-                                                    "map_resids_relative" = mapResids_CHANGE,
+                                                    #"rast_resids_relative" = resids_rast_CHANGE,
+                                                    #"map_resids_relative" = mapResids_CHANGE,
                                                     
                                                     "rast_future1" = resp_rast_future1_2,
                                                     "map_future1" = resp_Actual_map_future1,
                                                     "map_future1_deltas" = resp_delta_map_future1,
-                                                    "map_future1_deltas_relative" = resp_delta_map_future1_REL,
+                                                    #"map_future1_deltas_relative" = resp_delta_map_future1_REL,
                                                     
                                                     "rast_future2" = resp_rast_future2_2,
                                                     "map_future2" = resp_Actual_map_future2,
-                                                    "map_future2_deltas" = resp_delta_map_future2,
-                                                    "map_future2_deltas_relative" = resp_delta_map_future2_REL))
+                                                    "map_future2_deltas" = resp_delta_map_future2#,
+                                                    #"map_future2_deltas_relative" = resp_delta_map_future2_REL
+                                                    ))
                                       })
 
 

@@ -99,10 +99,12 @@ We aim to generate a set of closed-form equations that determine coarse vegetati
 6) Acquire weather and climate data for each spatially-averaged location, derived from dayMet
     * Climate: average of values over the 30 years prior to observation
     * Weather: the anomalies of average of values over the three years prior to observation relative to the climate values
+    * Center and scale these variables across all locations for which we have cover data
 7) Acquire soil information for each spatially averaged location, derived from SOLUS100
     * Is not dynamic over time
+    * Center and scale these variables across all locations for which we have cover data
 8) Use this harmonized cover dataset to fit a model that classifies a location as forest or non-forest
-    * Use the complete set of total tree cover data, plus climate and soils predictors
+    * Use the complete set of total tree cover data, plus scaled climate and soils predictors
     * Identify a starting list of potential climate and soils predictors that are uncorrelated (r ≤ 0.7)
     * Convert the continuous tree cover data into a binary variable, where locations with >10% total tree cover are “forest,” while locations with ≤10% total tree cover are “unforested” (similar to the cutoff that FIA uses to identify forested areas for further sampling)
     * With a training subset of the data (data for all years except 2003, 2012, and 2019), use a binomial LASSO to identify a regularized set of predictors to include in the final model. The LASSO uses internal cross-validation to tune the lambda parameter, with data held out for the cross-validation by EPA level 2 ecoregion.
@@ -110,16 +112,100 @@ We aim to generate a set of closed-form equations that determine coarse vegetati
         ii) Fit binomial glms to the training data using each of these predictor sets and estimate coefficients.
         iii) For “best lambda” glm *and* either the “1SE” or “1/2SE” lambda glms (use whichever one has the fewest unique predictors but is not a null model). 
               * predict on the test dataset (data from 2003, 2012 and 2019), as well as to predict on the complete dataset
-              * identify the optimal threshold for turning the continuous predictions of the binomial model back to binary classifications of forest vs. non forest. We tested various methods, and determined that using the prevalence of forest in the observed data as the threshold optimizes the precision and accuracy of the model
+              * identify the optimal threshold for turning the continuous predictions of the binomial model back to binary classifications of forest vs. non forest. We tested various methods, and determined that using a threshold that results in a prevalence of forest that is equal to the prevalence of forest in the observed data optimizes the precision and accuracy of the model
               * use the optimal threshold to translate the continuous model predictions of probability of forest into classifications of “forest” and “non-forest”
               * For both the test dataset as well as the complete dataset, compare the model-predictions to the test data and generate maps of classifications (including miss-classifications), confusion matrices, and confusion matrix statistics.
               * Make quantile plots that compare average model predictions of forest classification to average observations of forest classification within each quantile of each predictor variable.
         iv) Based on visualizations and model performance, identify a model that best represents the data (i.e. the “best,” “1SE,” or “1/2SE” lambda glm) and use that model to predict, for each location in the complete, harmonized cover dataset, whether that location is forested or unforested
-9) Fit a Model that predicts cover for each functional type
-    * Identify a set of predictors (climate, weather and soils variables) that are uncorrelated in locations that the above model identifies as forested. Do the same for unforested locations. 
+        
+9) Fit a Model that predicts location that have zero tree cover
+    * We use a different dataset that is derived from RAP tree cover data from 2019-2023. First, 100-m RAP cells with <3% tree cover in any of the three years are identified. Then we record the proportion of RAP cells within each 1 km dayMet cell that have <3% tree cover. This dataset is masked (conservatively) to exclude burned areas and developed areas. 
+    * We then take this dataset and make the observations binary. Any dayMet cells with <= 50% of RAP cells that are 'treed' by the 3% definition used above are considered "un-treed" (have a value of 0). Any dayMet cells with > 50% of RAP cells that are 'treed' by the 3% definition used above are considered "treed" (have a value of 1).
+    * Because this dataset is CONUS-wide on the dayMet grid, we take a random sample of 500,000 locations. We use a binomial LASSO to identify a regularized set of predictors (From the samem set of scaled climate and soils predidtors used for the forest model) to include in the final model. The LASSO uses internal cross-validation to tune the lambda parameter, with data held out for the cross-validation by EPA level 2 ecoregion.
+        i) Identify three possible predictor sets, based on three levels of lambda identified in the LASSO (“best” lambda, “1SE” lambda, and a value halfway between each of these that we call “1/2SE” lambda).
+        ii) Fit binomial glms to the training data using each of these predictor sets and estimate coefficients.
+        iii) For “best lambda” glm *and* either the “1SE” or “1/2SE” lambda glms (use whichever one has the fewest unique predictors but is not a null model). 
+              * predict on the complete dataset
+              * identify the optimal threshold for turning the continuous predictions of the binomial model back to binary classifications of treed vs. non treed. We tested various methods, and determined that using a threshold that results in a prevalence of treed locations that is equal to the prevalence of treed locations in the observed data optimizes the precision and accuracy of the model.
+              * use the optimal threshold to translate the continuous model predictions of probability of treed into classifications of “treed” and “non-treed”
+              * Compare the model-predictions to the test data and generate maps of classifications (including miss-classifications), confusion matrices, and confusion matrix statistics.
+              * Make quantile plots that compare average model predictions of forest classification to average observations of forest classification within each quantile of each predictor variable.
+        iv) Based on visualizations and model performance, identify a model that best represents the data (i.e. the “best,” “1SE,” or “1/2SE” lambda glm) and use that model to predict, for each location in the complete, harmonized cover dataset, whether that location is forested or unforested
+10) Fit a Model that predicts cover for each functional type (absolute total tree cover, absolute total herbaceous cover, absolute shrub cover, absolute bare ground cover, forb cover as a proportion of total absolute herbaceous cover, C3 grass cover as a proportion of total absolute herbaceous cover, C4 grass cover as a proportion of total absolute herbaceous cover, Needle-leaved tree cover as a proportion of total tree cover, and Broad-leaved tree cover as a proportion of total tree cover)
+    * Identify a set of the previously scaled predictors (climate, weather and soils variables) that are uncorrelated in locations that the above model identifies as forested. Do the same for unforested locations. 
     * For each cover type, fit models to three subsets of data: (1) all available data CONUS-wide, (2) data in locations that the forest model predicts as forest, (3) and data in locations the model predicts as unforested. For each subset of data, do the following: 
+     i) We use a custom beta LASSO to identify a regularized set of predictors to include in the final model. The LASSO uses internal cross-validation to tune the lambda parameter, with data held out for the cross-validation by EPA level 2 ecoregion.
+     ii) Identify three possible predictor sets, based on three levels of lambda identified in the LASSO (“best” lambda, “1SE” lambda, and a value halfway between each of these that we call “1/2SE” lambda).
+        iii) Fit glms using our custom beta family function to the training data using each of these predictor sets and estimate coefficients.
+        iv) For “best lambda” glm *and* either the “1SE” or “1/2SE” lambda glms (use whichever one has the fewest unique predictors but is not a null model). 
+              * predict on the complete dataset
+              * Compare the model-predictions to the test data and generate maps of predictions, residuals, and predictions across all of CONUS using wall-to-wall climate data
+              * Make quantile plots that compare average model predictions to average observations within each quantile of each predictor variable.
+        iv) Based on visualizations and model performance, identify a model that best represents the data (i.e. the “best,” “1SE,” or “1/2SE” lambda glm) and use that model to predict, for each location in the complete, harmonized cover dataset, the cover for the given function group of interest. 
+11) Finally, we combine all of the model results together to generate CONUS-wide predictions of absolute and relative cover for each functional group. 
+  i) Predict continuous forest classification using the model from step 8
+$$ P(Forest)_{continuous}  \sim climate + soils$$ 
+  ii) Use the identified threshold to make the continuous predictions binary.  
+      * if $P(forest)_{continuous} > ForestThreshold$, then $P(forest)_{binary} = 1$
+      * if $P(forest)_{continuous} ≤ ForestThreshold$, then $P(forest)_{binary} = 0$
+  iii) To prevent harsh transitions from forest to un-forested locations, we create a 'scaling factor' that we use to mix the predictions for forested and un-forested locations. We identified boundaries above and below the identified threshold for making forest predictions binary within which we interpolate the continuous P(Forest) predictions between 0 and 1. We identified these boundaries such that there was an equal percentage (0.05%) of observed values on each side of the cutoff. We use the following interpolation to translate the continuous P(Forest) to the Forest Scaling Factor.     
+        * if $P(forest)_{continuous} ≤ lowerBoundary$, then $ForestScalingFactor = 0$        
+        * if $P(forest)_{continuous} = ForestThreshold$, then $ForestScalingFactor = 0.5$        
+        * if $P(forest)_{continuous} ≥ upperBoundary$, then $ForestScalingFactor = 1$    
+        * We use linear interpolation to interpolate the values of $P(forest)_{continuous}$ > lowerBoundary and < ForestThreshold to be between 0 and 0.5 
+        * We use linear interpolation to interpolate the values of $P(forest)_{continuous}$ > ForestThreshold and < upperBoundary to be between 0.5 and 1 
+  iv) Predict locations that are un-treed using the model from step 9   
+   $$ P(treed)_{continuous}  \sim climate + soils$$ 
+   
+  v) Make predictions of P(treed) binary, but only for locations that are un-forested     
+        * if $P(forest)_{binary} = 1$, then $P(treed) = 1$    
+        * if $P(forest)_{binary} = 0$ and $P(treed)_{continuous} ≤ treedThreshold$, then $P(treed)_{binary} = 0$    
+        * if $P(forest)_{binary} = 0$ and $P(treed)_{continuous} > treedThreshold$, then $P(treed)_{binary} = 1$    
+  vi) Use all of the models from step 10 to predict absolute cover for each function group. aa
+        * $TotalTreeCoverAbsolute_{forest} \sim climate + weather + soils$   
+        * $TotalTreeCoverAbsolute_{non-forest} \sim climate + weather + soils$   
+        * $TotalHerbaceousCoverAbsolute_{CONUS} \sim climate + weather + soils$    
+        * $ShrubCoverAbsolute_{CONUS} \sim climate + weather + soils$    
+        * $BareGroundCoverAbsolute_{CONUS} \sim climate + weather + soils$   
+        * $ShrubCoverAbsolute_{CONUS} \sim climate + weather + soils$    
+        * $ForbCoverProp_{CONUS} \sim climate + weather + soils$   
+        * $C3CoverProp_{CONUS} \sim climate + weather + soils$   
+        * $C4CoverProp_{CONUS} \sim climate + weather + soils$   
+        * $NLTreeCoverProp_{CONUS} \sim climate + weather + soils$   
+        * $BLTreeCoverProp_{CONUS} \sim climate + weather + soils$   
+ vii) Apply the Forest Scaling factor from step iii to the predictions of total tree cover to make them CONUS-wide    
+        * $TotalTreeCoverAbsolute_{CONUS} =  (TotalTreeCoverAbsolute_{forest} * ForestScalingFactor) + \\(TotalTreeCoverAbsolute_{non-forest} * (1-ForestScalingFactor))$
+    
+ viii) For all locations that are predicted to have zero tree cover (and are in places where $P(non-forest)_{binary}$ is 0), make tree cover zero   
+        * if $P(forest)_{binary} = 0$ and $P(treed)_{binary} = 0$, then $TotalTreeCoverAbsolute_{CONUS}=0$    
+  
+ ix) For functional groups whose models predict the proportion of another functional group (e.g. proportion of total tree that is needle-leaved, or proportion of total herbaceous that is C3 grass), make sure the relevant model-predicted proportions sum to 1   
+        * $ForbCoverPERCENT_{CONUS} =  ForbCoverProp_{CONUS}/(ForbCoverProp_{CONUS} + C3CoverProp_{CONUS} + C4CoverProp_{CONUS})$   
+        * $C3CoverPERCENT_{CONUS} =  C3CoverProp_{CONUS}/(ForbCoverProp_{CONUS} + C3CoverProp_{CONUS} + C4CoverProp_{CONUS})$   
+        * $C4CoverPERCENT_{CONUS} =  C4CoverProp_{CONUS}/(ForbCoverProp_{CONUS} + C3CoverProp_{CONUS} + C4CoverProp_{CONUS})$   
+        * $NLTreeCoverPERCENT_{CONUS} = NLTreeCoverProp_{CONUS}/(NLTreeCoverProp_{CONUS} + BLTreeCoverProp_{CONUS})$   
+        * $BLTreeCoverPERCENT_{CONUS} = BLTreeCoverProp_{CONUS}/(NLTreeCoverProp_{CONUS} + BLTreeCoverProp_{CONUS})$   
+ 
+ x) Translate the percentages from step viii to absolute cover    
+    * $ForbCoverAbsolute_{CONUS} = ForbCoverPERCENT_{CONUS} * TotalHerbaceousCoverAbsolute_{CONUS}$   
+    * $C3CoverAbsolute_{CONUS} = C3CoverPERCENT_{CONUS} * TotalHerbaceousCoverAbsolute_{CONUS}$   
+    * $C4CoverAbsolute_{CONUS} = C4CoverPERCENT_{CONUS} * TotalHerbaceousCoverAbsolute_{CONUS}$   
+    * $NLTreeCoverAbsolute_{CONUS} = NLTreeCoverPERCENT_{CONUS} * TotalTreeCoverAbsolute_{CONUS}$   
+    * $BLTreeCoverAbsolute_{CONUS} = BLTreeCoverPERCENT_{CONUS} * TotalTreeCoverAbsolute_{CONUS}$   
+ 
+ xi) Finally, we make the predictions of absolute cover relative. We use two 'layers' of relative cover, one for the overstory and one for the understory. As a result, all of the relative tree cover predictions are identical to the absolute tree cover predictions. Relative cover for all understory groups (forbs, C3 grass, C4 grass, shrubs, and bare ground) must sum to 1.     
+      * $TotalNonTreeCoverAbsolute_{CONUS} = TotalHerbaceousCoverAbsolute_{CONUS} + ShrubCoverAbsolute_{CONUS}  + BareGroundCoverAbsolute_{CONUS}$    
+      * $TotalTreeCoverRelative_{CONUS} = TotalTreeCoverAbsolute_{CONUS}$     
+      * $NLTreeCoverRelative_{CONUS} = NLTreeCoverAbsolute_{CONUS}$   
+      * $BLTreeCoverRelative_{CONUS} = BLTreeCoverAbsolute_{CONUS}$     
+      * $TotalHerbaceousCoverRelative_{CONUS} = TotalHerbaceousCoverAbsolute_{CONUS}/TotalNonTreeCoverAbsolute_{CONUS}$     
+      * $ShrubCoverRelative_{CONUS} = ShrubCoverAbsolute_{CONUS}/TotalNonTreeCoverAbsolute_{CONUS}$     
+      * $BareGroundCoverRelative_{CONUS} = BareGroundCoverAbsolute_{CONUS}/TotalNonTreeCoverAbsolute_{CONUS}$    
+      * $ForbCoverRelative_{CONUS} = ForbCoverAbsolute_{CONUS}/TotalNonTreeCoverAbsolute_{CONUS}$     
+      * $C3CoverRelative_{CONUS} = C3CoverAbsolute_{CONUS}/TotalNonTreeCoverAbsolute_{CONUS}$     
+      * $C4CoverRelative_{CONUS} = C4Absolute_{CONUS}/TotalNonTreeCoverAbsolute_{CONUS}$    
 
-# Methods - Specifics
+# Methods - Specifics for the data-preparation steps 
 
 ## (1) Acquire cover data from FIA, LANDFIRE, AIM and RAP
 
@@ -128,18 +214,18 @@ We aim to generate a set of closed-form equations that determine coarse vegetati
 test_rastTemp <-  rast("/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/Data_raw/dayMet/rawMonthlyData/orders/70e0da02b9d2d6e8faa8c97d211f3546/Daymet_Monthly_V4R1/data/daymet_v4_prcp_monttl_na_1980.tif") %>%
   terra::crop(ext(-2000000, 2600000, -1900000, 1500000))
 
-## aggregate test_rastTemp by 13, the scale that the dayMet data are aggregated to 
-test_rast_RAP <- test_rastTemp %>% 
-  terra::aggregate(fact = 13, fun = "mean") #%>% 
-#terra::project(crs("EPSG:4326")) %>% 
+## aggregate test_rastTemp by 13, the scale that the dayMet data are aggregated to
+test_rast_RAP <- test_rastTemp %>%
+  terra::aggregate(fact = 13, fun = "mean") #%>%
+#terra::project(crs("EPSG:4326")) %>%
   #terra::crop(ext(-150, -50, 20, 60))
-  
+
 # aggregate to regular plotting density for other data types
 test_rast <- test_rastTemp %>%
- terra::aggregate(fact = 8, fun = "mean")#%>% 
-#terra::project(crs("EPSG:4326")) %>% 
+ terra::aggregate(fact = 8, fun = "mean")#%>%
+#terra::project(crs("EPSG:4326")) %>%
  # terra::crop(ext(-150, -50, 20, 60))
-  # transform to match format of veg. data 
+  # transform to match format of veg. data
 
 cropped_states_2 <- us_states(resolution = "low")
 cropped_states_2 <- suppressMessages(cropped_states_2 %>%
@@ -150,61 +236,61 @@ cropped_states_2 <- suppressMessages(cropped_states_2 %>%
   dplyr::filter(name!="Guam") %>%
   dplyr::filter(name!="Commonwealth of the Northern Mariana Islands") %>%
   dplyr::filter(name!="United States Virgin Islands") %>%
-  sf::st_transform(sf::st_crs(test_rast))) 
+  sf::st_transform(sf::st_crs(test_rast)))
 ```
 
-### RAP 
+### RAP
 * Manuscript detailing the Rangeland Analysis Platform: Allred, B.W., B.T. Bestelmeyer, C.S. Boyd, C. Brown, K.W. Davies, M.C. Duniway, L.M. Ellsworth, T.A. Erickson, S.D. Fuhlendorf, T.V. Griffiths, V. Jansen, M.O. Jones, J. Karl, A. Knight, J.D. Maestas, J.J. Maynard, S.E. McCord, D.E. Naugle, H.D. Starns, D. Twidwell, and D.R. Uden. 2021. Improving Landsat predictions of rangeland fractional cover with multitask learning and uncertainty. Methods in Ecology and Evolution. http://dx.doi.org/10.1111/2041-210x.13564
 
 * Data were acquired from Google Earth Engine (GEE)
     * asset name: projects/rangeland-analysis-platform/vegetation-cover-v3
     * date accessed: Data from forested regions accessed March, 2026; data from un-forested regions accessed December, 2025
 
-RAP data contain information about fractional cover on a remotely-sensed 30-m grid across CONUS. RAP provides fractional cover for **total trees**, **shrubs**, **bare ground**, and annual and perennial forb and grass cover. We combined values for annual and perennial forb and grass cover into one value for **total herbaceous cover**. While RAP does not have information about cover of needle leaved or broad leaved tree cover or forb, C3 grass, or C4 grass cover, when total tree cover from RAP is zero, we assume that needle leaved and broad leaved tree cover is also zero. Also, when total herbaceous cover from RAP is zero, we assume that forb, C3 grass and C4 grass cover is also zero. We acquired data from the same locations for each year from **2010 - 2024**. 
+RAP data contain information about fractional cover on a remotely-sensed 30-m grid across CONUS. RAP provides fractional cover for **total trees**, **shrubs**, **bare ground**, and annual and perennial forb and grass cover. We combined values for annual and perennial forb and grass cover into one value for **total herbaceous cover**. While RAP does not have information about cover of needle leaved or broad leaved tree cover or forb, C3 grass, or C4 grass cover, when total tree cover from RAP is zero, we assume that needle leaved and broad leaved tree cover is also zero. Also, when total herbaceous cover from RAP is zero, we assume that forb, C3 grass and C4 grass cover is also zero. We acquired data from the same locations for each year from **2010 - 2024**.
 
-To sub-sample the RAP data, we used a process so that the sampled data was more similar in spatial sampling density to the field-sampled datasets: 
+To sub-sample the RAP data, we used a process so that the sampled data was more similar in spatial sampling density to the field-sampled datasets:
 1) Start with generating 1 random point location within each 1km^2 dayMet grid cell within the sample region, which is across CONUS excluding locations that are developed, cropland, or water according to LCMAP land use data.
-    - LCMAP data: https://eros.usgs.gov/lcmap/apps/data-downloads We used data from 2021, the most recent year data are available 
+    - LCMAP data: https://eros.usgs.gov/lcmap/apps/data-downloads We used data from 2021, the most recent year data are available
 2) Sample the four closest RAP pixels around those random points and average the values together - this single point represents the ‘observation’ within that dayMet grid cell
-3) Then, make the data coarser by averaging values that fall within the same ‘dayMet x 13’ grid cell, which gives a spatial sampling density that is qualitatively similar to that of FIA 
+3) Then, make the data coarser by averaging values that fall within the same ‘dayMet x 13’ grid cell, which gives a spatial sampling density that is qualitatively similar to that of FIA
 
 Below are maps of RAP data across all years after they’ve been sampled according to the process outlined above: (pending update w/ data from forested regions)
 ```{r, echo = FALSE, fig.width = 12, fig.height = 30, warning=FALSE, message = FALSE}
-# Read in data 
+# Read in data
 dat_1temp <- st_read(dsn = "/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/Data_processed/CoverData/DataForAnalysisPoints", layer = "vegCompPoints") %>% #, driver = "ESRI Shapefile")
   st_transform(crs(test_rast))
 
 # trim to be only later than 2000 or before 2024 (last year for which we have climate data was 2023) which is what we want to use for further analysis
-dat_1 <- dat_1temp %>% 
-  filter(Year >= 2000 & Year < 2024) %>% 
+dat_1 <- dat_1temp %>%
+  filter(Year >= 2000 & Year < 2024) %>%
   mutate(Lon = st_coordinates(.)[,1],
-         Lat = st_coordinates(.)[,2]) %>% 
-  rename(ShrubCover = ShrbCvr, 
-         TotalTreeCover = TtlTrCv, 
+         Lat = st_coordinates(.)[,2]) %>%
+  rename(ShrubCover = ShrbCvr,
+         TotalTreeCover = TtlTrCv,
          TotalHerbaceousCover = TtlHrbC,
          BareGroundCover = BrGrndC,
          ForbCover = ForbCvr,
          C3GramCover = C3GrmCv,
-         C4GramCover = C4GrmCv, 
+         C4GramCover = C4GrmCv,
          BroadLeavedTreeCover = AngTrCv,
          NeedleLeavedTreeCover = CnfTrCv)
  # st_drop_geometry()
 
 ###### rasterized version
 # make a multi-layer raster w/ layers for each variable of interest
-dat_1_RAST <- 
-  lapply(c("FIA", "LANDFIRE", "LDC","RAP"), 
+dat_1_RAST <-
+  lapply(c("FIA", "LANDFIRE", "LDC","RAP"),
          FUN = function(y) {
-           tempDat <- dat_1 %>% 
+           tempDat <- dat_1 %>%
              filter(Source == y )
-           tempDat1 <- tempDat %>% 
+           tempDat1 <- tempDat %>%
              st_drop_geometry()
-           # get vector of years for the specific data type 
+           # get vector of years for the specific data type
            if (y %in% c("FIA", "LDC", "RAP")) {
              datYears <- c("2016", "2020", "2022")
              if (y %in% "RAP") {
                # remove data from before 2010
-               tempDat1 <- tempDat1 %>% 
+               tempDat1 <- tempDat1 %>%
                  filter(Year >=2010)
              }
            } else {
@@ -212,74 +298,74 @@ dat_1_RAST <-
            }
            if (y == c( "RAP")) {
              # get data for each cover type by year
-           tempOut <- apply(expand.grid(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover"), datYears, stringsAsFactors = FALSE), 
+           tempOut <- apply(expand.grid(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover"), datYears, stringsAsFactors = FALSE),
                             MARGIN = 1,
                             FUN = function(x) {
-                              tempDat2 <- tempDat %>% 
+                              tempDat2 <- tempDat %>%
                                 filter(Year == x["Var2"])
-                              
-                              temp <- terra::rasterize(x = tempDat2,#tempDat2[,c("Lon", "Lat")], 
+
+                              temp <- terra::rasterize(x = tempDat2,#tempDat2[,c("Lon", "Lat")],
                                                y = test_rast_RAP,
                                                field = x["Var1"],
                                                #values = tempDat2[,names(tempDat2) == x["Var1"]],
-                                               fun = mean, 
+                                               fun = mean,
                                                na.rm = TRUE
-                                               ) 
+                                               )
                       names(temp) <-  paste0(x["Var1"], "_", x["Var2"])
                       return(temp)
                     }
                     )
            # get dat across all years
-           tempOut2 <- lapply(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover"), 
+           tempOut2 <- lapply(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover"),
                             FUN = function(z) {
-                              temp <- terra::rasterize(x = tempDat1[,c("Lon", "Lat")], 
+                              temp <- terra::rasterize(x = tempDat1[,c("Lon", "Lat")],
                                                y = test_rast_RAP,
                                                values = tempDat1[,z],
                                                fun = mean
-                                               ) 
-                      
+                                               )
+
                       names(temp) <-  paste0(z, "_all")
                       return(temp)
                     }
                     )
            } else {
              # get data for each cover type by year
-           tempOut <- apply(expand.grid(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover"), datYears, stringsAsFactors = FALSE), 
+           tempOut <- apply(expand.grid(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover"), datYears, stringsAsFactors = FALSE),
                             MARGIN = 1,
                             FUN = function(x) {
-                              tempDat2 <- tempDat %>% 
+                              tempDat2 <- tempDat %>%
                                 filter(Year == x["Var2"])
-                              
-                              temp <- terra::rasterize(x = tempDat2,#tempDat2[,c("Lon", "Lat")], 
+
+                              temp <- terra::rasterize(x = tempDat2,#tempDat2[,c("Lon", "Lat")],
                                                y = test_rast,
                                                field = x["Var1"],
                                                #values = tempDat2[,names(tempDat2) == x["Var1"]],
-                                               fun = mean, 
+                                               fun = mean,
                                                na.rm = TRUE
-                                               ) 
+                                               )
                       names(temp) <-  paste0(x["Var1"], "_", x["Var2"])
                       return(temp)
                     }
                     )
            # get dat across all years
-           tempOut2 <- lapply(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover"), 
+           tempOut2 <- lapply(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover"),
                             FUN = function(z) {
-                              temp <- terra::rasterize(x = tempDat1[,c("Lon", "Lat")], 
+                              temp <- terra::rasterize(x = tempDat1[,c("Lon", "Lat")],
                                                y = test_rast,
                                                values = tempDat1[,z],
                                                fun = mean
-                                               ) 
-                      
+                                               )
+
                       names(temp) <-  paste0(z, "_all")
                       return(temp)
                     }
                     )
            }
-           
+
            # for each data type, put data for each year in one raster in the list, and the data across all years in another raster
-           outDat <- list(c(tempOut[[1]], tempOut[[2]], tempOut[[3]], tempOut[[4]], tempOut[[5]], tempOut[[6]], tempOut[[7]], tempOut[[8]], tempOut[[9]]), 
+           outDat <- list(c(tempOut[[1]], tempOut[[2]], tempOut[[3]], tempOut[[4]], tempOut[[5]], tempOut[[6]], tempOut[[7]], tempOut[[8]], tempOut[[9]]),
                           c(tempOut[[10]], tempOut[[11]], tempOut[[12]], tempOut[[13]], tempOut[[14]], tempOut[[15]], tempOut[[16]], tempOut[[17]], tempOut[[18]]),
-                          c(tempOut[[19]], tempOut[[20]], tempOut[[21]], tempOut[[22]], tempOut[[23]], tempOut[[24]], tempOut[[25]], tempOut[[26]], tempOut[[27]]), 
+                          c(tempOut[[19]], tempOut[[20]], tempOut[[21]], tempOut[[22]], tempOut[[23]], tempOut[[24]], tempOut[[25]], tempOut[[26]], tempOut[[27]]),
                           c(tempOut2[[1]], tempOut2[[2]], tempOut2[[3]], tempOut2[[4]], tempOut2[[5]], tempOut2[[6]], tempOut2[[7]], tempOut2[[8]], tempOut2[[9]]))
            names(outDat) <- c(datYears, "allYears")
            return(outDat)
@@ -288,39 +374,39 @@ dat_1_RAST <-
 names(dat_1_RAST) <- c("FIA", "LANDFIRE", "LDC","RAP")
 
 ## make figures
-## make figure for RAP 
+## make figure for RAP
 testFigs <- lapply(names(dat_1_RAST$RAP)[[4]], FUN = function(y) {
   # make a map for this year
-           tempFig <- 
+           tempFig <-
   ggplot() +
              facet_wrap(~lyr, ncol = 1) +
-geom_spatraster(data = dat_1_RAST$RAP[[y]][[1:4]], maxcell = 5e+10) + 
+geom_spatraster(data = dat_1_RAST$RAP[[y]][[1:4]], maxcell = 5e+10) +
   geom_sf(data=cropped_states_2 ,fill=NA ) +
  xlim(-2150000, 2510000) +
  ylim(-2005000, 1000000) +
   coord_sf(datum = st_crs(test_rastTemp)) +
              paletteer::scale_fill_paletteer_c("scico::roma", guide = guide_colorbar(title = "% cover"),
-                                               limits = c(0,100), na.value = "white") + 
+                                               limits = c(0,100), na.value = "white") +
              theme(
                    axis.text = element_blank(),
                    strip.text = element_text(size = 15),
                    title = element_text(size = 18),
-                   axis.ticks = element_blank()) + 
+                   axis.ticks = element_blank()) +
              ggtitle("Map of RAP data on a dayMet x 13 grid")
-             
-  # add an inset showing a density plot  
+
+  # add an inset showing a density plot
            # get data
-           data_inset <- #terra::values(dat_1_RAST$RAP[[y]][[1:4]]) %>% 
-             dat_1 %>% 
-             st_drop_geometry() %>% 
-             filter(Source == "RAP") %>% 
-               #as_tibble() %>% 
-             rename(ShrubCover_all = ShrubCover, 
-                    TotalTreeCover_all = TotalTreeCover, 
-                    TotalHerbaceousCover_all = TotalHerbaceousCover, 
-                    BareGroundCover_all = BareGroundCover) %>% 
+           data_inset <- #terra::values(dat_1_RAST$RAP[[y]][[1:4]]) %>%
+             dat_1 %>%
+             st_drop_geometry() %>%
+             filter(Source == "RAP") %>%
+               #as_tibble() %>%
+             rename(ShrubCover_all = ShrubCover,
+                    TotalTreeCover_all = TotalTreeCover,
+                    TotalHerbaceousCover_all = TotalHerbaceousCover,
+                    BareGroundCover_all = BareGroundCover) %>%
                pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all, BareGroundCover_all), names_to = "lyr", values_to = "Cover")
- 
+
            # make insets
            inset_plots <- data_inset %>%
              split(f = .$lyr) %>%
@@ -339,47 +425,47 @@ geom_spatraster(data = dat_1_RAST$RAP[[y]][[1:4]], maxcell = 5e+10) +
 
 RAPfigs <- testFigs[[1]]
 RAPfigs
-# 
+#
 # # jpeg(filename = "/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/Figures/CoverDatFigures/RAPInputs_step1.jpeg",
 # #     width = 800, height = 2000)
-# ggarrange(#testFigs[[1]], 
-#           #testFigs[[2]], 
-#           ##testFigs[[3]], 
-#           testFigs[[1]], 
+# ggarrange(#testFigs[[1]],
+#           #testFigs[[2]],
+#           ##testFigs[[3]],
+#           testFigs[[1]],
 #           nrow = 1, common.legend = TRUE, legend = "bottom"
-#           ) %>% 
+#           ) %>%
 #   annotate_figure(top = "Map of RAP data on a dayMet x 13 grid", fig.lab.size = 4)
 # #dev.off()
 ```
 
-This barplot shows the sample size for each functional group across years in the subsampled RAP data we’re using (pending update w/ data from forested regions) 
+This barplot shows the sample size for each functional group across years in the subsampled RAP data we’re using (pending update w/ data from forested regions)
 ```{r, fig.width=7, fig.height = 5.5}
 # barplots of # of observations per data type per year
-dat_1 %>% 
-  st_drop_geometry() %>% 
+dat_1 %>%
+  st_drop_geometry() %>%
   filter(Source == "RAP" & Year >=2010) %>%
-  group_by(Year) %>% 
-  summarize(ShrubCover = sum(!is.na(ShrubCover)), 
+  group_by(Year) %>%
+  summarize(ShrubCover = sum(!is.na(ShrubCover)),
             TotalTreeCover = sum(!is.na(TotalTreeCover)),
             TotalHerbaceousCover = sum(!is.na(TotalHerbaceousCover)),
-            BareGroundCover = sum(!is.na(BareGroundCover))) %>% 
-  pivot_longer(2:5, values_to = "No_Observations", names_to = "functionalGroup") %>% 
-  ggplot() + 
-  geom_col(aes(x = Year, y = No_Observations, fill = functionalGroup), position = "dodge", col = "grey20")  + 
+            BareGroundCover = sum(!is.na(BareGroundCover))) %>%
+  pivot_longer(2:5, values_to = "No_Observations", names_to = "functionalGroup") %>%
+  ggplot() +
+  geom_col(aes(x = Year, y = No_Observations, fill = functionalGroup), position = "dodge", col = "grey20")  +
    scale_fill_discrete(type = c("#000000", #"#E69F00" ,"#56B4E9", "#009E73", "#F0E442" ,"#0072B2" ,
                                 "#D55E00", "#CC79A7", "#999999"),
-                      
+
                         labels = c("BareGround",
                          #"BroadLeavedTree", "C3Grass","C4Grass","Forb", "NeedleLeavedTree",
                                   "Shrub",  "TotalHerbaceous", "TotalTree")
-   ) + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+   ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ylim(c(0,NA)) +
   ylab(c("Number of Observations"))
 ```
 
 ### AIM
-The BLM- AIM database provides information about vegetation cover from a standardized survey protocol. It includes information about **total tree cover**, **shrub cover**, **total herbaceous cover**, **needle-leaved tree cover**, **broad-leaved tree cover**, **C3 grass cover**, **C4 grass cover**, and **forb cover**, and **bare ground cover**. We use AIM data from **2000 to 2017**. 
+The BLM- AIM database provides information about vegetation cover from a standardized survey protocol. It includes information about **total tree cover**, **shrub cover**, **total herbaceous cover**, **needle-leaved tree cover**, **broad-leaved tree cover**, **C3 grass cover**, **C4 grass cover**, and **forb cover**, and **bare ground cover**. We use AIM data from **2000 to 2017**.
 Below are maps of AIM data aggregated across all years:
 ```{r fig.width= 12, fig.height =67.5}
 ## make figure for LDC
@@ -394,32 +480,32 @@ geom_spatraster(data = dat_1_RAST$LDC[[y]], maxcell = 5e+10) +
  ylim(-2005000, 1000000) +
   coord_sf(datum = st_crs(test_rastTemp)) +
              paletteer::scale_fill_paletteer_c("scico::roma", guide = guide_colorbar(title = "% cover"),
-                                               limits = c(0,100), na.value = "white") + 
+                                               limits = c(0,100), na.value = "white") +
              theme(
                    axis.text = element_blank(),
                    strip.text = element_text(size = 15),
                    title = element_text(size = 18),
-                   axis.ticks = element_blank()) + 
+                   axis.ticks = element_blank()) +
              ggtitle("Map of AIM data on a dayMet x 8 grid")
   # add an inset showing a density plot
            # get data
-           data_inset <- dat_1 %>% 
-             st_drop_geometry() %>% 
-             filter(Source == "LDC") %>% 
-             rename(ShrubCover_all = ShrubCover, 
-                    TotalTreeCover_all = TotalTreeCover, 
-                    TotalHerbaceousCover_all = TotalHerbaceousCover, 
+           data_inset <- dat_1 %>%
+             st_drop_geometry() %>%
+             filter(Source == "LDC") %>%
+             rename(ShrubCover_all = ShrubCover,
+                    TotalTreeCover_all = TotalTreeCover,
+                    TotalHerbaceousCover_all = TotalHerbaceousCover,
                     BareGroundCover_all = BareGroundCover,
-                    ForbCover_all = ForbCover, 
-                    C3GramCover_all = C3GramCover, 
-                    C4GramCover_all = C4GramCover, 
+                    ForbCover_all = ForbCover,
+                    C3GramCover_all = C3GramCover,
+                    C4GramCover_all = C4GramCover,
                     BroadLeavedTreeCover_all = BroadLeavedTreeCover,
-                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>% 
+                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>%
                pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all, BareGroundCover_all,
-                              ForbCover_all,  C3GramCover_all,  C4GramCover_all,  BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all), 
+                              ForbCover_all,  C3GramCover_all,  C4GramCover_all,  BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all),
                             names_to = "lyr", values_to = "Cover")
- 
-           
+
+
            # data_inset <- terra::values(dat_1_RAST$LDC[[y]]) %>%
            #     as_tibble() %>%
            #     pivot_longer(1:9, names_to = "lyr", values_to = "Cover")
@@ -444,7 +530,7 @@ geom_spatraster(data = dat_1_RAST$LDC[[y]], maxcell = 5e+10) +
 AIMfigs <- testFigs[[1]]
 AIMfigs
 ```
-This barplot shows the sample size for each functional group across years in the AIM data we’re using: 
+This barplot shows the sample size for each functional group across years in the AIM data we’re using:
 ```{r fig.width=8, fig.height = 5.5}
 # barplots of # of observations per data type per year
 dat_1 %>%
@@ -470,8 +556,8 @@ dat_1 %>%
                         labels = c("BareGround",
                          "BroadLeavedTree", "C3Grass","C4Grass","Forb", "NeedleLeavedTree",
                                   "Shrub",  "TotalHerbaceous", "TotalTree")
-   )+ 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+   )+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ylim(c(0,NA)) +
   ylab(c("Number of Observations"))
 ```
@@ -488,32 +574,32 @@ testFigs <- lapply(names(dat_1_RAST$FIA)[4], FUN = function(y) {
 geom_spatraster(data = dat_1_RAST$FIA[[y]][[c(1:5,8:9)]], maxcell = 5e+10) +
   geom_sf(data=cropped_states_2 ,fill=NA ) +
  xlim(-2150000, 2510000) +
- ylim(-2005000, 1000000) + 
+ ylim(-2005000, 1000000) +
   coord_sf(datum = st_crs(test_rastTemp)) +
              paletteer::scale_fill_paletteer_c("scico::roma", guide = guide_colorbar(title = "% cover"),
-                                               limits = c(0,100), na.value = "white") + 
+                                               limits = c(0,100), na.value = "white") +
              theme(
                    axis.text = element_blank(),
                    strip.text = element_text(size = 15),
                    title = element_text(size = 18),
-                   axis.ticks = element_blank()) + 
+                   axis.ticks = element_blank()) +
              ggtitle("Map of FIA data on a dayMet x 8 grid")
   # add an inset showing a density plot
            # get data
-                      data_inset <- dat_1 %>% 
-             st_drop_geometry() %>% 
-             filter(Source == "FIA") %>% 
-             rename(ShrubCover_all = ShrubCover, 
-                    TotalTreeCover_all = TotalTreeCover, 
-                    TotalHerbaceousCover_all = TotalHerbaceousCover, 
+                      data_inset <- dat_1 %>%
+             st_drop_geometry() %>%
+             filter(Source == "FIA") %>%
+             rename(ShrubCover_all = ShrubCover,
+                    TotalTreeCover_all = TotalTreeCover,
+                    TotalHerbaceousCover_all = TotalHerbaceousCover,
                     BareGroundCover_all = BareGroundCover,
-                    ForbCover_all = ForbCover, 
-                    C3GramCover_all = C3GramCover, 
-                    C4GramCover_all = C4GramCover, 
+                    ForbCover_all = ForbCover,
+                    C3GramCover_all = C3GramCover,
+                    C4GramCover_all = C4GramCover,
                     BroadLeavedTreeCover_all = BroadLeavedTreeCover,
-                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>% 
+                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>%
                pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all, BareGroundCover_all,
-                              ForbCover_all, BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all), 
+                              ForbCover_all, BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all),
                             names_to = "lyr", values_to = "Cover")
            # data_inset <- terra::values(dat_1_RAST$FIA[[y]][[c(1:5,8:9)]]) %>%
            #     as_tibble() %>%
@@ -561,19 +647,19 @@ dat_1 %>%
    scale_fill_discrete(type = c("#000000",
      "#E69F00" ,#"#56B4E9", "#009E73",
      "#F0E442" ,"#0072B2" ,"#D55E00", "#CC79A7", "#999999"),
-              
+
       labels = c("BareGround",
                          "BroadLeavedTree", #"C3Grass","C4Grass",
                  "Forb", "NeedleLeavedTree",
                                   "Shrub",  "TotalHerbaceous", "TotalTree")
- )+ 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+ )+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ylim(c(0,NA)) +
   ylab(c("Number of Observations"))
 ```
 
 ### LANDFIRE
-The LANDFIRE reference database combines information about vegetation cover from many different sources (state surveys, regional surveys, etc.) It includes information about **total tree cover**, **shrub cover**, **total herbaceous cover**, **needle-leaved tree cover**, **broad-leaved tree cover**, **C3 grass cover**, **C4 grass cover**, and **forb cover**, although not every observation includes information about all functional groups. We use LANDFIRE data from **2000 to 2017**. 
+The LANDFIRE reference database combines information about vegetation cover from many different sources (state surveys, regional surveys, etc.) It includes information about **total tree cover**, **shrub cover**, **total herbaceous cover**, **needle-leaved tree cover**, **broad-leaved tree cover**, **C3 grass cover**, **C4 grass cover**, and **forb cover**, although not every observation includes information about all functional groups. We use LANDFIRE data from **2000 to 2017**.
 Below are maps of LANDFIRE data summarized across all years:
 ```{r fig.width=12, fig.height = 60, warning = FALSE}
 ## make figure for LANDFIRE
@@ -588,32 +674,32 @@ geom_spatraster(data = dat_1_RAST$LANDFIRE[[y]][[c(1:3,5:9)]], maxcell = 5e+10) 
  ylim(-2005000, 1000000) +
   coord_sf(datum = st_crs(test_rastTemp)) +
              paletteer::scale_fill_paletteer_c("scico::roma", guide = guide_colorbar(title = "% cover"),
-                                               limits = c(0,100), na.value = "white") + 
+                                               limits = c(0,100), na.value = "white") +
              theme(
                    axis.text = element_blank(),
                    strip.text = element_text(size = 15),
                    title = element_text(size = 18),
-                   axis.ticks = element_blank()) + 
+                   axis.ticks = element_blank()) +
              ggtitle("Map of LANDFIRE data on a dayMet x 13 grid")
   # add an inset showing a density plot
            # get data
            # data_inset <- terra::values(dat_1_RAST$LANDFIRE[[y]][[c(1:3,5:9)]]) %>%
            #     as_tibble() %>%
            #     pivot_longer(1:8, names_to = "lyr", values_to = "Cover")
-        data_inset <- dat_1 %>% 
-             st_drop_geometry() %>% 
-             filter(Source == "LANDFIRE") %>% 
-             rename(ShrubCover_all = ShrubCover, 
-                    TotalTreeCover_all = TotalTreeCover, 
-                    TotalHerbaceousCover_all = TotalHerbaceousCover, 
+        data_inset <- dat_1 %>%
+             st_drop_geometry() %>%
+             filter(Source == "LANDFIRE") %>%
+             rename(ShrubCover_all = ShrubCover,
+                    TotalTreeCover_all = TotalTreeCover,
+                    TotalHerbaceousCover_all = TotalHerbaceousCover,
                     BareGroundCover_all = BareGroundCover,
-                    ForbCover_all = ForbCover, 
-                    C3GramCover_all = C3GramCover, 
-                    C4GramCover_all = C4GramCover, 
+                    ForbCover_all = ForbCover,
+                    C3GramCover_all = C3GramCover,
+                    C4GramCover_all = C4GramCover,
                     BroadLeavedTreeCover_all = BroadLeavedTreeCover,
-                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>% 
-               pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all, 
-ForbCover_all, C3GramCover_all, C4GramCover_all, BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all), 
+                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>%
+               pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all,
+ForbCover_all, C3GramCover_all, C4GramCover_all, BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all),
                             names_to = "lyr", values_to = "Cover")
            # make insets
            inset_plots <- data_inset %>%
@@ -634,7 +720,7 @@ ForbCover_all, C3GramCover_all, C4GramCover_all, BroadLeavedTreeCover_all, Needl
 LANDFIREfigs <- testFigs[[1]]
 LANDFIREfigs
 ```
-This barplot shows the sample size for each functional group across years in the LANDFIRE data we’re using: 
+This barplot shows the sample size for each functional group across years in the LANDFIRE data we’re using:
 ```{r fig.width=8, fig.height=5.5}
 # barplots of # of observations per data type per year
 dat_1 %>%
@@ -659,8 +745,8 @@ dat_1 %>%
                        labels = c(#"BareGround",
                          "BroadLeavedTree", "C3Grass","C4Grass","Forb", "NeedleLeavedTree",
                                   "Shrub",  "TotalHerbaceous", "TotalTree")
- )+ 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+ )+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ylim(c(0,NA)) +
   ylab(c("Number of Observations"))
 ```
@@ -671,34 +757,34 @@ dat_1 %>%
 <!-- ``` -->
 
 
-## (2) Remove cover observations from locations that have been recently burned 
+## (2) Remove cover observations from locations that have been recently burned
 
-We combine fire perimeter information from two data sources: 
+We combine fire perimeter information from two data sources:
   1) mtbs
   2) cwf
-If the location where cover data was collected was burned *within* 20 years prior to the year when cover data were collected, we do not use that cover information. 
-If the location was burned *more* than 20 years prior to the year when cover data were collected, we retain cover information for non-tree cover classes, but exclude information about total tree cover, needle-leaved tree cover, and broad-leaved tree cover. 
+If the location where cover data was collected was burned *within* 20 years prior to the year when cover data were collected, we do not use that cover information.
+If the location was burned *more* than 20 years prior to the year when cover data were collected, we retain cover information for non-tree cover classes, but exclude information about total tree cover, needle-leaved tree cover, and broad-leaved tree cover.
 
 ```{r, fig.width=12, fig.height=8}
 # get version of the data w/ fire info added
-dat_fireRemoved <- readRDS(file = "/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/Data_processed/CoverData/dataForAnalysis_FireDataPRE_fireRemoved.rds") %>% 
-  st_transform(crs(dat_1)) %>% 
+dat_fireRemoved <- readRDS(file = "/Users/astears/Documents/Dropbox_static/Work/NAU_USGS_postdoc/cleanPED/PED_vegClimModels/Data_processed/CoverData/dataForAnalysis_FireDataPRE_fireRemoved.rds") %>%
+  st_transform(crs(dat_1)) %>%
   mutate(geom_x = st_coordinates(.)[,1],
-         geom_y = st_coordinates(.)[,2]) %>% 
+         geom_y = st_coordinates(.)[,2]) %>%
   filter(Year >=2000)
 
 # locations where we removed all observations (present in pre-fire, but not on post-fire)
-dat_fireCompletelyRemoved <- dat_fireRemoved %>% 
+dat_fireCompletelyRemoved <- dat_fireRemoved %>%
   filter(burnedMoreThan20YearsAgo == "RECENTLY_BURNED_REMOVE")
 
 ## rasterize this dataset
- dat_fireCompletelyRemoved_RAST <- terra::rasterize(x = dat_fireCompletelyRemoved,#tempDat2[,c("Lon", "Lat")], 
+ dat_fireCompletelyRemoved_RAST <- terra::rasterize(x = dat_fireCompletelyRemoved,#tempDat2[,c("Lon", "Lat")],
                                                y = test_rast,
                                                field ="Year",
                                                #values = tempDat2[,names(tempDat2) == x["Var1"]],
-                                               fun = mean, 
+                                               fun = mean,
                                                na.rm = TRUE
-                                               ) 
+                                               )
 
 ## data excluded completely b/c of fire <20 years prior to sampling
 ## make a map of all burned locations in CONUS
@@ -706,12 +792,12 @@ burnPlot_20yr <- ggplot() +
   #facet_wrap(~Year) +
   geom_spatraster(data = dat_fireCompletelyRemoved_RAST) +
   #geom_sf(data = dat_fireCompletelyRemoved# %>% filter(Year == 2012)
-   #       , aes(col = Year), pch = 20) + 
+   #       , aes(col = Year), pch = 20) +
   geom_sf(data=cropped_states_2 ,fill=NA ) +
  xlim(-2150000, 2510000) +
  ylim(-2005000, 1000000) +
               paletteer::scale_fill_paletteer_c("scico::tofino", guide = guide_colorbar(title = "Year"),
-                                                limits = c(2000,2023), na.value = "white") + 
+                                                limits = c(2000,2023), na.value = "white") +
              theme(
                    axis.text = element_blank(),
                    strip.text = element_text(size = 15),
@@ -726,17 +812,17 @@ burnPlot_20yr
 
 ```{r, fig.width=12, fig.height=8}
 # locations where we removed tree \
-dat_firePartlyRemoved <- dat_fireRemoved %>% 
+dat_firePartlyRemoved <- dat_fireRemoved %>%
   filter(burnedMoreThan20YearsAgo == TRUE)
 
 ## rasterize this dataset
- dat_firePartlyRemoved_RAST <- terra::rasterize(x = dat_firePartlyRemoved,#tempDat2[,c("Lon", "Lat")], 
+ dat_firePartlyRemoved_RAST <- terra::rasterize(x = dat_firePartlyRemoved,#tempDat2[,c("Lon", "Lat")],
                                                y = test_rast,
                                                field ="Year",
                                                #values = tempDat2[,names(tempDat2) == x["Var1"]],
-                                               fun = mean, 
+                                               fun = mean,
                                                na.rm = TRUE
-                                               ) 
+                                               )
 
 ## data excluded completely b/c of fire <20 years prior to sampling
 ## make a map of all burned locations in CONUS
@@ -744,12 +830,12 @@ burnPlot_all <- ggplot() +
   #facet_wrap(~Year) +
   geom_spatraster(data = dat_firePartlyRemoved_RAST) +
   #geom_sf(data = dat_firePartlyRemoved# %>% filter(Year == 2012)
-   #       , aes(col = Year), pch = 20) + 
+   #       , aes(col = Year), pch = 20) +
   geom_sf(data=cropped_states_2 ,fill=NA ) +
  xlim(-2150000, 2510000) +
  ylim(-2005000, 1000000) +
               paletteer::scale_fill_paletteer_c("scico::tofino", guide = guide_colorbar(title = "Year"),
-                                                limits = c(2000,2023), na.value = "white") + 
+                                                limits = c(2000,2023), na.value = "white") +
              theme(
                    axis.text = element_blank(),
                    strip.text = element_text(size = 15),
@@ -763,53 +849,53 @@ burnPlot_all
 
 
 ```{r fig.width=10}
-## add plots showing density of observations by functional group both before 
-dat_postBurnRemoval <- dat_fireRemoved %>%  
-  rename(ShrubCover = ShrbCvr, 
-         TotalTreeCover = TtlTrCv, 
+## add plots showing density of observations by functional group both before
+dat_postBurnRemoval <- dat_fireRemoved %>%
+  rename(ShrubCover = ShrbCvr,
+         TotalTreeCover = TtlTrCv,
          TotalHerbaceousCover = TtlHrbC,
          BareGroundCover = BrGrndC,
          ForbCover = ForbCvr,
          C3GramCover = C3GrmCv,
-         C4GramCover = C4GrmCv, 
+         C4GramCover = C4GrmCv,
          BroadLeavedTreeCover = AngTrCv,
-         NeedleLeavedTreeCover = CnfTrCv) %>% 
-  dplyr::select(-c(SttUntC, Plot, PltCndt, Month, Day, TtlGrmC, AnnlHGC, PrnnHGC, TrBsA_2, LttrCvr, LttrDpt, AngTrC_, CnfTrC_, C4GrmC_, C3GrmC_, FrbCvr_, group)) %>% 
-  pivot_longer(cols = c(TotalTreeCover, TotalHerbaceousCover, ShrubCover, BareGroundCover, C3GramCover, C4GramCover, ForbCover, BroadLeavedTreeCover, NeedleLeavedTreeCover), 
-               names_to = "CoverType", values_to = "CoverValue") %>% 
+         NeedleLeavedTreeCover = CnfTrCv) %>%
+  dplyr::select(-c(SttUntC, Plot, PltCndt, Month, Day, TtlGrmC, AnnlHGC, PrnnHGC, TrBsA_2, LttrCvr, LttrDpt, AngTrC_, CnfTrC_, C4GrmC_, C3GrmC_, FrbCvr_, group)) %>%
+  pivot_longer(cols = c(TotalTreeCover, TotalHerbaceousCover, ShrubCover, BareGroundCover, C3GramCover, C4GramCover, ForbCover, BroadLeavedTreeCover, NeedleLeavedTreeCover),
+               names_to = "CoverType", values_to = "CoverValue") %>%
   filter(burnedMoreThan20YearsAgo != "RECENTLY_BURNED_REMOVE") %>%  # remove all observations that were burned recently
-  mutate(CoverValue = replace(x = CoverValue, 
-                              list = (CoverType %in% c("TotalTreeCover", "BroadLeavedTreeCover", "NeedleLeavedTreeCover")) & burnedMoreThan20YearsAgo == TRUE, 
-                              values = NA),  # for plots that were burned at any point, remove observations for tree data 
-  CoverValue = replace(x = CoverValue, 
-                       list = (CoverType %in% c("BroadLeavedTreeCover", "NeedleLeavedTreeCover", "C3GramCover", "C4GramCover", "ForbCover")) & Source == "RAP", 
+  mutate(CoverValue = replace(x = CoverValue,
+                              list = (CoverType %in% c("TotalTreeCover", "BroadLeavedTreeCover", "NeedleLeavedTreeCover")) & burnedMoreThan20YearsAgo == TRUE,
+                              values = NA),  # for plots that were burned at any point, remove observations for tree data
+  CoverValue = replace(x = CoverValue,
+                       list = (CoverType %in% c("BroadLeavedTreeCover", "NeedleLeavedTreeCover", "C3GramCover", "C4GramCover", "ForbCover")) & Source == "RAP",
                        values = NA))# for RAP data, remove values for BroadLeavedTreeCover, C3GramCover, C4GramCOver, ForbCover, and NeedleLeavedTreeCover (put zeros when the corresponding level-1 value is 0, but those are the only values)
-  # make pre-fire removal data 'long' 
-  dat_1_long <- dat_1 %>% 
-    pivot_longer(cols = c(TotalTreeCover, TotalHerbaceousCover, ShrubCover, BareGroundCover, C3GramCover, C4GramCover, ForbCover, BroadLeavedTreeCover, NeedleLeavedTreeCover), 
-               names_to = "CoverType", values_to = "CoverValue") %>% 
-    mutate(CoverValue = replace(x = CoverValue, 
-                       list = (CoverType %in% c("BroadLeavedTreeCover", "NeedleLeavedTreeCover", "C3GramCover", "C4GramCover", "ForbCover")) & Source == "RAP", 
+  # make pre-fire removal data 'long'
+  dat_1_long <- dat_1 %>%
+    pivot_longer(cols = c(TotalTreeCover, TotalHerbaceousCover, ShrubCover, BareGroundCover, C3GramCover, C4GramCover, ForbCover, BroadLeavedTreeCover, NeedleLeavedTreeCover),
+               names_to = "CoverType", values_to = "CoverValue") %>%
+    mutate(CoverValue = replace(x = CoverValue,
+                       list = (CoverType %in% c("BroadLeavedTreeCover", "NeedleLeavedTreeCover", "C3GramCover", "C4GramCover", "ForbCover")) & Source == "RAP",
                        values = NA))# for RAP data, remove values for BroadLeavedTreeCover, C3GramCover, C4GramCOver, ForbCover, and NeedleLeavedTreeCover (put zeros when the corresponding level-1 value is 0, but those are the only values)
   ggplot() +
-    facet_wrap(~CoverType, scales = "free") + 
+    facet_wrap(~CoverType, scales = "free") +
     geom_density(data = dat_1_long, aes(CoverValue#, col= Source
-                                                 ), col = "grey") + 
+                                                 ), col = "grey") +
     geom_density(data = dat_postBurnRemoval , aes(CoverValue#, col = Source
-                                        ),  col = "black") + 
-    ggtitle("Density plots of cover by functional group across all datasets", 
+                                        ),  col = "black") +
+    ggtitle("Density plots of cover by functional group across all datasets",
             subtitle = "Grey = Data prior to excluding burned locations; \nBlack = Data after excluding burned locations")
 ```
 
-## (3) Remove cover observations from locations that are developed 
+## (3) Remove cover observations from locations that are developed
 We excluded vegetation cover ata from locations that the LCMAP dataset designated as developed (LCMAP class 1), cropland (LCMAP class 2) or water (LCMAP class 5)
 
-If a point location (or the RAP data associated with a randomly-selected point location in a dayMet grid cell) was within a 30-m^2 LCMAP grid cell that was classified as developed, cropland, or water, we excluded cover data from that point location. 
-We used data from LCMAP version 1.3 from 2021, which was the most recent year for which data were available, as it was likely the most "conservative" (i.e. classified the most area as developed or cropland).  
+If a point location (or the RAP data associated with a randomly-selected point location in a dayMet grid cell) was within a 30-m^2 LCMAP grid cell that was classified as developed, cropland, or water, we excluded cover data from that point location.
+We used data from LCMAP version 1.3 from 2021, which was the most recent year for which data were available, as it was likely the most "conservative" (i.e. classified the most area as developed or cropland).
 Dataset source: https://eros.usgs.gov/lcmap/apps/data-downloads
 Access date: 05 June, 2024
 
-Because the LCMAP data is so fine-resolution, it isn't practical to display locations where we excluded cover data due to LCMAP cover type on the native LCMAP raster grid. In this figure below, we show 4km x 4km grid cells (the dayMet grid scaled up by a factor of four) within in which we excluded at least one data point. The color of the grid cell corresponds to the land cover type that was most commonly associated with excluded cover data observations in that grid cell. 
+Because the LCMAP data is so fine-resolution, it isn't practical to display locations where we excluded cover data due to LCMAP cover type on the native LCMAP raster grid. In this figure below, we show 4km x 4km grid cells (the dayMet grid scaled up by a factor of four) within in which we excluded at least one data point. The color of the grid cell corresponds to the land cover type that was most commonly associated with excluded cover data observations in that grid cell.
 
 ```{r fig.width=13, fig.height=10}
 # data after removing developed/ag. locations
@@ -823,7 +909,7 @@ dat_LCMAPremoved <- readRDS("../Data_processed/CoverData/DataForModels.RDS")
 # # put on the dayMet grid
 # LCMAP_mask3 <- LCMAP_mask2 %>%
 #   terra::project(terra::crs(test_rastTemp))
-# 
+#
 # # mask the LCMAP data so there aren't any values outside of the state boundary shapefile
 # LCMAP_mask4 <- LCMAP_mask3 %>%
 #   terra::mask(mask =  vect(cropped_states_2)) %>%
@@ -832,7 +918,7 @@ dat_LCMAPremoved <- readRDS("../Data_processed/CoverData/DataForModels.RDS")
 #   as.factor()
 # lvls <- data.frame(id=c(1,2,5), cover=c("developed", "cropland", "water"))
 # levels(LCMAP_mask4) <- lvls
-# 
+#
 # # save the values to use later
 # terra::writeRaster(LCMAP_mask4, "../Data_processed/LCMAP/LCMAP_forPlotting_dayMetGrid.tif", overwrite = TRUE)
 # read in raster for plotting
@@ -842,22 +928,22 @@ LCMAP_mask4 <- terra::rast("../Data_processed/LCMAP/LCMAP_forPlotting_dayMetGrid
 # data, pre-LCMAP filtering
 # find where this data overlaps w/ the LCMAP mask
 # dat_LCMAPfiltered_temp <- terra::extract(x = LCMAP_mask4, y = vect(dat_postBurnRemoval))
-# dat_LCMAPfiltered <- dat_postBurnRemoval %>% 
-#   cbind(dat_LCMAPfiltered_temp) %>% 
+# dat_LCMAPfiltered <- dat_postBurnRemoval %>%
+#   cbind(dat_LCMAPfiltered_temp) %>%
 #   select(-ID)
 #`dat_LCMAPfiltered` contains information about the locations that were filtered out as well as those that were retained
 #saveRDS(dat_LCMAPfiltered, file = "../Data_processed/LCMAP/CoverDataWithLCMAPExclusionInfoForPlotting.rds")
 # get point locations that have been filtered out because they overlap w/ a LCMAP land cover type we don't want
 # dat_LCMAPfiltered <- readRDS("../Data_processed/LCMAP/CoverDataWithLCMAPExclusionInfoForPlotting.rds")
-# dat_LCMAPfiltered <- dat_LCMAPfiltered %>% 
+# dat_LCMAPfiltered <- dat_LCMAPfiltered %>%
 #   mutate(coverType_code = as.integer(cover))
-# # 
+# #
 # # # crop the LCMAP rast extent for testing
-# # LCMAP_mask4_test <- LCMAP_mask4 %>% 
-# #   terra::crop(terra::ext(c(500000, 520000, 
+# # LCMAP_mask4_test <- LCMAP_mask4 %>%
+# #   terra::crop(terra::ext(c(500000, 520000,
 # #                          -20000, 0)))
-# 
-# # rasterize the data that were excluded, and color-code by land cover type (rasterize on the dayMet grid (on dayMet x 4 grid, so 4km x 4km), since the LCMAP grid is too fine to visualize accurately at CONUS-scale)--so the resulting map shows 4km x 4km grid cells where we excluded at least one location because of land cover type we didn't want 
+#
+# # rasterize the data that were excluded, and color-code by land cover type (rasterize on the dayMet grid (on dayMet x 4 grid, so 4km x 4km), since the LCMAP grid is too fine to visualize accurately at CONUS-scale)--so the resulting map shows 4km x 4km grid cells where we excluded at least one location because of land cover type we didn't want
 # rast_LCMAPfiltered <- dat_LCMAPfiltered %>%
 #   filter(!is.na(coverType_code)) %>%
 #   #slice(30000:40000) %>%
@@ -869,19 +955,19 @@ LCMAP_mask4 <- terra::rast("../Data_processed/LCMAP/LCMAP_forPlotting_dayMetGrid
 #  rast_LCMAPfiltered <- rast_LCMAPfiltered %>%
 # #   round() %>%
 #    terra::as.int()
-# 
-# # save raster for plotting 
+#
+# # save raster for plotting
 #  terra::writeRaster(rast_LCMAPfiltered, "../Data_processed/LCMAP/LCMAP_DataRemoved_forPlotting_dayMetGrid.tif", overwrite = TRUE, datatype="INTIU")
 rast_LCMAPfiltered <- terra::rast( "../Data_processed/LCMAP/LCMAP_DataRemoved_forPlotting_dayMetGrid.tif")
 
 # now find the gridcells that we removed ()
  ggplot(rast_LCMAPfiltered) +
-   geom_raster(aes(x = x, 
-                   y = y, 
-                   fill = as.character(coverType_code)), maxcell = 1000000 ) + 
+   geom_raster(aes(x = x,
+                   y = y,
+                   fill = as.character(coverType_code)), maxcell = 1000000 ) +
   geom_sf(data=cropped_states_2 ,fill=NA ) +
-   scale_fill_manual(name = "Land cover", 
-                     values = c("firebrick3", "darkgoldenrod2", "royalblue", NA), 
+   scale_fill_manual(name = "Land cover",
+                     values = c("firebrick3", "darkgoldenrod2", "royalblue", NA),
                      labels = c("Developed", "Cropland", "Water", ""),
                     na.translate = FALSE) +
  xlim(-2150000, 2510000) +
@@ -898,148 +984,148 @@ rast_LCMAPfiltered <- terra::rast( "../Data_processed/LCMAP/LCMAP_DataRemoved_fo
 
 
 ```{r fig.width=10}
-## add plots showing density of observations by functional group both before and after excluding burned areas 
-## for pre-LCMAP filtering, the data is in the d.f: 
-#dat_postBurnRemoval 
+## add plots showing density of observations by functional group both before and after excluding burned areas
+## for pre-LCMAP filtering, the data is in the d.f:
+#dat_postBurnRemoval
 
-  # make  post-LCMAP removal data 'long' 
-  dat_LCMAPremoved_long  <- dat_LCMAPremoved %>% 
-  st_drop_geometry() %>% 
-  rename(ShrubCover = ShrbCvr, 
-         TotalTreeCover = TtlTrCv, 
+  # make  post-LCMAP removal data 'long'
+  dat_LCMAPremoved_long  <- dat_LCMAPremoved %>%
+  st_drop_geometry() %>%
+  rename(ShrubCover = ShrbCvr,
+         TotalTreeCover = TtlTrCv,
          TotalHerbaceousCover = TtlHrbC,
          BareGroundCover = BrGrndC,
          ForbCover = ForbCvr,
          C3GramCover = C3GrmCv,
-         C4GramCover = C4GrmCv, 
+         C4GramCover = C4GrmCv,
          BroadLeavedTreeCover = AngTrCv,
-         NeedleLeavedTreeCover = CnfTrCv) %>% 
-    pivot_longer(cols = c(TotalTreeCover, TotalHerbaceousCover, ShrubCover, BareGroundCover, C3GramCover, C4GramCover, ForbCover, BroadLeavedTreeCover, NeedleLeavedTreeCover), 
-               names_to = "CoverType", values_to = "CoverValue") %>% 
-    mutate(CoverValue = replace(x = CoverValue, 
-                       list = (CoverType %in% c("BroadLeavedTreeCover", "NeedleLeavedTreeCover", "C3GramCover", "C4GramCover", "ForbCover")) & Source == "RAP", 
+         NeedleLeavedTreeCover = CnfTrCv) %>%
+    pivot_longer(cols = c(TotalTreeCover, TotalHerbaceousCover, ShrubCover, BareGroundCover, C3GramCover, C4GramCover, ForbCover, BroadLeavedTreeCover, NeedleLeavedTreeCover),
+               names_to = "CoverType", values_to = "CoverValue") %>%
+    mutate(CoverValue = replace(x = CoverValue,
+                       list = (CoverType %in% c("BroadLeavedTreeCover", "NeedleLeavedTreeCover", "C3GramCover", "C4GramCover", "ForbCover")) & Source == "RAP",
                        values = NA))# for RAP data, remove values for BroadLeavedTreeCover, C3GramCover, C4GramCOver, ForbCover, and NeedleLeavedTreeCover (put zeros when the corresponding level-1 value is 0, but those are the only values)
   ggplot() +
-    facet_wrap(~CoverType, scales = "free") + 
+    facet_wrap(~CoverType, scales = "free") +
     geom_density(data = dat_postBurnRemoval, aes(CoverValue#, col= Source
-                                                 ), col = "grey") + 
+                                                 ), col = "grey") +
     geom_density(data = dat_LCMAPremoved_long , aes(CoverValue#, col = Source
-                                        ),  col = "black") + 
-    ggtitle("Density plots of cover by functional group across all datasets \n before and after removing observations due to unsuitable land cover type", 
+                                        ),  col = "black") +
+    ggtitle("Density plots of cover by functional group across all datasets \n before and after removing observations due to unsuitable land cover type",
             subtitle = "Grey = Data prior to excluding locations with unsuitable land cover type ;  \nBlack = Data after excluding locations with unsuitable land cover type")
 ```
 
-## 4) "Coarsify" data from LANDFIRE 
-Data from the LANDFIRE reference database is a conglomeration of plot data from various sources across the United States, and as a result, some geographic locations have a very high number of cover observations, while other locations are completely unrepresented in the dataset. This spatial heterogeneity is potentially problematic, particularly since it results in over-representation of some vegetation types. To attempt to ameliorate this issue, we've "coarsified" the cover data from th LANDFIRE reference database to result in a sampling density (in locations where data are available) that is similar to the  density of FIA plots. 
+## 4) "Coarsify" data from LANDFIRE
+Data from the LANDFIRE reference database is a conglomeration of plot data from various sources across the United States, and as a result, some geographic locations have a very high number of cover observations, while other locations are completely unrepresented in the dataset. This spatial heterogeneity is potentially problematic, particularly since it results in over-representation of some vegetation types. To attempt to ameliorate this issue, we've "coarsified" the cover data from th LANDFIRE reference database to result in a sampling density (in locations where data are available) that is similar to the  density of FIA plots.
 The median distance between FIA plots is 11,879 m, whereas the median distance between plots in the LANDFIRE reference database prior to this "coarsifying" step was 1,319 m. To make the spatial density of LANDFIRE plots coarser, we used a ~3km x ~3km across CONUS (based on the dayMet grid, which we scaled up by a factor of three). If more than one LANDFIRE plot that was measured in a given year was within the same 3km^2 grid cell, the cover observations from those plots were added together. We chose a 3km^2 grid because the final median distance between LANDFIRE plots after using the coarsifying process with that grid cell size (which was 11,637 m) was closest to the median distance between FIA plots. Below we show density figures of the LANDFIRE data both before and after this coarsifying process.
 
 ```{r}
-# file is "data_beforeSpatialAveraging_sampledLANDFIRE.rds" 
-dat_LFfilt <- readRDS("../Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds") %>% 
-  st_transform(crs(dat_1)) %>% 
-  filter(Source == "LANDFIRE") #%>% 
+# file is "data_beforeSpatialAveraging_sampledLANDFIRE.rds"
+dat_LFfilt <- readRDS("../Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds") %>%
+  st_transform(crs(dat_1)) %>%
+  filter(Source == "LANDFIRE") #%>%
   #select(Year:TotalHerbaceousCover, BareGroundCover, geometry)
 # make the new LF filtered data into a 'long' format
-dat_LFfilt_long <- dat_LFfilt %>% 
-  st_drop_geometry() %>% 
+dat_LFfilt_long <- dat_LFfilt %>%
+  st_drop_geometry() %>%
   mutate(C3GramCover = C3GramCover_prop * TotalHerbaceousCover,
-         C4GramCover = C4GramCover_prop * TotalHerbaceousCover, 
-         ForbCover = ForbCover_prop * TotalHerbaceousCover, 
+         C4GramCover = C4GramCover_prop * TotalHerbaceousCover,
+         ForbCover = ForbCover_prop * TotalHerbaceousCover,
          BroadLeavedTreeCover = AngioTreeCover_prop * TotalTreeCover ,
-         NeedleLeavedTreeCover = ConifTreeCover_prop * TotalTreeCover) %>% 
+         NeedleLeavedTreeCover = ConifTreeCover_prop * TotalTreeCover) %>%
   pivot_longer(cols = c(TotalTreeCover, TotalHerbaceousCover, ShrubCover, C3GramCover, C4GramCover, ForbCover, BroadLeavedTreeCover, NeedleLeavedTreeCover), names_to = "CoverType", values_to = "CoverValue")
 
-# make pre-LF filtered data long 
-dat_LCMAPremoved_long_LF <-  dat_LCMAPremoved %>% 
-  st_drop_geometry() %>% 
-  filter(Source == "LANDFIRE") %>% 
-  rename(ShrubCover = ShrbCvr, 
-         TotalTreeCover = TtlTrCv, 
+# make pre-LF filtered data long
+dat_LCMAPremoved_long_LF <-  dat_LCMAPremoved %>%
+  st_drop_geometry() %>%
+  filter(Source == "LANDFIRE") %>%
+  rename(ShrubCover = ShrbCvr,
+         TotalTreeCover = TtlTrCv,
          TotalHerbaceousCover = TtlHrbC,
          BareGroundCover = BrGrndC,
          ForbCover = ForbCvr,
          C3GramCover = C3GrmCv,
-         C4GramCover = C4GrmCv, 
+         C4GramCover = C4GrmCv,
          BroadLeavedTreeCover = AngTrCv,
-         NeedleLeavedTreeCover = CnfTrCv) %>% 
-    pivot_longer(cols = c(TotalTreeCover, TotalHerbaceousCover, ShrubCover, C3GramCover, C4GramCover, ForbCover, BroadLeavedTreeCover, NeedleLeavedTreeCover), 
+         NeedleLeavedTreeCover = CnfTrCv) %>%
+    pivot_longer(cols = c(TotalTreeCover, TotalHerbaceousCover, ShrubCover, C3GramCover, C4GramCover, ForbCover, BroadLeavedTreeCover, NeedleLeavedTreeCover),
                names_to = "CoverType", values_to = "CoverValue")
 
-# make a density plot 
+# make a density plot
   ggplot() +
-    facet_wrap(~CoverType, scales = "free") + 
+    facet_wrap(~CoverType, scales = "free") +
     geom_density(data = dat_LCMAPremoved_long_LF, aes(CoverValue # before filtering
-                                                 ), col = "grey") + 
+                                                 ), col = "grey") +
     geom_density(data = dat_LFfilt_long , aes(CoverValue # after filtering
-                                        ),  col = "black") + 
-    ggtitle("Density plots of cover by functional group in the LANDFIRe data \nbefore and after `coarsifying` the LANDFIRE data to have only one \nobservation per 3 km x 3 km grid cell", 
+                                        ),  col = "black") +
+    ggtitle("Density plots of cover by functional group in the LANDFIRe data \nbefore and after `coarsifying` the LANDFIRE data to have only one \nobservation per 3 km x 3 km grid cell",
             subtitle = "Grey = Data prior to `coarsifying`;  \nBlack = Data after `coarsifying`")
 ```
 
 ## 5) Average cover values together that occur in the same dayMet grid cell in the same year
-To harmonize the four data sets we used for this project, we performed a "spatial averaging" process, where we average together cover measurements that were measured within the same dayMet grid cell in the same year. 
-### Below are the vegetation cover data for each functional type and each data set, *prior* to the spatial averaging step (after removing burned area, locations with unsuitable land use, and "coarsified" LANDFIRE data). 
+To harmonize the four data sets we used for this project, we performed a "spatial averaging" process, where we average together cover measurements that were measured within the same dayMet grid cell in the same year.
+### Below are the vegetation cover data for each functional type and each data set, *prior* to the spatial averaging step (after removing burned area, locations with unsuitable land use, and "coarsified" LANDFIRE data).
 
 ### RAP - data after filtering but before spatial averaging
 ```{r, fig.width = 12, fig.height = 30}
-# Read in data 
-dat_preAvg <- readRDS("../Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds") %>% 
-  st_transform(crs(dat_1)) 
+# Read in data
+dat_preAvg <- readRDS("../Data_processed/CoverData/data_beforeSpatialAveraging_sampledLANDFIRE.rds") %>%
+  st_transform(crs(dat_1))
 
 # trim to be only later than 2000 or before 2024 (last year for which we have climate data was 2023) which is what we want to use for further analysis
-dat_preAvg <- dat_preAvg %>% 
-  filter(Year >= 2000 & Year < 2024) %>% 
+dat_preAvg <- dat_preAvg %>%
+  filter(Year >= 2000 & Year < 2024) %>%
   mutate(Lon = st_coordinates(.)[,1],
-         Lat = st_coordinates(.)[,2]) %>% 
+         Lat = st_coordinates(.)[,2]) %>%
   mutate(
          ForbCover = ForbCover_prop * TotalHerbaceousCover,
          C3GramCover = C3GramCover_prop * TotalHerbaceousCover,
-         C4GramCover = C4GramCover_prop * TotalHerbaceousCover, 
+         C4GramCover = C4GramCover_prop * TotalHerbaceousCover,
          BroadLeavedTreeCover = AngioTreeCover_prop * TotalTreeCover,
          NeedleLeavedTreeCover = ConifTreeCover_prop * TotalTreeCover)
  # st_drop_geometry()
 
 ###### rasterized version
 # make a multi-layer raster w/ layers for each variable of interest
-dat_preAvg_RAST <- 
-  lapply(c("FIA", "LANDFIRE", "LDC","RAP"), 
+dat_preAvg_RAST <-
+  lapply(c("FIA", "LANDFIRE", "LDC","RAP"),
          FUN = function(y) {
-           tempDat <- dat_preAvg %>% 
+           tempDat <- dat_preAvg %>%
              filter(Source == y )
-           tempDat1 <- tempDat %>% 
+           tempDat1 <- tempDat %>%
              st_drop_geometry()
            if (y == c( "RAP")) {
            # get dat across all years
-           tempOut2 <- lapply(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover"), 
+           tempOut2 <- lapply(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover"),
                             FUN = function(z) {
-                              temp <- terra::rasterize(x = tempDat1[,c("Lon", "Lat")], 
+                              temp <- terra::rasterize(x = tempDat1[,c("Lon", "Lat")],
                                                y = test_rast_RAP,
                                                values = tempDat1[,z],
                                                fun = mean
-                                               ) 
-                      
+                                               )
+
                       names(temp) <-  paste0(z, "_all")
                       return(temp)
                     }
                     )
            } else {
            # get dat across all years
-           tempOut2 <- lapply(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover"), 
+           tempOut2 <- lapply(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover"),
                             FUN = function(z) {
-                              temp <- terra::rasterize(x = tempDat1[,c("Lon", "Lat")], 
+                              temp <- terra::rasterize(x = tempDat1[,c("Lon", "Lat")],
                                                y = test_rast,
                                                values = tempDat1[,z],
                                                fun = mean
-                                               ) 
-                      
+                                               )
+
                       names(temp) <-  paste0(z, "_all")
                       return(temp)
                     }
                     )
            }
-           
+
            # for each data type, put data for each year in one raster in the list, and the data across all years in another raster
-           outDat <- list( 
+           outDat <- list(
                           c(tempOut2[[1]], tempOut2[[2]], tempOut2[[3]], tempOut2[[4]], tempOut2[[5]], tempOut2[[6]], tempOut2[[7]], tempOut2[[8]], tempOut2[[9]]))
            names(outDat) <- c( "allYears")
            return(outDat)
@@ -1048,63 +1134,63 @@ dat_preAvg_RAST <-
 names(dat_preAvg_RAST) <- c("FIA", "LANDFIRE", "LDC","RAP")
 
 ## make figures
-## make figure for RAP 
+## make figure for RAP
 testFigs_preAvg <- lapply(names(dat_preAvg_RAST$RAP), FUN = function(y) {
   # make a map for this year
-           tempFig <- 
+           tempFig <-
   ggplot() +
              facet_wrap(~lyr, ncol = 1) +
-geom_spatraster(data = dat_preAvg_RAST$RAP[[y]][[1:4]], maxcell = 5e+10) + 
+geom_spatraster(data = dat_preAvg_RAST$RAP[[y]][[1:4]], maxcell = 5e+10) +
   geom_sf(data=cropped_states_2 ,fill=NA ) +
  xlim(-2150000, 2510000) +
  ylim(-2005000, 1000000) +
   coord_sf(datum = st_crs(test_rastTemp)) +
              paletteer::scale_fill_paletteer_c("scico::roma", guide = guide_colorbar(title = "% cover"),
-                                               limits = c(0,100), na.value = "white") + 
+                                               limits = c(0,100), na.value = "white") +
              theme(
                    axis.text = element_blank(),
                    strip.text = element_text(size = 15),
                    title = element_text(size = 18),
-                   axis.ticks = element_blank()) + 
+                   axis.ticks = element_blank()) +
              ggtitle("Map of RAP data on a dayMet x 13 grid - \nAfter filtering out burned area & developed and Ag. locations")
-             
-  # add an inset showing a density plot  
-           # w/ data *prior* to any filtering for burned area, LCMAP, etc. 
+
+  # add an inset showing a density plot
+           # w/ data *prior* to any filtering for burned area, LCMAP, etc.
            # get data
-           dat_inset_pre <- #terra::values(dat_preAvg_RAST$RAP[[y]][[1:4]]) %>% 
-             dat_1 %>% 
-             st_drop_geometry() %>% 
-             filter(Source == "RAP") %>% 
-               #as_tibble() %>% 
-             rename(ShrubCover_all = ShrubCover, 
-                    TotalTreeCover_all = TotalTreeCover, 
-                    TotalHerbaceousCover_all = TotalHerbaceousCover, 
-                    BareGroundCover_all = BareGroundCover) %>% 
-               pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all, BareGroundCover_all), names_to = "lyr", values_to = "Cover") %>% 
-             mutate(state = "pre-filtering") %>% 
+           dat_inset_pre <- #terra::values(dat_preAvg_RAST$RAP[[y]][[1:4]]) %>%
+             dat_1 %>%
+             st_drop_geometry() %>%
+             filter(Source == "RAP") %>%
+               #as_tibble() %>%
+             rename(ShrubCover_all = ShrubCover,
+                    TotalTreeCover_all = TotalTreeCover,
+                    TotalHerbaceousCover_all = TotalHerbaceousCover,
+                    BareGroundCover_all = BareGroundCover) %>%
+               pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all, BareGroundCover_all), names_to = "lyr", values_to = "Cover") %>%
+             mutate(state = "pre-filtering") %>%
              select(lyr, Cover, state)
- 
-           dat_inset_post <- 
-             dat_preAvg %>% 
-             st_drop_geometry %>% 
-             filter(Source == "RAP") %>% 
-             rename(ShrubCover_all = ShrubCover, 
-                    TotalTreeCover_all = TotalTreeCover, 
-                    TotalHerbaceousCover_all = TotalHerbaceousCover, 
-                    BareGroundCover_all = BareGroundCover) %>% 
-               pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all, BareGroundCover_all), names_to = "lyr", values_to = "Cover")%>% 
-             mutate(state = "post-filtering") %>% 
+
+           dat_inset_post <-
+             dat_preAvg %>%
+             st_drop_geometry %>%
+             filter(Source == "RAP") %>%
+             rename(ShrubCover_all = ShrubCover,
+                    TotalTreeCover_all = TotalTreeCover,
+                    TotalHerbaceousCover_all = TotalHerbaceousCover,
+                    BareGroundCover_all = BareGroundCover) %>%
+               pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all, BareGroundCover_all), names_to = "lyr", values_to = "Cover")%>%
+             mutate(state = "post-filtering") %>%
              select(lyr, Cover, state)
-             
+
            dat_inset <- rbind(dat_inset_pre, dat_inset_post)
-           
+
             # make insets
            inset_plots <- dat_inset %>%
              split(f = .$lyr) %>%
              purrr::map(~annotation_custom2(
-      grob = ggplotGrob(get_inset_2(.)  + 
+      grob = ggplotGrob(get_inset_2(.)  +
                           scale_color_discrete(palette = c("black", "grey")) +
-                          guides(color = guide_legend(title = NULL)) + 
+                          guides(color = guide_legend(title = NULL)) +
   theme(legend.position = c(.85,.5), legend.just = c(1,0), legend.text = element_text(size = 10))
                         #scale_y_continuous(limits=c(0,105), breaks = c(0, 50, 100))
                       ),
@@ -1114,8 +1200,8 @@ geom_spatraster(data = dat_preAvg_RAST$RAP[[y]][[1:4]], maxcell = 5e+10) +
          tempFig2 <- tempFig + inset_plots
 
            return(tempFig2)
-  
-  
+
+
 }) %>% invisible()
 
 RAPfigs_preAvg <- testFigs_preAvg[[1]]
@@ -1126,76 +1212,76 @@ RAPfigs_preAvg
 ```{r, fig.width = 12, fig.height = 67.5, warning = FALSE}
 
 ## make figures
-## make figure for RAP 
+## make figure for RAP
 testFigs_preAvg <- lapply(names(dat_preAvg_RAST$LDC), FUN = function(y) {
   # make a map for this year
-           tempFig <- 
+           tempFig <-
   ggplot() +
              facet_wrap(~lyr, ncol = 1) +
-geom_spatraster(data = dat_preAvg_RAST$LDC[[y]], maxcell = 5e+10) + 
+geom_spatraster(data = dat_preAvg_RAST$LDC[[y]], maxcell = 5e+10) +
   geom_sf(data=cropped_states_2 ,fill=NA ) +
  xlim(-2150000, 2510000) +
  ylim(-2005000, 1000000) +
   coord_sf(datum = st_crs(test_rastTemp)) +
              paletteer::scale_fill_paletteer_c("scico::roma", guide = guide_colorbar(title = "% cover"),
-                                               limits = c(0,100), na.value = "white") + 
+                                               limits = c(0,100), na.value = "white") +
              theme(
                    axis.text = element_blank(),
                    strip.text = element_text(size = 15),
                    title = element_text(size = 18),
-                   axis.ticks = element_blank()) + 
+                   axis.ticks = element_blank()) +
              ggtitle("Map of AIM data on a dayMet x 8 grid - \nAfter filtering out burned area & developed and Ag. locations")
-             
-  # add an inset showing a density plot  
-           # w/ data *prior* to any filtering for burned area, LCMAP, etc. 
+
+  # add an inset showing a density plot
+           # w/ data *prior* to any filtering for burned area, LCMAP, etc.
            # get data
-           dat_inset_pre <- #terra::values(dat_preAvg_RAST$RAP[[y]][[1:4]]) %>% 
-             dat_1 %>% 
-             st_drop_geometry() %>% 
-             filter(Source == "LDC") %>% 
-               #as_tibble() %>% 
-             rename(ShrubCover_all = ShrubCover, 
-                    TotalTreeCover_all = TotalTreeCover, 
-                    TotalHerbaceousCover_all = TotalHerbaceousCover, 
+           dat_inset_pre <- #terra::values(dat_preAvg_RAST$RAP[[y]][[1:4]]) %>%
+             dat_1 %>%
+             st_drop_geometry() %>%
+             filter(Source == "LDC") %>%
+               #as_tibble() %>%
+             rename(ShrubCover_all = ShrubCover,
+                    TotalTreeCover_all = TotalTreeCover,
+                    TotalHerbaceousCover_all = TotalHerbaceousCover,
                     BareGroundCover_all = BareGroundCover,
-                    ForbCover_all = ForbCover, 
-                    C3GramCover_all = C3GramCover, 
-                    C4GramCover_all = C4GramCover, 
+                    ForbCover_all = ForbCover,
+                    C3GramCover_all = C3GramCover,
+                    C4GramCover_all = C4GramCover,
                     BroadLeavedTreeCover_all = BroadLeavedTreeCover,
-                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>% 
+                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>%
                pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all, BareGroundCover_all,
-                              ForbCover_all,  C3GramCover_all,  C4GramCover_all,  BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all), names_to = "lyr", values_to = "Cover") %>% 
-             mutate(state = "pre-filtering") %>% 
+                              ForbCover_all,  C3GramCover_all,  C4GramCover_all,  BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all), names_to = "lyr", values_to = "Cover") %>%
+             mutate(state = "pre-filtering") %>%
              select(lyr, Cover, state)
- 
-                      
-           dat_inset_post <- 
-             dat_preAvg %>% 
-             st_drop_geometry %>% 
-             filter(Source == "LDC") %>% 
-              rename(ShrubCover_all = ShrubCover, 
-                    TotalTreeCover_all = TotalTreeCover, 
-                    TotalHerbaceousCover_all = TotalHerbaceousCover, 
+
+
+           dat_inset_post <-
+             dat_preAvg %>%
+             st_drop_geometry %>%
+             filter(Source == "LDC") %>%
+              rename(ShrubCover_all = ShrubCover,
+                    TotalTreeCover_all = TotalTreeCover,
+                    TotalHerbaceousCover_all = TotalHerbaceousCover,
                     BareGroundCover_all = BareGroundCover,
-                    ForbCover_all = ForbCover, 
-                    C3GramCover_all = C3GramCover, 
-                    C4GramCover_all = C4GramCover, 
+                    ForbCover_all = ForbCover,
+                    C3GramCover_all = C3GramCover,
+                    C4GramCover_all = C4GramCover,
                     BroadLeavedTreeCover_all = BroadLeavedTreeCover,
-                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>% 
+                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>%
                pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all, BareGroundCover_all,
-                              ForbCover_all,  C3GramCover_all,  C4GramCover_all,  BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all), names_to = "lyr", values_to = "Cover")%>% 
-             mutate(state = "post-filtering") %>% 
+                              ForbCover_all,  C3GramCover_all,  C4GramCover_all,  BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all), names_to = "lyr", values_to = "Cover")%>%
+             mutate(state = "post-filtering") %>%
              select(lyr, Cover, state)
-             
+
            dat_inset <- rbind(dat_inset_pre, dat_inset_post)
-           
+
             # make insets
            inset_plots <- dat_inset %>%
              split(f = .$lyr) %>%
              purrr::map(~annotation_custom2(
-      grob = ggplotGrob(get_inset_2(.)  + 
+      grob = ggplotGrob(get_inset_2(.)  +
                           scale_color_discrete(palette = c("black", "grey")) +
-                          guides(color = guide_legend(title = NULL)) + 
+                          guides(color = guide_legend(title = NULL)) +
   theme(legend.position = c(.85,.5), legend.just = c(1,0), legend.text = element_text(size = 10))
                         #scale_y_continuous(limits=c(0,105), breaks = c(0, 50, 100))
                       ),
@@ -1206,8 +1292,8 @@ geom_spatraster(data = dat_preAvg_RAST$LDC[[y]], maxcell = 5e+10) +
          tempFig2 <- tempFig + inset_plots
 
            return(tempFig2)
-  
-  
+
+
 }) %>% invisible()
 
 AIMfigs_preAvg <- testFigs_preAvg[[1]]
@@ -1217,78 +1303,78 @@ AIMfigs_preAvg
 ### FIA - data after filtering but before spatial averaging
 ```{r, fig.width = 12, fig.height = 52.5, warning = FALSE}
 ## make figures
-## make figure for FIA 
+## make figure for FIA
 testFigs_preAvg <- lapply(names(dat_preAvg_RAST$FIA), FUN = function(y) {
   # make a map for this year
-           tempFig <- 
+           tempFig <-
   ggplot() +
              facet_wrap(~lyr, ncol = 1) +
-geom_spatraster(data = dat_preAvg_RAST$FIA[[y]][[c(1:5,8:9)]], maxcell = 5e+10) + 
+geom_spatraster(data = dat_preAvg_RAST$FIA[[y]][[c(1:5,8:9)]], maxcell = 5e+10) +
   geom_sf(data=cropped_states_2 ,fill=NA ) +
  xlim(-2150000, 2510000) +
  ylim(-2005000, 1000000) +
   coord_sf(datum = st_crs(test_rastTemp)) +
              paletteer::scale_fill_paletteer_c("scico::roma", guide = guide_colorbar(title = "% cover"),
-                                               limits = c(0,100), na.value = "white") + 
+                                               limits = c(0,100), na.value = "white") +
              theme(
                    axis.text = element_blank(),
                    strip.text = element_text(size = 15),
                    title = element_text(size = 18),
-                   axis.ticks = element_blank()) + 
+                   axis.ticks = element_blank()) +
              ggtitle("Map of FIA data on a dayMet x 8 grid - \nAfter filtering out burned area & developed and Ag. locations")
-             
-  # add an inset showing a density plot  
-           # w/ data *prior* to any filtering for burned area, LCMAP, etc. 
+
+  # add an inset showing a density plot
+           # w/ data *prior* to any filtering for burned area, LCMAP, etc.
            # get data
-           dat_inset_pre <- #terra::values(dat_preAvg_RAST$RAP[[y]][[1:4]]) %>% 
-             dat_1 %>% 
-             st_drop_geometry() %>% 
-             filter(Source == "FIA") %>% 
-               #as_tibble() %>% 
-                  rename(ShrubCover_all = ShrubCover, 
-                    TotalTreeCover_all = TotalTreeCover, 
-                    TotalHerbaceousCover_all = TotalHerbaceousCover, 
+           dat_inset_pre <- #terra::values(dat_preAvg_RAST$RAP[[y]][[1:4]]) %>%
+             dat_1 %>%
+             st_drop_geometry() %>%
+             filter(Source == "FIA") %>%
+               #as_tibble() %>%
+                  rename(ShrubCover_all = ShrubCover,
+                    TotalTreeCover_all = TotalTreeCover,
+                    TotalHerbaceousCover_all = TotalHerbaceousCover,
                     BareGroundCover_all = BareGroundCover,
-                    ForbCover_all = ForbCover, 
-                    C3GramCover_all = C3GramCover, 
-                    C4GramCover_all = C4GramCover, 
+                    ForbCover_all = ForbCover,
+                    C3GramCover_all = C3GramCover,
+                    C4GramCover_all = C4GramCover,
                     BroadLeavedTreeCover_all = BroadLeavedTreeCover,
-                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>% 
+                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>%
                pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all, BareGroundCover_all,
-                              ForbCover_all, BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all), 
-                            names_to = "lyr", values_to = "Cover") %>% 
-             mutate(state = "pre-filtering") %>% 
+                              ForbCover_all, BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all),
+                            names_to = "lyr", values_to = "Cover") %>%
+             mutate(state = "pre-filtering") %>%
              select(lyr, Cover, state)
- 
-                      
-           dat_inset_post <- 
-             dat_preAvg %>% 
-             st_drop_geometry %>% 
-             filter(Source == "FIA") %>% 
-                    rename(ShrubCover_all = ShrubCover, 
-                    TotalTreeCover_all = TotalTreeCover, 
-                    TotalHerbaceousCover_all = TotalHerbaceousCover, 
+
+
+           dat_inset_post <-
+             dat_preAvg %>%
+             st_drop_geometry %>%
+             filter(Source == "FIA") %>%
+                    rename(ShrubCover_all = ShrubCover,
+                    TotalTreeCover_all = TotalTreeCover,
+                    TotalHerbaceousCover_all = TotalHerbaceousCover,
                     BareGroundCover_all = BareGroundCover,
-                    ForbCover_all = ForbCover, 
-                    C3GramCover_all = C3GramCover, 
-                    C4GramCover_all = C4GramCover, 
+                    ForbCover_all = ForbCover,
+                    C3GramCover_all = C3GramCover,
+                    C4GramCover_all = C4GramCover,
                     BroadLeavedTreeCover_all = BroadLeavedTreeCover,
-                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>% 
+                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>%
                pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all, BareGroundCover_all,
-                              ForbCover_all, BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all), 
-                            names_to = "lyr", values_to = "Cover")%>% 
-             mutate(state = "post-filtering") %>% 
+                              ForbCover_all, BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all),
+                            names_to = "lyr", values_to = "Cover")%>%
+             mutate(state = "post-filtering") %>%
              select(lyr, Cover, state)
-             
+
            dat_inset <- rbind(dat_inset_pre, dat_inset_post)
-           
+
             # make insets
            inset_plots <- dat_inset %>%
              split(f = .$lyr) %>%
              purrr::map(~annotation_custom2(
-      grob = ggplotGrob(get_inset_2(.)  + 
+      grob = ggplotGrob(get_inset_2(.)  +
                           scale_color_discrete(palette = c("black", "grey")) +
-                          guides(color = guide_legend(title = NULL)) + 
+                          guides(color = guide_legend(title = NULL)) +
   theme(legend.position = c(.85,.5), legend.just = c(1,0), legend.text = element_text(size = 10))
                         #scale_y_continuous(limits=c(0,105), breaks = c(0, 50, 100))
                       ),
@@ -1299,8 +1385,8 @@ geom_spatraster(data = dat_preAvg_RAST$FIA[[y]][[c(1:5,8:9)]], maxcell = 5e+10) 
          tempFig2 <- tempFig + inset_plots
 
            return(tempFig2)
-  
-  
+
+
 }) %>% invisible()
 
 FIAfigs_preAvg <- testFigs_preAvg[[1]]
@@ -1311,78 +1397,78 @@ FIAfigs_preAvg
 ```{r, fig.width = 12, fig.height = 60, warning = FALSE}
 
 ## make figures
-## make figure for LANDFIRE 
+## make figure for LANDFIRE
 testFigs_preAvg <- lapply(names(dat_preAvg_RAST$LANDFIRE), FUN = function(y) {
   # make a map for this year
-           tempFig <- 
+           tempFig <-
   ggplot() +
              facet_wrap(~lyr, ncol = 1) +
-geom_spatraster(data = dat_preAvg_RAST$LANDFIRE[[y]][[c(1:3,5:9)]], maxcell = 5e+10) + 
+geom_spatraster(data = dat_preAvg_RAST$LANDFIRE[[y]][[c(1:3,5:9)]], maxcell = 5e+10) +
   geom_sf(data=cropped_states_2 ,fill=NA ) +
  xlim(-2150000, 2510000) +
  ylim(-2005000, 1000000) +
   coord_sf(datum = st_crs(test_rastTemp)) +
              paletteer::scale_fill_paletteer_c("scico::roma", guide = guide_colorbar(title = "% cover"),
-                                               limits = c(0,100), na.value = "white") + 
+                                               limits = c(0,100), na.value = "white") +
              theme(
                    axis.text = element_blank(),
                    strip.text = element_text(size = 15),
                    title = element_text(size = 18),
-                   axis.ticks = element_blank()) + 
+                   axis.ticks = element_blank()) +
              ggtitle("Map of LANDFIRE data on a dayMet x 8 grid - \nAfter filtering out burned area & developed and Ag. locations")
-             
-  # add an inset showing a density plot  
-           # w/ data *prior* to any filtering for burned area, LCMAP, etc. 
+
+  # add an inset showing a density plot
+           # w/ data *prior* to any filtering for burned area, LCMAP, etc.
            # get data
-           dat_inset_pre <- #terra::values(dat_preAvg_RAST$RAP[[y]][[1:4]]) %>% 
-             dat_1 %>% 
-             st_drop_geometry() %>% 
-             filter(Source == "LANDFIRE") %>% 
-               #as_tibble() %>% 
-                   rename(ShrubCover_all = ShrubCover, 
-                    TotalTreeCover_all = TotalTreeCover, 
-                    TotalHerbaceousCover_all = TotalHerbaceousCover, 
+           dat_inset_pre <- #terra::values(dat_preAvg_RAST$RAP[[y]][[1:4]]) %>%
+             dat_1 %>%
+             st_drop_geometry() %>%
+             filter(Source == "LANDFIRE") %>%
+               #as_tibble() %>%
+                   rename(ShrubCover_all = ShrubCover,
+                    TotalTreeCover_all = TotalTreeCover,
+                    TotalHerbaceousCover_all = TotalHerbaceousCover,
                     BareGroundCover_all = BareGroundCover,
-                    ForbCover_all = ForbCover, 
-                    C3GramCover_all = C3GramCover, 
-                    C4GramCover_all = C4GramCover, 
+                    ForbCover_all = ForbCover,
+                    C3GramCover_all = C3GramCover,
+                    C4GramCover_all = C4GramCover,
                     BroadLeavedTreeCover_all = BroadLeavedTreeCover,
-                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>% 
-               pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all, 
-ForbCover_all, C3GramCover_all, C4GramCover_all, BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all), 
-                            names_to = "lyr", values_to = "Cover") %>% 
-             mutate(state = "pre-filtering") %>% 
+                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>%
+               pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all,
+ForbCover_all, C3GramCover_all, C4GramCover_all, BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all),
+                            names_to = "lyr", values_to = "Cover") %>%
+             mutate(state = "pre-filtering") %>%
              select(lyr, Cover, state)
- 
-                      
-           dat_inset_post <- 
-             dat_preAvg %>% 
-             st_drop_geometry %>% 
-             filter(Source == "LANDFIRE") %>% 
-                     rename(ShrubCover_all = ShrubCover, 
-                    TotalTreeCover_all = TotalTreeCover, 
-                    TotalHerbaceousCover_all = TotalHerbaceousCover, 
+
+
+           dat_inset_post <-
+             dat_preAvg %>%
+             st_drop_geometry %>%
+             filter(Source == "LANDFIRE") %>%
+                     rename(ShrubCover_all = ShrubCover,
+                    TotalTreeCover_all = TotalTreeCover,
+                    TotalHerbaceousCover_all = TotalHerbaceousCover,
                     BareGroundCover_all = BareGroundCover,
-                    ForbCover_all = ForbCover, 
-                    C3GramCover_all = C3GramCover, 
-                    C4GramCover_all = C4GramCover, 
+                    ForbCover_all = ForbCover,
+                    C3GramCover_all = C3GramCover,
+                    C4GramCover_all = C4GramCover,
                     BroadLeavedTreeCover_all = BroadLeavedTreeCover,
-                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>% 
-               pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all, 
-ForbCover_all, C3GramCover_all, C4GramCover_all, BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all), 
-                            names_to = "lyr", values_to = "Cover")%>% 
-             mutate(state = "post-filtering") %>% 
+                    NeedleLeavedTreeCover_all = NeedleLeavedTreeCover) %>%
+               pivot_longer(c(ShrubCover_all, TotalTreeCover_all, TotalHerbaceousCover_all,
+ForbCover_all, C3GramCover_all, C4GramCover_all, BroadLeavedTreeCover_all, NeedleLeavedTreeCover_all),
+                            names_to = "lyr", values_to = "Cover")%>%
+             mutate(state = "post-filtering") %>%
              select(lyr, Cover, state)
-             
+
            dat_inset <- rbind(dat_inset_pre, dat_inset_post)
-           
+
             # make insets
            inset_plots <- dat_inset %>%
              split(f = .$lyr) %>%
              purrr::map(~annotation_custom2(
-      grob = ggplotGrob(get_inset_2(.)  + 
+      grob = ggplotGrob(get_inset_2(.)  +
                           scale_color_discrete(palette = c("black", "grey")) +
-                          guides(color = guide_legend(title = NULL)) + 
+                          guides(color = guide_legend(title = NULL)) +
   theme(legend.position = c(.85,.5), legend.just = c(1,0), legend.text = element_text(size = 10))
                         #scale_y_continuous(limits=c(0,105), breaks = c(0, 50, 100))
                       ),
@@ -1393,8 +1479,8 @@ ForbCover_all, C3GramCover_all, C4GramCover_all, BroadLeavedTreeCover_all, Needl
          tempFig2 <- tempFig + inset_plots
 
            return(tempFig2)
-  
-  
+
+
 }) %>% invisible()
 
 LANDFIREfigs_preAvg <- testFigs_preAvg[[1]]
@@ -1404,13 +1490,13 @@ LANDFIREfigs_preAvg
 
 ### Below are tables showing sample size in the cover dataset, *prior* to the spatial averaging step
 ```{r}
-dat_preAvg %>% 
-  st_drop_geometry() %>% 
-  select(Year, Source, ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover, ForbCover, C3GramCover, C4GramCover, BroadLeavedTreeCover, NeedleLeavedTreeCover) %>% 
+dat_preAvg %>%
+  st_drop_geometry() %>%
+  select(Year, Source, ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover, ForbCover, C3GramCover, C4GramCover, BroadLeavedTreeCover, NeedleLeavedTreeCover) %>%
   mutate(Source = replace(Source, Source == "LDC", "AIM"),
-         Year = as.factor(Year)) %>% 
-  group_by(Year, Source) %>% 
-  summarize(Shrubs = sum(!is.na(ShrubCover)), 
+         Year = as.factor(Year)) %>%
+  group_by(Year, Source) %>%
+  summarize(Shrubs = sum(!is.na(ShrubCover)),
             "Total\nTrees" = sum(!is.na(TotalTreeCover)),
             "Total\nHerbaceous" = sum(!is.na(TotalHerbaceousCover)),
             "Bare\nGround" = sum(!is.na(BareGroundCover)),
@@ -1418,21 +1504,21 @@ dat_preAvg %>%
             "C3\nGrams" = sum(!is.na(C3GramCover)),
             "C4\nGrams" = sum(!is.na(C4GramCover)),
             "Broad\nLeaved\nTrees" = sum(!is.na(BroadLeavedTreeCover)),
-            "Needle\nLeaved\nTrees" = sum(!is.na(NeedleLeavedTreeCover))) %>% 
-  flextable::flextable() %>% 
-  flextable::theme_vanilla() %>% 
-  flextable::vline(j = c("Year", "Source"), border = flextable::fp_border_default()) %>% 
-  flextable::set_caption(caption = flextable::as_paragraph(flextable::colorize("Sample Size for Each Functional Group For Each Year and Data Source", color = "black")), align_with_table = TRUE)   
+            "Needle\nLeaved\nTrees" = sum(!is.na(NeedleLeavedTreeCover))) %>%
+  flextable::flextable() %>%
+  flextable::theme_vanilla() %>%
+  flextable::vline(j = c("Year", "Source"), border = flextable::fp_border_default()) %>%
+  flextable::set_caption(caption = flextable::as_paragraph(flextable::colorize("Sample Size for Each Functional Group For Each Year and Data Source", color = "black")), align_with_table = TRUE)
 ```
 
 ```{r}
-dat_preAvg %>% 
-  st_drop_geometry() %>% 
-  select(Year, Source, ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover, ForbCover, C3GramCover, C4GramCover, BroadLeavedTreeCover, NeedleLeavedTreeCover) %>% 
+dat_preAvg %>%
+  st_drop_geometry() %>%
+  select(Year, Source, ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover, ForbCover, C3GramCover, C4GramCover, BroadLeavedTreeCover, NeedleLeavedTreeCover) %>%
   mutate(Source = replace(Source, Source == "LDC", "AIM"),
-         Year = as.factor(Year)) %>% 
-  group_by(Year) %>% 
-  summarize(Shrubs = sum(!is.na(ShrubCover)), 
+         Year = as.factor(Year)) %>%
+  group_by(Year) %>%
+  summarize(Shrubs = sum(!is.na(ShrubCover)),
             "Total\nTrees" = sum(!is.na(TotalTreeCover)),
             "Total\nHerbaceous" = sum(!is.na(TotalHerbaceousCover)),
             "Bare\nGround" = sum(!is.na(BareGroundCover)),
@@ -1440,43 +1526,43 @@ dat_preAvg %>%
             "C3\nGrams" = sum(!is.na(C3GramCover)),
             "C4\nGrams" = sum(!is.na(C4GramCover)),
             "Broad\nLeaved\nTrees" = sum(!is.na(BroadLeavedTreeCover)),
-            "Needle\nLeaved\nTrees" = sum(!is.na(NeedleLeavedTreeCover))) %>% 
-  flextable::flextable() %>% 
-  flextable::theme_vanilla() %>% 
-  flextable::vline(j = c("Year"), border = flextable::fp_border_default()) %>% 
-  flextable::set_caption(caption = flextable::as_paragraph(flextable::colorize("Sample Size for Each Functional Group in Each Year, Summarized Across All Data Sources", color = "black")), align_with_table = TRUE)   
+            "Needle\nLeaved\nTrees" = sum(!is.na(NeedleLeavedTreeCover))) %>%
+  flextable::flextable() %>%
+  flextable::theme_vanilla() %>%
+  flextable::vline(j = c("Year"), border = flextable::fp_border_default()) %>%
+  flextable::set_caption(caption = flextable::as_paragraph(flextable::colorize("Sample Size for Each Functional Group in Each Year, Summarized Across All Data Sources", color = "black")), align_with_table = TRUE)
 ```
 
-### Below are maps of the vegetation cover data *after* the spatial averaging step. 
+### Below are maps of the vegetation cover data *after* the spatial averaging step.
 #### First we show the number of observations that we averaged together within each dayMet grid cell
 ```{r fig.width = 14, fig.height =40, warning = FALSE}
 # read in data
-dat_avgsBySource <- readRDS( "../Data_processed/CoverData/spatiallyAverageData_ByDataSource_intermediate_test5_sampledLANDFIRE.rds") %>% 
+dat_avgsBySource <- readRDS( "../Data_processed/CoverData/spatiallyAverageData_ByDataSource_intermediate_test5_sampledLANDFIRE.rds") %>%
   filter(Year < 2024)
 # make spatial and update crs to match the dayMet crs
-dat_avgsBySource <- dat_avgsBySource %>% 
-  dplyr::ungroup() %>% 
-  st_as_sf(coords = c("x", "y"), crs = "GEOGCRS[\"NAD83\",\n    DATUM[\"North American Datum 1983\",\n        ELLIPSOID[\"GRS 1980\",6378137,298.257222101,\n            LENGTHUNIT[\"metre\",1]]],\n    PRIMEM[\"Greenwich\",0,\n        ANGLEUNIT[\"degree\",0.0174532925199433]],\n    CS[ellipsoidal,2],\n        AXIS[\"geodetic latitude (Lat)\",north,\n            ORDER[1],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n        AXIS[\"geodetic longitude (Lon)\",east,\n            ORDER[2],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n    ID[\"EPSG\",4269]]") %>% 
+dat_avgsBySource <- dat_avgsBySource %>%
+  dplyr::ungroup() %>%
+  st_as_sf(coords = c("x", "y"), crs = "GEOGCRS[\"NAD83\",\n    DATUM[\"North American Datum 1983\",\n        ELLIPSOID[\"GRS 1980\",6378137,298.257222101,\n            LENGTHUNIT[\"metre\",1]]],\n    PRIMEM[\"Greenwich\",0,\n        ANGLEUNIT[\"degree\",0.0174532925199433]],\n    CS[ellipsoidal,2],\n        AXIS[\"geodetic latitude (Lat)\",north,\n            ORDER[1],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n        AXIS[\"geodetic longitude (Lon)\",east,\n            ORDER[2],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n    ID[\"EPSG\",4269]]") %>%
   st_transform(crs(dat_preAvg))
 
 # rasterize for each data source and each cover type (across all years; values in the density plot are not averaged across years)
-dat_avgsBySource <- dat_avgsBySource %>% 
+dat_avgsBySource <- dat_avgsBySource %>%
   mutate(Lon = st_coordinates(.)[,1],
-         Lat = st_coordinates(.)[,2]) %>% 
+         Lat = st_coordinates(.)[,2]) %>%
   mutate(
          ForbCover = ForbCover_prop * TotalHerbaceousCover,
          C3GramCover = C3GramCover_prop * TotalHerbaceousCover,
-         C4GramCover = C4GramCover_prop * TotalHerbaceousCover, 
+         C4GramCover = C4GramCover_prop * TotalHerbaceousCover,
          BroadLeavedTreeCover = AngioTreeCover_prop * TotalTreeCover,
          NeedleLeavedTreeCover = ConifTreeCover_prop * TotalTreeCover,
          ForbCover_n = ForbCover_prop_n,
          C3GramCover_n = C3GramCover_prop_n,
-         C4GramCover_n = C4GramCover_prop_n, 
+         C4GramCover_n = C4GramCover_prop_n,
          BroadLeavedTreeCover_n = AngioTreeCover_prop_n,
          NeedleLeavedTreeCover_n = ConifTreeCover_prop_n,
          ForbCover_sd = ForbCover_prop_sd,
          C3GramCover_sd = C3GramCover_prop_sd,
-         C4GramCover_sd = C4GramCover_prop_sd, 
+         C4GramCover_sd = C4GramCover_prop_sd,
          BroadLeavedTreeCover_sd = AngioTreeCover_prop_sd,
          NeedleLeavedTreeCover_sd = ConifTreeCover_prop_sd,
          Source = replace(Source, Source == "LDC", "AIM")
@@ -1496,25 +1582,25 @@ dat_avgsBySource[dat_avgsBySource$NeedleLeavedTreeCover_n == 0 & !is.na(dat_avgs
 
 ###### rasterized version
 # make a multi-layer raster w/ layers for each variable of interest
-dat_spatAvg_size_RAST <- 
-  lapply(c("FIA", "LANDFIRE", "AIM","RAP"), 
+dat_spatAvg_size_RAST <-
+  lapply(c("FIA", "LANDFIRE", "AIM","RAP"),
          FUN = function(y) {
-           tempDat <- dat_avgsBySource %>% 
+           tempDat <- dat_avgsBySource %>%
              filter(Source == y)
-           tempDat1 <- tempDat %>% 
+           tempDat1 <- tempDat %>%
              st_drop_geometry()
            if (y == c( "RAP")) {
            # get dat across all years
            tempOut2 <- lapply(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "TotalTreeCover_compObs", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover",
                                 "ShrubCover_n", "TotalTreeCover_n", "TotalHerbaceousCover_n", "TotalTreeCover_compObs_n", "BareGroundCover_n", "ForbCover_n", "C3GramCover_n",  "C4GramCover_n",  "BroadLeavedTreeCover_n", "NeedleLeavedTreeCover_n",
-                                "ShrubCover_sd", "TotalTreeCover_sd", "TotalHerbaceousCover_sd", "TotalTreeCover_compObs_sd", "BareGroundCover_sd", "ForbCover_sd", "C3GramCover_sd",  "C4GramCover_sd",  "BroadLeavedTreeCover_sd", "NeedleLeavedTreeCover_sd"), 
+                                "ShrubCover_sd", "TotalTreeCover_sd", "TotalHerbaceousCover_sd", "TotalTreeCover_compObs_sd", "BareGroundCover_sd", "ForbCover_sd", "C3GramCover_sd",  "C4GramCover_sd",  "BroadLeavedTreeCover_sd", "NeedleLeavedTreeCover_sd"),
                             FUN = function(z) {
-                              temp <- terra::rasterize(x = tempDat1[,c("Lon", "Lat")], 
+                              temp <- terra::rasterize(x = tempDat1[,c("Lon", "Lat")],
                                                y = test_rast_RAP,
                                                values = tempDat1[,z],
                                                fun = mean
-                                               ) 
-                      
+                                               )
+
                       names(temp) <-  paste0(z)
                       return(temp)
                     }
@@ -1523,22 +1609,22 @@ dat_spatAvg_size_RAST <-
            # get dat across all years
            tempOut2 <- lapply(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "TotalTreeCover_compObs", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover",
                                 "ShrubCover_n", "TotalTreeCover_n", "TotalHerbaceousCover_n", "TotalTreeCover_compObs_n", "BareGroundCover_n", "ForbCover_n", "C3GramCover_n",  "C4GramCover_n",  "BroadLeavedTreeCover_n", "NeedleLeavedTreeCover_n",
-                                "ShrubCover_sd", "TotalTreeCover_sd", "TotalHerbaceousCover_sd", "TotalTreeCover_compObs_sd", "BareGroundCover_sd", "ForbCover_sd", "C3GramCover_sd",  "C4GramCover_sd",  "BroadLeavedTreeCover_sd", "NeedleLeavedTreeCover_sd"), 
+                                "ShrubCover_sd", "TotalTreeCover_sd", "TotalHerbaceousCover_sd", "TotalTreeCover_compObs_sd", "BareGroundCover_sd", "ForbCover_sd", "C3GramCover_sd",  "C4GramCover_sd",  "BroadLeavedTreeCover_sd", "NeedleLeavedTreeCover_sd"),
                             FUN = function(z) {
-                              temp <- terra::rasterize(x = tempDat1[,c("Lon", "Lat")], 
+                              temp <- terra::rasterize(x = tempDat1[,c("Lon", "Lat")],
                                                y = test_rast,
                                                values = tempDat1[,z],
                                                fun = mean
-                                               ) 
-                      
+                                               )
+
                       names(temp) <-  paste0(z)
                       return(temp)
                     }
                     )
            }
-           
+
            # for each data type, put data for each year in one raster in the list, and the data across all years in another raster
-           outDat <- list( 
+           outDat <- list(
                           c(tempOut2[[1]], tempOut2[[2]], tempOut2[[3]], tempOut2[[4]], tempOut2[[5]], tempOut2[[6]], tempOut2[[7]], tempOut2[[8]], tempOut2[[9]],
                           tempOut2[[10]], tempOut2[[11]],tempOut2[[12]], tempOut2[[13]], tempOut2[[14]], tempOut2[[15]], tempOut2[[16]], tempOut2[[17]], tempOut2[[18]], tempOut2[[19]],
                           tempOut2[[20]], tempOut2[[21]],tempOut2[[22]], tempOut2[[23]], tempOut2[[24]], tempOut2[[25]], tempOut2[[26]], tempOut2[[27]], tempOut2[[28]], tempOut2[[29]], tempOut2[[30]]))
@@ -1549,14 +1635,14 @@ dat_spatAvg_size_RAST <-
  names(dat_spatAvg_size_RAST) <- c("FIA", "LANDFIRE", "AIM","RAP")
 
 ## make figures of number of observations per location
-## make figure for RAP 
+## make figure for RAP
 testFigs_spatAvg_n <- lapply(c("FIA", "LANDFIRE", "AIM","RAP"), FUN = function(y) {
   # make a map for the number of observations for each cover type for this dataset
-           tempFig <- 
+           tempFig <-
   ggplot() +
              facet_wrap(~lyr, ncol = 1) +
 geom_spatraster(data = dat_spatAvg_size_RAST[[y]]$allYears[[11:20
-                                                            ]], maxcell = 5e+10) + 
+                                                            ]], maxcell = 5e+10) +
   geom_sf(data=cropped_states_2 ,fill=NA ) +
  xlim(-2150000, 2510000) +
  ylim(-2005000, 1000000) +
@@ -1570,17 +1656,17 @@ geom_spatraster(data = dat_spatAvg_size_RAST[[y]]$allYears[[11:20
                    axis.text = element_blank(),
                    strip.text = element_text(size = 15),
                    title = element_text(size = 18),
-                   axis.ticks = element_blank()) + 
+                   axis.ticks = element_blank()) +
              ggtitle(paste0("Number of observations from ",y," \nin a dayMet grid cell"),
                      subtitle = ifelse(y == "RAP",  yes = "Maps are shown on a dayMet x 13 grid, \nso values shown are the \nnumber of observations in a dayMet grid cell, \naveraged across all grid cells that occur \nin the 13km^2 mapping grid", no = "Maps are shown on a dayMet x 8 grid, \nso values shown are the \nnumber of observations in a dayMet grid cell, \naveraged across all grid cells that occur \nin the 8km^2 mapping grid"))
-          
-           
-  # add an inset showing a density plot  
+
+
+  # add an inset showing a density plot
            # get data
-              data_inset <- #terra::values(dat_1_RAST$RAP[[y]][[1:4]]) %>% 
-             dat_avgsBySource %>% 
-             st_drop_geometry() %>% 
-             filter(Source == y) %>% 
+              data_inset <- #terra::values(dat_1_RAST$RAP[[y]][[1:4]]) %>%
+             dat_avgsBySource %>%
+             st_drop_geometry() %>%
+             filter(Source == y) %>%
                pivot_longer(c("ShrubCover_n"  ,"TotalTreeCover_n","TotalHerbaceousCover_n",   "TotalTreeCover_compObs_n", "BareGroundCover_n","ForbCover_n",  "C3GramCover_n" ,"C4GramCover_n", "BroadLeavedTreeCover_n" ,  "NeedleLeavedTreeCover_n" ), names_to = "lyr", values_to = "Cover")
             # make insets
            inset_plots <- data_inset %>%
@@ -1595,41 +1681,41 @@ geom_spatraster(data = dat_spatAvg_size_RAST[[y]]$allYears[[11:20
          tempFig2 <- tempFig + inset_plots
 
            return(tempFig2)
-  
+
 }) %>% invisible()
 names(testFigs_spatAvg_n) <- c("FIA", "LANDFIRE", "AIM","RAP")
 ggarrange(testFigs_spatAvg_n$RAP, testFigs_spatAvg_n$AIM, testFigs_spatAvg_n$FIA, testFigs_spatAvg_n$LANDFIRE, ncol = 2)
 ```
- 
+
 #### Then, we show the spatially averaged cover values themselves
 ```{r, fig.width = 12, fig.height = 70, warning = FALSE, echo=FALSE}
 # read in data
-dat_avgsAll <- readRDS( "../Data_processed/CoverData/spatiallyAverageData_intermediate_test5_sampledLANDFIRE.rds") %>% 
+dat_avgsAll <- readRDS( "../Data_processed/CoverData/spatiallyAverageData_intermediate_test5_sampledLANDFIRE.rds") %>%
   filter(Year < 2024)
 # make spatial and update crs to match the dayMet crs
-dat_avgsAll <- dat_avgsAll %>% 
-  dplyr::ungroup() %>% 
-  st_as_sf(coords = c("x", "y"), crs = "GEOGCRS[\"NAD83\",\n    DATUM[\"North American Datum 1983\",\n        ELLIPSOID[\"GRS 1980\",6378137,298.257222101,\n            LENGTHUNIT[\"metre\",1]]],\n    PRIMEM[\"Greenwich\",0,\n        ANGLEUNIT[\"degree\",0.0174532925199433]],\n    CS[ellipsoidal,2],\n        AXIS[\"geodetic latitude (Lat)\",north,\n            ORDER[1],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n        AXIS[\"geodetic longitude (Lon)\",east,\n            ORDER[2],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n    ID[\"EPSG\",4269]]") %>% 
+dat_avgsAll <- dat_avgsAll %>%
+  dplyr::ungroup() %>%
+  st_as_sf(coords = c("x", "y"), crs = "GEOGCRS[\"NAD83\",\n    DATUM[\"North American Datum 1983\",\n        ELLIPSOID[\"GRS 1980\",6378137,298.257222101,\n            LENGTHUNIT[\"metre\",1]]],\n    PRIMEM[\"Greenwich\",0,\n        ANGLEUNIT[\"degree\",0.0174532925199433]],\n    CS[ellipsoidal,2],\n        AXIS[\"geodetic latitude (Lat)\",north,\n            ORDER[1],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n        AXIS[\"geodetic longitude (Lon)\",east,\n            ORDER[2],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n    ID[\"EPSG\",4269]]") %>%
   st_transform(crs(dat_preAvg))
 
 # rasterize for each data source and each cover type (across all years; values in the density plot are not averaged across years)
-dat_avgsAll <- dat_avgsAll %>% 
+dat_avgsAll <- dat_avgsAll %>%
   mutate(Lon = st_coordinates(.)[,1],
-         Lat = st_coordinates(.)[,2]) %>% 
+         Lat = st_coordinates(.)[,2]) %>%
   mutate(
          ForbCover = ForbCover_prop * TotalHerbaceousCover,
          C3GramCover = C3GramCover_prop * TotalHerbaceousCover,
-         C4GramCover = C4GramCover_prop * TotalHerbaceousCover, 
+         C4GramCover = C4GramCover_prop * TotalHerbaceousCover,
          BroadLeavedTreeCover = AngioTreeCover_prop * TotalTreeCover,
          NeedleLeavedTreeCover = ConifTreeCover_prop * TotalTreeCover,
          ForbCover_n = ForbCover_prop_n,
          C3GramCover_n = C3GramCover_prop_n,
-         C4GramCover_n = C4GramCover_prop_n, 
+         C4GramCover_n = C4GramCover_prop_n,
          BroadLeavedTreeCover_n = AngioTreeCover_prop_n,
          NeedleLeavedTreeCover_n = ConifTreeCover_prop_n,
          ForbCover_sd = ForbCover_prop_sd,
          C3GramCover_sd = C3GramCover_prop_sd,
-         C4GramCover_sd = C4GramCover_prop_sd, 
+         C4GramCover_sd = C4GramCover_prop_sd,
          BroadLeavedTreeCover_sd = AngioTreeCover_prop_sd,
          NeedleLeavedTreeCover_sd = ConifTreeCover_prop_sd)
  # st_drop_geometry()
@@ -1647,32 +1733,32 @@ dat_avgsAll[dat_avgsAll$NeedleLeavedTreeCover_n == 0 & !is.na(dat_avgsAll$Needle
 
 ###### rasterized version
 # make a multi-layer raster w/ layers for each variable of interest
-dat_spatAvg_all_RAST <- 
-  lapply(c("all"), 
+dat_spatAvg_all_RAST <-
+  lapply(c("all"),
          FUN = function(y) {
-           tempDat <- dat_avgsAll 
-           tempDat1 <- tempDat %>% 
+           tempDat <- dat_avgsAll
+           tempDat1 <- tempDat %>%
              st_drop_geometry()
-          
+
            # get dat across all years
            tempOut2 <- lapply(c("ShrubCover", "TotalTreeCover", "TotalHerbaceousCover", "TotalTreeCover_compObs", "BareGroundCover", "ForbCover", "C3GramCover",  "C4GramCover",  "BroadLeavedTreeCover", "NeedleLeavedTreeCover",
                                 "ShrubCover_n", "TotalTreeCover_n", "TotalHerbaceousCover_n", "TotalTreeCover_compObs_n", "BareGroundCover_n", "ForbCover_n", "C3GramCover_n",  "C4GramCover_n",  "BroadLeavedTreeCover_n", "NeedleLeavedTreeCover_n",
-                                "ShrubCover_sd", "TotalTreeCover_sd", "TotalHerbaceousCover_sd", "TotalTreeCover_compObs_sd", "BareGroundCover_sd", "ForbCover_sd", "C3GramCover_sd",  "C4GramCover_sd",  "BroadLeavedTreeCover_sd", "NeedleLeavedTreeCover_sd"), 
+                                "ShrubCover_sd", "TotalTreeCover_sd", "TotalHerbaceousCover_sd", "TotalTreeCover_compObs_sd", "BareGroundCover_sd", "ForbCover_sd", "C3GramCover_sd",  "C4GramCover_sd",  "BroadLeavedTreeCover_sd", "NeedleLeavedTreeCover_sd"),
                             FUN = function(z) {
-                              temp <- terra::rasterize(x = tempDat1[,c("Lon", "Lat")], 
+                              temp <- terra::rasterize(x = tempDat1[,c("Lon", "Lat")],
                                                y = test_rast,
                                                values = tempDat1[,z],
                                                fun = mean
-                                               ) 
-                      
+                                               )
+
                       names(temp) <-  paste0(z)
                       return(temp)
                     }
                     )
-           
-           
+
+
            # for each data type, put data for each year in one raster in the list, and the data across all years in another raster
-           outDat <- list( 
+           outDat <- list(
                           c(tempOut2[[1]], tempOut2[[2]], tempOut2[[3]], tempOut2[[4]], tempOut2[[5]], tempOut2[[6]], tempOut2[[7]], tempOut2[[8]], tempOut2[[9]],
                           tempOut2[[10]], tempOut2[[11]],tempOut2[[12]], tempOut2[[13]], tempOut2[[14]], tempOut2[[15]], tempOut2[[16]], tempOut2[[17]], tempOut2[[18]], tempOut2[[19]],
                           tempOut2[[20]], tempOut2[[21]],tempOut2[[22]], tempOut2[[23]], tempOut2[[24]], tempOut2[[25]], tempOut2[[26]], tempOut2[[27]], tempOut2[[28]], tempOut2[[29]], tempOut2[[30]]))
@@ -1683,14 +1769,14 @@ dat_spatAvg_all_RAST <-
 names(dat_spatAvg_all_RAST) <- c("allData")
 
 ## make figures of number of observations per location
-## make figure for RAP 
+## make figure for RAP
 testFigs_spatAvg_n <- lapply(c("allData"), FUN = function(y) {
   # make a map for the number of observations for each cover type for this dataset
-           tempFig <- 
+           tempFig <-
   ggplot() +
              facet_wrap(~lyr, ncol = 1) +
 geom_spatraster(data = dat_spatAvg_all_RAST[[y]]$allYears[[1:10
-                                                            ]], maxcell = 5e+10) + 
+                                                            ]], maxcell = 5e+10) +
   geom_sf(data=cropped_states_2 ,fill=NA ) +
  xlim(-2150000, 2510000) +
  ylim(-2005000, 1000000) +
@@ -1702,16 +1788,16 @@ geom_spatraster(data = dat_spatAvg_all_RAST[[y]]$allYears[[1:10
                    axis.text = element_blank(),
                    strip.text = element_text(size = 15),
                    title = element_text(size = 18),
-                   axis.ticks = element_blank()) + 
+                   axis.ticks = element_blank()) +
              ggtitle(paste0("Spatially averaged cover data"),
                      subtitle = "Maps are shown on a dayMet x 8 grid, so values shown are the \n cover value in a in a dayMet grid cell, averaged across all grid cells that occur in the 8km^2 mapping grid")
-          
-           
-  # add an inset showing a density plot  
+
+
+  # add an inset showing a density plot
            # get data
-              data_inset <- #terra::values(dat_1_RAST$RAP[[y]][[1:4]]) %>% 
-             dat_avgsAll %>% 
-             st_drop_geometry() %>% 
+              data_inset <- #terra::values(dat_1_RAST$RAP[[y]][[1:4]]) %>%
+             dat_avgsAll %>%
+             st_drop_geometry() %>%
                pivot_longer(c("ShrubCover"  ,"TotalTreeCover","TotalHerbaceousCover",   "TotalTreeCover_compObs", "BareGroundCover","ForbCover",  "C3GramCover" ,"C4GramCover", "BroadLeavedTreeCover" ,  "NeedleLeavedTreeCover" ), names_to = "lyr", values_to = "Cover")
             # make insets
            inset_plots <- data_inset %>%
@@ -1726,22 +1812,22 @@ geom_spatraster(data = dat_spatAvg_all_RAST[[y]]$allYears[[1:10
          tempFig2 <- tempFig + inset_plots
 
            return(tempFig2)
-  
+
 })%>% invisible()
 names(testFigs_spatAvg_n) <- c("allData")
 testFigs_spatAvg_n
 ```
- 
+
 
 ### Below are tables showing sample size in the cover dataset, *after* to the spatial averaging step
 ```{r}
-dat_avgsAll %>% 
-  st_drop_geometry() %>% 
-  select(Year, ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover, ForbCover, C3GramCover, C4GramCover, BroadLeavedTreeCover, NeedleLeavedTreeCover) %>% 
+dat_avgsAll %>%
+  st_drop_geometry() %>%
+  select(Year, ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover, ForbCover, C3GramCover, C4GramCover, BroadLeavedTreeCover, NeedleLeavedTreeCover) %>%
   mutate(
-         Year = as.factor(Year)) %>% 
-  group_by(Year) %>% 
-  summarize(Shrubs = sum(!is.na(ShrubCover)), 
+         Year = as.factor(Year)) %>%
+  group_by(Year) %>%
+  summarize(Shrubs = sum(!is.na(ShrubCover)),
             "Total\nTrees" = sum(!is.na(TotalTreeCover)),
             "Total\nHerbaceous" = sum(!is.na(TotalHerbaceousCover)),
             "Bare\nGround" = sum(!is.na(BareGroundCover)),
@@ -1749,310 +1835,9 @@ dat_avgsAll %>%
             "C3\nGrams" = sum(!is.na(C3GramCover)),
             "C4\nGrams" = sum(!is.na(C4GramCover)),
             "Broad\nLeaved\nTrees" = sum(!is.na(BroadLeavedTreeCover)),
-            "Needle\nLeaved\nTrees" = sum(!is.na(NeedleLeavedTreeCover))) %>% 
-  flextable::flextable() %>% 
-  flextable::theme_vanilla() %>% 
-  flextable::vline(j = c("Year"), border = flextable::fp_border_default()) %>% 
-  flextable::set_caption(caption = flextable::as_paragraph(flextable::colorize("Sample Size for Each Functional Group For Each Year in the Spatially Averaged Dataset", color = "black")), align_with_table = TRUE)   
+            "Needle\nLeaved\nTrees" = sum(!is.na(NeedleLeavedTreeCover))) %>%
+  flextable::flextable() %>%
+  flextable::theme_vanilla() %>%
+  flextable::vline(j = c("Year"), border = flextable::fp_border_default()) %>%
+  flextable::set_caption(caption = flextable::as_paragraph(flextable::colorize("Sample Size for Each Functional Group For Each Year in the Spatially Averaged Dataset", color = "black")), align_with_table = TRUE)
 ```
-
-
-<!-- # After data has been spatially averaged (can no longer look at data by data source) -->
-<!-- ## After initial spatial averaging -->
-<!-- ```{r, echo = FALSE, , fig.width= 20, fig.height = 14} -->
-<!-- # Read in data -->
-<!-- dat_4 <- readRDS("../../../Data_processed/CoverData/spatiallyAverageData_intermediate_test5_sampledLANDFIRE.rds") -->
-
-<!-- ## make figure for RAP -->
-<!-- # get data just for RAP -->
-<!-- dat_4 <- dat_4 %>% -->
-<!--   pivot_longer(cols = c(ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_ -->
-<!--                         ), -->
-<!--                names_to = "coverType", -->
-<!--                values_to = "coverValues" -->
-<!--                 ) %>% -->
-<!--   filter(!is.na(coverValues)) -->
-
-<!-- ggarrange(ggplot(dat_4 %>% -->
-<!--   filter(Year %in% c(2016, 2020, 2022))) + -->
-<!--   facet_grid(rows = vars(coverType), cols = vars(Year)) + -->
-<!--   stat_summary_2d(aes(x = x, y = y, z = coverValues), fun = mean, binwidth = .1) + -->
-<!--      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), -->
-<!--                           limits = c(0,100)) + -->
-<!--     #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + -->
-<!--     #geom_point(aes(x = Lon, y = Lat, col = coverValues)) + -->
-<!--   xlim(c(-130,-65)) + -->
-<!--     ylim(c(25, 50)) + -->
-<!--   ggtitle("Spatially Averaged Data - step 1"), -->
-
-<!--   ggplot(dat_4) + -->
-<!--   facet_grid(rows = vars(coverType)) + -->
-<!--   stat_summary_2d(aes(x = x, y = y, z = coverValues), fun = mean, binwidth = .1) + -->
-<!--      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), -->
-<!--                           limits = c(0,100)) + -->
-<!--     #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + -->
-<!--     #geom_point(aes(x = Lon, y = Lat, col = coverValues)) + -->
-<!--   xlim(c(-130,-65)) + -->
-<!--     ylim(c(25, 50)) + -->
-<!--   ggtitle("Spatially Averaged Data - step 1 - n\all Years"), -->
-
-<!--   ncol = 2, align = "h", -->
-<!--   common.legend = TRUE, -->
-<!--   widths = c(.7, .3) -->
-<!-- ) -->
-<!-- ``` -->
-<!-- ## After adding climate/weather data -->
-<!-- ```{r, echo = FALSE,  fig.width= 20, fig.height = 14} -->
-<!-- # Read in data -->
-<!-- dat_5_temp <- readRDS("../../../Data_processed/CoverData/DataForModels_spatiallyAveraged_sf_sampledLANDFIRE.rds") -->
-
-<!-- ## make figures -->
-<!-- dat_5 <- dat_5_temp %>% -->
-<!--   pivot_longer(cols = c(ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_ -->
-<!--                         ), -->
-<!--                names_to = "coverType", -->
-<!--                values_to = "coverValues" -->
-<!--                 ) %>% -->
-<!--   filter(!is.na(coverValues)) -->
-
-<!-- ggarrange(ggplot(dat_5 %>% -->
-<!--   filter(Year %in% c(2016, 2020, 2022))) + -->
-<!--   facet_grid(rows = vars(coverType), cols = vars(Year)) + -->
-<!--   stat_summary_2d(aes(x = x, y = y, z = coverValues), fun = mean, binwidth = .1) + -->
-<!--      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), -->
-<!--                           limits = c(0,100)) + -->
-<!--     #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + -->
-<!--     #geom_point(aes(x = Lon, y = Lat, col = coverValues)) + -->
-<!--   xlim(c(-130,-65)) + -->
-<!--     ylim(c(25, 50)) + -->
-<!--   ggtitle("Spatially Averaged Data - after adding climate/weather"), -->
-
-<!--   ggplot(dat_5) + -->
-<!--   facet_grid(rows = vars(coverType)) + -->
-<!--   stat_summary_2d(aes(x = x, y = y, z = coverValues), fun = mean, binwidth = .1) + -->
-<!--      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), -->
-<!--                           limits = c(0,100)) + -->
-<!--     #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + -->
-<!--     #geom_point(aes(x = Lon, y = Lat, col = coverValues)) + -->
-<!--   xlim(c(-130,-65)) + -->
-<!--     ylim(c(25, 50)) + -->
-<!--   ggtitle("Spatially Averaged Data - \nafter adding clim/weath - n\all Years"), -->
-
-<!--   ncol = 2, align = "h", -->
-<!--   common.legend = TRUE, -->
-<!--   widths = c(.7, .3) -->
-<!-- ) -->
-<!-- ``` -->
-<!-- ## After adding ecoregion data -->
-<!-- ```{r, echo = FALSE, , fig.width= 20, fig.height = 14} -->
-<!-- # Read in data -->
-<!-- dat_6 <- readRDS("../../../Data_processed/CoverData/DataForModels_withEcoregion_sampledLANDFIRE.rds") -->
-
-<!-- ## make figures -->
-<!-- dat_6 <- dat_6 %>% -->
-<!--   pivot_longer(cols = c(ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_ -->
-<!--                         ), -->
-<!--                names_to = "coverType", -->
-<!--                values_to = "coverValues" -->
-<!--                 ) %>% -->
-<!--   filter(!is.na(coverValues)) -->
-
-<!-- ggarrange(ggplot(dat_6 %>% -->
-<!--   filter(Year %in% c(2016, 2020, 2022))) + -->
-<!--   facet_grid(rows = vars(coverType), cols = vars(Year)) + -->
-<!--   stat_summary_2d(aes(x = x, y = y, z = coverValues), fun = mean, binwidth = .1) + -->
-<!--      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), -->
-<!--                           limits = c(0,100)) + -->
-<!--     #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + -->
-<!--     #geom_point(aes(x = Lon, y = Lat, col = coverValues)) + -->
-<!--   xlim(c(-130,-65)) + -->
-<!--     ylim(c(25, 50)) + -->
-<!--   ggtitle("Spatially Averaged Data - after adding ecoregion"), -->
-
-<!--   ggplot(dat_6) + -->
-<!--   facet_grid(rows = vars(coverType)) + -->
-<!--   stat_summary_2d(aes(x = x, y = y, z = coverValues), fun = mean, binwidth = .1) + -->
-<!--      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), -->
-<!--                           limits = c(0,100)) + -->
-<!--     #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + -->
-<!--     #geom_point(aes(x = Lon, y = Lat, col = coverValues)) + -->
-<!--   xlim(c(-130,-65)) + -->
-<!--     ylim(c(25, 50)) + -->
-<!--   ggtitle("Spatially Averaged Data - \nafter adding ecoregion - n\all Years"), -->
-
-<!--   ncol = 2, align = "h", -->
-<!--   common.legend = TRUE, -->
-<!--   widths = c(.7, .3) -->
-<!-- ) -->
-<!-- ``` -->
-
-
-<!-- ## After adding soils data and removing RAP points that are in ag/developed areas -->
-<!-- ```{r, echo = FALSE, , fig.width= 20, fig.height = 14} -->
-<!-- # Read in data -->
-<!-- dat_7_temp <- readRDS("../../../Data_processed/CoverData/DataForModels_spatiallyAveraged_withSoils_noSf_sampledLANDFIRE.rds") -->
-
-<!-- ## make figures -->
-<!-- dat_7 <- dat_7_temp %>% -->
-<!--   pivot_longer(cols = c(ShrubCover, TotalTreeCover, TotalHerbaceousCover, BareGroundCover#, AngTrC_, CnfTrC_, C3GrmC_, C4GrmC_, FrbCvr_ -->
-<!--                         ), -->
-<!--                names_to = "coverType", -->
-<!--                values_to = "coverValues" -->
-<!--                 ) %>% -->
-<!--   filter(!is.na(coverValues)) -->
-
-<!-- ggarrange(ggplot(dat_7 %>% -->
-<!--   filter(Year %in% c(2016, 2020, 2022))) + -->
-<!--   facet_grid(rows = vars(coverType), cols = vars(Year)) + -->
-<!--   stat_summary_2d(aes(x = x, y = y, z = coverValues), fun = mean, binwidth = .1) + -->
-<!--      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), -->
-<!--                           limits = c(0,100)) + -->
-<!--     #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + -->
-<!--     #geom_point(aes(x = Lon, y = Lat, col = coverValues)) + -->
-<!--   xlim(c(-130,-65)) + -->
-<!--     ylim(c(25, 50)) + -->
-<!--   ggtitle("Spatially Averaged Data - after adding soils"), -->
-
-<!--   ggplot(dat_7) + -->
-<!--   facet_grid(rows = vars(coverType)) + -->
-<!--   stat_summary_2d(aes(x = x, y = y, z = coverValues), fun = mean, binwidth = .1) + -->
-<!--      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), -->
-<!--                           limits = c(0,100)) + -->
-<!--     #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + -->
-<!--     #geom_point(aes(x = Lon, y = Lat, col = coverValues)) + -->
-<!--   xlim(c(-130,-65)) + -->
-<!--     ylim(c(25, 50)) + -->
-<!--   ggtitle("Spatially Averaged Data - \nafter adding soils - n\all Years"), -->
-
-<!--   ncol = 2, align = "h", -->
-<!--   common.legend = TRUE, -->
-<!--   widths = c(.7, .3) -->
-<!-- ) -->
-<!-- ``` -->
-
-<!-- ### Making density plots of all of the cover type by data source (after removing burned area) -->
-<!-- First, predict forest classification using the model we later fit to the data to determine forest or non-forest -->
-<!-- ```{r} -->
-<!-- #dat_5_temp has the climate data, so I think I should be able to add the climate data from there to the data in dat_3_temp?  -->
-<!-- dat_7_clim <- dat_7_temp %>%  -->
-<!--   st_as_sf(coords = c("x", "y"), crs = st_crs(dat_5_temp), remove = FALSE) %>%  -->
-<!--   #cbind(dat_7_temp %>% select("x", "y")) %>%  -->
-<!--           st_transform(crs = st_crs(dat_3_temp), remove = FALSE) %>%  -->
-<!--   mutate(locationID = paste0(round(.data[["x"]], 5),"_", round(.data[["y"]], 5))) -->
-
-<!-- dat_3_tempClim <- dat_3_temp %>%  -->
-<!--   #slice(1) %>%  -->
-<!--  sf::st_join( -->
-<!--     dat_7_clim %>%  -->
-<!--       select(locationID), -->
-<!--       join = st_nearest_feature,#st_nearest_feature, -->
-<!--     left = TRUE -->
-<!--   )  -->
-<!-- dat_3_tempClim <- dat_3_tempClim %>%  -->
-<!--   st_drop_geometry() %>%  -->
-<!--   left_join(dat_7_clim %>%  -->
-<!--               st_drop_geometry() %>%  -->
-<!--               select(Year, x:locationID),  -->
-<!--             by = c("Year" = "Year", "locationID" = "locationID") -->
-<!--              ) -->
-
-<!-- dat_3_tempClim <-  -->
-<!--   dat_3_tempClim %>%  -->
-<!--   mutate(ForestPred =  as.numeric(1/ (1 + exp(-(-0.67478165 +   -->
-<!--                                             1.71345065*((prcp_meanAnnTotal_CLIM - 483.34337211) / 321.52170566) +  -->
-<!--                                             -0.01633932*((precip_Seasonality_meanAnnAvg_CLIM - 0.97338094) / 0.23365057) +  -->
-<!--                                             -0.91285243*((PrecipTempCorr_meanAnnAvg_CLIM - 0.01681097) / 0.39882063) +   -->
-<!--                                             0.53377439*((annWetDegDays_meanAnnAvg_CLIM - 1808.61043539) / 1083.25298131) +  -->
-<!--                                             -0.60523936*((annWaterDeficit_95percentile_CLIM - 164.68611646) / 104.14892564) +   -->
-<!--                                             0.20578879*((avgCoarsePerc_acrossDepth - 9.66120017) / 10.16883531) +  -->
-<!--                                             -0.61568228*((totalAvailableWaterHoldingCapacity - 14.61190409) / 5.65765542) +  -->
-<!--                                             -0.31818631*I(((tmean_meanAnnAvg_CLIM - 11.0291275) / 4.89048541)^2) +  -->
-<!--                                             0.20104126*I(((precip_Seasonality_meanAnnAvg_CLIM - 0.97338094) / 0.23365057)^2) +  -->
-<!--                                             -0.89055646*I(((PrecipTempCorr_meanAnnAvg_CLIM - 0.01681097) / 0.39882063)^2) +   -->
-<!--                                             0.14226917*I(((isothermality_meanAnnAvg_CLIM - 37.76731082) / 5.2256935)^2) +  -->
-<!--                                             -0.11810211*I(((surfaceClay_perc - 19.59171509) / 8.51944876)^2) +   -->
-<!--                                             0.11278028*I(((totalAvailableWaterHoldingCapacity - 14.61190409) / 5.65765542)^2) +   -->
-<!--                                             0.91656456*((annWetDegDays_meanAnnAvg_CLIM - 1808.61043539) / 1083.25298131)*((annWaterDeficit_95percentile_CLIM - 164.68611646) / 104.14892564) +  -->
-<!--                                             -0.29650844*((precip_driestMonth_meanAnnAvg_CLIM - 3.18622575) / 5.36400552)*((isothermality_meanAnnAvg_CLIM - 37.76731082) / 5.2256935) +  -->
-<!--                                             -0.02061048*((PrecipTempCorr_meanAnnAvg_CLIM - 0.01681097) / 0.39882063)*((isothermality_meanAnnAvg_CLIM - 37.76731082) / 5.2256935) + -->
-<!--                                             -0.28504255*((isothermality_meanAnnAvg_CLIM - 37.76731082) / 5.2256935)*((tmean_meanAnnAvg_CLIM - 11.0291275) / 4.89048541) +  -->
-<!--                                             0.50549093*((PrecipTempCorr_meanAnnAvg_CLIM - 0.01681097) / 0.39882063)*((precip_driestMonth_meanAnnAvg_CLIM - 3.18622575) / 5.36400552) + -->
-<!--                                             -0.25285633*((PrecipTempCorr_meanAnnAvg_CLIM - 0.01681097) / 0.39882063)*((tmean_meanAnnAvg_CLIM - 11.0291275) / 4.89048541) +  -->
-<!--                                             -0.16290284*((totalAvailableWaterHoldingCapacity - 14.61190409) / 5.65765542)*((surfaceClay_perc - 19.59171509) / 8.51944876) +   -->
-<!--                                             0.09163249*((avgCoarsePerc_acrossDepth - 9.66120017) / 10.16883531)*((surfaceClay_perc - 19.59171509) / 8.51944876)))))) %>%  -->
-<!--   drop_na(ForestPred) -->
-<!-- # ggplot(dat_3_tempClim) +  -->
-<!-- #   geom_point(aes(x = Lon, y = Lat, col = ForestPred)) -->
-
-<!-- # convert the continuous probability predictions to binary using previously-identified threshold  -->
-<!-- dat_3_tempClim <- dat_3_tempClim %>%  -->
-<!--   mutate(pred_binary = ForestPred, -->
-<!--     pred_binary = replace(pred_binary, pred_binary > 0.3819095, 1), -->
-<!--          pred_binary = replace(pred_binary, pred_binary <= 0.3819095, 0)) -->
-
-<!-- # interpolate the continuous predictions -->
-<!-- dat_3_tempClim$preds_interp <- NA -->
-<!-- dat_3_tempClim[!is.na(dat_3_tempClim$ForestPred), "preds_interp"] <- approxfun_pred(dat_3_tempClim[ !is.na(dat_3_tempClim$ForestPred), "ForestPred"]) -->
-
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- # data are in the dat_3_temp data.frame -->
-<!-- # are there any locations where we have NL and BL tree but not total tree?  -->
-<!-- #dat_3_temp[is.finite(dat_3_temp$AngioTreeCover_prop) & is.na(dat_3_temp$TotalTreeCover),] -->
-
-<!--   ggplot() +  -->
-<!--     facet_wrap(vars(Source, pred_binary), ncol = 2, scales = "free") +  -->
-<!--     geom_density(data = dat_3_tempClim, aes(TotalTreeCover, col = Source)) +  -->
-<!--     geom_density(data = dat_3_tempClim[is.finite(dat_3_tempClim$AngioTreeCover_prop),], aes(TotalTreeCover, col = Source),lty = 2) +  -->
-<!--     ggtitle("Density plots of total tree cover data (prior to spatial averaging) \nsolid lines = all available total tree cover data \ndashed line = total tree cover data in locations where we also have \nNL and BL tree cover data") -->
-
-<!-- kable(x = data.frame("FIA" = c(table(dat_3_temp[is.finite(dat_3_temp$TotalTreeCover), "Source"] %>% st_drop_geometry())["FIA"],  -->
-<!--                                 table(dat_3_temp[is.finite(dat_3_temp$AngioTreeCover_prop) ,"Source"] %>% st_drop_geometry())["FIA"]),  -->
-<!--                      "LANDFIRE" = c(table(dat_3_temp[is.finite(dat_3_temp$TotalTreeCover), "Source"] %>% st_drop_geometry() )["LANDFIRE"], -->
-<!--                                 table(dat_3_temp[is.finite(dat_3_temp$AngioTreeCover_prop) ,"Source"] %>% st_drop_geometry())["LANDFIRE"]), -->
-<!--                      "AIM" = c(table(dat_3_temp[is.finite(dat_3_temp$TotalTreeCover), "Source"] %>% st_drop_geometry() )["LDC"], -->
-<!--                                 table(dat_3_temp[is.finite(dat_3_temp$AngioTreeCover_prop) ,"Source"] %>% st_drop_geometry())["LDC"]), -->
-<!--                      "RAP" = c(table(dat_3_temp[is.finite(dat_3_temp$TotalTreeCover), "Source"] %>% st_drop_geometry() )["RAP"], NA), -->
-<!--                      row.names = c("allTotalTreeCoverData", "completeTreeData") -->
-<!--                      ),  -->
-<!--       row.names = TRUE, -->
-<!--       format = "html" -->
-<!-- ) %>%  -->
-<!-- kable_styling(bootstrap_options = c("striped", "hover", "condensed"))  -->
-
-<!-- # maps  -->
-<!-- ## locations where we have observations for total tree cover vs. locations where we have observations for all tree types  -->
-<!-- dat_3_temp$totalTreeDataAvail <- NA -->
-<!-- dat_3_temp$completeTreeDataAvail <- NA -->
-<!-- dat_3_temp[!is.na(dat_3_temp$TotalTreeCover), "totalTreeDataAvail"] <- TRUE -->
-<!-- dat_3_temp[!is.na(dat_3_temp$TotalTreeCover) & !is.na(dat_3_temp$ConifTreeCover_prop) & !is.na(dat_3_temp$AngioTreeCover_prop), "completeTreeDataAvail"] <- TRUE -->
-<!-- ggarrange( -->
-<!--   ggplot(data = dat_3_temp %>% filter(!is.na(totalTreeDataAvail))) +  -->
-<!--     facet_grid(row = vars(Source)) +  -->
-<!--     geom_point(aes(x = Lon, y = Lat,  col = Source), pch = 20) +  -->
-<!--     ggtitle("Locations with total tree cover data"), -->
-<!--  ggarrange( ggplot(data = dat_3_temp  %>% filter(!is.na(completeTreeDataAvail))) + -->
-<!--     facet_grid(row = vars(Source)) +   -->
-<!--     geom_point(aes(x = Lon, y = Lat,  col = Source), pch = 20) +  -->
-<!--     ggtitle("Locations with total tree cover data + NL and BL tree cover data"), -->
-<!--     ggplot() + geom_point(), ncol = 1, heights = c(.75, .25)),  -->
-<!--   align = "h" -->
-<!-- ) -->
-<!-- ``` -->
-
-<!-- <!-- #Initial data, across all years and all data types --> -->
-<!-- <!-- ```{r fig.width= 9, fig.height = 6} --> -->
-<!-- <!-- # Inital FIA data, all years by year --> -->
-<!-- <!-- ggplot(dat_1temp %>% --> -->
-<!-- <!--          filter(Source == "FIA")) + --> -->
-<!-- <!--   facet_wrap(vars(Year)) + --> -->
-<!-- <!--   stat_summary_2d(aes(x = Lon, y = Lat, z = TtlTrCv), fun = mean, binwidth = .1) + --> -->
-<!-- <!--      scale_fill_viridis_c(option = "A", guide = guide_colorbar(title = "% cover"), --> -->
-<!-- <!--                           limits = c(0,100)) + --> -->
-<!-- <!--     #geom_raster(aes(x = Lon, y = Lat, fill = coverValues)) + --> -->
-<!-- <!--     #geom_point(aes(x = Lon, y = Lat, col = coverValues)) + --> -->
-<!-- <!--   xlim(c(-130,-65)) + --> -->
-<!-- <!--     ylim(c(25, 50)) + --> -->
-<!-- <!--   ggtitle("Initial Data: Total Tree Cover from FIA") --> -->
-<!-- <!-- ``` --> -->
