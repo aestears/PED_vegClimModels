@@ -1,5 +1,5 @@
 ---
-title: "02_modelFitting_zeroTreeModel_SensEqSpec"
+title: "02_modelFitting_zeroTreeModel"
 author: "Alice Stears"
 date: "`r lubridate::today()`"
 output:
