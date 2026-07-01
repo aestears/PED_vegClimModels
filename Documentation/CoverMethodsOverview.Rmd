@@ -141,7 +141,7 @@ We aim to generate a set of closed-form equations that determine coarse vegetati
               * predict on the complete dataset
               * Compare the model-predictions to the test data and generate maps of predictions, residuals, and predictions across all of CONUS using wall-to-wall climate data
               * Make quantile plots that compare average model predictions to average observations within each quantile of each predictor variable.
-        iv) Based on visualizations and model performance, identify a model that best represents the data (i.e. the “best,” “1SE,” or “1/2SE” lambda glm) and use that model to predict, for each location in the complete, harmonized cover dataset, the cover for the given function group of interest. 
+        iv) Based on visualizations and model performance, identify a model that best represents the data (i.e. the “best,” “1SE,” or “1/2SE” lambda glm) and use that model to predict, for each location in the complete, harmonized cover dataset, the cover for the given functional group of interest. 
 11) Finally, we combine all of the model results together to generate CONUS-wide predictions of absolute and relative cover for each functional group. 
   i) Predict continuous forest classification using the model from step 8
 $$ P(Forest)_{continuous}  \sim climate + soils$$ 
@@ -161,13 +161,12 @@ $$ P(Forest)_{continuous}  \sim climate + soils$$
         * if $P(forest)_{binary} = 1$, then $P(treed) = 1$    
         * if $P(forest)_{binary} = 0$ and $P(treed)_{continuous} ≤ treedThreshold$, then $P(treed)_{binary} = 0$    
         * if $P(forest)_{binary} = 0$ and $P(treed)_{continuous} > treedThreshold$, then $P(treed)_{binary} = 1$    
-  vi) Use all of the models from step 10 to predict absolute cover for each function group. aa
+  vi) Use all of the models from step 10 to predict absolute cover for each functional group. 
         * $TotalTreeCoverAbsolute_{forest} \sim climate + weather + soils$   
-        * $TotalTreeCoverAbsolute_{non-forest} \sim climate + weather + soils$   
+        * $TotalTreeCoverAbsolute_{non-forest}  \sim (climate + weather + soils)/10$    
         * $TotalHerbaceousCoverAbsolute_{CONUS} \sim climate + weather + soils$    
         * $ShrubCoverAbsolute_{CONUS} \sim climate + weather + soils$    
-        * $BareGroundCoverAbsolute_{CONUS} \sim climate + weather + soils$   
-        * $ShrubCoverAbsolute_{CONUS} \sim climate + weather + soils$    
+        * $BareGroundCoverAbsolute_{CONUS} \sim climate + weather + soils$     
         * $ForbCoverProp_{CONUS} \sim climate + weather + soils$   
         * $C3CoverProp_{CONUS} \sim climate + weather + soils$   
         * $C4CoverProp_{CONUS} \sim climate + weather + soils$   

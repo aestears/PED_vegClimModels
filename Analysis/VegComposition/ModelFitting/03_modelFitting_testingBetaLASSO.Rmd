@@ -11,11 +11,11 @@ output:
 params:
   run: FALSE     
   save_figs: TRUE
-  ecoregion: noTrees # trees or noTrees
-  response: TotalTreeCover
+  ecoregion: CONUS # trees or noTrees
+  response: BareGroundCover
   allowAllTreeData: TRUE
   removeTexasLouisianaPlain: FALSE
-  removeAllAnoms: TRUE
+  removeAllAnoms: FALSE
   trimAnomalies: TRUE
   autoKfold: FALSE
   whichSecondBestMod: "auto"# 1se OR halfse OR auto (chose the model w/ fewest # of predictors)
@@ -2034,6 +2034,17 @@ library(patchwork)
 ### Partial Dependence Plots
 For best lambda plot
 ```{r}
+## make data frame for training dataset
+# figure out which of the columns has an interaction with a name in the incorrect order and fix
+badInteractionNames <- (names(coefficients(fit_glm_bestLambda)[-1]))[!(names(coefficients(fit_glm_bestLambda)[-1]) %in% names(X_df))]
+if (length(badInteractionNames) > 0) {
+  for (i in 1:length(badInteractionNames)) {
+    intTerms <- badInteractionNames[i] %>% 
+      str_split(":", simplify = TRUE)
+    newInteraction <- paste0(intTerms[,2], ":", intTerms[,1])
+    names(X_df)[names(X_df)==newInteraction] <- badInteractionNames[i]
+  }
+}
 for (i in 1:length(names(coefficients(fit_glm_bestLambda)[-1]))) {
   pd_bestLambda_i <- pdp::partial(object = fit_glm_bestLambda, pred.var = names(coefficients(fit_glm_bestLambda)[-1])[i], train = X_df, type = "regression")
   names(pd_bestLambda_i)[1] <- "predictorVariable_value"
@@ -2104,6 +2115,17 @@ For Second-best lambda plot
 if ( name_secondBestMod == "Intercept_Only") {
   print("The next best lambda model only contains one predictor (an intercept), so partial dependence plots are impractical")
   } else {
+      
+    # figure out which of the columns has an interaction with a name in the incorrect order and fix
+badInteractionNames <- (names(coefficients(mod_secondBest)[-1]))[!(names(coefficients(mod_secondBest)[-1]) %in% names(X_df))]
+if (length(badInteractionNames) > 0) {
+  for (i in 1:length(badInteractionNames)) {
+    intTerms <- badInteractionNames[i] %>% 
+      str_split(":", simplify = TRUE)
+    newInteraction <- paste0(intTerms[,2], ":", intTerms[,1])
+    names(X_df)[names(X_df)==newInteraction] <- badInteractionNames[i]
+  }
+}
 for (i in 1:length(prednames_secondBestMod)) {
   pd_secondBestLambda_i <- pdp::partial(object = mod_secondBest, pred.var = prednames_secondBestMod[i], train = X_df, type = "regression")
   names(pd_secondBestLambda_i)[1] <- "predictorVariable_value"

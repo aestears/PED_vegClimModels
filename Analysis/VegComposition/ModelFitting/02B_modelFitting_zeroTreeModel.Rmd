@@ -2357,3 +2357,66 @@ ggplot(pd_secondBestLambda) +
 }
 ```
 
+
+```{r}
+# function for printing model statement
+## function to get model statements
+getModelStatement <- function(coefficientTable, # name of the d.f that has model coefficients
+                  modelName, # name of the column in the coefficient table that has the parameters of interest
+                  responseVar # name of the response variable
+                  ) {
+  ##
+  # coefficientTable <- grassShrub_totalHerb_trimAnoms
+  # modelName <- "coefficientValue_bestLambda"
+  # responseVar <- "TotalHerbaceousCover"
+  ##
+  temp <- coefficientTable[,c("coefficientName", modelName)] %>% 
+    drop_na()
+  rownames(temp) <- temp$coefficientName
+  temp[,modelName] <- round(temp[,modelName], 8)
+  
+  # print out coefficients w/ coefficient names
+tempNames <- paste0(
+  apply(temp, MARGIN = 1, FUN = function(x) {
+    if (x["coefficientName"] == "(Intercept)") {
+      paste0(x[modelName])
+    } else {  
+      paste0(x[modelName], "*", x["coefficientName"])
+    }
+    }
+  ),
+  collapse = " + "
+)
+
+# print the unscaled model statement
+  unscaledModelName <- paste0(responseVar, "~ 1/(1 + exp(-(", tempNames, ")))")
+
+## print scaled model statement
+
+return(list("scaledInputVars_ModelStatement" = unscaledModelName))
+}
+
+
+## bestLambda model equations
+bestLambdaModStatement <- getModelStatement(coefficientTable = coefs, 
+                  modelName = "coefficientValue_bestLambda", 
+                  responseVar = "P(Tree)")
+## second-best lambda model equations
+secondBestLambdaModStatement <- getModelStatement(coefficientTable = coefs, 
+                  modelName = ifelse(name_secondBestMod == "1/2 SE Model", 
+                                      yes = "coefficientValue_halfseLambda", 
+                                     no = "coefficientValue_1seLambda"), 
+                  responseVar = "P(Tree)")
+```
+
+#### The equation for the bestLambda model if the inputs *are* scaled is: 
+```{r}
+print(bestLambdaModStatement$scaledInputVars_ModelStatement)
+```
+
+#### The equation for the *second*-bestLambda model if the inputs *are* scaled is: 
+```{r}
+print(secondBestLambdaModStatement$scaledInputVars_ModelStatement)
+```
+
+

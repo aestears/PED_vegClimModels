@@ -1257,6 +1257,11 @@ abline(h = thresholdPercentile_bestLambda + 0.05, lty = 3)
 text(x = best_threshold_bestLambda + 0.05, y = 0.1, labels = round(best_threshold_bestLambda, 4))
 text(x = lowBuffProb +.05, y = 0.05, labels = round(lowBuffProb, 4))
 text(x = highBuffProb +.05, y = 0.15, labels = round(highBuffProb, 4))
+
+## save buffers for later
+
+saveRDS(lowBuffProb, "./models/ForestModel_interpLowerBuffer.rds")
+saveRDS(highBuffProb, "./models/ForestModel_interpHigherBuffer.rds")
 ```
 
 For the best-lambda model: 
@@ -3242,13 +3247,13 @@ return(list("scaledInputVars_ModelStatement" = unscaledModelName,
 ## bestLambda model equations
 bestLambdaModStatement <- getModelStatement(coefficientTable = coefs, 
                   modelName = "coefficientValue_bestLambda", 
-                  responseVar = "P(Tree)")
+                  responseVar = "P(Forest)")
 ## second-best lambda model equations
 secondBestLambdaModStatement <- getModelStatement(coefficientTable = coefs, 
                   modelName = ifelse(name_secondBestMod == "1/2 SE Model", 
                                       yes = "coefficientValue_halfseLambda", 
                                      no = "coefficientValue_1seLambda"), 
-                  responseVar = "P(Tree)")
+                  responseVar = "P(Forest)")
 ```
 
 #### The equation for the bestLambda model if the inputs *are* scaled is: 
@@ -3256,20 +3261,20 @@ secondBestLambdaModStatement <- getModelStatement(coefficientTable = coefs,
 print(bestLambdaModStatement$scaledInputVars_ModelStatement)
 ```
 
-#### The equation for the bestLambda model if the inputs *are NOT* scaled is: 
-```{r}
-print(bestLambdaModStatement$unscaledInputVars_scaledModelStatement)
-```
+<!-- #### The equation for the bestLambda model if the inputs *are NOT* scaled is:  -->
+<!-- ```{r} -->
+<!-- print(bestLambdaModStatement$unscaledInputVars_scaledModelStatement) -->
+<!-- ``` -->
 
 #### The equation for the *second*-bestLambda model if the inputs *are* scaled is: 
 ```{r}
 print(secondBestLambdaModStatement$scaledInputVars_ModelStatement)
 ```
 
-#### The equation for the *second*-bestLambda model if the inputs *are NOT* scaled is: 
-```{r}
-print(secondBestLambdaModStatement$unscaledInputVars_scaledModelStatement)
-```
+<!-- #### The equation for the *second*-bestLambda model if the inputs *are NOT* scaled is:  -->
+<!-- ```{r} -->
+<!-- print(secondBestLambdaModStatement$unscaledInputVars_scaledModelStatement) -->
+<!-- ``` -->
 
 ## Now, use the model to predict if a location is or is not trees, for all observations in the cover dataset (which we will use in the subsequent step of the cover-modeling process).
 We use the 'modDat_1_s_temp' data.frame, which has all of the cover data, even for locations without observed tree cover, but has the climate and soils data that have been scaled in that same was as the data we used to fit the yes/no tree model

@@ -1,5 +1,346 @@
 ---
-title: "CoverModelMathDescription"
-output: html_document
+title: "Cover Model Math Description"
+author: "Alice Stears"
+date: "`r lubridate::today()`"
+output: 
+  html_document:
+    toc: true
+    df_print: paged
+    code_folding: hide
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE,
+                      message = FALSE, dpi = 72)
+```
+
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+# load functions
+
+# function for printing model statement
+## function to get model statements
+getModelStatement <- function(modelObject, 
+                  responseVar # name of the response variable
+                  ) {
+  ##
+  # coefficientTable <- grassShrub_totalHerb_trimAnoms
+  # modelName <- "coefficientValue_bestLambda"
+  # responseVar <- "TotalHerbaceousCover"
+  ##
+  temp <- data.frame("coefficientName" = names(coefficients(modelObject)),
+                     "coefficient" = unname(coefficients(modelObject)))
+  
+  rownames(temp) <- temp$coefficientName
+  temp[,"coefficient"] <- round(temp[,"coefficient"], 8)
+  
+  # print out coefficients w/ coefficient names
+tempNames <- paste0(
+  apply(temp, MARGIN = 1, FUN = function(x) {
+    if (x["coefficientName"] == "(Intercept)") {
+      paste0(x["coefficient"])
+    } else {  
+      paste0(x["coefficient"], "*", x["coefficientName"])
+    }
+    }
+  ),
+  collapse = " + "
+)
+
+# print the unscaled model statement
+  unscaledModelName <- paste0(responseVar, "~ 1/(1 + exp(-(", tempNames, ")))")
+  
+return(list("scaledInputVars_ModelStatement" = unscaledModelName))
+}
+
+```
+
+This document describes the equations for each of the cover models, as well as the arithmetic for adding them together to get to the final models of absolute cover. 
+
+# Predictor Information
+
+Information to center and scale the predictors (which must happen prior to using any of the equations in this document) can be found at "./Documentation/CoverModelPredictorInformation.csv".
+
+# Below are individual model equations 
+
+The equations in this section correspond to the equations (and equation numbers) described in the file "./Documentation/CoverModelEquations.csv"
+
+### Forest Probability
+We use the best-lambda model for forest probability
+This model is stored in "/Analysis/VegComposition/ModelFitting/models/ForestMod_bestLambdaGLM_10.rds"
+The threshold for making the continuous predictions binary is in "/Analysis/VegComposition/ModelFitting/models/ForestModelPrevalence.rds"
+The lower buffer that we use for interpolating P(forest) into the forest scaling factor is stored in "/Analysis/VegComposition/ModelFitting/models/ForestModel_interpLowerBuffer.rds", and the upper buffer is stored in "/Analysis/VegComposition/ModelFitting/models/ForestModel_interpUpperBuffer.rds"
+
+Below is the equation to predict the *continuous* probability of forest, provided the variables are *scaled*
+```{r}
+# read in model
+forestMod <-  readRDS("../Analysis/VegComposition/ModelFitting/models/ForestMod_bestLambdaGLM_10.rds")
+# get threshold for making predictions binary
+best_threshold_bestLambda <- readRDS( "../Analysis/VegComposition/ModelFitting/models/ForestModelPrevalence.rds")
+# interpolation buffers
+interpBuffer_lower <- readRDS( "../Analysis/VegComposition/ModelFitting/models/ForestModel_interpLowerBuffer.rds")
+interpBuffer_upper <- readRDS( "../Analysis/VegComposition/ModelFitting/models/ForestModel_interpHigherBuffer.rds")
+# get the model statement
+forestMod_statement <- getModelStatement(modelObject = forestMod, responseVar = "P(forest)_continuous")
+
+print(paste0("Eqn. 1: ",forestMod_statement$scaledInputVars_ModelStatement))
+print(paste0("The threshold for making the continuous predictions of P(Forest) binary, 'ForestThreshold',  is ",round(best_threshold_bestLambda,8)))
+print(paste0("The lower buffer for making interpolating the P(Forest) into the forest scaling factor, 'lowerBoundary', is ",round(interpBuffer_lower,8)))
+print(paste0("The upper buffer for making interpolating the P(Forest) into the forest scaling factor, 'upperBoundary', is ",round(interpBuffer_upper,8)))
+```
+
+### Treed area probability
+We use the 1SE-lambda model for treed area probability
+This model is stored in "/Analysis/VegComposition/ModelFitting/models/yesOrNoTrees_oneSELambdaGLM_10.rds"
+The threshold for making the continuous predictions binary is in "/Analysis/VegComposition/ModelFitting/models/YesNoTreeModelPrevalence_secondBest.rds"
+
+Below is the equation to predict the *continuous* probability of treed area, provided the variables are *scaled*
+```{r}
+# read in model
+zeroTreeMod <- readRDS("../Analysis/VegComposition/ModelFitting/models/yesOrNoTrees_oneSELambdaGLM_10.rds")
+# get threshold for making model predictions binary
+zeroTreeMod_threshold <- readRDS("../Analysis/VegComposition/ModelFitting/models/YesNoTreeModelPrevalence_secondBest.rds")
+# get the model statement
+zeroTreeMod_statement <- getModelStatement(modelObject = zeroTreeMod, responseVar = "P(Treed)_continuous")
+
+print(paste0("Eqn. 2: ",zeroTreeMod_statement$scaledInputVars_ModelStatement))
+print(paste0("The threshold for making the continuous predictions of P(Treed) binary is ",round(zeroTreeMod_threshold,8)))
+```
+
+### Total Tree absolute cover in forests
+We use the 1SE-lambda model for tree cover in forests
+This model is stored in "Analysis/VegComposition/ModelFitting/models/betaLASSO/TotalTreeCover_trees_noTLP_FALSE_removeAnomaliesTRUE_trimAnom_oneSELambdaGLM_observeDatForestClassification.rds"
+
+Below is the equation to predict absolute total tree cover in forested locations, provided the variables are *scaled*
+```{r}
+# read in model
+totalTree_F <- readRDS("../Analysis/VegComposition/ModelFitting/models/betaLASSO/TotalTreeCover_trees_noTLP_FALSE_removeAnomaliesTRUE_trimAnom_oneSELambdaGLM_observeDatForestClassification.rds")
+
+# get the model statement
+Forest_F_Mod_statement <- getModelStatement(modelObject = totalTree_F, responseVar = "TotalTreeCoverAbsolute_forest")
+
+print(paste0("Eqn. 3: ",Forest_F_Mod_statement$scaledInputVars_ModelStatement))
+```
+
+### Total Tree absolute cover in non-forests
+We use the best lambda model for tree cover in non-forests
+This model is stored in "Analysis/VegComposition/ModelFitting/models/betaLASSO/TotalTreeCover_transformed_noTrees_noTLP_FALSE_removeAnomaliesTRUE_trimAnom_bestLambdaGLM_observeDatForestClassification.rds"
+
+* Note that this model predicts P(Tree Cover) * 10, and the predictions need to be back-transformed by dividing the predictions by 10
+
+Below is the equation to predict absolute total tree cover in forested locations, provided the variables are *scaled*
+```{r}
+# read in model
+totalTree_GS <- readRDS("../Analysis/VegComposition/ModelFitting/models/betaLASSO/TotalTreeCover_transformed_noTrees_noTLP_FALSE_removeAnomaliesTRUE_trimAnom_bestLambdaGLM_observeDatForestClassification.rds")
+
+# get the model statement
+Forest_GS_Mod_statement <- getModelStatement(modelObject = totalTree_GS, responseVar = "TotalTreeCoverAbsolute_non-forest * 10")
+
+print(paste0("Eqn. 4: ", Forest_GS_Mod_statement$scaledInputVars_ModelStatement))
+```
+
+### Total Herbaceous absolute cover in CONUS 
+We use the best lambda model for herbaceous cover in CONUS
+This model is stored in "Analysis/VegComposition/ModelFitting/models/betaLASSO/TotalHerbaceousCover_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds"
+
+Below is the equation to predict absolute total tree cover in forested locations, provided the variables are *scaled*
+```{r}
+# read in model
+totalHerb_CONUS <- readRDS("../Analysis/VegComposition/ModelFitting/models/betaLASSO/TotalHerbaceousCover_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
+
+# get the model statement
+totalHerb_CONUS_Mod_statement <- getModelStatement(modelObject = totalHerb_CONUS, responseVar = "TotalHerbaceousCoverAbsolute_CONUS")
+
+print(paste0("Eqn. 5: ",totalHerb_CONUS_Mod_statement$scaledInputVars_ModelStatement))
+```
+
+### Shrub absolute cover in CONUS    
+We use the best lambda model for shrub cover in CONUS
+This model is stored in "Analysis/VegComposition/ModelFitting/models/betaLASSO/ShrubCover_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds"
+
+Below is the equation to predict absolute total tree cover in forested locations, provided the variables are *scaled*
+```{r}
+# read in model
+shrub_CONUS <- readRDS("../Analysis/VegComposition/ModelFitting/models/betaLASSO/ShrubCover_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
+
+# get the model statement
+shrub_CONUS_Mod_statement <- getModelStatement(modelObject = shrub_CONUS, responseVar = "ShrubCoverAbsolute_CONUS")
+
+print(paste0("Eqn. 6: ",shrub_CONUS_Mod_statement$scaledInputVars_ModelStatement))
+```  
+
+### Bare Ground absolute cover in CONUS 
+We use the 1/2 SE lambda model for bare ground cover in CONUS
+This model is stored in "Analysis/VegComposition/ModelFitting/models/betaLASSO/BareGroundCover_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_halfSELambdaGLM.rds"
+
+Below is the equation to predict absolute total tree cover in forested locations, provided the variables are *scaled*
+```{r}
+# read in model
+bareGround_CONUS <- readRDS("../Analysis/VegComposition/ModelFitting/models/betaLASSO/BareGroundCover_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_halfSELambdaGLM.rds")
+
+# get the model statement
+bareGround_CONUS_Mod_statement <- getModelStatement(modelObject = bareGround_CONUS, responseVar = "BareGroundCoverAbsolute_CONUS")
+
+print(paste0("Eqn. 7: ",bareGround_CONUS_Mod_statement$scaledInputVars_ModelStatement))
+```    
+
+### Forb absolute cover as a proportion of total herbaceous cover in CONUS  
+We use the best lambda model for forb cover in CONUS
+This model is stored in "Analysis/VegComposition/ModelFitting/models/betaLASSO/ForbCover_prop_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds"
+
+Below is the equation to predict absolute total tree cover in forested locations, provided the variables are *scaled*
+```{r}
+# read in model
+forb_CONUS <- readRDS("../Analysis/VegComposition/ModelFitting/models/betaLASSO/ForbCover_prop_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
+
+# get the model statement
+forb_CONUS_Mod_statement <- getModelStatement(modelObject = forb_CONUS, responseVar = "ForbCoverProp_CONUS")
+
+print(paste0("Eqn. 8: ",forb_CONUS_Mod_statement$scaledInputVars_ModelStatement))
+``` 
+
+### C3 absolute cover as a proportion of total herbaceous cover in CONUS 
+We use the best lambda model for C3 cover in CONUS
+This model is stored in "Analysis/VegComposition/ModelFitting/models/betaLASSO/C3GramCover_prop_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds"
+
+Below is the equation to predict absolute total tree cover in forested locations, provided the variables are *scaled*
+```{r}
+# read in model
+C3_CONUS <- readRDS("../Analysis/VegComposition/ModelFitting/models/betaLASSO/C3GramCover_prop_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
+
+# get the model statement
+C3_CONUS_Mod_statement <- getModelStatement(modelObject = C3_CONUS, responseVar = "C4CoverProp_CONUS")
+
+print(paste0("Eqn. 9: ",C3_CONUS_Mod_statement$scaledInputVars_ModelStatement))
+``` 
+
+### C4 absolute cover as a proportion of total herbaceous cover in CONUS 
+We use the best lambda model for C4 cover in CONUS
+This model is stored in "Analysis/VegComposition/ModelFitting/models/betaLASSO/C4GramCover_prop_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds"
+
+Below is the equation to predict absolute total tree cover in forested locations, provided the variables are *scaled*
+```{r}
+# read in model
+C4_CONUS <- readRDS("../Analysis/VegComposition/ModelFitting/models/betaLASSO/C4GramCover_prop_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_bestLambdaGLM.rds")
+
+# get the model statement
+C4_CONUS_Mod_statement <- getModelStatement(modelObject = C4_CONUS, responseVar = "C4CoverProp_CONUS")
+
+print(paste0("Eqn. 10: ",C4_CONUS_Mod_statement$scaledInputVars_ModelStatement))
+```  
+
+### Needle-leaved tree absolute cover as a proportion of total tree cover in CONUS 
+We use the best lambda model for Needle-leaved tree cover in CONUS
+This model is stored in "Analysis/VegComposition/ModelFitting/models/betaLASSO/ConifTreeCover_prop_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_halfSELambdaGLM.rds"
+
+Below is the equation to predict absolute total tree cover in forested locations, provided the variables are *scaled*
+```{r}
+# read in model
+NLTree_CONUS <- readRDS("../Analysis/VegComposition/ModelFitting/models/betaLASSO/ConifTreeCover_prop_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_halfSELambdaGLM.rds")
+
+# get the model statement
+NLTree_CONUS_Mod_statement <- getModelStatement(modelObject = NLTree_CONUS, responseVar = "NLTreeCoverProp_CONUS")
+
+print(paste0("Eqn. 11: ",NLTree_CONUS_Mod_statement$scaledInputVars_ModelStatement))
+```  
+
+### Broad-leaved tree absolute cover as a proportion of total tree cover in CONUS  
+We use the best lambda model for Broad-leaved tree cover in CONUS
+This model is stored in "Analysis/VegComposition/ModelFitting/models/betaLASSO/AngioTreeCover_prop_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_halfSELambdaGLM.rds"
+
+Below is the equation to predict absolute total tree cover in forested locations, provided the variables are *scaled*
+```{r}
+# read in model
+BLTree_CONUS <- readRDS("../Analysis/VegComposition/ModelFitting/models/betaLASSO/AngioTreeCover_prop_CONUS_noTLP_FALSE_removeAnomaliesFALSE_trimAnom_halfSELambdaGLM.rds")
+
+# get the model statement
+BLTree_CONUS_Mod_statement <- getModelStatement(modelObject = BLTree_CONUS, responseVar = "BLTreeCoverProp_CONUS")
+
+print(paste0("Eqn. 12: ",BLTree_CONUS_Mod_statement$scaledInputVars_ModelStatement))
+```  
+# Below are the steps to predict with the models above, make binary predictions when applicable, and combine the predictions together
+
+### Step 1: 
+#### Predict continuous forest classification using Equation 1
+$$Eqn. 1: P(Forest)_{continuous}  \sim climate + soils$$ 
+
+### Step 2: 
+#### Use the identified threshold to make the continuous predictions binary. 
+  * if $P(forest)_{continuous} > ForestThreshold$, then $P(forest)_{binary} = 1$
+  * if $P(forest)_{continuous} ≤ ForestThreshold$, then $P(forest)_{binary} = 0$
+      
+### Step 3: 
+#### To prevent harsh transitions from forest to un-forested locations, we create a 'scaling factor' that we use to mix the predictions for forested and un-forested locations. We identified boundaries above and below the identified threshold for making forest predictions binary within which we interpolate the continuous P(Forest) predictions between 0 and 1. We identified these boundaries such that there was an equal percentage (0.05%) of observed values on each side of the cutoff. We use the following interpolation to translate the continuous P(Forest) to the Forest Scaling Factor.     
+  * if $P(forest)_{continuous} ≤ lowerBoundary$, then $ForestScalingFactor = 0$        
+  * if $P(forest)_{continuous} = ForestThreshold$, then $ForestScalingFactor = 0.5$     
+  * if $P(forest)_{continuous} ≥ upperBoundary$, then $ForestScalingFactor = 1$    
+  * We use linear interpolation to interpolate the values of $P(forest)_{continuous}$ > lowerBoundary and < ForestThreshold to be between 0 and 0.5 
+  * We use linear interpolation to interpolate the values of $P(forest)_{continuous}$ > ForestThreshold and < upperBoundary to be between 0.5 and 1 
+  
+###  Step 4: 
+#### Predict locations that are un-treed using Equation 2  
+   $$Eqn. 2:  P(treed)_{continuous}  \sim climate + soils$$ 
+  
+###  Step 5: 
+#### Make predictions of P(treed) from step 1 binary, but only for locations that are un-forested     
+
+  * if $P(forest)_{binary} = 1$, then $P(treed) = 1$    
+  * if $P(forest)_{binary} = 0$ and $P(treed)_{continuous} ≤ treedThreshold$, then $P(treed)_{binary} = 0$    
+  * if $P(forest)_{binary} = 0$ and $P(treed)_{continuous} > treedThreshold$, then $P(treed)_{binary} = 1$    
+
+###  Step 6: 
+#### Use equations 3-12 to predict absolute cover for each functional group. 
+  * $TotalTreeCoverAbsolute_{forest} \sim climate + weather + soils$   
+  * $TotalTreeCoverAbsolute_{non-forest} \sim (climate + weather + soils)/10$   
+  * $TotalHerbaceousCoverAbsolute_{CONUS} \sim climate + weather + soils$      
+  * $BareGroundCoverAbsolute_{CONUS} \sim climate + weather + soils$   
+  * $ShrubCoverAbsolute_{CONUS} \sim climate + weather + soils$    
+  * $ForbCoverProp_{CONUS} \sim climate + weather + soils$   
+  * $C3CoverProp_{CONUS} \sim climate + weather + soils$   
+  * $C4CoverProp_{CONUS} \sim climate + weather + soils$   
+  * $NLTreeCoverProp_{CONUS} \sim climate + weather + soils$   
+  * $BLTreeCoverProp_{CONUS} \sim climate + weather + soils$   
+ 
+###  Step 7: 
+#### Apply the Forest Scaling factor from step 3 to the predictions of total tree cover to make them CONUS-wide    
+  * $Eqn. 13: TotalTreeCoverAbsolute_{CONUS} =  (TotalTreeCoverAbsolute_{forest} * ForestScalingFactor) + \\(TotalTreeCoverAbsolute_{non-forest} * (1-ForestScalingFactor))$
+    
+###  Step 8: 
+#### For all locations that are predicted to have zero tree cover (and are in places where $P(non-forest)_{binary}$ is 0), make tree cover zero   
+  * if $P(forest)_{binary} = 0$ and $P(treed)_{binary} = 0$, then $TotalTreeCoverAbsolute_{CONUS}=0$    
+  
+###  Step 9: 
+#### For functional groups whose models predict the proportion of another functional group (e.g. proportion of total tree that is needle-leaved, or proportion of total herbaceous that is C3 grass), make sure the relevant model-predicted proportions sum to 1   
+  * $ForbCoverPERCENT_{CONUS} =  ForbCoverProp_{CONUS}/(ForbCoverProp_{CONUS} + C3CoverProp_{CONUS} + C4CoverProp_{CONUS})$   
+  * $C3CoverPERCENT_{CONUS} =  C3CoverProp_{CONUS}/(ForbCoverProp_{CONUS} + C3CoverProp_{CONUS} + C4CoverProp_{CONUS})$   
+  * $C4CoverPERCENT_{CONUS} =  C4CoverProp_{CONUS}/(ForbCoverProp_{CONUS} + C3CoverProp_{CONUS} + C4CoverProp_{CONUS})$   
+  * $NLTreeCoverPERCENT_{CONUS} = NLTreeCoverProp_{CONUS}/(NLTreeCoverProp_{CONUS} + BLTreeCoverProp_{CONUS})$   
+  * $BLTreeCoverPERCENT_{CONUS} = BLTreeCoverProp_{CONUS}/(NLTreeCoverProp_{CONUS} + BLTreeCoverProp_{CONUS})$   
+  
+###  Step 10: 
+#### Translate the percentages from step 9 to absolute cover    
+  * $ForbCoverAbsolute_{CONUS} = ForbCoverPERCENT_{CONUS} * TotalHerbaceousCoverAbsolute_{CONUS}$   
+  * $C3CoverAbsolute_{CONUS} = C3CoverPERCENT_{CONUS} * TotalHerbaceousCoverAbsolute_{CONUS}$   
+  * $C4CoverAbsolute_{CONUS} = C4CoverPERCENT_{CONUS} * TotalHerbaceousCoverAbsolute_{CONUS}$   
+  * $NLTreeCoverAbsolute_{CONUS} = NLTreeCoverPERCENT_{CONUS} * TotalTreeCoverAbsolute_{CONUS}$   
+  * $BLTreeCoverAbsolute_{CONUS} = BLTreeCoverPERCENT_{CONUS} * TotalTreeCoverAbsolute_{CONUS}$   
+  
+###  Step 11: 
+#### Finally, we make the predictions of absolute cover relative. We use two 'layers' of relative cover, one for the overstory and one for the understory. As a result, all of the relative tree cover predictions are identical to the absolute tree cover predictions. Relative cover for all understory groups (forbs, C3 grass, C4 grass, shrubs, and bare ground) must sum to 1.     
+  * $TotalNonTreeCoverAbsolute_{CONUS} = TotalHerbaceousCoverAbsolute_{CONUS} + ShrubCoverAbsolute_{CONUS}  + BareGroundCoverAbsolute_{CONUS}$    
+  * $TotalTreeCoverRelative_{CONUS} = TotalTreeCoverAbsolute_{CONUS}$     
+  * $NLTreeCoverRelative_{CONUS} = NLTreeCoverAbsolute_{CONUS}$   
+  * $BLTreeCoverRelative_{CONUS} = BLTreeCoverAbsolute_{CONUS}$     
+  * $TotalHerbaceousCoverRelative_{CONUS} = TotalHerbaceousCoverAbsolute_{CONUS}/TotalNonTreeCoverAbsolute_{CONUS}$     
+  * $ShrubCoverRelative_{CONUS} = ShrubCoverAbsolute_{CONUS}/TotalNonTreeCoverAbsolute_{CONUS}$     
+  * $BareGroundCoverRelative_{CONUS} = BareGroundCoverAbsolute_{CONUS}/TotalNonTreeCoverAbsolute_{CONUS}$    
+  * $ForbCoverRelative_{CONUS} = ForbCoverAbsolute_{CONUS}/TotalNonTreeCoverAbsolute_{CONUS}$     
+  * $C3CoverRelative_{CONUS} = C3CoverAbsolute_{CONUS}/TotalNonTreeCoverAbsolute_{CONUS}$     
+  * $C4CoverRelative_{CONUS} = C4Absolute_{CONUS}/TotalNonTreeCoverAbsolute_{CONUS}$   
+      
+      
+      
